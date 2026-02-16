@@ -6,15 +6,9 @@ import {
   Activity,
   CheckCheck,
   Reply,
-  MoreHorizontal,
   Search,
-  Archive,
-  Edit3,
   CalendarClock,
   Users,
-  Smile,
-  ChevronDown,
-  ChevronUp,
 } from "lucide-react";
 
 const features = [
@@ -69,7 +63,7 @@ export default function Features() {
   const visibleFeatures = showAll ? features : features.slice(0, 7);
 
   return (
-    <section className="relative w-full py-24 bg-[#05050A] text-white overflow-hidden font-sans selection:bg-blue-500/30">
+    <section className="relative w-full py-10 bg-[#05050A] text-white overflow-hidden font-sans selection:bg-blue-500/30">
       {/* --- Background Effects --- */}
       <div className="absolute inset-0 z-0 pointer-events-none">
         <div className="absolute top-[20%] left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-blue-600/10 rounded-full blur-[120px] opacity-30" />

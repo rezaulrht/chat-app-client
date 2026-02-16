@@ -5,6 +5,8 @@ import Features from "@/components/Landing/Features";
 import UseCases from "@/components/Landing/UseCases";
 import Integrations from "@/components/Landing/Integrations";
 import CompetitiveEdge from "@/components/Landing/CompetitiveEdge";
+import Faq from "@/components/home/Faq";
+import Analytics from "@/components/home/Analytics";
 
 export default function HomePage() {
   return (
@@ -14,6 +16,8 @@ export default function HomePage() {
       <UseCases />
       <Integrations />
       <CompetitiveEdge />
+      <Analytics />
+      <Faq/>
       <CustomerReview />
     </div>
   );

@@ -1,9 +1,11 @@
-import React from 'react'
+import HeroSection from "@/components/HeroSection";
+import Features from "@/components/Features";
 
-export default function page() {
+export default function Home() {
   return (
-    <div>
-      <h1>Home Page</h1>
-    </div>
-  )
+    <main className="bg-[#05050A]">
+      <HeroSection />
+      <Features />
+    </main>
+  );
 }

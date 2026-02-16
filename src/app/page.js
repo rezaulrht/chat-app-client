@@ -1,17 +1,11 @@
-import HeroSection from "@/components/Landing/HeroSection";
-import Features from "@/components/Landing/Features";
-import UseCases from "@/components/Landing/UseCases";
-import Integrations from "@/components/Landing/Integrations";
-import CompetitiveEdge from "@/components/Landing/CompetitiveEdge";
+import React from "react";
+import CustomerReview from "./about/review/page";
 
-export default function Home() {
+export default function HomePage() {
   return (
-    <main className="bg-[#05050A]">
-      <HeroSection />
-      <Features />
-      <UseCases />
-      <Integrations />
-      <CompetitiveEdge />
-    </main>
+    <div>
+      <h1>Home Page</h1>
+      <CustomerReview />
+    </div>
   );
 }

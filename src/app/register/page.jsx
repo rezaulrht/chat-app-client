@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import {
@@ -157,14 +158,30 @@ export default function RegisterPage() {
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
                     <input
-                      {...register("fullname", { required: "Full name is required" })}
+                      {...register("fullname", {
+                        required: "Full name is required",
+                        minLength: {
+                          value: 2,
+                          message: "Name must be at least 2 characters",
+                        },
+                        pattern: {
+                          value: /^[a-zA-Z\s]+$/,
+                          message: "Name can only contain letters and spaces",
+                        },
+                      })}
                       type="text"
-                      className="block w-full pl-10 pr-3 py-2.5 bg-background-dark/50 border border-border-dark rounded-lg text-white text-sm focus:ring-1 focus:ring-primary outline-none transition-all"
+                      className={`block w-full pl-10 pr-3 py-2.5 bg-background-dark/50 border ${
+                        errors.fullname
+                          ? "border-red-500"
+                          : "border-border-dark"
+                      } rounded-lg text-white text-sm focus:ring-1 focus:ring-primary outline-none transition-all`}
                       placeholder="Jane Doe"
                     />
                   </div>
                   {errors.fullname && (
-                    <p className="text-red-400 text-xs mt-1 ml-1">{errors.fullname.message}</p>
+                    <p className="text-red-400 text-xs mt-1 ml-1">
+                      {errors.fullname.message}
+                    </p>
                   )}
                 </div>
 
@@ -175,20 +192,24 @@ export default function RegisterPage() {
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
                     <input
-                      {...register("email", { 
+                      {...register("email", {
                         required: "Email is required",
                         pattern: {
                           value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                          message: "Invalid email address"
-                        }
+                          message: "Please enter a valid email address",
+                        },
                       })}
                       type="email"
-                      className="block w-full pl-10 pr-3 py-2.5 bg-background-dark/50 border border-border-dark rounded-lg text-white text-sm focus:ring-1 focus:ring-primary outline-none transition-all"
+                      className={`block w-full pl-10 pr-3 py-2.5 bg-background-dark/50 border ${
+                        errors.email ? "border-red-500" : "border-border-dark"
+                      } rounded-lg text-white text-sm focus:ring-1 focus:ring-primary outline-none transition-all`}
                       placeholder="jane@example.com"
                     />
                   </div>
                   {errors.email && (
-                    <p className="text-red-400 text-xs mt-1 ml-1">{errors.email.message}</p>
+                    <p className="text-red-400 text-xs mt-1 ml-1">
+                      {errors.email.message}
+                    </p>
                   )}
                 </div>
 
@@ -199,15 +220,24 @@ export default function RegisterPage() {
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
                     <input
-                      {...register("password", { 
+                      {...register("password", {
                         required: "Password is required",
                         minLength: {
                           value: 6,
-                          message: "Password must be at least 6 characters"
-                        }
+                          message: "Password must be at least 6 characters",
+                        },
+                        pattern: {
+                          value: /^(?=.*[a-zA-Z])(?=.*\d)/,
+                          message:
+                            "Password must contain at least one letter and one number",
+                        },
                       })}
                       type={showPassword ? "text" : "password"}
-                      className="block w-full pl-10 pr-10 py-2.5 bg-background-dark/50 border border-border-dark rounded-lg text-white text-sm focus:ring-1 focus:ring-primary outline-none transition-all"
+                      className={`block w-full pl-10 pr-10 py-2.5 bg-background-dark/50 border ${
+                        errors.password
+                          ? "border-red-500"
+                          : "border-border-dark"
+                      } rounded-lg text-white text-sm focus:ring-1 focus:ring-primary outline-none transition-all`}
                       placeholder="••••••••"
                     />
                     <button
@@ -219,13 +249,17 @@ export default function RegisterPage() {
                     </button>
                   </div>
                   {errors.password && (
-                    <p className="text-red-400 text-xs mt-1 ml-1">{errors.password.message}</p>
+                    <p className="text-red-400 text-xs mt-1 ml-1">
+                      {errors.password.message}
+                    </p>
                   )}
                 </div>
 
                 <div className="flex items-center py-1">
                   <input
-                    {...register("terms", { required: "You must accept the terms" })}
+                    {...register("terms", {
+                      required: "You must accept the terms",
+                    })}
                     type="checkbox"
                     id="terms"
                     className="custom-checkbox"
@@ -241,7 +275,9 @@ export default function RegisterPage() {
                   </label>
                 </div>
                 {errors.terms && (
-                  <p className="text-red-400 text-xs ml-1">{errors.terms.message}</p>
+                  <p className="text-red-400 text-xs ml-1">
+                    {errors.terms.message}
+                  </p>
                 )}
 
                 <button
@@ -263,19 +299,21 @@ export default function RegisterPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <button 
+                <button
                   type="button"
                   onClick={handleGoogleSignup}
                   className="flex justify-center items-center py-2 border border-gray-800 rounded-lg bg-background-dark/30 text-xs font-medium text-gray-300 hover:bg-gray-800 transition-colors"
                 >
-                  <img
+                  <Image
                     src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png"
-                    className="h-4 w-4 mr-2"
+                    width={16}
+                    height={16}
+                    className="mr-2"
                     alt="Google"
                   />
                   Google
                 </button>
-                <button 
+                <button
                   type="button"
                   onClick={handleGithubSignup}
                   className="flex justify-center items-center py-2 border border-gray-800 rounded-lg bg-background-dark/30 text-xs font-medium text-gray-300 hover:bg-gray-800 transition-colors"

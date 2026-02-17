@@ -2,35 +2,35 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
 import { MessageSquare } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const { login } = useAuth();
   const router = useRouter();
 
+  // Initialize React Hook Form
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm();
+
   const handleGoogleLogin = () => {
     window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const onSubmit = async (data) => {
     setError("");
     setLoading(true);
 
-    if (!email || !password) {
-      setError("Please fill in all fields");
-      setLoading(false);
-      return;
-    }
-
-    const result = await login(email, password);
+    const result = await login(data.email, data.password);
 
     if (result.success) {
       router.push("/chat");
@@ -77,10 +77,12 @@ export default function LoginPage() {
             onClick={handleGoogleLogin}
             className="w-full flex items-center justify-center gap-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white font-medium rounded-lg px-4 py-3 transition-all duration-200 group"
           >
-            <img
+            <Image
               src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png"
               alt="Google"
-              className="w-5 h-5 opacity-90 group-hover:opacity-100 transition-opacity"
+              width={20}
+              height={20}
+              className="opacity-90 group-hover:opacity-100 transition-opacity"
             />
             <span className="text-sm">Continue with Google</span>
           </button>
@@ -98,7 +100,7 @@ export default function LoginPage() {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {error && (
               <div className="bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-3 rounded-lg text-sm">
                 {error}
@@ -109,10 +111,17 @@ export default function LoginPage() {
               <input
                 type="email"
                 id="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                {...register("email", {
+                  required: "Email is required",
+                  pattern: {
+                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                    message: "Please enter a valid email address",
+                  },
+                })}
                 placeholder=" "
-                className="block w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary peer text-white transition-all duration-200"
+                className={`block w-full px-4 py-3 bg-white/5 border ${
+                  errors.email ? "border-red-500" : "border-white/10"
+                } rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary peer text-white transition-all duration-200`}
               />
               <label
                 htmlFor="email"
@@ -120,16 +129,28 @@ export default function LoginPage() {
               >
                 Email Address
               </label>
+              {errors.email && (
+                <p className="text-red-400 text-xs mt-1 ml-1">
+                  {errors.email.message}
+                </p>
+              )}
             </div>
 
             <div className="relative floating-group">
               <input
                 type="password"
                 id="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                {...register("password", {
+                  required: "Password is required",
+                  minLength: {
+                    value: 6,
+                    message: "Password must be at least 6 characters",
+                  },
+                })}
                 placeholder=" "
-                className="block w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary peer text-white transition-all duration-200"
+                className={`block w-full px-4 py-3 bg-white/5 border ${
+                  errors.password ? "border-red-500" : "border-white/10"
+                } rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary peer text-white transition-all duration-200`}
               />
               <label
                 htmlFor="password"
@@ -137,6 +158,11 @@ export default function LoginPage() {
               >
                 Password
               </label>
+              {errors.password && (
+                <p className="text-red-400 text-xs mt-1 ml-1">
+                  {errors.password.message}
+                </p>
+              )}
             </div>
 
             <div className="flex justify-end">

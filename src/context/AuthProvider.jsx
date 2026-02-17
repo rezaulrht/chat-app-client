@@ -5,22 +5,24 @@ import { AuthContext } from "./AuthContext";
 import useAxios from "@/hooks/useAxios";
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const axios = useAxios();
-
-  // Load user from localStorage on mount
-  useEffect(() => {
-    const storedToken = localStorage.getItem("token");
-    const storedUser = localStorage.getItem("user");
-
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
+  // Initialize state with lazy initialization from localStorage
+  const [user, setUser] = useState(() => {
+    if (typeof window !== "undefined") {
+      const storedUser = localStorage.getItem("user");
+      return storedUser ? JSON.parse(storedUser) : null;
     }
-    setLoading(false);
-  }, []);
+    return null;
+  });
+
+  const [token, setToken] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("token");
+    }
+    return null;
+  });
+
+  const [loading, setLoading] = useState(false);
+  const axios = useAxios();
 
   // Register function
   const register = async (name, email, password) => {

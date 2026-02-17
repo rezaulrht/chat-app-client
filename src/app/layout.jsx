@@ -3,6 +3,7 @@ import "./globals.css";
 import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
 
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -20,18 +21,20 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <header className="py-2 w-11/12 mx-auto">
-          <NavBar />
-        </header>
-        <main className=" min-h-[calc(100svh-218px)]">{children}</main>
-        <footer>
-          <Footer />
-        </footer>
-      </body>
-    </html>
+    
+      <html lang="en">
+        <body
+          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        >
+          <header className="py-2 w-11/12 mx-auto">
+            <NavBar />
+          </header>
+          <main className=" min-h-[calc(100svh-218px)]">{children}</main>
+          <footer>
+            <Footer />
+          </footer>
+        </body>
+      </html>
+    
   );
 }

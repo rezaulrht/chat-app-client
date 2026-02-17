@@ -1,5 +1,6 @@
 import React from "react";
 import NavLinks from "./buttons/NavLinks";
+import Link from "next/link";
 
 export default function NavBar() {
   const links = (
@@ -55,9 +56,9 @@ export default function NavBar() {
           </ul>
         </div>
         <div className="navbar-end">
-          <button className="btn btn-ghost ">
+          <Link href={"login"} className="btn btn-ghost ">
          Log In
-          </button>
+          </Link>
           <button className="btn btn-primary">
             Get Started
         

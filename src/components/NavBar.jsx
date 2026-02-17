@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import NavLinks from "./buttons/NavLinks";
 import { usePathname } from "next/navigation";
+import { MessageSquare } from "lucide-react";
 
 export default function NavBar() {
   const pathname = usePathname();
@@ -103,6 +104,13 @@ export default function NavBar() {
             className="text-sm font-medium text-slate-400 hover:text-white transition-colors"
           >
             Sign In
+          </Link>
+          <Link
+            href="/chat"
+            className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10 transition-all mr-2"
+            title="Chat App"
+          >
+            <MessageSquare className="w-5 h-5" />
           </Link>
           <Link
             href="/register"

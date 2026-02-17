@@ -6,8 +6,8 @@ export default function HeroSection() {
     <section className="relative w-full min-h-[90vh] bg-[#05050A] text-white overflow-hidden flex flex-col items-center justify-center font-sans selection:bg-blue-500/30 py-12">
       {/* --- 1. Background Effects (Static) --- */}
       <div className="absolute inset-0 z-0">
-        <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-blue-600/20 rounded-full blur-[120px] opacity-40 pointer-events-none" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_at_center,black_50%,transparent_100%)] pointer-events-none" />
+        <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-175 h-125 bg-blue-600/20 rounded-full blur-[120px] opacity-40 pointer-events-none" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-size-[64px_64px] mask-[radial-gradient(ellipse_at_center,black_50%,transparent_100%)] pointer-events-none" />
       </div>
 
       {/* --- 2. Decorative Background Bubbles (Static) --- */}
@@ -38,7 +38,7 @@ export default function HeroSection() {
       <div className="relative z-10 px-6 max-w-5xl mx-auto text-center mt-10">
         <h1 className="text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight text-white mb-8 leading-[1.05]">
           Connect instantly <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 via-blue-100 to-blue-300">
+          <span className="text-transparent bg-clip-text bg-linear-to-r from-[#13c8ec] via-white to-[#13c8ec]">
             Anywhere.
           </span>
         </h1>
@@ -77,7 +77,7 @@ export default function HeroSection() {
             {/* Message 1: Incoming (Left) */}
             <div className="flex items-start gap-3">
               {/* Icon Avatar */}
-              <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
+              <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center shrink-0">
                 <User className="w-5 h-5 text-indigo-300" />
               </div>
               <div className="bg-slate-800 border border-white/5 px-4 py-3 rounded-2xl rounded-tl-none text-slate-200 shadow-sm">
@@ -87,11 +87,11 @@ export default function HeroSection() {
 
             {/* Message 2: Outgoing (Right) */}
             <div className="flex items-start gap-3 justify-end">
-              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 rounded-2xl rounded-tr-none text-white shadow-lg shadow-blue-500/20">
-                Just saw it. It's incredibly fast!
+              <div className="bg-linear-to-r from-blue-600 to-indigo-600 px-4 py-3 rounded-2xl rounded-tr-none text-white shadow-lg shadow-blue-500/20">
+                Just saw it. It&apos;s incredibly fast!
               </div>
               {/* Icon Avatar */}
-              <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+              <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0">
                 <User className="w-5 h-5 text-blue-300" />
               </div>
             </div>
@@ -99,7 +99,7 @@ export default function HeroSection() {
             {/* Message 3: Typing (Left) */}
             <div className="flex items-center gap-3">
               {/* Icon Avatar */}
-              <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
+              <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center shrink-0">
                 <User className="w-5 h-5 text-indigo-300" />
               </div>
               <div className="bg-slate-800 border border-white/5 px-4 py-3 rounded-2xl rounded-tl-none text-slate-400 text-sm italic">
@@ -109,7 +109,7 @@ export default function HeroSection() {
           </div>
 
           {/* Static Glow behind the chat card */}
-          <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-3xl blur opacity-20 -z-10" />
+          <div className="absolute -inset-1 bg-linear-to-r from-blue-500 to-indigo-500 rounded-3xl blur opacity-20 -z-10" />
         </div>
       </div>
     </section>

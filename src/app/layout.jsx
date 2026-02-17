@@ -8,19 +8,23 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
+import { AuthProvider } from "@/context/AuthContext";
+
 export const metadata = {
-  title: "ConvoX - Real-time Communication",
+  title: "ConvoX | Intelligent Professional Communication",
   description:
-    "Experience high-performance, secure, and seamless real-time messaging with ConvoX.",
+    "Experience the next generation of team communication with ConvoX.",
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${inter.variable} bg-background-dark antialiased`}>
-        <NavBar />
-        <main className="min-h-screen pt-16">{children}</main>
-        <Footer />
+    <html lang="en">
+      <body className={inter.className}>
+        <AuthProvider>
+          <NavBar />
+          {children}
+          <Footer />
+        </AuthProvider>
       </body>
     </html>
   );

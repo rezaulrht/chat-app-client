@@ -12,10 +12,16 @@ import {
   Eye,
   EyeOff,
   Github,
+  AlertCircle,
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { registerUser } = useAuth();
+  const router = useRouter();
 
   // Initialize React Hook Form
   const {
@@ -25,8 +31,21 @@ export default function RegisterPage() {
   } = useForm();
 
   // Function to handle form submission
-  const onSubmit = (data) => {
-    console.log("Registration Data:", data);
+  const onSubmit = async (data) => {
+    setError("");
+    setLoading(true);
+    const res = await registerUser(data.fullname, data.email, data.password);
+    if (res.success) {
+      // Registration successful, redirect to login
+      router.push("/login?registered=true");
+    } else {
+      setError(res.message);
+    }
+    setLoading(false);
+  };
+
+  const handleOAuth = (provider) => {
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/${provider}`;
   };
 
   return (
@@ -88,14 +107,13 @@ export default function RegisterPage() {
             <div className="glass-panel p-6 sm:p-8 rounded-xl relative border border-white/10 shadow-2xl">
               <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-transparent via-[#13c8ec] to-transparent opacity-50"></div>
 
-              <div className="text-center mb-6">
-                <h2 className="text-xl font-bold text-white font-display">
-                  Create account
-                </h2>
-                <p className="text-gray-400 text-xs mt-1">
-                  Free 14-day trial • No card needed
-                </p>
-              </div>
+              {/* Error Message */}
+              {error && (
+                <div className="mb-6 p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-3 text-red-400 text-xs">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <p>{error}</p>
+                </div>
+              )}
 
               {/* Form with handleSubmit */}
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -106,12 +124,19 @@ export default function RegisterPage() {
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
                     <input
-                      {...register("fullname", { required: true })}
+                      {...register("fullname", {
+                        required: "Name is required",
+                      })}
                       type="text"
-                      className="block w-full pl-10 pr-3 py-2.5 bg-background-dark/50 border border-white/10 rounded-lg text-white text-sm focus:ring-1 focus:ring-[#13c8ec] outline-none transition-all"
+                      className={`block w-full pl-10 pr-3 py-2.5 bg-background-dark/50 border ${errors.fullname ? "border-red-500/50" : "border-white/10"} rounded-lg text-white text-sm focus:ring-1 focus:ring-[#13c8ec] outline-none transition-all`}
                       placeholder="Jane Doe"
                     />
                   </div>
+                  {errors.fullname && (
+                    <p className="text-red-500 text-[10px] mt-1 ml-1">
+                      {errors.fullname.message}
+                    </p>
+                  )}
                 </div>
 
                 <div className="group/input">
@@ -121,12 +146,23 @@ export default function RegisterPage() {
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
                     <input
-                      {...register("email", { required: true })}
+                      {...register("email", {
+                        required: "Email is required",
+                        pattern: {
+                          value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                          message: "Invalid email address",
+                        },
+                      })}
                       type="email"
-                      className="block w-full pl-10 pr-3 py-2.5 bg-background-dark/50 border border-white/10 rounded-lg text-white text-sm focus:ring-1 focus:ring-[#13c8ec] outline-none transition-all"
+                      className={`block w-full pl-10 pr-3 py-2.5 bg-background-dark/50 border ${errors.email ? "border-red-500/50" : "border-white/10"} rounded-lg text-white text-sm focus:ring-1 focus:ring-[#13c8ec] outline-none transition-all`}
                       placeholder="jane@example.com"
                     />
                   </div>
+                  {errors.email && (
+                    <p className="text-red-500 text-[10px] mt-1 ml-1">
+                      {errors.email.message}
+                    </p>
+                  )}
                 </div>
 
                 <div className="group/input">
@@ -136,9 +172,12 @@ export default function RegisterPage() {
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
                     <input
-                      {...register("password", { required: true })}
+                      {...register("password", {
+                        required: "Password is required",
+                        minLength: { value: 6, message: "Min 6 characters" },
+                      })}
                       type={showPassword ? "text" : "password"}
-                      className="block w-full pl-10 pr-10 py-2.5 bg-background-dark/50 border border-white/10 rounded-lg text-white text-sm focus:ring-1 focus:ring-[#13c8ec] outline-none transition-all"
+                      className={`block w-full pl-10 pr-10 py-2.5 bg-background-dark/50 border ${errors.password ? "border-red-500/50" : "border-white/10"} rounded-lg text-white text-sm focus:ring-1 focus:ring-[#13c8ec] outline-none transition-all`}
                       placeholder="••••••••"
                     />
                     <button
@@ -149,11 +188,18 @@ export default function RegisterPage() {
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
+                  {errors.password && (
+                    <p className="text-red-500 text-[10px] mt-1 ml-1">
+                      {errors.password.message}
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex items-center py-1">
                   <input
-                    {...register("terms", { required: true })}
+                    {...register("terms", {
+                      required: "Terms agreement required",
+                    })}
                     type="checkbox"
                     id="terms"
                     className="h-4 w-4 rounded border-gray-700 bg-gray-900 text-[#13c8ec] focus:ring-[#13c8ec]"
@@ -171,12 +217,21 @@ export default function RegisterPage() {
                     </Link>
                   </label>
                 </div>
+                {errors.terms && (
+                  <p className="text-red-500 text-[10px] ml-1">
+                    {errors.terms.message}
+                  </p>
+                )}
 
                 <button
                   type="submit"
-                  className="w-full py-3 rounded-lg text-sm font-bold text-background-dark bg-[#13c8ec] hover:bg-[#13c8ec]/90 transition-all shadow-lg shadow-[#13c8ec]/20"
+                  disabled={loading}
+                  className="w-full py-3 rounded-lg text-sm font-bold text-background-dark bg-[#13c8ec] hover:bg-[#13c8ec]/90 transition-all shadow-lg shadow-[#13c8ec]/20 flex items-center justify-center gap-2"
                 >
-                  Start Chatting
+                  {loading && (
+                    <span className="loading loading-spinner loading-xs text-background-dark"></span>
+                  )}
+                  {loading ? "Creating Account..." : "Start Chatting"}
                 </button>
               </form>
 
@@ -190,7 +245,10 @@ export default function RegisterPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <button className="btn btn-outline border-white/10 hover:bg-white/5 text-slate-300 gap-2 h-auto py-2.5 min-h-0 text-xs font-medium">
+                <button
+                  onClick={() => handleOAuth("google")}
+                  className="btn btn-outline border-white/10 hover:bg-white/5 text-slate-300 gap-2 h-auto py-2.5 min-h-0 text-xs font-medium"
+                >
                   <svg className="w-4 h-4" viewBox="0 0 24 24">
                     <path
                       fill="#4285F4"
@@ -211,7 +269,10 @@ export default function RegisterPage() {
                   </svg>
                   Google
                 </button>
-                <button className="btn btn-outline border-white/10 hover:bg-white/5 text-slate-300 gap-2 h-auto py-2.5 min-h-0 text-xs font-medium">
+                <button
+                  onClick={() => handleOAuth("github")}
+                  className="btn btn-outline border-white/10 hover:bg-white/5 text-slate-300 gap-2 h-auto py-2.5 min-h-0 text-xs font-medium"
+                >
                   <Github className="w-4 h-4" />
                   GitHub
                 </button>

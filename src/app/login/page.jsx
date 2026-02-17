@@ -1,10 +1,31 @@
-"use client";
-
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
-import { MessageSquare, Github } from "lucide-react";
+import { MessageSquare, Github, Mail, Lock, AlertCircle } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    const res = await login(email, password);
+    if (!res.success) {
+      setError(res.message);
+    }
+    setLoading(false);
+  };
+
+  const handleOAuth = (provider) => {
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/${provider}`;
+  };
+
   return (
     <div className="min-h-screen bg-[#05050A] font-sans text-white flex items-center justify-center relative overflow-hidden">
       {/* Background Effects (Matching Landing Page) */}
@@ -27,7 +48,10 @@ export default function LoginPage() {
 
           {/* Social Login */}
           <div className="grid grid-cols-2 gap-3 mb-8">
-            <button className="btn btn-outline border-white/10 hover:bg-white/5 text-slate-300 gap-2 h-auto py-2.5 min-h-0 text-xs font-medium">
+            <button
+              onClick={() => handleOAuth("google")}
+              className="btn btn-outline border-white/10 hover:bg-white/5 text-slate-300 gap-2 h-auto py-2.5 min-h-0 text-xs font-medium"
+            >
               <svg className="w-4 h-4" viewBox="0 0 24 24">
                 <path
                   fill="#4285F4"
@@ -48,7 +72,10 @@ export default function LoginPage() {
               </svg>
               Google
             </button>
-            <button className="btn btn-outline border-white/10 hover:bg-white/5 text-slate-300 gap-2 h-auto py-2.5 min-h-0 text-xs font-medium">
+            <button
+              onClick={() => handleOAuth("github")}
+              className="btn btn-outline border-white/10 hover:bg-white/5 text-slate-300 gap-2 h-auto py-2.5 min-h-0 text-xs font-medium"
+            >
               <Github className="w-4 h-4" />
               GitHub
             </button>
@@ -66,17 +93,31 @@ export default function LoginPage() {
             </div>
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6 p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-3 text-red-400 text-xs">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <p>{error}</p>
+            </div>
+          )}
+
           {/* Form */}
-          <form className="space-y-5">
+          <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-2">
               <label className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 ml-1">
                 Email Address
               </label>
-              <input
-                type="email"
-                placeholder="jane@example.com"
-                className="block w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#13c8ec] text-white text-sm transition-all"
-              />
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="jane@example.com"
+                  required
+                  className="block w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#13c8ec] text-white text-sm transition-all"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -91,15 +132,27 @@ export default function LoginPage() {
                   Forgot?
                 </Link>
               </div>
-              <input
-                type="password"
-                placeholder="••••••••"
-                className="block w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#13c8ec] text-white text-sm transition-all"
-              />
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  className="block w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#13c8ec] text-white text-sm transition-all"
+                />
+              </div>
             </div>
 
-            <button className="w-full py-3.5 rounded-lg text-sm font-bold text-background-dark bg-[#13c8ec] hover:bg-[#13c8ec]/90 transition-all shadow-lg shadow-[#13c8ec]/20 mt-4">
-              Sign In
+            <button
+              disabled={loading}
+              className="w-full py-3.5 rounded-lg text-sm font-bold text-background-dark bg-[#13c8ec] hover:bg-[#13c8ec]/90 transition-all shadow-lg shadow-[#13c8ec]/20 mt-4 flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <span className="loading loading-spinner loading-xs text-background-dark"></span>
+              ) : null}
+              {loading ? "Signing In..." : "Sign In"}
             </button>
           </form>
 

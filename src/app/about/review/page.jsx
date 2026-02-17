@@ -36,79 +36,88 @@ export default function CustomerReview() {
   ];
 
   return (
-    <div className="my-20 px-4 space-y-6">
-      <h1 className="text-secondary text-3xl font-bold text-center">
-        What Our Users Say
-      </h1>
+    <div className="bg-[#05050A] min-h-screen font-sans text-slate-200 antialiased relative overflow-hidden flex flex-col pt-10">
+      {/* Background Effects (Standardized) */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-175 h-125 bg-blue-600/20 rounded-full blur-[120px] opacity-40 pointer-events-none" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-size-[64px_64px] mask-[radial-gradient(ellipse_at_center,black_50%,transparent_100%)] pointer-events-none" />
+      </div>
 
-      <p className="text-center text-gray-700 mt-2 mb-16">
-        Delivering fast, secure, and seamless real-time communication is our
-        core mission. Our chat application enables users to connect instantly
-        through private and group messaging, share files effortlessly, and enjoy
-        a smooth, modern, and reliable communication experience — anytime,
-        anywhere.
-      </p>
+      <div className="relative z-10 py-20 px-4 space-y-6 max-w-7xl mx-auto w-full">
+        <div className="text-center space-y-4 mb-16">
+          <h1 className="text-4xl md:text-5xl font-extrabold text-white tracking-tight">
+            What Our <span className="text-[#13c8ec]">Users</span> Say
+          </h1>
+          <p className="max-w-2xl mx-auto text-slate-400 text-lg font-light leading-relaxed">
+            Delivering fast, secure, and seamless real-time communication is our
+            core mission. Experience why thousands of teams choose ConvoX for
+            their daily collaboration.
+          </p>
+        </div>
 
-      <Swiper
-        effect={"coverflow"}
-        grabCursor={true}
-        centeredSlides={true}
-        slidesPerView={3}
-        coverflowEffect={{
-          rotate: 30,
-          stretch: "50%",
-          depth: 200,
-          modifier: 1,
-          scale: 0.75,
-          slideShadows: true,
-        }}
-        autoplay={{
-          delay: 2000,
-          disableOnInteraction: false,
-        }}
-        pagination={true}
-        modules={[EffectCoverflow, Pagination, Autoplay]}
-        className="mySwiper"
-      >
-        {reviews.map((review, index) => (
-          <SwiperSlide key={index}>
-            <div className="bg-white shadow-lg rounded-xl p-6 border border-gray-200">
-              {/* Top Section */}
-              <div className="flex items-center gap-4">
-                {/* Profile Placeholder */}
-                <div className="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center text-xl font-semibold text-gray-700">
-                  {review.name.charAt(0)}
-                </div>
-
+        <Swiper
+          effect={"coverflow"}
+          grabCursor={true}
+          centeredSlides={true}
+          slidesPerView={"auto"}
+          coverflowEffect={{
+            rotate: 0,
+            stretch: 0,
+            depth: 100,
+            modifier: 2.5,
+            slideShadows: false,
+          }}
+          autoplay={{
+            delay: 3000,
+            disableOnInteraction: false,
+          }}
+          pagination={{ clickable: true }}
+          modules={[EffectCoverflow, Pagination, Autoplay]}
+          className="reviews-swiper pb-16!"
+        >
+          {reviews.map((review, index) => (
+            <SwiperSlide key={index} className="w-87.5! sm:w-100!">
+              <div className="glass-card rounded-2xl p-8 border border-white/10 h-full flex flex-col justify-between hover:border-[#13c8ec]/30 transition-all duration-300">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    {review.name}
-                  </h3>
-                  <p className="text-sm text-gray-500">{review.date}</p>
+                  {/* Top Section */}
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-12 h-12 rounded-full bg-[#13c8ec]/20 border border-[#13c8ec]/30 flex items-center justify-center text-xl font-bold text-[#13c8ec]">
+                      {review.name.charAt(0)}
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-white leading-tight">
+                        {review.name}
+                      </h3>
+                      <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">
+                        Verified User
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Review Text */}
+                  <p className="text-slate-300 leading-relaxed font-light italic">
+                    &quot;{review.text}&quot;
+                  </p>
                 </div>
 
-                {/* Facebook Icon */}
-                <span className="ml-auto text-blue-600 text-xl">
-                  <i className="fab fa-facebook"></i>
-                </span>
-              </div>
-
-              {/* Recommends Badge */}
-              <div className="flex items-center gap-2 mt-4">
-                <div className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center">
-                  ✓
+                <div className="mt-8 flex items-center justify-between pt-6 border-t border-white/5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 bg-[#13c8ec]/20 rounded-full flex items-center justify-center">
+                      <div className="w-2 h-2 bg-[#13c8ec] rounded-full shadow-[0_0_8px_#13c8ec]" />
+                    </div>
+                    <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-[#13c8ec]">
+                      Recommended
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">
+                    {review.date}
+                  </span>
                 </div>
-                <p className="text-green-600 font-medium">recommends</p>
               </div>
-
-              {/* Review Text */}
-              <p className="mt-4 text-gray-700 leading-relaxed">
-                {review.text}
-              </p>
-            </div>
-          </SwiperSlide>
-        ))}
-      </Swiper>
+            </SwiperSlide>
+          ))}
+        </Swiper>
+      </div>
     </div>
   );
 }

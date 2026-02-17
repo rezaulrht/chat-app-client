@@ -45,7 +45,7 @@ export default function RegisterPage() {
                 <Bolt className="text-background-dark w-5 h-5 fill-current" />
               </div>
               <span className="text-xl font-bold text-white tracking-wide">
-                Nexus<span className="text-primary">Chat</span>
+                Convo<span className="text-primary">X</span>
               </span>
             </div>
 

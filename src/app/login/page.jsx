@@ -3,10 +3,6 @@ import React from "react";
 
 import Link from "next/link";
 import { MessageSquare, User } from "lucide-react";
-import LoginButton from "@/components/buttons/LoginButton";
-
-import { getServerSession } from "next-auth";
-import { authOptions } from "../api/auth/[...nextauth]/route";
 
 export default async function LoginPage() {
  
@@ -103,8 +99,10 @@ export default async function LoginPage() {
                 Forgot password?
               </Link>
             </div>
-
-            <LoginButton></LoginButton>
+            <button className="w-full py-3 px-4 rounded-lg text-sm font-semibold text-[#101f22] bg-primary hover:bg-primary/90 transition-all duration-200 shadow-[0_0_20px_rgba(19,200,236,0.3)] hover:shadow-[0_0_25px_rgba(19,200,236,0.5)]">
+              Log In
+            </button>
+            
           </form>
 
           <div className="mt-8 text-center">

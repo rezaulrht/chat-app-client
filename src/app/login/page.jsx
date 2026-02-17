@@ -1,11 +1,45 @@
+"use client";
 
-import React from "react";
-
+import React, { useState } from "react";
 import Link from "next/link";
-import { MessageSquare, User } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { MessageSquare } from "lucide-react";
+import useAuth from "@/hooks/useAuth";
 
-export default async function LoginPage() {
- 
+export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const { login } = useAuth();
+  const router = useRouter();
+
+  const handleGoogleLogin = () => {
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    if (!email || !password) {
+      setError("Please fill in all fields");
+      setLoading(false);
+      return;
+    }
+
+    const result = await login(email, password);
+
+    if (result.success) {
+      router.push("/chat");
+    } else {
+      setError(result.message);
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background-dark font-display text-white flex items-center justify-center relative overflow-hidden">
       {/* Ambient Background Effects */}
@@ -28,7 +62,7 @@ export default async function LoginPage() {
             <div className="w-12 h-12 bg-primary/20 rounded-xl flex items-center justify-center mx-auto mb-6 ring-1 ring-primary/30">
               <MessageSquare className="text-primary w-6 h-6" />
             </div>
-           
+
             <h1 className="text-2xl font-medium tracking-tight text-white mb-2">
               Welcome back
             </h1>
@@ -38,7 +72,11 @@ export default async function LoginPage() {
           </div>
 
           {/* Social Login */}
-          <button className="w-full flex items-center justify-center gap-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white font-medium rounded-lg px-4 py-3 transition-all duration-200 group">
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            className="w-full flex items-center justify-center gap-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white font-medium rounded-lg px-4 py-3 transition-all duration-200 group"
+          >
             <img
               src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png"
               alt="Google"
@@ -60,11 +98,19 @@ export default async function LoginPage() {
           </div>
 
           {/* Form */}
-          <form className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-3 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
+
             <div className="relative floating-group">
               <input
                 type="email"
                 id="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder=" "
                 className="block w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary peer text-white transition-all duration-200"
               />
@@ -80,6 +126,8 @@ export default async function LoginPage() {
               <input
                 type="password"
                 id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 placeholder=" "
                 className="block w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary peer text-white transition-all duration-200"
               />
@@ -99,15 +147,18 @@ export default async function LoginPage() {
                 Forgot password?
               </Link>
             </div>
-            <button className="w-full py-3 px-4 rounded-lg text-sm font-semibold text-[#101f22] bg-primary hover:bg-primary/90 transition-all duration-200 shadow-[0_0_20px_rgba(19,200,236,0.3)] hover:shadow-[0_0_25px_rgba(19,200,236,0.5)]">
-              Log In
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 px-4 rounded-lg text-sm font-semibold text-[#101f22] bg-primary hover:bg-primary/90 transition-all duration-200 shadow-[0_0_20px_rgba(19,200,236,0.3)] hover:shadow-[0_0_25px_rgba(19,200,236,0.5)] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? "Logging in..." : "Log In"}
             </button>
-            
           </form>
 
           <div className="mt-8 text-center">
             <p className="text-sm text-gray-400">
-              Don't have an account?
+              Don&apos;t have an account?
               <Link
                 href="register"
                 className="font-medium text-primary hover:text-primary/80 transition-colors ml-1"
@@ -123,7 +174,6 @@ export default async function LoginPage() {
             © 2026 Pulse Chat. Secure & Private.
           </p>
         </div>
-       
       </main>
     </div>
   );

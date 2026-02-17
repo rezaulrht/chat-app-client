@@ -4,10 +4,11 @@ import React from "react";
 import Link from "next/link";
 import NavLinks from "./buttons/NavLinks";
 import { usePathname } from "next/navigation";
-import { MessageSquare } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function NavBar() {
   const pathname = usePathname();
+  const { user, logout } = useAuth();
 
   const links = [
     { href: "/", label: "Features" },
@@ -55,19 +56,45 @@ export default function NavBar() {
                   </Link>
                 </li>
               ))}
-              <li className="border-t border-white/5 mt-2 pt-2">
-                <Link href="/login" className="text-slate-300 hover:text-white">
-                  Sign In
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/register"
-                  className="btn btn-primary btn-sm w-full mt-2 text-background-dark"
-                >
-                  Get Started
-                </Link>
-              </li>
+              {!user ? (
+                <>
+                  <li className="border-t border-white/5 mt-2 pt-2">
+                    <Link
+                      href="/login"
+                      className="text-slate-300 hover:text-white"
+                    >
+                      Sign In
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/register"
+                      className="btn btn-primary btn-sm w-full mt-2 text-background-dark"
+                    >
+                      Get Started
+                    </Link>
+                  </li>
+                </>
+              ) : (
+                <>
+                  <li className="border-t border-white/5 mt-2 pt-2">
+                    <Link
+                      href="/chat"
+                      className="text-slate-300 hover:text-white"
+                    >
+                      Go to ConvoX
+                    </Link>
+                  </li>
+                  <li>
+                    <button
+                      onClick={logout}
+                      className="text-slate-300 hover:text-white px-3 py-2 text-sm"
+                    >
+                      Sign Out
+                    </button>
+                  </li>
+                </>
+              )}
             </ul>
           </div>
 
@@ -98,26 +125,38 @@ export default function NavBar() {
         </div>
 
         {/* End - Auth Buttons */}
-        <div className="navbar-end gap-6 items-center">
-          <Link
-            href="/login"
-            className="text-sm font-medium text-slate-400 hover:text-white transition-colors"
-          >
-            Sign In
-          </Link>
-          <Link
-            href="/chat"
-            className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10 transition-all mr-2"
-            title="Chat App"
-          >
-            <MessageSquare className="w-5 h-5" />
-          </Link>
-          <Link
-            href="/register"
-            className="hidden sm:flex items-center justify-center px-5 py-2 text-sm font-semibold rounded-lg text-background-dark bg-[#13c8ec] hover:bg-[#13c8ec]/90 transition-all shadow-lg shadow-[#13c8ec]/20"
-          >
-            Get Started
-          </Link>
+        <div className="navbar-end gap-4 items-center">
+          {!user ? (
+            <>
+              <Link
+                href="/login"
+                className="text-sm font-medium text-slate-400 hover:text-white transition-colors"
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/register"
+                className="hidden sm:flex items-center justify-center px-5 py-2 text-sm font-semibold rounded-lg text-background-dark bg-[#13c8ec] hover:bg-[#13c8ec]/90 transition-all shadow-lg shadow-[#13c8ec]/20"
+              >
+                Get Started
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/chat"
+                className="hidden sm:flex items-center justify-center px-5 py-2 text-sm font-semibold rounded-lg text-background-dark bg-[#13c8ec] hover:bg-[#13c8ec]/90 transition-all shadow-lg shadow-[#13c8ec]/20"
+              >
+                Go to ConvoX
+              </Link>
+              <button
+                onClick={logout}
+                className="text-sm font-medium text-slate-400 hover:text-white transition-colors"
+              >
+                Sign Out
+              </button>
+            </>
+          )}
         </div>
       </div>
     </header>

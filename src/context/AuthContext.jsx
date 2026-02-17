@@ -1,6 +1,12 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 import { useRouter } from "next/navigation";
 import api from "@/app/api/api";
 
@@ -30,13 +36,28 @@ export const AuthProvider = ({ children }) => {
     checkUser();
   }, []);
 
-  const registerUser = async (name, email, password) => {
+  const login = useCallback(
+    async (email, password) => {
+      try {
+        const res = await api.post("/auth/login", { email, password });
+        const { token, user } = res.data;
+        localStorage.setItem("token", token);
+        setUser(user);
+        router.push("/chat");
+        return { success: true };
+      } catch (err) {
+        return {
+          success: false,
+          message: err.response?.data?.message || "Login failed",
+        };
+      }
+    },
+    [router],
+  );
+
+  const registerUser = useCallback(async (name, email, password) => {
     try {
       const res = await api.post("/auth/register", { name, email, password });
-      // After registration, the backend might return success but not a token
-      // depending on implementation. Our backend returns { message: "..." }
-      // So we'll redirect to login after success or log them in automatically
-      // Let's assume we redirect to login for simplicity or just return success
       return { success: true, message: res.data.message };
     } catch (err) {
       return {
@@ -44,22 +65,15 @@ export const AuthProvider = ({ children }) => {
         message: err.response?.data?.message || "Registration failed",
       };
     }
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem("token");
     setUser(null);
     router.push("/login");
-  };
+  }, [router]);
 
-  const oauthLogin = (token) => {
-    localStorage.setItem("token", token);
-    // After setting token, checkUser will run if we handle it correctly
-    // or we just fetch user manually here
-    verifyAndSetUser();
-  };
-
-  const verifyAndSetUser = async () => {
+  const verifyAndSetUser = useCallback(async () => {
     try {
       const res = await api.get("/auth/me");
       setUser(res.data);
@@ -67,7 +81,15 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       console.error("OAuth user fetch failed:", err);
     }
-  };
+  }, [router]);
+
+  const oauthLogin = useCallback(
+    (token) => {
+      localStorage.setItem("token", token);
+      verifyAndSetUser();
+    },
+    [verifyAndSetUser],
+  );
 
   return (
     <AuthContext.Provider

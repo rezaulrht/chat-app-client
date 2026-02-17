@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import {
   Bolt,
@@ -14,9 +15,16 @@ import {
   EyeOff,
   Github,
 } from "lucide-react";
+import useAuth from "@/hooks/useAuth";
 
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const { register: registerUser } = useAuth();
+  const router = useRouter();
 
   // Initialize React Hook Form
   const {
@@ -25,9 +33,31 @@ export default function RegisterPage() {
     formState: { errors },
   } = useForm();
 
+  const handleGoogleSignup = () => {
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
+  };
+
+  const handleGithubSignup = () => {
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/github`;
+  };
+
   // Function to handle form submission
-  const onSubmit = (data) => {
-    console.log("Registration Data:", data);
+  const onSubmit = async (data) => {
+    setError("");
+    setSuccess("");
+    setLoading(true);
+
+    const result = await registerUser(data.fullname, data.email, data.password);
+
+    if (result.success) {
+      setSuccess("Account created successfully! Redirecting to login...");
+      setTimeout(() => {
+        router.push("/login");
+      }, 2000);
+    } else {
+      setError(result.message);
+      setLoading(false);
+    }
   };
 
   return (
@@ -108,6 +138,18 @@ export default function RegisterPage() {
 
               {/* Form with handleSubmit */}
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                {error && (
+                  <div className="bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-3 rounded-lg text-sm">
+                    {error}
+                  </div>
+                )}
+
+                {success && (
+                  <div className="bg-green-500/10 border border-green-500/50 text-green-400 px-4 py-3 rounded-lg text-sm">
+                    {success}
+                  </div>
+                )}
+
                 <div className="group/input">
                   <label className="block text-[10px] uppercase tracking-wider font-semibold text-gray-500 mb-1 ml-1">
                     Full Name
@@ -115,12 +157,15 @@ export default function RegisterPage() {
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
                     <input
-                      {...register("fullname", { required: true })}
+                      {...register("fullname", { required: "Full name is required" })}
                       type="text"
                       className="block w-full pl-10 pr-3 py-2.5 bg-background-dark/50 border border-border-dark rounded-lg text-white text-sm focus:ring-1 focus:ring-primary outline-none transition-all"
                       placeholder="Jane Doe"
                     />
                   </div>
+                  {errors.fullname && (
+                    <p className="text-red-400 text-xs mt-1 ml-1">{errors.fullname.message}</p>
+                  )}
                 </div>
 
                 <div className="group/input">
@@ -130,12 +175,21 @@ export default function RegisterPage() {
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
                     <input
-                      {...register("email", { required: true })}
+                      {...register("email", { 
+                        required: "Email is required",
+                        pattern: {
+                          value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                          message: "Invalid email address"
+                        }
+                      })}
                       type="email"
                       className="block w-full pl-10 pr-3 py-2.5 bg-background-dark/50 border border-border-dark rounded-lg text-white text-sm focus:ring-1 focus:ring-primary outline-none transition-all"
                       placeholder="jane@example.com"
                     />
                   </div>
+                  {errors.email && (
+                    <p className="text-red-400 text-xs mt-1 ml-1">{errors.email.message}</p>
+                  )}
                 </div>
 
                 <div className="group/input">
@@ -145,7 +199,13 @@ export default function RegisterPage() {
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
                     <input
-                      {...register("password", { required: true })}
+                      {...register("password", { 
+                        required: "Password is required",
+                        minLength: {
+                          value: 6,
+                          message: "Password must be at least 6 characters"
+                        }
+                      })}
                       type={showPassword ? "text" : "password"}
                       className="block w-full pl-10 pr-10 py-2.5 bg-background-dark/50 border border-border-dark rounded-lg text-white text-sm focus:ring-1 focus:ring-primary outline-none transition-all"
                       placeholder="••••••••"
@@ -158,11 +218,14 @@ export default function RegisterPage() {
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
+                  {errors.password && (
+                    <p className="text-red-400 text-xs mt-1 ml-1">{errors.password.message}</p>
+                  )}
                 </div>
 
                 <div className="flex items-center py-1">
                   <input
-                    {...register("terms", { required: true })}
+                    {...register("terms", { required: "You must accept the terms" })}
                     type="checkbox"
                     id="terms"
                     className="custom-checkbox"
@@ -177,12 +240,16 @@ export default function RegisterPage() {
                     </Link>
                   </label>
                 </div>
+                {errors.terms && (
+                  <p className="text-red-400 text-xs ml-1">{errors.terms.message}</p>
+                )}
 
                 <button
                   type="submit"
-                  className="w-full py-3 rounded-lg text-sm font-bold text-background-dark bg-primary hover:bg-primary/90 transition-all shadow-[0_0_15px_rgba(19,218,236,0.2)]"
+                  disabled={loading}
+                  className="w-full py-3 rounded-lg text-sm font-bold text-background-dark bg-primary hover:bg-primary/90 transition-all shadow-[0_0_15px_rgba(19,218,236,0.2)] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Start Chatting
+                  {loading ? "Creating account..." : "Start Chatting"}
                 </button>
               </form>
 
@@ -196,7 +263,11 @@ export default function RegisterPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <button className="flex justify-center items-center py-2 border border-gray-800 rounded-lg bg-background-dark/30 text-xs font-medium text-gray-300 hover:bg-gray-800 transition-colors">
+                <button 
+                  type="button"
+                  onClick={handleGoogleSignup}
+                  className="flex justify-center items-center py-2 border border-gray-800 rounded-lg bg-background-dark/30 text-xs font-medium text-gray-300 hover:bg-gray-800 transition-colors"
+                >
                   <img
                     src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png"
                     className="h-4 w-4 mr-2"
@@ -204,7 +275,11 @@ export default function RegisterPage() {
                   />
                   Google
                 </button>
-                <button className="flex justify-center items-center py-2 border border-gray-800 rounded-lg bg-background-dark/30 text-xs font-medium text-gray-300 hover:bg-gray-800 transition-colors">
+                <button 
+                  type="button"
+                  onClick={handleGithubSignup}
+                  className="flex justify-center items-center py-2 border border-gray-800 rounded-lg bg-background-dark/30 text-xs font-medium text-gray-300 hover:bg-gray-800 transition-colors"
+                >
                   <Github className="h-4 w-4 mr-2" />
                   GitHub
                 </button>

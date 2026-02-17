@@ -1,12 +1,52 @@
 @import "tailwindcss";
+
 @plugin "daisyui" {
-    themes: light --default, dark --prefersdark;
-  }
-  @plugin "daisyui/theme" {
-    name: "light";
-    default: true;
-    --color-primary: blue;
-    --color-secondary: teal;
-  }
-  
+  themes: light --default, dark --prefersdark;
+}
+
+@plugin "daisyui/theme" {
+  name: "light";
+  default: true;
+  --color-primary: #13c8ec; /* Updated to match your UI primary */
+  --color-secondary: teal;
+}
+
 @custom-variant dark (&:where([data-theme=night], [data-theme=night] *));
+
+/* --- Custom Styles for the Premium Login --- */
+
+@theme {
+  /* Defining your custom colors in the Tailywind 4 theme block */
+  --color-background-light: #f6f8f8;
+  --color-background-dark: #101f22;
+  --color-surface-dark: #16282c;
+  --color-primary-glow: rgba(19, 200, 236, 0.3);
+  
+  --font-display: "Inter", "sans-serif";
+}
+
+@layer components {
+  .glass-card {
+    background: rgba(16, 31, 34, 0.65);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(19, 200, 236, 0.15);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
+  }
+
+  /* Floating Label Logic for Tailwind v4 */
+  .floating-group {
+    @apply relative;
+  }
+
+  /* When placeholder is shown (input is empty and not focused) */
+  .floating-group input:placeholder-shown + label {
+    @apply top-3 text-base text-gray-400 scale-100;
+  }
+
+  /* When focused or text is entered */
+  .floating-group input:not(:placeholder-shown) + label,
+  .floating-group input:focus + label {
+    @apply -top-3 scale-90 text-[#13c8ec] bg-transparent;
+  }
+}

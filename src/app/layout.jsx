@@ -26,10 +26,10 @@ export default function RootLayout({ children }) {
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
-          <header className="py-2 w-11/12 mx-auto">
+          <header className="">
             <NavBar />
           </header>
-          <main className=" min-h-[calc(100svh-218px)]">{children}</main>
+          <main className="min-h-[calc(100svh-218px)]">{children}</main>
           <footer>
             <Footer />
           </footer>

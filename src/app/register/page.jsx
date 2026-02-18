@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import {
   Shield,
@@ -14,34 +15,32 @@ import {
   Github,
   AlertCircle,
 } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
+import useAuth from "@/hooks/useAuth";
 
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { registerUser } = useAuth();
+  const { register: registerUser } = useAuth();
   const router = useRouter();
 
-  // Initialize React Hook Form
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm();
 
-  // Function to handle form submission
   const onSubmit = async (data) => {
     setError("");
     setLoading(true);
+
     const res = await registerUser(data.fullname, data.email, data.password);
     if (res.success) {
-      // Registration successful, redirect to login
       router.push("/login?registered=true");
     } else {
       setError(res.message);
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleOAuth = (provider) => {
@@ -50,7 +49,7 @@ export default function RegisterPage() {
 
   return (
     <div className="bg-[#05050A] font-sans text-gray-200 antialiased min-h-screen flex flex-col relative overflow-hidden">
-      {/* Background Effects (Matching Landing Page) */}
+      {/* Background Effects */}
       <div className="absolute inset-0 z-0">
         <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-175 h-125 bg-blue-600/20 rounded-full blur-[120px] opacity-40 pointer-events-none" />
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-size-[64px_64px] mask-[radial-gradient(ellipse_at_center,black_50%,transparent_100%)] pointer-events-none" />
@@ -58,7 +57,7 @@ export default function RegisterPage() {
 
       <main className="grow flex items-center justify-center p-4 sm:p-6 relative z-10">
         <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-          {/* LEFT SIDE: Hidden on Mobile, Visible on Desktop */}
+          {/* LEFT SIDE */}
           <div className="hidden lg:flex flex-col justify-center space-y-8 pr-10">
             <div className="flex items-center">
               <span className="text-3xl font-bold text-white tracking-tight">
@@ -95,9 +94,8 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          {/* RIGHT SIDE: The Form */}
+          {/* RIGHT SIDE */}
           <div className="w-full max-w-md mx-auto">
-            {/* Mobile-only Logo */}
             <div className="lg:hidden flex justify-center mb-8">
               <span className="text-3xl font-bold text-white tracking-tight">
                 Convo<span className="text-[#13c8ec]">X</span>
@@ -107,7 +105,6 @@ export default function RegisterPage() {
             <div className="glass-panel p-6 sm:p-8 rounded-xl relative border border-white/10 shadow-2xl">
               <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-transparent via-[#13c8ec] to-transparent opacity-50"></div>
 
-              {/* Error Message */}
               {error && (
                 <div className="mb-6 p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-3 text-red-400 text-xs">
                   <AlertCircle className="w-4 h-4 shrink-0" />
@@ -115,7 +112,6 @@ export default function RegisterPage() {
                 </div>
               )}
 
-              {/* Form with handleSubmit */}
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <div className="group/input">
                   <label className="block text-[10px] uppercase tracking-wider font-semibold text-gray-500 mb-1 ml-1">
@@ -226,7 +222,7 @@ export default function RegisterPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3 rounded-lg text-sm font-bold text-background-dark bg-[#13c8ec] hover:bg-[#13c8ec]/90 transition-all shadow-lg shadow-[#13c8ec]/20 flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-lg text-sm font-bold text-background-dark bg-[#13c8ec] hover:bg-[#13c8ec]/90 transition-all shadow-lg shadow-[#13c8ec]/20 flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {loading && (
                     <span className="loading loading-spinner loading-xs text-background-dark"></span>

@@ -4,7 +4,8 @@ import React from "react";
 import Link from "next/link";
 import NavLinks from "./buttons/NavLinks";
 import { usePathname } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
+import { MessageSquare } from "lucide-react";
+import useAuth from "@/hooks/useAuth";
 
 export default function NavBar() {
   const pathname = usePathname();
@@ -88,7 +89,7 @@ export default function NavBar() {
                   <li>
                     <button
                       onClick={logout}
-                      className="text-slate-300 hover:text-white px-3 py-2 text-sm"
+                      className="text-slate-300 hover:text-white px-3 py-2 text-sm text-left w-full"
                     >
                       Sign Out
                     </button>

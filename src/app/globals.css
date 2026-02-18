@@ -29,6 +29,9 @@
 }
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
   body {
     @apply bg-background-dark text-slate-200 font-sans antialiased;
   }

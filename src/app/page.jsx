@@ -1,4 +1,6 @@
 import React from "react";
+
+import CreateGroupModal from "@/components/CreateGroupModal";
 import HeroSection from "@/components/Landing/HeroSection";
 import Features from "@/components/Landing/Features";
 import UseCases from "@/components/Landing/UseCases";
@@ -11,6 +13,7 @@ import CustomerSlider from "@/components/Landing/CustomerSlider";
 export default function HomePage() {
   return (
     <div>
+      <CreateGroupModal/>
       <HeroSection />
       <Features />
       <UseCases />

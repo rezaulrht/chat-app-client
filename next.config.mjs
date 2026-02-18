@@ -3,9 +3,9 @@ const nextConfig = {
   images: {
     remotePatterns: [
       {
-        protocol: 'https',
-        hostname: 'www.gstatic.com',
-        pathname: '/images/**',
+        protocol: "https",
+        hostname: "www.gstatic.com",
+        pathname: "/images/**",
       },
     ],
   },

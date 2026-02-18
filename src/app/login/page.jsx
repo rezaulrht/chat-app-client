@@ -2,26 +2,32 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { MessageSquare, Github, Mail, Lock, AlertCircle } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { Github, Mail, Lock, AlertCircle } from "lucide-react";
+import useAuth from "@/hooks/useAuth";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+  const router = useRouter();
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm();
+
+  const onSubmit = async (data) => {
     setError("");
     setLoading(true);
 
-    const res = await login(email, password);
+    const res = await login(data.email, data.password);
     if (!res.success) {
       setError(res.message);
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleOAuth = (provider) => {
@@ -30,7 +36,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-[#05050A] font-sans text-white flex items-center justify-center relative overflow-hidden">
-      {/* Background Effects (Matching Landing Page) */}
+      {/* Background Effects */}
       <div className="absolute inset-0 z-0">
         <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-175 h-125 bg-[#13c8ec]/20 rounded-full blur-[120px] opacity-40 pointer-events-none" />
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-size-[64px_64px] mask-[radial-gradient(ellipse_at_center,black_50%,transparent_100%)] pointer-events-none" />
@@ -38,7 +44,6 @@ export default function LoginPage() {
 
       <main className="relative z-10 w-full max-w-md px-6 py-12">
         <div className="glass-panel rounded-2xl p-8 sm:p-10 shadow-2xl border border-white/10">
-          {/* Header (Simplified) */}
           <div className="text-center mb-10">
             <h1 className="text-3xl font-bold tracking-tight text-white mb-3">
               Convo<span className="text-[#13c8ec]">X</span>
@@ -83,7 +88,6 @@ export default function LoginPage() {
             </button>
           </div>
 
-          {/* Divider */}
           <div className="relative mb-8">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-white/10"></div>
@@ -95,7 +99,6 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Error Message */}
           {error && (
             <div className="mb-6 p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-3 text-red-400 text-xs">
               <AlertCircle className="w-4 h-4 shrink-0" />
@@ -103,8 +106,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Form */}
-          <form onSubmit={handleLogin} className="space-y-5">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div className="space-y-2">
               <label className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 ml-1">
                 Email Address
@@ -112,14 +114,17 @@ export default function LoginPage() {
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
                 <input
+                  {...register("email", { required: "Email is required" })}
                   type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="jane@example.com"
-                  required
-                  className="block w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#13c8ec] text-white text-sm transition-all"
+                  className={`block w-full pl-10 pr-4 py-3 bg-white/5 border ${errors.email ? "border-red-500/50" : "border-white/10"} rounded-lg focus:outline-none focus:ring-1 focus:ring-[#13c8ec] text-white text-sm transition-all`}
                 />
               </div>
+              {errors.email && (
+                <p className="text-red-500 text-[10px] ml-1">
+                  {errors.email.message}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -137,23 +142,28 @@ export default function LoginPage() {
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
                 <input
+                  {...register("password", {
+                    required: "Password is required",
+                  })}
                   type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  required
-                  className="block w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#13c8ec] text-white text-sm transition-all"
+                  className={`block w-full pl-10 pr-4 py-3 bg-white/5 border ${errors.password ? "border-red-500/50" : "border-white/10"} rounded-lg focus:outline-none focus:ring-1 focus:ring-[#13c8ec] text-white text-sm transition-all`}
                 />
               </div>
+              {errors.password && (
+                <p className="text-red-500 text-[10px] ml-1">
+                  {errors.password.message}
+                </p>
+              )}
             </div>
 
             <button
               disabled={loading}
-              className="w-full py-3.5 rounded-lg text-sm font-bold text-background-dark bg-[#13c8ec] hover:bg-[#13c8ec]/90 transition-all shadow-lg shadow-[#13c8ec]/20 mt-4 flex items-center justify-center gap-2"
+              className="w-full py-3.5 rounded-lg text-sm font-bold text-background-dark bg-[#13c8ec] hover:bg-[#13c8ec]/90 transition-all shadow-lg shadow-[#13c8ec]/20 mt-4 flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              {loading ? (
+              {loading && (
                 <span className="loading loading-spinner loading-xs text-background-dark"></span>
-              ) : null}
+              )}
               {loading ? "Signing In..." : "Sign In"}
             </button>
           </form>
@@ -169,12 +179,6 @@ export default function LoginPage() {
               </Link>
             </p>
           </div>
-        </div>
-
-        <div className="text-center mt-10 opacity-40">
-          <p className="text-xs text-slate-500 uppercase tracking-widest font-bold">
-            © 2026 ConvoX. Secure & Private.
-          </p>
         </div>
       </main>
     </div>

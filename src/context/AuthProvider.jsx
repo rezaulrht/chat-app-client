@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { AuthContext } from "./AuthContext";
-import api from "@/app/api/api"; // Using our existing api utility
+import api from "@/app/api/Axios";
 
 export const AuthProvider = ({ children }) => {
   const router = useRouter();

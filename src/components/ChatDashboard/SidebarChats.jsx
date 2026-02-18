@@ -128,6 +128,7 @@ export default function Sidebar({
                 height={48}
                 className="rounded-xl"
                 alt={conv.participant?.name || "avatar"}
+                unoptimized
               />
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-center">
@@ -225,6 +226,7 @@ export default function Sidebar({
                     height={36}
                     className="rounded-xl"
                     alt={user.name || "avatar"}
+                    unoptimized
                   />
                   <div>
                     <p className="text-white text-sm font-medium">

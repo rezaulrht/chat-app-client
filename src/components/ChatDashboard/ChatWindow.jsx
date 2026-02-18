@@ -121,6 +121,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
             height={40}
             className="rounded-xl"
             alt={participant?.name || "avatar"}
+            unoptimized
           />
           <div>
             <h2 className="font-bold text-white text-sm">

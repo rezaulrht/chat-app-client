@@ -23,7 +23,7 @@ export default function ChatWindow({ chat, messages, onSendMessage }) {
           <img src={chat.avatar} className="w-10 h-10 rounded-xl" alt="" />
           <div>
             <h2 className="font-bold text-white text-sm">{chat.name}</h2>
-            <p className="text-[10px] text-teal-500">Online</p>
+            <p className="text-[10px] text-teal-500">{chat.online ? "Online" : "Offline"}</p>
           </div>
         </div>
         <div className="flex gap-4 text-slate-400">

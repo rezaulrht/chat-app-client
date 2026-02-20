@@ -7,8 +7,21 @@ import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
 
+// Helper function to format last seen time - show actual timestamp
+const formatLastSeen = (timestamp) => {
+  if (!timestamp) return "";
+
+  const date = new Date(timestamp);
+  return date.toLocaleString([], { 
+    month: "short", 
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+};
+
 export default function ChatWindow({ conversation, onMessageSent }) {
-  const { socket } = useSocket();
+  const { socket, onlineUsers } = useSocket() || {};
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
@@ -112,22 +125,36 @@ export default function ChatWindow({ conversation, onMessageSent }) {
       {/* Header */}
       <header className="h-20 border-b border-slate-800/50 flex justify-between items-center px-6">
         <div className="flex items-center gap-3">
-          <Image
-            src={
-              participant?.avatar ||
-              `https://api.dicebear.com/7.x/avataaars/svg?seed=${participant?.name}`
-            }
-            width={40}
-            height={40}
-            className="rounded-xl"
-            alt={participant?.name || "avatar"}
-            unoptimized
-          />
+          <div className="relative">
+            <Image
+              src={
+                participant?.avatar ||
+                `https://api.dicebear.com/7.x/avataaars/svg?seed=${participant?.name}`
+              }
+              width={40}
+              height={40}
+              className="rounded-xl"
+              alt={participant?.name || "avatar"}
+              unoptimized
+            />
+            {/* Online indicator in header */}
+            {onlineUsers?.get(participant?._id)?.online && (
+              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#0B0E11]"></div>
+            )}
+          </div>
           <div>
             <h2 className="font-bold text-white text-sm">
               {participant?.name}
             </h2>
-            <p className="text-[10px] text-slate-500">{participant?.email}</p>
+            <p className="text-[10px] text-slate-500">
+              {onlineUsers?.get(participant?._id)?.online ? (
+                <span className="text-green-500">Online</span>
+              ) : (
+                <span>
+                  Last seen {formatLastSeen(onlineUsers?.get(participant?._id)?.lastSeen) || "Just now"}
+                </span>
+              )}
+            </p>
           </div>
         </div>
         <div className="flex gap-4 text-slate-400">
@@ -160,11 +187,10 @@ export default function ChatWindow({ conversation, onMessageSent }) {
               className={`flex ${isMe ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`max-w-[70%] p-4 rounded-2xl text-sm ${
-                  isMe
+                className={`max-w-[70%] p-4 rounded-2xl text-sm ${isMe
                     ? `bg-teal-900/20 text-white rounded-br-none border border-teal-500/20 shadow-lg shadow-teal-500/5 ${msg.isOptimistic ? "opacity-60" : ""}`
                     : "bg-[#1C2227] text-slate-300 rounded-bl-none"
-                }`}
+                  }`}
               >
                 {msg.text}
                 <div className="text-[9px] mt-2 opacity-50 text-right">

@@ -1,0 +1,68 @@
+{
+  "currentUser": {
+    "name": "Md. Toufiqul Islam",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Toufiqul"
+  },
+  "chats": [
+    {
+      "id": 1,
+      "name": "Design Team",
+      "type": "project",
+      "lastMsg": "The dark mode looks incredible!",
+      "time": "10:42 AM",
+      "unread": 0,
+      "online": true,
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=design"
+    },
+    {
+      "id": 2,
+      "name": "Jessica Miller",
+      "type": "individual",
+      "lastMsg": "Can we reschedule the sync?",
+      "time": "Yesterday",
+      "unread": 1,
+      "online": false,
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=jessica"
+    },
+    {
+      "id": 3,
+      "name": "Dev Squad",
+      "type": "project",
+      "lastMsg": "Alex: Merged the P.R.",
+      "time": "Tue",
+      "unread": 0,
+      "online": true,
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=dev"
+    }
+  ],
+  "messages": {
+    "1": [
+      {
+        "id": 101,
+        "sender": "Jessica Miller",
+        "text": "Hey, have you reviewed the latest wireframes?",
+        "time": "10:23 AM",
+        "isMe": false,
+        "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=jessica"
+      },
+      {
+        "id": 102,
+        "sender": "Me",
+        "text": "Just looking at them now. The dark mode looks incredible! 🔥",
+        "time": "10:45 AM",
+        "isMe": true,
+        "status": "read"
+      },
+      {
+        "id": 103,
+        "sender": "Me",
+        "isFile": true,
+        "fileName": "screenshot_v2.png",
+        "fileSize": "2.4 MB",
+        "time": "10:46 AM",
+        "isMe": true,
+        "status": "delivered"
+      }
+    ]
+  }
+}

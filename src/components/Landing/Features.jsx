@@ -63,19 +63,22 @@ export default function Features() {
   const visibleFeatures = showAll ? features : features.slice(0, 7);
 
   return (
-    <section className="relative w-full py-10 bg-[#05050A] text-white overflow-hidden font-sans selection:bg-blue-500/30">
+    <section
+      id="features"
+      className="relative w-full py-10 bg-[#05050A] text-white overflow-hidden font-sans selection:bg-blue-500/30"
+    >
       {/* --- Background Effects --- */}
       <div className="absolute inset-0 z-0 pointer-events-none">
-        <div className="absolute top-[20%] left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-blue-600/10 rounded-full blur-[120px] opacity-30" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_at_center,black_50%,transparent_100%)]" />
+        <div className="absolute top-[20%] left-1/2 -translate-x-1/2 w-200 h-150 bg-blue-600/10 rounded-full blur-[120px] opacity-30" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-size-[64px_64px] mask-[radial-gradient(ellipse_at_center,black_50%,transparent_100%)]" />
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-6">
         {/* Section Header */}
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-6">
+          <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-6 text-white">
             Everything you need to{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-blue-500">
+            <span className="text-transparent bg-clip-text bg-linear-to-r from-[#13c8ec] via-[#13c8ec]/70 to-[#13c8ec]">
               connect.
             </span>
           </h2>

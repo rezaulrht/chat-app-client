@@ -4,11 +4,13 @@ import React, { useState, useEffect } from "react";
 import Sidebar from "./SidebarChats";
 import ChatWindow from "./ChatWindow";
 import api from "@/app/api/Axios";
+import { useSocket } from "@/hooks/useSocket";
 
 export default function ChatDashboard() {
   const [conversations, setConversations] = useState([]);
   const [activeConversationId, setActiveConversationId] = useState(null);
   const [loadingConversations, setLoadingConversations] = useState(true);
+  const { fetchLastSeenTimes } = useSocket() || {};
 
   // Fetch all conversations for the logged-in user on mount
   useEffect(() => {
@@ -16,6 +18,19 @@ export default function ChatDashboard() {
       try {
         const res = await api.get("/api/chat/conversations");
         setConversations(res.data);
+        
+        // Fetch last seen times for all conversation participants
+        if (res.data.length > 0 && fetchLastSeenTimes) {
+          const userIds = res.data
+            .map((conv) => conv.participant?._id)
+            .filter(Boolean);
+          
+          if (userIds.length > 0) {
+            console.log("Fetching last seen times for conversation participants:", userIds);
+            await fetchLastSeenTimes(userIds);
+          }
+        }
+        
         // Auto-select the first conversation if any exist
         if (res.data.length > 0) {
           setActiveConversationId(res.data[0]._id);
@@ -28,7 +43,7 @@ export default function ChatDashboard() {
     };
 
     fetchConversations();
-  }, []);
+  }, [fetchLastSeenTimes]);
 
   const activeConversation = conversations.find(
     (c) => c._id === activeConversationId,

@@ -24,11 +24,15 @@ const AboutSection = () => {
   ];
 
   return (
-    <div className="bg-[#0a0a0a] text-white font-sans">
-      {/* Hero Section */}
-      <section className="relative py-24 px-6 flex flex-col items-center text-center overflow-hidden">
-        {/* Subtle radial gradient background */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(29,78,216,0.15),transparent_70%)]" />
+    <div className="bg-[#050505] text-white font-sans overflow-hidden">
+      {/* Hero Section with Enhanced Blue Glow */}
+      <section className="relative py-32 px-6 flex flex-col items-center text-center">
+        {/* Primary Blue Atmospheric Glow */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[radial-gradient(circle_at_50%_0%,_rgba(29,78,216,0.2),transparent_70%)] -z-0" />
+
+        {/* Secondary Side Glows */}
+        <div className="absolute -top-24 -left-24 w-96 h-96 bg-blue-600/10 blur-[120px] rounded-full -z-0" />
+        <div className="absolute top-1/2 -right-24 w-80 h-80 bg-cyan-600/10 blur-[100px] rounded-full -z-0" />
 
         <div className="relative z-10 max-w-4xl">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-500/30 bg-blue-500/10 mb-8">
@@ -52,8 +56,11 @@ const AboutSection = () => {
         </div>
       </section>
 
-      {/* Values Section */}
-      <section className="bg-black py-20 px-6">
+      {/* Values Section with Glass-morphism cards */}
+      <section className="relative py-24 px-6 bg-[#080808]">
+        {/* Subtle Section Divider Glow */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-[1px] bg-gradient-to-r from-transparent via-blue-500/50 to-transparent" />
+
         <div className="max-w-7xl mx-auto">
           <div className="mb-16">
             <h2 className="text-3xl font-bold mb-4">Our Core Values</h2>
@@ -61,22 +68,28 @@ const AboutSection = () => {
               The principles that guide every line of code we write and every
               feature we ship.
             </p>
-            <div className="h-[1px] bg-gray-800 w-full mt-8" />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {values.map((value, index) => (
               <div
                 key={index}
-                className="bg-[#111111] border border-gray-800 p-8 rounded-2xl hover:border-gray-700 transition-colors group"
+                className="relative bg-[#111111]/40 backdrop-blur-sm border border-white/5 p-8 rounded-3xl hover:border-blue-500/30 transition-all duration-300 group overflow-hidden"
               >
-                <div className="w-12 h-12 bg-blue-900/20 rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  {value.icon}
+                {/* Individual Card Glow on Hover */}
+                <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-3xl blur opacity-0 group-hover:opacity-10 transition duration-500" />
+
+                <div className="relative z-10">
+                  <div className="w-14 h-14 bg-blue-900/30 rounded-2xl flex items-center justify-center mb-6 border border-blue-500/20 group-hover:scale-110 group-hover:bg-blue-600/20 transition-all duration-300">
+                    {value.icon}
+                  </div>
+                  <h3 className="text-xl font-bold mb-4 group-hover:text-blue-300 transition-colors">
+                    {value.title}
+                  </h3>
+                  <p className="text-gray-400 leading-relaxed text-sm">
+                    {value.description}
+                  </p>
                 </div>
-                <h3 className="text-xl font-bold mb-4">{value.title}</h3>
-                <p className="text-gray-400 leading-relaxed text-sm">
-                  {value.description}
-                </p>
               </div>
             ))}
           </div>

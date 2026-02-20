@@ -4,6 +4,20 @@ import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { Search, Edit3, X } from "lucide-react";
 import api from "@/app/api/Axios";
+import { useSocket } from "@/hooks/useSocket";
+
+// Helper function to format last seen time - show actual timestamp
+const formatLastSeen = (timestamp) => {
+  if (!timestamp) return "";
+
+  const date = new Date(timestamp);
+  return date.toLocaleString([], { 
+    month: "short", 
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+};
 
 export default function Sidebar({
   conversations,
@@ -11,6 +25,8 @@ export default function Sidebar({
   setActiveConversationId,
   onNewConversation,
 }) {
+  const { onlineUsers } = useSocket() || {};
+
   // --- Conversation filter (local, client-side) ---
   const [filterTerm, setFilterTerm] = useState("");
 
@@ -109,47 +125,55 @@ export default function Sidebar({
 
         {/* Conversation list */}
         <div className="flex-1 overflow-y-auto px-3 space-y-2">
-          {filteredConversations.map((conv) => (
-            <div
-              key={conv._id}
-              onClick={() => setActiveConversationId(conv._id)}
-              className={`flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all ${
-                activeConversationId === conv._id
-                  ? "bg-[#1C2227] border-l-4 border-teal-400"
-                  : "hover:bg-slate-800/30"
-              }`}
-            >
-              <Image
-                src={
-                  conv.participant?.avatar ||
-                  `https://api.dicebear.com/7.x/avataaars/svg?seed=${conv.participant?.name}`
-                }
-                width={48}
-                height={48}
-                className="rounded-xl"
-                alt={conv.participant?.name || "avatar"}
-                unoptimized
-              />
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-center">
-                  <span className="font-semibold text-sm truncate text-white">
-                    {conv.participant?.name}
-                  </span>
-                  <span className="text-[10px] text-slate-500">
-                    {conv.lastMessage?.timestamp
-                      ? new Date(conv.lastMessage.timestamp).toLocaleTimeString(
+          {filteredConversations.map((conv) => {
+            const isUserOnline = onlineUsers?.get(conv.participant?._id)?.online;
+            return (
+              <div
+                key={conv._id}
+                onClick={() => setActiveConversationId(conv._id)}
+                className={`flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all ${activeConversationId === conv._id
+                    ? "bg-[#1C2227] border-l-4 border-teal-400"
+                    : "hover:bg-slate-800/30"
+                  }`}
+              >
+                <div className="relative">
+                  <Image
+                    src={
+                      conv.participant?.avatar ||
+                      `https://api.dicebear.com/7.x/avataaars/svg?seed=${conv.participant?.name}`
+                    }
+                    width={48}
+                    height={48}
+                    className="rounded-xl"
+                    alt={conv.participant?.name || "avatar"}
+                    unoptimized
+                  />
+                  {/* Online/Offline indicator - always show */}
+                  <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#15191C] ${
+                    isUserOnline ? "bg-green-500" : "bg-slate-500"
+                  }`}></div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-sm truncate text-white">
+                      {conv.participant?.name}
+                    </span>
+                    <span className="text-[10px] text-slate-500">
+                      {conv.lastMessage?.timestamp
+                        ? new Date(conv.lastMessage.timestamp).toLocaleTimeString(
                           [],
                           { hour: "2-digit", minute: "2-digit" },
                         )
-                      : ""}
-                  </span>
+                        : ""}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 truncate">
+                    {conv.lastMessage?.text || "No messages yet"}
+                  </p>
                 </div>
-                <p className="text-xs text-slate-500 truncate">
-                  {conv.lastMessage?.text || "No messages yet"}
-                </p>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {filteredConversations.length === 0 && (
             <p className="text-center text-slate-600 text-xs mt-4">
@@ -217,22 +241,36 @@ export default function Sidebar({
                   onClick={() => !startingChat && handleSelectUser(user)}
                   className="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-slate-800/50 transition-all"
                 >
-                  <Image
-                    src={
-                      user.avatar ||
-                      `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`
-                    }
-                    width={36}
-                    height={36}
-                    className="rounded-xl"
-                    alt={user.name || "avatar"}
-                    unoptimized
-                  />
-                  <div>
+                  <div className="relative">
+                    <Image
+                      src={
+                        user.avatar ||
+                        `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`
+                      }
+                      width={36}
+                      height={36}
+                      className="rounded-xl"
+                      alt={user.name || "avatar"}
+                      unoptimized
+                    />
+                    {/* Online indicator */}
+                    {onlineUsers?.get(user._id)?.online && (
+                      <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-[#15191C]"></div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
                     <p className="text-white text-sm font-medium">
                       {user.name}
                     </p>
-                    <p className="text-slate-500 text-xs">{user.email}</p>
+                    <p className={`text-xs ${
+                      onlineUsers?.get(user._id)?.online 
+                        ? "text-green-500" 
+                        : "text-slate-500"
+                    }`}>
+                      {onlineUsers?.get(user._id)?.online
+                        ? "Online"
+                        : `Last seen ${formatLastSeen(onlineUsers?.get(user._id)?.lastSeen)}`}
+                    </p>
                   </div>
                 </div>
               ))}

@@ -25,7 +25,23 @@ export default function LoginPage() {
 
     const res = await login(data.email, data.password);
     if (!res.success) {
-      setError(res.message);
+      // If the backend sent standard "Invalid credentials" it's just res.message
+      // Let's make it smarter: If the message complains about verification, show a special UI
+      if (res.message.toLowerCase().includes("not verified")) {
+        setError(
+          <span>
+            {res.message}.{" "}
+            <Link
+              href={`/verify?email=${encodeURIComponent(data.email)}`}
+              className="text-[#13c8ec] underline font-bold ml-1 hover:text-white"
+            >
+              Verify now
+            </Link>
+          </span>,
+        );
+      } else {
+        setError(res.message);
+      }
       setLoading(false);
     }
   };

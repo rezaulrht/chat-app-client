@@ -111,6 +111,43 @@ export const AuthProvider = ({ children }) => {
     [verifyAndSetUser],
   );
 
+  // Verify OTP function
+  const verifyOTP = useCallback(
+    async (email, otp) => {
+      try {
+        const response = await api.post("/auth/verify-otp", { email, otp });
+        const { token, user } = response.data;
+
+        localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(user));
+
+        setUser(user);
+        router.push("/chat");
+
+        return { success: true, message: response.data.message };
+      } catch (error) {
+        return {
+          success: false,
+          message: error.response?.data?.message || "Verification failed",
+        };
+      }
+    },
+    [router],
+  );
+
+  // Resend OTP function
+  const resendOTP = useCallback(async (email) => {
+    try {
+      const response = await api.post("/auth/resend-otp", { email });
+      return { success: true, message: response.data.message };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Failed to resend code",
+      };
+    }
+  }, []);
+
   const authInfo = {
     user,
     loading,
@@ -118,6 +155,8 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     oauthLogin,
+    verifyOTP,
+    resendOTP,
   };
 
   return (

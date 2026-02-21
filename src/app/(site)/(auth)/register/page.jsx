@@ -36,7 +36,7 @@ export default function RegisterPage() {
 
     const res = await registerUser(data.fullname, data.email, data.password);
     if (res.success) {
-      router.push("/login?registered=true");
+      router.push(`/verify?email=${encodeURIComponent(data.email)}`);
     } else {
       setError(res.message);
       setLoading(false);

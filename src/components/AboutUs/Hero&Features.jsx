@@ -1,5 +1,6 @@
 import React from "react";
 import { Zap, Layers, Shield } from "lucide-react";
+import NavBar from "../NavBar";
 
 const AboutSection = () => {
   const values = [
@@ -24,6 +25,9 @@ const AboutSection = () => {
   ];
 
   return (
+    <div>
+       <NavBar/>
+
     <div className="bg-[#050505] text-white font-sans overflow-hidden">
       {/* Hero Section with Enhanced Blue Glow */}
       <section className="relative py-32 px-6 flex flex-col items-center text-center">
@@ -112,6 +116,7 @@ const AboutSection = () => {
           </div>
         </div>
       </section>
+    </div>
     </div>
   );
 };

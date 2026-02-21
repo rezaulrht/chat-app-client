@@ -9,9 +9,13 @@ import {
   HelpCircle,
   ArrowRight,
 } from "lucide-react";
+import NavBar from "../NavBar";
 
 const ContactPage = () => {
   return (
+    <div>
+      <NavBar/>
+
     <div className="bg-[#080c16] text-white font-sans py-24 px-6 relative overflow-hidden min-h-screen">
       {/* Primary Background Glow */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-blue-500/10 blur-[150px] -z-10" />
@@ -178,6 +182,7 @@ const ContactPage = () => {
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 };

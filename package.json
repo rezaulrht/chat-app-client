@@ -29,5 +29,18 @@
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4"
   },
-  "browserslist": "> 1%"
+  "browserslist": "> 1%",
+  "description": "",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rezaulrht/chat-app-client.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/rezaulrht/chat-app-client/issues"
+  },
+  "homepage": "https://github.com/rezaulrht/chat-app-client#readme"
 }

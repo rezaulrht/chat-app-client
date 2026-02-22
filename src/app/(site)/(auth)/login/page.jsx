@@ -25,7 +25,23 @@ export default function LoginPage() {
 
     const res = await login(data.email, data.password);
     if (!res.success) {
-      setError(res.message);
+      // If the backend sent standard "Invalid credentials" it's just res.message
+      // Let's make it smarter: If the message complains about verification, show a special UI
+      if (res.message.toLowerCase().includes("not verified")) {
+        setError(
+          <span>
+            {res.message}.{" "}
+            <Link
+              href={`/verify?email=${encodeURIComponent(data.email)}`}
+              className="text-[#13c8ec] underline font-bold ml-1 hover:text-white"
+            >
+              Verify now
+            </Link>
+          </span>,
+        );
+      } else {
+        setError(res.message);
+      }
       setLoading(false);
     }
   };
@@ -42,7 +58,7 @@ export default function LoginPage() {
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-size-[64px_64px] mask-[radial-gradient(ellipse_at_center,black_50%,transparent_100%)] pointer-events-none" />
       </div>
 
-      <main className="relative z-10 w-full max-w-md px-6 py-12">
+      <main className="relative z-10 w-full max-w-md px-6 py-12 mt-16 md:mt-20">
         <div className="glass-panel rounded-2xl p-8 sm:p-10 shadow-2xl border border-white/10">
           <div className="text-center mb-10">
             <h1 className="text-3xl font-bold tracking-tight text-white mb-3">

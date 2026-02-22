@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { AuthContext } from "./AuthContext";
-import api from "@/app/api/api"; // Using our existing api utility
+import api from "@/app/api/Axios";
 
 export const AuthProvider = ({ children }) => {
   const router = useRouter();
@@ -42,12 +42,13 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // Register function
-  const register = useCallback(async (name, email, password) => {
+  const register = useCallback(async (name, email, password, avatar = "") => {
     try {
       const response = await api.post("/auth/register", {
         name,
         email,
         password,
+        avatar,
       });
       return { success: true, message: response.data.message };
     } catch (error) {
@@ -69,7 +70,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem("user", JSON.stringify(user));
 
         setUser(user);
-        router.push("/chat");
+        window.location.href = "/chat";
 
         return { success: true, user };
       } catch (error) {
@@ -111,6 +112,45 @@ export const AuthProvider = ({ children }) => {
     [verifyAndSetUser],
   );
 
+  // Verify OTP function
+  const verifyOTP = useCallback(
+    async (email, otp) => {
+      try {
+        const response = await api.post("/auth/verify-otp", { email, otp });
+        const { token, user } = response.data;
+
+        localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(user));
+
+        setUser(user);
+
+        // Use window.location for a hard redirect to ensure full hydration of navbars
+        window.location.href = "/chat";
+
+        return { success: true, message: response.data.message };
+      } catch (error) {
+        return {
+          success: false,
+          message: error.response?.data?.message || "Verification failed",
+        };
+      }
+    },
+    [router],
+  );
+
+  // Resend OTP function
+  const resendOTP = useCallback(async (email) => {
+    try {
+      const response = await api.post("/auth/resend-otp", { email });
+      return { success: true, message: response.data.message };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Failed to resend code",
+      };
+    }
+  }, []);
+
   const authInfo = {
     user,
     loading,
@@ -118,6 +158,8 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     oauthLogin,
+    verifyOTP,
+    resendOTP,
   };
 
   return (

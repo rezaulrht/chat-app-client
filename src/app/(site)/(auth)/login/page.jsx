@@ -58,7 +58,7 @@ export default function LoginPage() {
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-size-[64px_64px] mask-[radial-gradient(ellipse_at_center,black_50%,transparent_100%)] pointer-events-none" />
       </div>
 
-      <main className="relative z-10 w-full max-w-md px-6 py-12">
+      <main className="relative z-10 w-full max-w-md px-6 py-12 mt-16 md:mt-20">
         <div className="glass-panel rounded-2xl p-8 sm:p-10 shadow-2xl border border-white/10">
           <div className="text-center mb-10">
             <h1 className="text-3xl font-bold tracking-tight text-white mb-3">

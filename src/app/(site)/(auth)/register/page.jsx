@@ -14,6 +14,8 @@ import {
   EyeOff,
   Github,
   AlertCircle,
+  Camera,
+  X,
 } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 
@@ -21,6 +23,8 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+  const [avatarFile, setAvatarFile] = useState(null);
   const { register: registerUser } = useAuth();
   const router = useRouter();
 
@@ -30,29 +34,94 @@ export default function RegisterPage() {
     formState: { errors },
   } = useForm();
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setError("Image must be smaller than 5MB");
+        return;
+      }
+      setAvatarFile(file);
+      setAvatarPreview(URL.createObjectURL(file));
+      setError("");
+    }
+  };
+
+  const removeAvatar = (e) => {
+    e.preventDefault();
+    e.stopPropagation(); // Prevents opening the file dialog again
+    setAvatarFile(null);
+    setAvatarPreview(null);
+    // Reset file input value if needed (by using a ref, but re-rendering handles it mostly)
+  };
+
+  const uploadToImgBB = async (file) => {
+    const formData = new FormData();
+    formData.append("image", file);
+
+    // We expect the user to have NEXT_PUBLIC_IMGBB_API_KEY in their .env
+    const apiKey = process.env.NEXT_PUBLIC_IMGBB_API_KEY;
+    if (!apiKey) {
+      throw new Error(
+        "ImgBB API key is missing. Please add it to your environment variables.",
+      );
+    }
+
+    const res = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      return data.data.display_url;
+    } else {
+      throw new Error(data.error?.message || "Image upload failed");
+    }
+  };
+
   const onSubmit = async (data) => {
     setError("");
     setLoading(true);
 
-    const res = await registerUser(data.fullname, data.email, data.password);
-    if (res.success) {
-      router.push(`/verify?email=${encodeURIComponent(data.email)}`);
-    } else {
-      if (res.message && res.message.toLowerCase().includes("not verified")) {
-        setError(
-          <span>
-            {res.message}{" "}
-            <Link
-              href={`/verify?email=${encodeURIComponent(data.email)}`}
-              className="text-[#13c8ec] underline font-bold ml-1 hover:text-white"
-            >
-              Verify now
-            </Link>
-          </span>,
-        );
-      } else {
-        setError(res.message);
+    try {
+      let avatarUrl = "";
+
+      // If a file was selected, upload it to ImgBB first
+      if (avatarFile) {
+        avatarUrl = await uploadToImgBB(avatarFile);
       }
+
+      // Proceed with registration, passing the avatarUrl (empty string triggers backend fallback)
+      const res = await registerUser(
+        data.fullname,
+        data.email,
+        data.password,
+        avatarUrl,
+      );
+
+      if (res.success) {
+        router.push(`/verify?email=${encodeURIComponent(data.email)}`);
+      } else {
+        if (res.message && res.message.toLowerCase().includes("not verified")) {
+          setError(
+            <span>
+              {res.message}{" "}
+              <Link
+                href={`/verify?email=${encodeURIComponent(data.email)}`}
+                className="text-[#13c8ec] underline font-bold ml-1 hover:text-white"
+              >
+                Verify now
+              </Link>
+            </span>,
+          );
+        } else {
+          setError(res.message);
+        }
+        setLoading(false);
+      }
+    } catch (err) {
+      setError(err.message);
       setLoading(false);
     }
   };
@@ -69,7 +138,7 @@ export default function RegisterPage() {
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-size-[64px_64px] mask-[radial-gradient(ellipse_at_center,black_50%,transparent_100%)] pointer-events-none" />
       </div>
 
-      <main className="grow flex items-center justify-center p-4 sm:p-6 relative z-10">
+      <main className="grow flex items-center justify-center p-4 sm:p-6 mt-16 md:mt-20 relative z-10">
         <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           {/* LEFT SIDE */}
           <div className="hidden lg:flex flex-col justify-center space-y-8 pr-10">
@@ -127,6 +196,51 @@ export default function RegisterPage() {
               )}
 
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                {/* Profile Picture Upload */}
+                <div className="flex justify-center mb-8">
+                  <div className="relative group cursor-pointer w-28 h-28">
+                    <div className="w-full h-full rounded-full border-2 border-white/10 bg-background-dark/50 flex items-center justify-center overflow-hidden transition-all group-hover:border-[#13c8ec]/50 group-hover:shadow-[0_0_15px_rgba(19,200,236,0.2)]">
+                      {avatarPreview ? (
+                        <>
+                          <img
+                            src={avatarPreview}
+                            alt="Avatar Preview"
+                            className="w-full h-full object-cover"
+                          />
+                          {/* Remove Overlay on Hover */}
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-full">
+                            <button
+                              type="button"
+                              onClick={removeAvatar}
+                              className="bg-red-500/80 hover:bg-red-500 p-2 rounded-full text-white transition-colors"
+                              title="Remove Image"
+                            >
+                              <X className="w-5 h-5" />
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-slate-500 group-hover:text-[#13c8ec] transition-colors">
+                          <Camera className="w-8 h-8 mb-1" />
+                          <span className="text-[10px] uppercase font-bold tracking-wider">
+                            Upload
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    {/* Only allow clicking the input if there is no preview. If there's a preview, clicking the X removes it. */}
+                    {!avatarPreview && (
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        title="Upload Profile Picture"
+                      />
+                    )}
+                  </div>
+                </div>
+
                 <div className="group/input">
                   <label className="block text-[10px] uppercase tracking-wider font-semibold text-gray-500 mb-1 ml-1">
                     Full Name

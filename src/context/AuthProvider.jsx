@@ -42,12 +42,13 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // Register function
-  const register = useCallback(async (name, email, password) => {
+  const register = useCallback(async (name, email, password, avatar = "") => {
     try {
       const response = await api.post("/auth/register", {
         name,
         email,
         password,
+        avatar,
       });
       return { success: true, message: response.data.message };
     } catch (error) {

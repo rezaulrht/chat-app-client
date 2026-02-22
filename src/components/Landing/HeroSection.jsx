@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 import { ArrowRight, User } from "lucide-react";
 
 export default function HeroSection() {
@@ -52,16 +53,16 @@ export default function HeroSection() {
 
         {/* Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-          <button className="group relative px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition-all duration-300 shadow-[0_10px_40px_-10px_rgba(37,99,235,0.5)] hover:shadow-[0_20px_60px_-15px_rgba(37,99,235,0.6)] hover:-translate-y-1 active:translate-y-0 active:scale-95">
-            <div className="flex items-center gap-2 text-lg">
+          <Link
+            href="/register"
+            className="group relative px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition-all duration-300 shadow-[0_10px_40px_-10px_rgba(37,99,235,0.5)] hover:shadow-[0_20px_60px_-15px_rgba(37,99,235,0.6)] hover:-translate-y-1 active:translate-y-0 active:scale-95 text-center"
+          >
+            <div className="flex items-center justify-center gap-2 text-lg">
               Get Started for Free
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </div>
             <div className="absolute inset-0 rounded-xl ring-1 ring-inset ring-white/20 pointer-events-none" />
-          </button>
-          <button className="px-8 py-4 text-slate-300 hover:text-white font-medium transition-colors hover:bg-white/5 rounded-xl">
-            View Documentation
-          </button>
+          </Link>
         </div>
 
         {/* --- Central Chat Interface Preview --- */}

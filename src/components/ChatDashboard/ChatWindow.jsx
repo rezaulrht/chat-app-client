@@ -1,4 +1,3 @@
-// src/components/ChatDashboard/ChatWindow.jsx
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
@@ -7,34 +6,35 @@ import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
 
-// Helper function to format last seen time - show actual timestamp
 const formatLastSeen = (timestamp) => {
   if (!timestamp) return "";
-
   const date = new Date(timestamp);
-  return date.toLocaleString([], { 
-    month: "short", 
+  return date.toLocaleString([], {
+    month: "short",
     day: "numeric",
     hour: "2-digit",
-    minute: "2-digit"
+    minute: "2-digit",
   });
 };
 
-export default function ChatWindow({ conversation, onMessageSent }) {
+export default function ChatWindow({ conversation }) {
   const { socket, onlineUsers } = useSocket() || {};
   const { user } = useAuth();
+
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [loadingMessages, setLoadingMessages] = useState(false);
+
   const bottomRef = useRef(null);
 
-  // Fetch message history whenever the active conversation changes
+  // ------------------------------------------------
+  // Fetch messages
+  // ------------------------------------------------
   useEffect(() => {
     if (!conversation?._id) return;
 
     const fetchMessages = async () => {
       setLoadingMessages(true);
-      setMessages([]);
       try {
         const res = await api.get(`/api/chat/messages/${conversation._id}`);
         setMessages(res.data);
@@ -48,52 +48,117 @@ export default function ChatWindow({ conversation, onMessageSent }) {
     fetchMessages();
   }, [conversation?._id]);
 
-  // Listen for incoming messages and delivery acks on the socket
+  // ------------------------------------------------
+  // Auto mark messages as seen when conversation opens
+  // ------------------------------------------------
+  useEffect(() => {
+    if (!socket || !conversation?._id || !messages.length) return;
+
+    const unreadMessages = messages.filter(
+      (m) => m.sender?._id !== user?._id && m.status !== "read",
+    );
+
+    if (unreadMessages.length > 0) {
+      const lastUnread = unreadMessages[unreadMessages.length - 1];
+
+      socket.emit("conversation:seen", {
+        conversationId: conversation._id,
+        lastSeenMessageId: lastUnread._id,
+      });
+    }
+  }, [messages, socket, conversation?._id, user?._id]);
+
+  // ------------------------------------------------
+  // Socket listeners
+  // ------------------------------------------------
   useEffect(() => {
     if (!socket) return;
 
-    // A new message arrived from the other user
-    const handleReceive = (msg) => {
+    // New message
+    const handleNewMessage = (msg) => {
       if (msg.conversationId !== conversation?._id) return;
-      setMessages((prev) => [...prev, msg]);
+
+      setMessages((prev) => {
+        const optimisticIndex = prev.findIndex((m) => m._id === msg.tempId);
+
+        if (optimisticIndex !== -1) {
+          const updated = [...prev];
+          updated[optimisticIndex] = msg;
+          return updated;
+        }
+
+        return [...prev, msg];
+      });
+
+      // If I am receiver → mark as seen immediately
+      if (msg.sender?._id !== user?._id) {
+        socket.emit("conversation:seen", {
+          conversationId: conversation._id,
+          lastSeenMessageId: msg._id,
+        });
+      }
     };
 
-    // Our sent message was saved — replace the optimistic temp entry with the real one
-    const handleDelivered = (msg) => {
-      if (msg.conversationId !== conversation?._id) return;
+    // Status updates (delivered / read)
+    const handleStatus = (update) => {
+      if (update.conversationId !== conversation?._id) return;
+
       setMessages((prev) =>
-        prev.map((m) => (m._id === msg.tempId ? { ...msg } : m)),
+        prev.map((m) => {
+          // Delivered update
+          if (update.messageId && m._id === update.messageId) {
+            return { ...m, status: update.status };
+          }
+
+          // Bulk read update
+          if (
+            update.status === "read" &&
+            m.sender?._id === user?._id &&
+            m.status !== "read"
+          ) {
+            // Only mark messages up to lastSeenMessageId
+            if (m._id <= update.upToMessageId) {
+              return { ...m, status: "read" };
+            }
+          }
+
+          return m;
+        }),
       );
-      onMessageSent(msg.conversationId, msg.text);
     };
 
-    socket.on("message:receive", handleReceive);
-    socket.on("message:delivered", handleDelivered);
+    socket.on("message:new", handleNewMessage);
+    socket.on("message:status", handleStatus);
 
     return () => {
-      socket.off("message:receive", handleReceive);
-      socket.off("message:delivered", handleDelivered);
+      socket.off("message:new", handleNewMessage);
+      socket.off("message:status", handleStatus);
     };
-  }, [socket, conversation?._id, onMessageSent]);
+  }, [socket, conversation?._id, user?._id]);
 
-  // Auto-scroll to the latest message
+  // ------------------------------------------------
+  // Auto scroll
+  // ------------------------------------------------
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // ------------------------------------------------
+  // Send message
+  // ------------------------------------------------
   const handleSend = (e) => {
     e.preventDefault();
     if (!text.trim() || !socket || !conversation) return;
 
     const tempId = `temp-${Date.now()}`;
 
-    // Optimistic message — shown immediately before server ack
     const optimistic = {
       _id: tempId,
       conversationId: conversation._id,
       sender: { _id: user._id, name: user.name },
       text: text.trim(),
       createdAt: new Date().toISOString(),
+      status: "sent",
       isOptimistic: true,
     };
 
@@ -103,7 +168,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
     socket.emit("message:send", {
       conversationId: conversation._id,
       receiverId: conversation.participant._id,
-      text: text.trim(),
+      text: optimistic.text,
       tempId,
     });
   };
@@ -137,7 +202,6 @@ export default function ChatWindow({ conversation, onMessageSent }) {
               alt={participant?.name || "avatar"}
               unoptimized
             />
-            {/* Online indicator in header */}
             {onlineUsers?.get(participant?._id)?.online && (
               <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#0B0E11]"></div>
             )}
@@ -151,7 +215,10 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                 <span className="text-green-500">Online</span>
               ) : (
                 <span>
-                  Last seen {formatLastSeen(onlineUsers?.get(participant?._id)?.lastSeen) || "Just now"}
+                  Last seen{" "}
+                  {formatLastSeen(
+                    onlineUsers?.get(participant?._id)?.lastSeen,
+                  ) || "Just now"}
                 </span>
               )}
             </p>
@@ -164,7 +231,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
         </div>
       </header>
 
-      {/* Message List */}
+      {/* Messages */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4 flex flex-col">
         {loadingMessages && (
           <p className="text-center text-slate-600 text-xs mt-4">
@@ -181,23 +248,39 @@ export default function ChatWindow({ conversation, onMessageSent }) {
         {messages.map((msg) => {
           const isMe =
             msg.sender?._id === user?._id || msg.sender === user?._id;
+
           return (
             <div
               key={msg._id}
               className={`flex ${isMe ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`max-w-[70%] p-4 rounded-2xl text-sm ${isMe
-                    ? `bg-teal-900/20 text-white rounded-br-none border border-teal-500/20 shadow-lg shadow-teal-500/5 ${msg.isOptimistic ? "opacity-60" : ""}`
+                className={`max-w-[70%] p-4 rounded-2xl text-sm ${
+                  isMe
+                    ? `bg-teal-900/20 text-white rounded-br-none border border-teal-500/20 shadow-lg shadow-teal-500/5`
                     : "bg-[#1C2227] text-slate-300 rounded-bl-none"
-                  }`}
+                }`}
               >
                 {msg.text}
-                <div className="text-[9px] mt-2 opacity-50 text-right">
+                <div className="text-[9px] mt-2 opacity-50 text-right flex items-center gap-1 justify-end">
                   {new Date(msg.createdAt).toLocaleTimeString([], {
                     hour: "2-digit",
                     minute: "2-digit",
                   })}
+
+                  {isMe && (
+                    <span className="ml-1">
+                      {msg.status === "sent" && (
+                        <span className="text-gray-500">Sent ✓</span>
+                      )}
+                      {msg.status === "delivered" && (
+                        <span className="text-gray-500">Delivered ✓✓</span>
+                      )}
+                      {msg.status === "read" && (
+                        <span className="text-teal-500">Seen ✓✓</span>
+                      )}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -207,23 +290,17 @@ export default function ChatWindow({ conversation, onMessageSent }) {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input Form */}
+      {/* Input */}
       <form onSubmit={handleSend} className="p-6">
         <div className="bg-[#15191C] rounded-2xl flex items-center p-2.5 border border-slate-800 focus-within:border-teal-500/50 transition-all">
-          <Plus
-            size={20}
-            className="text-slate-500 mx-2 cursor-pointer hover:text-teal-400"
-          />
+          <Plus size={20} className="text-slate-500 mx-2" />
           <input
             className="flex-1 bg-transparent outline-none text-sm text-slate-200 px-2"
             placeholder="Type a message..."
             value={text}
             onChange={(e) => setText(e.target.value)}
           />
-          <Smile
-            size={20}
-            className="text-slate-500 mx-2 cursor-pointer hover:text-teal-400"
-          />
+          <Smile size={20} className="text-slate-500 mx-2" />
           <button
             type="submit"
             className="bg-teal-400 p-2.5 rounded-xl text-black ml-2 hover:bg-teal-300 transition-colors active:scale-95"

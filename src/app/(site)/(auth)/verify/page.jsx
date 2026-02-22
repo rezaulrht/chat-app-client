@@ -95,8 +95,10 @@ function VerifyContent() {
     if (!res.success) {
       setError(res.message);
       setLoading(false);
+    } else {
+      // On success, redirect to chat. Use window.location for hard refresh to ensure NavBar state updates.
+      window.location.href = "/chat";
     }
-    // If successful, the auth context will automatically redirect to /chat
   };
 
   const handleResend = async () => {

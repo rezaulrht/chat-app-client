@@ -38,7 +38,21 @@ export default function RegisterPage() {
     if (res.success) {
       router.push(`/verify?email=${encodeURIComponent(data.email)}`);
     } else {
-      setError(res.message);
+      if (res.message && res.message.toLowerCase().includes("not verified")) {
+        setError(
+          <span>
+            {res.message}{" "}
+            <Link
+              href={`/verify?email=${encodeURIComponent(data.email)}`}
+              className="text-[#13c8ec] underline font-bold ml-1 hover:text-white"
+            >
+              Verify now
+            </Link>
+          </span>,
+        );
+      } else {
+        setError(res.message);
+      }
       setLoading(false);
     }
   };

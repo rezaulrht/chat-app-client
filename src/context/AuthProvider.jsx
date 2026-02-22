@@ -69,7 +69,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem("user", JSON.stringify(user));
 
         setUser(user);
-        router.push("/chat");
+        window.location.href = "/chat";
 
         return { success: true, user };
       } catch (error) {
@@ -122,7 +122,9 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem("user", JSON.stringify(user));
 
         setUser(user);
-        router.push("/chat");
+
+        // Use window.location for a hard redirect to ensure full hydration of navbars
+        window.location.href = "/chat";
 
         return { success: true, message: response.data.message };
       } catch (error) {

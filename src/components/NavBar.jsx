@@ -64,7 +64,7 @@ export default function NavBar() {
               ))}
               {isMounted && (
                 <>
-                  {!user ? (
+                  {!user || !user.isVerified ? (
                     <>
                       <li className="border-t border-white/5 mt-2 pt-2">
                         <Link
@@ -138,7 +138,7 @@ export default function NavBar() {
         <div className="navbar-end gap-4 items-center">
           {isMounted && (
             <>
-              {!user ? (
+              {!user || !user.isVerified ? (
                 <>
                   <Link
                     href="/login"

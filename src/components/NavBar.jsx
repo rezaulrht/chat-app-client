@@ -109,9 +109,11 @@ export default function NavBar() {
           </div>
 
           <Link href="/" className="flex items-center group">
-            <span className="font-bold text-2xl tracking-tight text-white">
-              Convo<span className="text-[#13c8ec]">X</span>
-            </span>
+            <img
+              src="https://i.ibb.co/PG0X3Tbf/Convo-X-logo.png"
+              alt="ConvoX Logo"
+              className="h-8 w-auto"
+            />
           </Link>
         </div>
 

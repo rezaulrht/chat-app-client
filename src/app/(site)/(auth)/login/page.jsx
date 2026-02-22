@@ -61,8 +61,12 @@ export default function LoginPage() {
       <main className="relative z-10 w-full max-w-md px-6 py-12 mt-16 md:mt-20">
         <div className="glass-panel rounded-2xl p-8 sm:p-10 shadow-2xl border border-white/10">
           <div className="text-center mb-10">
-            <h1 className="text-3xl font-bold tracking-tight text-white mb-3">
-              Convo<span className="text-[#13c8ec]">X</span>
+            <h1 className="text-3xl font-bold tracking-tight text-white mb-3 flex justify-center">
+              <img
+                src="https://i.ibb.co/PG0X3Tbf/Convo-X-logo.png"
+                alt="ConvoX Logo"
+                className="h-10 w-auto"
+              />
             </h1>
             <p className="text-sm text-slate-400">
               Enter your details to access your workspace.

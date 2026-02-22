@@ -11,11 +11,11 @@ const formatLastSeen = (timestamp) => {
   if (!timestamp) return "";
 
   const date = new Date(timestamp);
-  return date.toLocaleString([], { 
-    month: "short", 
+  return date.toLocaleString([], {
+    month: "short",
     day: "numeric",
     hour: "2-digit",
-    minute: "2-digit"
+    minute: "2-digit",
   });
 };
 
@@ -97,7 +97,11 @@ export default function Sidebar({
     <>
       <aside className="w-80 bg-[#15191C] border-r border-slate-800/50 flex flex-col shrink-0 h-full">
         <div className="p-5 flex justify-between items-center">
-          <h1 className="text-xl font-bold text-white">ConvoX</h1>
+          <img
+            src="https://i.ibb.co/PG0X3Tbf/Convo-X-logo.png"
+            alt="ConvoX Logo"
+            className="h-6 w-auto"
+          />
           {/* Pencil icon opens the new-chat modal */}
           <Edit3
             size={18}
@@ -126,15 +130,18 @@ export default function Sidebar({
         {/* Conversation list */}
         <div className="flex-1 overflow-y-auto px-3 space-y-2">
           {filteredConversations.map((conv) => {
-            const isUserOnline = onlineUsers?.get(conv.participant?._id)?.online;
+            const isUserOnline = onlineUsers?.get(
+              conv.participant?._id,
+            )?.online;
             return (
               <div
                 key={conv._id}
                 onClick={() => setActiveConversationId(conv._id)}
-                className={`flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all ${activeConversationId === conv._id
+                className={`flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all ${
+                  activeConversationId === conv._id
                     ? "bg-[#1C2227] border-l-4 border-teal-400"
                     : "hover:bg-slate-800/30"
-                  }`}
+                }`}
               >
                 <div className="relative">
                   <Image
@@ -149,9 +156,11 @@ export default function Sidebar({
                     unoptimized
                   />
                   {/* Online/Offline indicator - always show */}
-                  <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#15191C] ${
-                    isUserOnline ? "bg-green-500" : "bg-slate-500"
-                  }`}></div>
+                  <div
+                    className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#15191C] ${
+                      isUserOnline ? "bg-green-500" : "bg-slate-500"
+                    }`}
+                  ></div>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-center">
@@ -160,10 +169,12 @@ export default function Sidebar({
                     </span>
                     <span className="text-[10px] text-slate-500">
                       {conv.lastMessage?.timestamp
-                        ? new Date(conv.lastMessage.timestamp).toLocaleTimeString(
-                          [],
-                          { hour: "2-digit", minute: "2-digit" },
-                        )
+                        ? new Date(
+                            conv.lastMessage.timestamp,
+                          ).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
                         : ""}
                     </span>
                   </div>
@@ -262,11 +273,13 @@ export default function Sidebar({
                     <p className="text-white text-sm font-medium">
                       {user.name}
                     </p>
-                    <p className={`text-xs ${
-                      onlineUsers?.get(user._id)?.online 
-                        ? "text-green-500" 
-                        : "text-slate-500"
-                    }`}>
+                    <p
+                      className={`text-xs ${
+                        onlineUsers?.get(user._id)?.online
+                          ? "text-green-500"
+                          : "text-slate-500"
+                      }`}
+                    >
                       {onlineUsers?.get(user._id)?.online
                         ? "Online"
                         : `Last seen ${formatLastSeen(onlineUsers?.get(user._id)?.lastSeen)}`}

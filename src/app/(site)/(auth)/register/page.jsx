@@ -143,9 +143,11 @@ export default function RegisterPage() {
           {/* LEFT SIDE */}
           <div className="hidden lg:flex flex-col justify-center space-y-8 pr-10">
             <div className="flex items-center">
-              <span className="text-3xl font-bold text-white tracking-tight">
-                Convo<span className="text-[#13c8ec]">X</span>
-              </span>
+              <img
+                src="https://i.ibb.co/PG0X3Tbf/Convo-X-logo.png"
+                alt="ConvoX Logo"
+                className="h-10 w-auto"
+              />
             </div>
 
             <div className="space-y-4">
@@ -180,9 +182,11 @@ export default function RegisterPage() {
           {/* RIGHT SIDE */}
           <div className="w-full max-w-md mx-auto">
             <div className="lg:hidden flex justify-center mb-8">
-              <span className="text-3xl font-bold text-white tracking-tight">
-                Convo<span className="text-[#13c8ec]">X</span>
-              </span>
+              <img
+                src="https://i.ibb.co/PG0X3Tbf/Convo-X-logo.png"
+                alt="ConvoX Logo"
+                className="h-10 w-auto"
+              />
             </div>
 
             <div className="glass-panel p-6 sm:p-8 rounded-xl relative border border-white/10 shadow-2xl">

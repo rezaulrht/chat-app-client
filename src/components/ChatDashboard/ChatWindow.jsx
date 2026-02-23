@@ -1,8 +1,10 @@
 // src/components/ChatDashboard/ChatWindow.jsx
 "use client";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import { Phone, Video, Info, Plus, Smile, Send } from "lucide-react";
+import Picker from "@emoji-mart/react";
+import data from "@emoji-mart/data";
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
@@ -26,7 +28,39 @@ export default function ChatWindow({ conversation, onMessageSent }) {
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [reactions, setReactions] = useState({}); // { msgId: { '👍': ['userId1'], '❤️': ['userId2'] } }
+  const [reactionPickerMsgId, setReactionPickerMsgId] = useState(null);
   const bottomRef = useRef(null);
+  const reactionPickerRef = useRef(null);
+
+  // Close reaction picker on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (
+        reactionPickerRef.current &&
+        !reactionPickerRef.current.contains(e.target)
+      ) {
+        setReactionPickerMsgId(null);
+      }
+    };
+    if (reactionPickerMsgId) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [reactionPickerMsgId]);
+
+  // Toggle a reaction — emit via socket for persistence + live sync
+  const toggleReaction = useCallback(
+    (msgId, emoji) => {
+      if (!socket || !conversation?._id) return;
+      socket.emit("message:react", {
+        messageId: msgId,
+        conversationId: conversation._id,
+        emoji,
+      });
+    },
+    [socket, conversation?._id],
+  );
 
   // Fetch message history whenever the active conversation changes
   useEffect(() => {
@@ -35,9 +69,24 @@ export default function ChatWindow({ conversation, onMessageSent }) {
     const fetchMessages = async () => {
       setLoadingMessages(true);
       setMessages([]);
+      setReactions({});
       try {
         const res = await api.get(`/api/chat/messages/${conversation._id}`);
         setMessages(res.data);
+        // Build reactions state from fetched messages
+        const rxns = {};
+        for (const msg of res.data) {
+          if (msg.reactions && typeof msg.reactions === "object") {
+            const entries =
+              msg.reactions instanceof Map
+                ? Object.fromEntries(msg.reactions)
+                : msg.reactions;
+            if (Object.keys(entries).length > 0) {
+              rxns[msg._id] = entries;
+            }
+          }
+        }
+        setReactions(rxns);
       } catch (err) {
         console.error("Failed to fetch messages:", err);
       } finally {
@@ -67,12 +116,24 @@ export default function ChatWindow({ conversation, onMessageSent }) {
       onMessageSent(msg.conversationId, msg.text);
     };
 
+    // Live reaction update from server
+    const handleReacted = ({
+      messageId,
+      conversationId: cId,
+      reactions: rxns,
+    }) => {
+      if (cId !== conversation?._id) return;
+      setReactions((prev) => ({ ...prev, [messageId]: rxns }));
+    };
+
     socket.on("message:receive", handleReceive);
     socket.on("message:delivered", handleDelivered);
+    socket.on("message:reacted", handleReacted);
 
     return () => {
       socket.off("message:receive", handleReceive);
       socket.off("message:delivered", handleDelivered);
+      socket.off("message:reacted", handleReacted);
     };
   }, [socket, conversation?._id, onMessageSent]);
 
@@ -190,26 +251,49 @@ export default function ChatWindow({ conversation, onMessageSent }) {
               className={`flex ${isMe ? "justify-end" : "justify-start"}`}
             >
               {/* Wrapper for bubble + hover toolbar */}
-              <div className="relative group max-w-[70%]">
-                {/* Hover Actions — floats below the bubble */}
+              <div className="relative group max-w-[70%] w-fit">
+                {/* Hover Actions — single row, top-right */}
                 {!msg.isOptimistic && (
                   <div
-                    className={`absolute -bottom-4 ${isMe ? "right-1" : "left-1"} hidden group-hover:flex items-center gap-0.5 bg-[#15191C] border border-slate-700/60 rounded-lg p-0.5 shadow-xl shadow-black/40 z-20`}
+                    className={`absolute -top-5 ${isMe ? "right-0" : "left-0"} hidden group-hover:flex items-center gap-0.5 bg-[#15191C] border border-slate-700/60 rounded-lg p-0.5 shadow-xl shadow-black/40 z-20`}
                   >
+                    {["👍", "❤️", "😂", "😮", "😢"].map((emoji) => (
+                      <button
+                        key={emoji}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleReaction(msg._id, emoji);
+                        }}
+                        className={`text-sm p-1 rounded-md transition-all duration-150 hover:bg-slate-700/60 hover:scale-110 ${
+                          reactions[msg._id]?.[emoji]?.includes(user?._id)
+                            ? "bg-teal-900/40"
+                            : ""
+                        }`}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                    <div className="w-px h-5 bg-slate-700/60 mx-0.5" />
                     <button
-                      className="p-1.5 text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 rounded-md transition-all duration-150"
-                      title="React"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setReactionPickerMsgId(
+                          reactionPickerMsgId === msg._id ? null : msg._id,
+                        );
+                      }}
+                      className="p-1 text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 rounded-md transition-all duration-150"
+                      title="More reactions"
                     >
-                      <Smile size={15} />
+                      <Smile size={14} />
                     </button>
                     <button
-                      className="p-1.5 text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 rounded-md transition-all duration-150"
+                      className="p-1 text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 rounded-md transition-all duration-150"
                       title="Reply"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        width="15"
-                        height="15"
+                        width="14"
+                        height="14"
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
@@ -224,13 +308,13 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                     {isMe && (
                       <>
                         <button
-                          className="p-1.5 text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 rounded-md transition-all duration-150"
+                          className="p-1 text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 rounded-md transition-all duration-150"
                           title="Edit"
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            width="15"
-                            height="15"
+                            width="14"
+                            height="14"
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
@@ -243,13 +327,13 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                           </svg>
                         </button>
                         <button
-                          className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-700/60 rounded-md transition-all duration-150"
+                          className="p-1 text-slate-400 hover:text-red-400 hover:bg-slate-700/60 rounded-md transition-all duration-150"
                           title="Delete"
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            width="15"
-                            height="15"
+                            width="14"
+                            height="14"
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
@@ -283,6 +367,52 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                     })}
                   </div>
                 </div>
+
+                {/* Reactions display */}
+                {reactions[msg._id] &&
+                  Object.keys(reactions[msg._id]).length > 0 && (
+                    <div
+                      className={`flex flex-wrap gap-1 mt-1 ${isMe ? "justify-end" : "justify-start"}`}
+                    >
+                      {Object.entries(reactions[msg._id]).map(
+                        ([emoji, users]) => (
+                          <button
+                            key={emoji}
+                            onClick={() => toggleReaction(msg._id, emoji)}
+                            className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border transition-all duration-150 ${
+                              users.includes(user?._id)
+                                ? "bg-teal-900/30 border-teal-500/40 text-teal-300"
+                                : "bg-[#1C2227] border-slate-700/50 text-slate-400 hover:border-slate-600"
+                            }`}
+                          >
+                            <span>{emoji}</span>
+                            <span className="text-[10px]">{users.length}</span>
+                          </button>
+                        ),
+                      )}
+                    </div>
+                  )}
+
+                {/* Full Reaction Picker — opens beside the message */}
+                {reactionPickerMsgId === msg._id && (
+                  <div
+                    ref={reactionPickerRef}
+                    className={`absolute top-0 z-50 ${isMe ? "right-full mr-2" : "left-full ml-2"}`}
+                  >
+                    <Picker
+                      data={data}
+                      onEmojiSelect={(emoji) =>
+                        toggleReaction(msg._id, emoji.native)
+                      }
+                      theme="dark"
+                      previewPosition="none"
+                      skinTonePosition="none"
+                      set="native"
+                      perLine={8}
+                      maxFrequentRows={1}
+                    />
+                  </div>
+                )}
               </div>
             </div>
           );

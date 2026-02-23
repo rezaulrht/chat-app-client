@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Search, Edit3, X } from "lucide-react";
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
+import useAuth from "@/hooks/useAuth";
 
 // Helper function to format last seen time - show actual timestamp
 const formatLastSeen = (timestamp) => {
@@ -26,6 +27,7 @@ export default function Sidebar({
   onNewConversation,
 }) {
   const { onlineUsers } = useSocket() || {};
+  const { user: currentUser } = useAuth();
 
   // --- Conversation filter (local, client-side) ---
   const [filterTerm, setFilterTerm] = useState("");
@@ -89,9 +91,17 @@ export default function Sidebar({
   };
 
   // Derive currently-online contacts from the conversations list
-  const activeNowUsers = conversations
+  // Prepend the logged-in user first (they are always online when viewing the app)
+  const onlineParticipants = conversations
     .filter((c) => c.participant && onlineUsers?.get(c.participant._id)?.online)
     .map((c) => c.participant);
+
+  const activeNowUsers = currentUser
+    ? [
+        currentUser,
+        ...onlineParticipants.filter((u) => u._id !== currentUser._id),
+      ]
+    : onlineParticipants;
 
   // Client-side filter on existing conversations
   const filteredConversations = conversations.filter((c) =>
@@ -161,7 +171,9 @@ export default function Sidebar({
                     <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#15191C]"></span>
                   </div>
                   <span className="text-[10px] text-slate-400 truncate max-w-[52px] text-center">
-                    {user.name?.split(" ")[0]}
+                    {user._id === currentUser?._id
+                      ? "You"
+                      : user.name?.split(" ")[0]}
                   </span>
                 </div>
               ))}

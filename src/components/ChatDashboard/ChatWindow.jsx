@@ -12,11 +12,11 @@ const formatLastSeen = (timestamp) => {
   if (!timestamp) return "";
 
   const date = new Date(timestamp);
-  return date.toLocaleString([], { 
-    month: "short", 
+  return date.toLocaleString([], {
+    month: "short",
     day: "numeric",
     hour: "2-digit",
-    minute: "2-digit"
+    minute: "2-digit",
   });
 };
 
@@ -151,7 +151,10 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                 <span className="text-green-500">Online</span>
               ) : (
                 <span>
-                  Last seen {formatLastSeen(onlineUsers?.get(participant?._id)?.lastSeen) || "Just now"}
+                  Last seen{" "}
+                  {formatLastSeen(
+                    onlineUsers?.get(participant?._id)?.lastSeen,
+                  ) || "Just now"}
                 </span>
               )}
             </p>
@@ -186,18 +189,99 @@ export default function ChatWindow({ conversation, onMessageSent }) {
               key={msg._id}
               className={`flex ${isMe ? "justify-end" : "justify-start"}`}
             >
-              <div
-                className={`max-w-[70%] p-4 rounded-2xl text-sm ${isMe
-                    ? `bg-teal-900/20 text-white rounded-br-none border border-teal-500/20 shadow-lg shadow-teal-500/5 ${msg.isOptimistic ? "opacity-60" : ""}`
-                    : "bg-[#1C2227] text-slate-300 rounded-bl-none"
+              {/* Wrapper for bubble + hover toolbar */}
+              <div className="relative group max-w-[70%]">
+                {/* Hover Actions — floats below the bubble */}
+                {!msg.isOptimistic && (
+                  <div
+                    className={`absolute -bottom-4 ${isMe ? "right-1" : "left-1"} hidden group-hover:flex items-center gap-0.5 bg-[#15191C] border border-slate-700/60 rounded-lg p-0.5 shadow-xl shadow-black/40 z-20`}
+                  >
+                    <button
+                      className="p-1.5 text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 rounded-md transition-all duration-150"
+                      title="React"
+                    >
+                      <Smile size={15} />
+                    </button>
+                    <button
+                      className="p-1.5 text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 rounded-md transition-all duration-150"
+                      title="Reply"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="15"
+                        height="15"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polyline points="9 17 4 12 9 7" />
+                        <path d="M20 18v-2a4 4 0 0 0-4-4H4" />
+                      </svg>
+                    </button>
+                    {isMe && (
+                      <>
+                        <button
+                          className="p-1.5 text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 rounded-md transition-all duration-150"
+                          title="Edit"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="15"
+                            height="15"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                            <path d="m15 5 4 4" />
+                          </svg>
+                        </button>
+                        <button
+                          className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-700/60 rounded-md transition-all duration-150"
+                          title="Delete"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="15"
+                            height="15"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M3 6h18" />
+                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                          </svg>
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* Message Bubble */}
+                <div
+                  className={`p-4 rounded-2xl text-sm ${
+                    isMe
+                      ? `bg-teal-900/20 text-white rounded-br-none border border-teal-500/20 shadow-lg shadow-teal-500/5 ${msg.isOptimistic ? "opacity-60" : ""}`
+                      : "bg-[#1C2227] text-slate-300 rounded-bl-none"
                   }`}
-              >
-                {msg.text}
-                <div className="text-[9px] mt-2 opacity-50 text-right">
-                  {new Date(msg.createdAt).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                >
+                  {msg.text}
+                  <div className="text-[9px] mt-2 opacity-50 text-right">
+                    {new Date(msg.createdAt).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </div>
                 </div>
               </div>
             </div>

@@ -64,7 +64,7 @@ export default function NavBar() {
               ))}
               {isMounted && (
                 <>
-                  {!user ? (
+                  {!user || !user.isVerified ? (
                     <>
                       <li className="border-t border-white/5 mt-2 pt-2">
                         <Link
@@ -109,9 +109,11 @@ export default function NavBar() {
           </div>
 
           <Link href="/" className="flex items-center group">
-            <span className="font-bold text-2xl tracking-tight text-white">
-              Convo<span className="text-[#13c8ec]">X</span>
-            </span>
+            <img
+              src="https://i.ibb.co/PG0X3Tbf/Convo-X-logo.png"
+              alt="ConvoX Logo"
+              className="h-8 w-auto"
+            />
           </Link>
         </div>
 
@@ -138,7 +140,7 @@ export default function NavBar() {
         <div className="navbar-end gap-4 items-center">
           {isMounted && (
             <>
-              {!user ? (
+              {!user || !user.isVerified ? (
                 <>
                   <Link
                     href="/login"

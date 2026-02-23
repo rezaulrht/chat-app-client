@@ -9,6 +9,7 @@ import useAuth from "@/hooks/useAuth";
 const formatLastSeen = (timestamp) => {
   if (!timestamp) return "";
   const date = new Date(timestamp);
+ 
   return date.toLocaleString([], {
     month: "short",
     day: "numeric",
@@ -216,8 +217,11 @@ export default function ChatWindow({ conversation }) {
               ) : (
                 <span>
                   Last seen{" "}
+                 {" "}
                   {formatLastSeen(
+                    
                     onlineUsers?.get(participant?._id)?.lastSeen,
+                  
                   ) || "Just now"}
                 </span>
               )}
@@ -256,6 +260,7 @@ export default function ChatWindow({ conversation }) {
             >
               <div
                 className={`max-w-[70%] p-4 rounded-2xl text-sm ${
+                  
                   isMe
                     ? `bg-teal-900/20 text-white rounded-br-none border border-teal-500/20 shadow-lg shadow-teal-500/5`
                     : "bg-[#1C2227] text-slate-300 rounded-bl-none"

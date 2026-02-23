@@ -1,7 +1,9 @@
 @import "tailwindcss";
 
 @plugin "daisyui" {
-  themes: light --default, dark --prefersdark;
+  themes:
+    light --default,
+    dark --prefersdark;
 }
 
 @plugin "daisyui/theme" {
@@ -53,19 +55,28 @@
     border: 1px solid rgba(255, 255, 255, 1);
   }
 
+  /* Hide scrollbar utility */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
   /* Floating Label Logic for Tailwind v4 */
   .floating-group {
     @apply relative;
   }
 
   /* When placeholder is shown (input is empty and not focused) */
-  .floating-group input:placeholder-shown+label {
+  .floating-group input:placeholder-shown + label {
     @apply top-3 text-base text-gray-500 scale-100;
   }
 
   /* When focused or text is entered */
-  .floating-group input:not(:placeholder-shown)+label,
-  .floating-group input:focus+label {
+  .floating-group input:not(:placeholder-shown) + label,
+  .floating-group input:focus + label {
     @apply -top-3 scale-90 text-[#13c8ec] bg-transparent;
   }
 }

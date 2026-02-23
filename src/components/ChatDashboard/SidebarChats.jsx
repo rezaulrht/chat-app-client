@@ -88,6 +88,11 @@ export default function Sidebar({
     }
   };
 
+  // Derive currently-online contacts from the conversations list
+  const activeNowUsers = conversations
+    .filter((c) => c.participant && onlineUsers?.get(c.participant._id)?.online)
+    .map((c) => c.participant);
+
   // Client-side filter on existing conversations
   const filteredConversations = conversations.filter((c) =>
     c.participant?.name?.toLowerCase().includes(filterTerm.toLowerCase()),
@@ -111,7 +116,7 @@ export default function Sidebar({
         </div>
 
         {/* Filter existing conversations */}
-        <div className="px-5 mb-6">
+        <div className="px-5 mb-4">
           <div className="relative">
             <Search
               className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
@@ -126,6 +131,43 @@ export default function Sidebar({
             />
           </div>
         </div>
+
+        {/* Active Now section */}
+        {activeNowUsers.length > 0 && (
+          <div className="px-5 mb-4">
+            <p className="text-[10px] font-semibold tracking-widest text-slate-500 uppercase mb-3">
+              Active Now
+            </p>
+            <div className="flex gap-4 overflow-x-auto pb-1 scrollbar-hide">
+              {activeNowUsers.map((user) => (
+                <div
+                  key={user._id}
+                  className="flex flex-col items-center gap-1 shrink-0"
+                >
+                  <div className="relative">
+                    <div className="w-12 h-12 rounded-full ring-2 ring-teal-400 ring-offset-2 ring-offset-[#15191C] overflow-hidden">
+                      <Image
+                        src={
+                          user.avatar ||
+                          `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`
+                        }
+                        width={48}
+                        height={48}
+                        className="object-cover"
+                        alt={user.name || "avatar"}
+                        unoptimized
+                      />
+                    </div>
+                    <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#15191C]"></span>
+                  </div>
+                  <span className="text-[10px] text-slate-400 truncate max-w-[52px] text-center">
+                    {user.name?.split(" ")[0]}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Conversation list */}
         <div className="flex-1 overflow-y-auto px-3 space-y-2">

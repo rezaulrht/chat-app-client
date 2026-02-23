@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Search, Edit3, X } from "lucide-react";
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
+import CreateGroupModal from "../CreateGroupModal";
 
 // Helper function to format last seen time - show actual timestamp
 const formatLastSeen = (timestamp) => {
@@ -111,7 +112,7 @@ export default function Sidebar({
         </div>
 
         {/* Filter existing conversations */}
-        <div className="px-5 mb-6">
+        <div className="px-5 mb-6 flex justify-between items-center gap-8">
           <div className="relative">
             <Search
               className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
@@ -125,6 +126,8 @@ export default function Sidebar({
               placeholder="Filter conversations..."
             />
           </div>
+
+          <CreateGroupModal/>
         </div>
 
         {/* Conversation list */}

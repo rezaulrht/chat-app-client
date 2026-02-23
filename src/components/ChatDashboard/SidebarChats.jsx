@@ -6,6 +6,7 @@ import { Search, Edit3, X } from "lucide-react";
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
 import CreateGroupModal from "../CreateGroupModal";
+import Link from "next/link";
 
 // Helper function to format last seen time - show actual timestamp
 const formatLastSeen = (timestamp) => {
@@ -98,11 +99,13 @@ export default function Sidebar({
     <>
       <aside className="w-80 bg-[#15191C] border-r border-slate-800/50 flex flex-col shrink-0 h-full">
         <div className="p-5 flex justify-between items-center">
-          <img
-            src="https://i.ibb.co/PG0X3Tbf/Convo-X-logo.png"
-            alt="ConvoX Logo"
-            className="h-6 w-auto"
-          />
+          <Link href="/">
+            <img
+              src="https://i.ibb.co/PG0X3Tbf/Convo-X-logo.png"
+              alt="ConvoX Logo"
+              className="h-6 w-auto"
+            />
+          </Link>
           {/* Pencil icon opens the new-chat modal */}
           <Edit3
             size={18}
@@ -127,7 +130,7 @@ export default function Sidebar({
             />
           </div>
 
-          <CreateGroupModal/>
+          <CreateGroupModal />
         </div>
 
         {/* Conversation list */}

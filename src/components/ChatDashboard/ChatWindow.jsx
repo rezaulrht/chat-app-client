@@ -1,10 +1,36 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { Phone, Video, Info, Plus, Smile, Send, X } from "lucide-react";
+import { Phone, Video, Info, Plus, Smile, Send, X, Reply } from "lucide-react";
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
+
+const getDateLabel = (dateStr) => {
+  const date = new Date(dateStr);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+
+  const isSameDay = (a, b) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+
+  if (isSameDay(date, today)) return "Today";
+  if (isSameDay(date, yesterday)) return "Yesterday";
+
+  return date.toLocaleDateString([], {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+};
+
+const toDateKey = (dateStr) => {
+  const d = new Date(dateStr);
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+};
 
 // Helper function to format last seen time
 const formatLastSeen = (timestamp) => {
@@ -150,138 +176,273 @@ export default function ChatWindow({ conversation }) {
 
   if (!conversation) {
     return (
-      <div className="flex-1 bg-[#05050A] flex items-center justify-center">
-        <p className="text-slate-600 text-sm">
-          Select a conversation to start chatting
-        </p>
+      <div className="flex-1 bg-[#080b0f] flex flex-col items-center justify-center gap-4">
+        <div className="w-16 h-16 rounded-3xl bg-teal-normal/10 border border-teal-normal/20 flex items-center justify-center">
+          <Send size={24} className="text-teal-dark" />
+        </div>
+        <div className="text-center">
+          <p className="text-slate-400 text-sm font-medium">
+            No conversation selected
+          </p>
+          <p className="text-slate-700 text-xs mt-1">
+            Choose one from the sidebar to start chatting
+          </p>
+        </div>
       </div>
     );
   }
 
   const participant = conversation.participant;
+  const isParticipantOnline = onlineUsers?.get(participant?._id)?.online;
 
   return (
-    <main className="flex-1 flex flex-col bg-[#0B0E11] relative h-full">
+    <main className="flex-1 flex flex-col bg-[#080b0f] relative h-full">
       {/* Header */}
-      <header className="h-20 border-b border-slate-800/50 flex justify-between items-center px-6 backdrop-blur-md bg-[#0B0E11]/80 z-20">
+      <header className="h-[68px] border-b border-white/5 flex justify-between items-center px-5 bg-[#0a0e13]/80 backdrop-blur-sm shrink-0">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <Image
-              src={
-                participant?.avatar ||
-                `https://api.dicebear.com/7.x/avataaars/svg?seed=${participant?.name}`
-              }
-              width={40}
-              height={40}
-              className="rounded-xl"
-              alt="avatar"
-              unoptimized
-            />
-            {onlineUsers?.get(participant?._id)?.online && (
-              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#0B0E11]"></div>
-            )}
+            <div
+              className={`rounded-2xl overflow-hidden ${isParticipantOnline ? "ring-2 ring-teal-normal/60 ring-offset-1 ring-offset-[#0a0e13]" : ""}`}
+            >
+              <Image
+                src={
+                  participant?.avatar ||
+                  `https://api.dicebear.com/7.x/avataaars/svg?seed=${participant?.name}`
+                }
+                width={40}
+                height={40}
+                className="rounded-2xl"
+                alt={participant?.name || "avatar"}
+                unoptimized
+              />
+            </div>
+            <div
+              className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#0a0e13] ${isParticipantOnline ? "bg-green-400" : "bg-slate-600"}`}
+            ></div>
           </div>
           <div>
-            <h2 className="font-bold text-white text-sm">
+            <h2 className="font-bold text-slate-100 text-sm leading-tight">
               {participant?.name}
             </h2>
-            <p className="text-[10px] text-slate-500">
-              {onlineUsers?.get(participant?._id)?.online ? (
-                <span className="text-green-500 font-medium">Online</span>
+            <p className="text-[10px] mt-0.5">
+              {isParticipantOnline ? (
+                <span className="text-green-400 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block"></span>
+                  Online
+                </span>
               ) : (
-                <span>
+                <span className="text-slate-600">
                   Last seen{" "}
                   {formatLastSeen(
                     onlineUsers?.get(participant?._id)?.lastSeen,
-                  ) || "Just now"}
+                  ) || "recently"}
                 </span>
               )}
             </p>
           </div>
         </div>
-        <div className="flex gap-4 text-slate-400">
-          <Phone
-            size={18}
-            className="cursor-pointer hover:text-white transition-colors"
-          />
-          <Video
-            size={18}
-            className="cursor-pointer hover:text-white transition-colors"
-          />
-          <Info
-            size={18}
-            className="cursor-pointer hover:text-white transition-colors"
-          />
+        <div className="flex gap-1">
+          {[{ icon: Phone }, { icon: Video }, { icon: Info }].map(
+            ({ icon: Icon }, i) => (
+              <button
+                key={i}
+                className="w-8 h-8 rounded-xl bg-white/4 hover:bg-teal-normal/10 hover:text-teal-normal flex items-center justify-center text-slate-500 transition-all"
+              >
+                <Icon size={16} />
+              </button>
+            ),
+          )}
         </div>
       </header>
 
-      {/* Message List */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4 flex flex-col scrollbar-thin scrollbar-thumb-slate-800">
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-3 scrollbar-hide">
         {loadingMessages && (
-          <p className="text-center text-slate-600 text-xs">
-            Loading sync history...
-          </p>
+          <div className="flex items-center justify-center gap-2 mt-8">
+            <div className="w-4 h-4 rounded-full border-2 border-teal-normal border-t-transparent animate-spin"></div>
+            <p className="text-slate-600 text-xs">Loading messages...</p>
+          </div>
         )}
 
-        {messages.map((msg) => {
+        {!loadingMessages && messages.length === 0 && (
+          <div className="flex flex-col items-center justify-center flex-1 gap-3">
+            <div className="w-12 h-12 rounded-3xl bg-teal-normal/10 border border-teal-normal/15 flex items-center justify-center">
+              <span className="text-xl">👋</span>
+            </div>
+            <p className="text-slate-600 text-xs">
+              No messages yet. Say hello!
+            </p>
+          </div>
+        )}
+
+        {messages.map((msg, index) => {
           const isMe =
             msg.sender?._id === user?._id || msg.sender === user?._id;
 
+          const currentDateKey = toDateKey(msg.createdAt);
+          const prevDateKey =
+            index > 0 ? toDateKey(messages[index - 1].createdAt) : null;
+          const showDateSeparator = currentDateKey !== prevDateKey;
+
           return (
-            <div
-              key={msg._id}
-              id={msg._id}
-              className={`flex ${isMe ? "justify-end" : "justify-start animate-in fade-in slide-in-from-left-2"}`}
-            >
+            <React.Fragment key={msg._id}>
+              {showDateSeparator && (
+                <div className="flex items-center gap-3 my-2">
+                  <div className="flex-1 h-px bg-white/5"></div>
+                  <span className="text-[10px] font-medium text-slate-600 px-3 py-1 rounded-full bg-white/4 border border-white/6 shrink-0">
+                    {getDateLabel(msg.createdAt)}
+                  </span>
+                  <div className="flex-1 h-px bg-white/5"></div>
+                </div>
+              )}
               <div
-                className={`max-w-[75%] p-4 rounded-2xl text-sm transition-all ${
-                  isMe
-                    ? "bg-teal-900/20 text-white rounded-br-none border border-teal-500/20 shadow-lg"
-                    : "bg-[#1C2227] text-slate-300 rounded-bl-none border border-white/5"
-                } ${msg.isOptimistic ? "opacity-50" : "opacity-100"}`}
+                className={`flex items-end gap-2 group ${
+                  isMe ? "justify-end" : "justify-start"
+                }`}
               >
-                {/* Premium Reply Block */}
-                {msg.replyTo && (
-                  <div
-                    className={`mb-3 flex flex-col border-l-2 ${isMe ? "border-teal-400 bg-teal-400/5" : "border-slate-500 bg-slate-500/10"} p-2.5 rounded-r-lg backdrop-blur-sm cursor-pointer hover:bg-white/5 transition-all`}
-                    onClick={() =>
-                      document.getElementById(msg.replyTo._id)?.scrollIntoView({
-                        behavior: "smooth",
-                        block: "center",
-                      })
+                {!isMe && (
+                  <Image
+                    src={
+                      participant?.avatar ||
+                      `https://api.dicebear.com/7.x/avataaars/svg?seed=${participant?.name}`
                     }
+                    width={28}
+                    height={28}
+                    className="rounded-full shrink-0 mb-0.5"
+                    alt="avatar"
+                    unoptimized
+                  />
+                )}
+                <div
+                  className={`flex flex-col gap-1 max-w-[68%] ${
+                    isMe ? "items-end" : "items-start"
+                  }`}
+                >
+                  <div
+                    className={`px-4 py-3 text-sm leading-relaxed w-full ${
+                      isMe
+                        ? "bg-teal-normal text-white rounded-2xl rounded-br-sm shadow-lg shadow-teal-darker/30"
+                        : "bg-[#161b21] text-slate-300 rounded-2xl rounded-bl-sm border border-white/5"
+                    }`}
                   >
-                    <span
-                      className={`text-[10px] font-bold uppercase tracking-wider mb-1 ${isMe ? "text-teal-300" : "text-slate-400"}`}
+                    {/* Quoted reply preview */}
+                    {msg.replyTo && (
+                      <div
+                        className={`mb-2 px-3 py-2 rounded-xl border-l-2 text-[11px] leading-snug ${
+                          isMe
+                            ? "bg-white/10 border-teal-light/60 text-teal-light/80"
+                            : "bg-white/5 border-teal-normal/50 text-slate-400"
+                        }`}
+                      >
+                        <p className="font-semibold mb-0.5 truncate">
+                          {msg.replyTo.sender?.name ?? "Unknown"}
+                        </p>
+                        <p className="line-clamp-2 italic opacity-80">
+                          {msg.replyTo.text}
+                        </p>
+                      </div>
+                    )}
+                    <p>{msg.text}</p>
+                    <p
+                      className={`text-[9px] mt-1.5 ${
+                        isMe
+                          ? "text-right text-teal-light/60"
+                          : "text-left text-slate-600"
+                      }`}
                     >
-                      {msg.replyTo.sender?.name}
-                    </span>
-                    <p className="text-[11px] leading-relaxed line-clamp-2 opacity-70 italic font-light">
-                      "{msg.replyTo.text}"
+                      {new Date(msg.createdAt).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                     </p>
                   </div>
-                )}
-
-                <p className="leading-relaxed">{msg.text}</p>
-
-                <div className="flex items-center justify-end gap-2 mt-2">
-                  <span className="text-[9px] opacity-40">
-                    {new Date(msg.createdAt).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                  {!isMe && (
-                    <button
-                      onClick={() => setReplyTo(msg)}
-                      className="text-[10px] font-bold text-slate-500 hover:text-teal-400 transition-colors uppercase tracking-tighter"
-                    >
-                      Reply
-                    </button>
+                  {isMe && (
+                    <div className="flex items-center gap-0.5 px-0.5">
+                      {msg.status === "sent" && (
+                        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/6 text-slate-500 text-[8px] font-medium">
+                          <svg
+                            width="8"
+                            height="8"
+                            viewBox="0 0 12 12"
+                            fill="none"
+                          >
+                            <path
+                              d="M2 6l3 3 5-5"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                          Sent
+                        </span>
+                      )}
+                      {msg.status === "delivered" && (
+                        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/6 text-slate-400 text-[8px] font-medium">
+                          <svg
+                            width="10"
+                            height="8"
+                            viewBox="0 0 16 12"
+                            fill="none"
+                          >
+                            <path
+                              d="M1 6l3 3 5-5"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                            <path
+                              d="M5 6l3 3 5-5"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                          Delivered
+                        </span>
+                      )}
+                      {msg.status === "read" && (
+                        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-teal-normal/15 text-teal-normal text-[8px] font-semibold">
+                          <svg
+                            width="10"
+                            height="8"
+                            viewBox="0 0 16 12"
+                            fill="none"
+                          >
+                            <path
+                              d="M1 6l3 3 5-5"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                            <path
+                              d="M5 6l3 3 5-5"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                          Seen
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
+
+                {/* Reply button — visible on row hover */}
+                <button
+                  onClick={() => setReplyTo(msg)}
+                  title="Reply"
+                  className={`opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-full hover:bg-white/8 text-slate-500 hover:text-teal-400 shrink-0 self-center ${isMe ? "order-first" : ""}`}
+                >
+                  <Reply size={14} />
+                </button>
               </div>
-            </div>
+            </React.Fragment>
           );
         })}
         <div ref={bottomRef} />
@@ -320,8 +481,8 @@ export default function ChatWindow({ conversation }) {
             className="text-slate-500 mx-2 cursor-pointer hover:text-teal-400 transition-colors"
           />
           <input
-            className="flex-1 bg-transparent outline-none text-sm text-slate-200 px-2 placeholder:text-slate-600"
-            placeholder="Type your message..."
+            className="flex-1 bg-transparent outline-none text-sm text-slate-200 placeholder:text-slate-600 py-1.5"
+            placeholder="Type a message..."
             value={text}
             onChange={(e) => setText(e.target.value)}
           />
@@ -331,9 +492,10 @@ export default function ChatWindow({ conversation }) {
           />
           <button
             type="submit"
-            className="bg-teal-400 p-2.5 rounded-xl text-black ml-2 hover:bg-teal-300 transition-all active:scale-90 shadow-lg shadow-teal-500/20"
+            disabled={!text.trim()}
+            className="w-9 h-9 rounded-xl bg-teal-normal flex items-center justify-center text-white hover:bg-teal-normal-hover active:bg-teal-normal-active disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95 shrink-0 shadow-lg shadow-teal-darker/30"
           >
-            <Send size={18} />
+            <Send size={16} />
           </button>
         </form>
       </div>

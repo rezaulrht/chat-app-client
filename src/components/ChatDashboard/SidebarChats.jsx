@@ -206,7 +206,7 @@ export default function Sidebar({
             <p className="text-[9px] font-bold tracking-[0.15em] text-teal-dark uppercase mb-3">
               Active Now
             </p>
-            <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
+            <div className="flex gap-3 overflow-x-auto py-2 px-1 scrollbar-hide">
               {activeNowUsers.map((user) => (
                 <div
                   key={user._id}
@@ -247,7 +247,7 @@ export default function Sidebar({
         </div>
 
         {/* Conversation list */}
-        <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-0.5 scrollbar-hide">
+        <div className="flex-1 min-h-0 overflow-y-auto px-3 pb-3 space-y-0.5 scrollbar-hide">
           {filteredConversations.map((conv) => {
             const isActive = activeConversationId === conv._id;
             const isUserOnline = onlineUsers?.get(

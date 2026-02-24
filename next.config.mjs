@@ -22,6 +22,12 @@ const nextConfig = {
         hostname: "lh3.googleusercontent.com",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "i.pravatar.cc",
+        port: "",
+        pathname: "/**",
+      },
     ],
   },
   transpilePackages: ["gif-picker-react-klipy"],

@@ -101,12 +101,12 @@ export default function ChatWindow({ conversation }) {
       );
     };
 
-    socket.on("message:new", handleNewMessage);
-    socket.on("message:status", handleStatus);
+    socket.on("message:new", handleReceive);
+    socket.on("message:status", handleDelivered);
 
     return () => {
-      socket.off("message:new", handleNewMessage);
-      socket.off("message:status", handleStatus);
+      socket.off("message:new", handleReceive);
+      socket.off("message:status", handleDelivered);
     };
   }, [socket, conversation?._id, user?._id]);
 
@@ -245,12 +245,10 @@ export default function ChatWindow({ conversation }) {
                   <div
                     className={`mb-3 flex flex-col border-l-2 ${isMe ? "border-teal-400 bg-teal-400/5" : "border-slate-500 bg-slate-500/10"} p-2.5 rounded-r-lg backdrop-blur-sm cursor-pointer hover:bg-white/5 transition-all`}
                     onClick={() =>
-                      document
-                        .getElementById(msg.replyTo._id)
-                        ?.scrollIntoView({
-                          behavior: "smooth",
-                          block: "center",
-                        })
+                      document.getElementById(msg.replyTo._id)?.scrollIntoView({
+                        behavior: "smooth",
+                        block: "center",
+                      })
                     }
                   >
                     <span

@@ -30,6 +30,7 @@ const nextConfig = {
       },
     ],
   },
+  transpilePackages: ["gif-picker-react-klipy"],
 };
 
 export default nextConfig;

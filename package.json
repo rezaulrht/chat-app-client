@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "axios": "^1.13.5",
+    "emoji-picker-react": "^4.18.0",
+    "gif-picker-react-klipy": "github:micenx/gif-picker-react-klipy",
     "react-hot-toast": "^2.6.0",
     "lucide-react": "^0.575.0",
     "next": "^16.1.6",

@@ -1,4 +1,3 @@
-// src/components/ChatDashboard/ChatWindow.jsx
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
@@ -8,13 +7,15 @@ import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
 
-// Dynamic imports — these rely on `window` and cannot SSR
 const EmojiPicker = dynamic(() => import("emoji-picker-react"), { ssr: false });
+const GifPicker = dynamic(
+  () =>
+    import("gif-picker-react-klipy").then((m) => m.GifPicker || m.default || m),
+  { ssr: false },
+);
 
-// Helper function to format last seen time - show actual timestamp
 const formatLastSeen = (timestamp) => {
   if (!timestamp) return "";
-
   const date = new Date(timestamp);
   return date.toLocaleString([], {
     month: "short",
@@ -33,35 +34,58 @@ export default function ChatWindow({ conversation, onMessageSent }) {
   const [reactions, setReactions] = useState({});
   const [reactionPickerMsgId, setReactionPickerMsgId] = useState(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showGifPicker, setShowGifPicker] = useState(false);
   const bottomRef = useRef(null);
   const reactionPickerRef = useRef(null);
   const inputEmojiPickerRef = useRef(null);
+  const gifPickerRef = useRef(null);
 
-  // Close pickers on outside click
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (
         reactionPickerRef.current &&
         !reactionPickerRef.current.contains(e.target)
-      ) {
+      )
         setReactionPickerMsgId(null);
-      }
       if (
         inputEmojiPickerRef.current &&
         !inputEmojiPickerRef.current.contains(e.target)
-      ) {
+      )
         setShowEmojiPicker(false);
-      }
+      if (gifPickerRef.current && !gifPickerRef.current.contains(e.target))
+        setShowGifPicker(false);
     };
-    if (reactionPickerMsgId || showEmojiPicker) {
+    if (reactionPickerMsgId || showEmojiPicker || showGifPicker) {
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [reactionPickerMsgId, showEmojiPicker]);
+  }, [reactionPickerMsgId, showEmojiPicker, showGifPicker]);
 
   // Append emoji to input text (emoji-picker-react format)
-  const handleEmojiClick = (emojiData) => {
+  const handleEmojiClick = (emojiData) =>
     setText((prev) => prev + emojiData.emoji);
+
+  const handleGifClick = (gif) => {
+    if (!socket || !conversation) return;
+    const tempId = `temp-${Date.now()}`;
+    const gifUrl = gif.url || gif.previewUrl;
+    const optimistic = {
+      _id: tempId,
+      conversationId: conversation._id,
+      sender: { _id: user._id, name: user.name },
+      gifUrl,
+      createdAt: new Date().toISOString(),
+      isOptimistic: true,
+    };
+    setMessages((prev) => [...prev, optimistic]);
+    setShowGifPicker(false);
+    socket.emit("message:send", {
+      conversationId: conversation._id,
+      receiverId: conversation.participant._id,
+      gifUrl,
+      tempId,
+    });
+    onMessageSent?.(conversation._id, "GIF");
   };
 
   // Toggle a reaction — emit via socket for persistence + live sync
@@ -77,10 +101,8 @@ export default function ChatWindow({ conversation, onMessageSent }) {
     [socket, conversation?._id],
   );
 
-  // Fetch message history whenever the active conversation changes
   useEffect(() => {
     if (!conversation?._id) return;
-
     const fetchMessages = async () => {
       setLoadingMessages(true);
       setMessages([]);
@@ -88,7 +110,6 @@ export default function ChatWindow({ conversation, onMessageSent }) {
       try {
         const res = await api.get(`/api/chat/messages/${conversation._id}`);
         setMessages(res.data);
-        // Build reactions state from fetched messages
         const rxns = {};
         for (const msg of res.data) {
           if (msg.reactions && typeof msg.reactions === "object") {
@@ -96,9 +117,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
               msg.reactions instanceof Map
                 ? Object.fromEntries(msg.reactions)
                 : msg.reactions;
-            if (Object.keys(entries).length > 0) {
-              rxns[msg._id] = entries;
-            }
+            if (Object.keys(entries).length > 0) rxns[msg._id] = entries;
           }
         }
         setReactions(rxns);
@@ -108,19 +127,15 @@ export default function ChatWindow({ conversation, onMessageSent }) {
         setLoadingMessages(false);
       }
     };
-
     fetchMessages();
   }, [conversation?._id]);
 
-  // Listen for incoming messages and delivery acks on the socket
   useEffect(() => {
     if (!socket) return;
-
     const handleReceive = (msg) => {
       if (msg.conversationId !== conversation?._id) return;
       setMessages((prev) => [...prev, msg]);
     };
-
     const handleDelivered = (msg) => {
       if (msg.conversationId !== conversation?._id) return;
       setMessages((prev) =>
@@ -128,7 +143,6 @@ export default function ChatWindow({ conversation, onMessageSent }) {
       );
       onMessageSent(msg.conversationId, msg.text || "GIF");
     };
-
     const handleReacted = ({
       messageId,
       conversationId: cId,
@@ -137,11 +151,9 @@ export default function ChatWindow({ conversation, onMessageSent }) {
       if (cId !== conversation?._id) return;
       setReactions((prev) => ({ ...prev, [messageId]: rxns }));
     };
-
     socket.on("message:receive", handleReceive);
     socket.on("message:delivered", handleDelivered);
     socket.on("message:reacted", handleReacted);
-
     return () => {
       socket.off("message:receive", handleReceive);
       socket.off("message:delivered", handleDelivered);
@@ -255,6 +267,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
         {messages.map((msg) => {
           const isMe =
             msg.sender?._id === user?._id || msg.sender === user?._id;
+          const isGif = !!msg.gifUrl;
           return (
             <div
               key={msg._id}
@@ -367,14 +380,25 @@ export default function ChatWindow({ conversation, onMessageSent }) {
 
                   {/* Message Bubble */}
                   <div
-                    className={`p-4 rounded-2xl text-sm w-fit relative z-10 ${
+                    className={`${isGif ? "p-1" : "p-4"} rounded-2xl text-sm w-fit relative z-10 ${
                       isMe
-                        ? `bg-teal-900/20 text-white rounded-br-none border border-teal-500/20 shadow-lg shadow-teal-500/5 ${msg.isOptimistic ? "opacity-60" : ""}`
-                        : "bg-[#1C2227] text-slate-300 rounded-bl-none"
+                        ? `${isGif ? "bg-transparent" : "bg-teal-900/20"} text-white rounded-br-none ${isGif ? "" : "border border-teal-500/20 shadow-lg shadow-teal-500/5"} ${msg.isOptimistic ? "opacity-60" : ""}`
+                        : `${isGif ? "bg-transparent" : "bg-[#1C2227]"} text-slate-300 rounded-bl-none`
                     }`}
                   >
-                    {msg.text}
-                    <div className="text-[9px] mt-2 opacity-50 text-right">
+                    {isGif ? (
+                      <img
+                        src={msg.gifUrl}
+                        alt="GIF"
+                        className="max-w-70 rounded-xl"
+                        loading="lazy"
+                      />
+                    ) : (
+                      msg.text
+                    )}
+                    <div
+                      className={`text-[9px] mt-2 opacity-50 text-right ${isGif ? "px-2" : ""}`}
+                    >
                       {new Date(msg.createdAt).toLocaleTimeString([], {
                         hour: "2-digit",
                         minute: "2-digit",
@@ -409,7 +433,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                     <div
                       className={`flex flex-wrap gap-1 mt-1.5 w-fit ${
                         isMe ? "flex-row-reverse" : "flex-row"
-                      } max-w-[260px]`}
+                      } max-w-65`}
                     >
                       {Object.entries(reactions[msg._id])
                         .slice(0, 10)
@@ -443,6 +467,39 @@ export default function ChatWindow({ conversation, onMessageSent }) {
 
       {/* Input Form */}
       <form onSubmit={handleSend} className="p-6 relative">
+        {showGifPicker && (
+          <div
+            ref={gifPickerRef}
+            className="absolute bottom-25 right-6 z-50 shadow-2xl rounded-2xl overflow-hidden border border-slate-800"
+          >
+            <style>
+              {`
+                .gpr-picker { 
+                  --gpr-bg-color: #15191C !important;
+                  --gpr-secondary-bg: #1C2227 !important;
+                  --gpr-text-color: #cbd5e1 !important;
+                  --gpr-text-secondary: #94a3b8 !important;
+                  --gpr-border-color: #1e293b !important;
+                  --gpr-highlight-color: #2dd4bf !important;
+                  --gpr-highlight-hover: #5eead4 !important;
+                  --gpr-input-bg: #0B0E11 !important;
+                  --gpr-hover-bg: rgba(45, 212, 191, 0.1) !important;
+                  --gpr-radius: 16px !important;
+                  border: none !important;
+                }
+                .gpr-trending-terms { display: none !important; }
+              `}
+            </style>
+            <GifPicker
+              klipyApiKey={process.env.NEXT_PUBLIC_KLIPY_API_KEY}
+              onGifClick={handleGifClick}
+              theme="dark"
+              width={380}
+              height={450}
+              columns={2}
+            />
+          </div>
+        )}
         {showEmojiPicker && (
           <div
             ref={inputEmojiPickerRef}
@@ -462,7 +519,6 @@ export default function ChatWindow({ conversation, onMessageSent }) {
         )}
 
         <div className="bg-[#15191C] rounded-2xl flex items-center p-2.5 border border-slate-800 focus-within:border-teal-500/50 transition-all shadow-lg">
-          {/* Plus Button */}
           <button type="button" className="p-1">
             <Plus
               size={20}
@@ -477,11 +533,32 @@ export default function ChatWindow({ conversation, onMessageSent }) {
             onChange={(e) => setText(e.target.value)}
           />
 
-          {/* Emoji Button */}
           <button
             type="button"
             className="p-1"
-            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            onClick={() => {
+              setShowGifPicker(!showGifPicker);
+              setShowEmojiPicker(false);
+            }}
+          >
+            <span
+              className={`mx-1 text-[10px] font-extrabold tracking-tight cursor-pointer transition-colors px-1.5 py-0.5 rounded-md border ${
+                showGifPicker
+                  ? "text-teal-400 border-teal-400/40 bg-teal-400/10"
+                  : "text-slate-500 border-slate-600 hover:text-teal-400 hover:border-teal-400/40"
+              }`}
+            >
+              GIF
+            </span>
+          </button>
+
+          <button
+            type="button"
+            className="p-1"
+            onClick={() => {
+              setShowEmojiPicker(!showEmojiPicker);
+              setShowGifPicker(false);
+            }}
           >
             <Smile
               size={20}
@@ -489,7 +566,6 @@ export default function ChatWindow({ conversation, onMessageSent }) {
             />
           </button>
 
-          {/* Send Button */}
           <button
             type="submit"
             className="bg-teal-400 p-2.5 rounded-xl text-black ml-2 hover:bg-teal-300 transition-colors active:scale-95 shadow-lg shadow-teal-400/10"

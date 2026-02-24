@@ -21,6 +21,51 @@ const formatLastSeen = (timestamp) => {
   });
 };
 
+// Smart relative/absolute timestamp for sidebar conversation list
+const formatConvTimestamp = (timestamp) => {
+  if (!timestamp) return "";
+
+  const date = new Date(timestamp);
+  const now = new Date();
+
+  const isSameDay = (a, b) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+
+  if (isSameDay(date, now)) {
+    // Today → time
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+
+  if (isSameDay(date, yesterday)) {
+    // Yesterday
+    return "Yesterday";
+  }
+
+  const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 7) {
+    // Within past 7 days → day name abbreviated
+    return date.toLocaleDateString([], { weekday: "short" });
+  }
+
+  if (date.getFullYear() === now.getFullYear()) {
+    // Same year, older than 7 days → day + month
+    return date.toLocaleDateString([], { day: "numeric", month: "short" });
+  }
+
+  // Different year → day + month + year
+  return date.toLocaleDateString([], {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+};
+
 export default function Sidebar({
   conversations,
   activeConversationId,
@@ -243,14 +288,7 @@ export default function Sidebar({
                       {conv.participant?.name}
                     </span>
                     <span className="text-[9px] text-slate-600 shrink-0">
-                      {conv.lastMessage?.timestamp
-                        ? new Date(
-                            conv.lastMessage.timestamp,
-                          ).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
-                        : ""}
+                      {formatConvTimestamp(conv.lastMessage?.timestamp)}
                     </span>
                   </div>
                   <p

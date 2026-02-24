@@ -248,171 +248,178 @@ export default function ChatWindow({ conversation, onMessageSent }) {
           return (
             <div
               key={msg._id}
-              className={`flex ${isMe ? "justify-end" : "justify-start"}`}
+              className={`flex ${isMe ? "justify-end" : "justify-start"} px-2`}
             >
-              {/* Wrapper for bubble + hover toolbar */}
-              <div className="relative group max-w-[70%] w-fit">
-                {/* Hover Actions — single row, top-right */}
-                {!msg.isOptimistic && (
-                  <div
-                    className={`absolute -top-5 ${isMe ? "right-0" : "left-0"} hidden group-hover:flex items-center gap-0.5 bg-[#15191C] border border-slate-700/60 rounded-lg p-0.5 shadow-xl shadow-black/40 z-20`}
-                  >
-                    {["👍", "❤️", "😂", "😮", "😢"].map((emoji) => (
+              {/* Message Group: Decouples bubble width from reaction width */}
+              <div
+                className={`flex flex-col ${isMe ? "items-end" : "items-start"} max-w-[85%]`}
+              >
+                {/* Bubble Wrapper: Anchors the toolbar and defines bubble width */}
+                <div className="relative group w-fit">
+                  {/* Hover Actions — positioned top corner */}
+                  {!msg.isOptimistic && (
+                    <div
+                      className={`absolute -top-6 ${isMe ? "right-0" : "left-0"} hidden group-hover:flex items-center gap-0.5 bg-[#15191C] border border-slate-700/60 rounded-lg p-0.5 shadow-xl shadow-black/40 z-30`}
+                    >
+                      {["👍", "❤️", "😂", "😮", "😢"].map((emoji) => (
+                        <button
+                          key={emoji}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleReaction(msg._id, emoji);
+                          }}
+                          className={`text-sm p-1 rounded-md transition-all duration-150 hover:bg-slate-700/60 hover:scale-110 ${
+                            reactions[msg._id]?.[emoji]?.includes(user?._id)
+                              ? "bg-teal-900/40"
+                              : ""
+                          }`}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                      <div className="w-px h-5 bg-slate-700/60 mx-0.5" />
                       <button
-                        key={emoji}
                         onClick={(e) => {
                           e.stopPropagation();
-                          toggleReaction(msg._id, emoji);
+                          setReactionPickerMsgId(
+                            reactionPickerMsgId === msg._id ? null : msg._id,
+                          );
                         }}
-                        className={`text-sm p-1 rounded-md transition-all duration-150 hover:bg-slate-700/60 hover:scale-110 ${
-                          reactions[msg._id]?.[emoji]?.includes(user?._id)
-                            ? "bg-teal-900/40"
-                            : ""
-                        }`}
+                        className="p-1 text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 rounded-md transition-all duration-150"
+                        title="More reactions"
                       >
-                        {emoji}
+                        <Smile size={14} />
                       </button>
-                    ))}
-                    <div className="w-px h-5 bg-slate-700/60 mx-0.5" />
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setReactionPickerMsgId(
-                          reactionPickerMsgId === msg._id ? null : msg._id,
-                        );
-                      }}
-                      className="p-1 text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 rounded-md transition-all duration-150"
-                      title="More reactions"
-                    >
-                      <Smile size={14} />
-                    </button>
-                    <button
-                      className="p-1 text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 rounded-md transition-all duration-150"
-                      title="Reply"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
+                      <button
+                        className="p-1 text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 rounded-md transition-all duration-150"
+                        title="Reply"
                       >
-                        <polyline points="9 17 4 12 9 7" />
-                        <path d="M20 18v-2a4 4 0 0 0-4-4H4" />
-                      </svg>
-                    </button>
-                    {isMe && (
-                      <>
-                        <button
-                          className="p-1 text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 rounded-md transition-all duration-150"
-                          title="Edit"
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
                         >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                            <path d="m15 5 4 4" />
-                          </svg>
-                        </button>
-                        <button
-                          className="p-1 text-slate-400 hover:text-red-400 hover:bg-slate-700/60 rounded-md transition-all duration-150"
-                          title="Delete"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="M3 6h18" />
-                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                          </svg>
-                        </button>
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {/* Message Bubble */}
-                <div
-                  className={`p-4 rounded-2xl text-sm ${
-                    isMe
-                      ? `bg-teal-900/20 text-white rounded-br-none border border-teal-500/20 shadow-lg shadow-teal-500/5 ${msg.isOptimistic ? "opacity-60" : ""}`
-                      : "bg-[#1C2227] text-slate-300 rounded-bl-none"
-                  }`}
-                >
-                  {msg.text}
-                  <div className="text-[9px] mt-2 opacity-50 text-right">
-                    {new Date(msg.createdAt).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </div>
-                </div>
-
-                {/* Reactions display */}
-                {reactions[msg._id] &&
-                  Object.keys(reactions[msg._id]).length > 0 && (
-                    <div
-                      className={`flex flex-wrap gap-1 mt-1 ${isMe ? "justify-end" : "justify-start"}`}
-                    >
-                      {Object.entries(reactions[msg._id]).map(
-                        ([emoji, users]) => (
+                          <polyline points="9 17 4 12 9 7" />
+                          <path d="M20 18v-2a4 4 0 0 0-4-4H4" />
+                        </svg>
+                      </button>
+                      {isMe && (
+                        <>
                           <button
-                            key={emoji}
-                            onClick={() => toggleReaction(msg._id, emoji)}
-                            className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border transition-all duration-150 ${
-                              users.includes(user?._id)
-                                ? "bg-teal-900/30 border-teal-500/40 text-teal-300"
-                                : "bg-[#1C2227] border-slate-700/50 text-slate-400 hover:border-slate-600"
-                            }`}
+                            className="p-1 text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 rounded-md transition-all duration-150"
+                            title="Edit"
                           >
-                            <span>{emoji}</span>
-                            <span className="text-[10px]">{users.length}</span>
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                              <path d="m15 5 4 4" />
+                            </svg>
                           </button>
-                        ),
+                          <button
+                            className="p-1 text-slate-400 hover:text-red-400 hover:bg-slate-700/60 rounded-md transition-all duration-150"
+                            title="Delete"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M3 6h18" />
+                              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                            </svg>
+                          </button>
+                        </>
                       )}
                     </div>
                   )}
 
-                {/* Full Reaction Picker — opens beside the message */}
-                {reactionPickerMsgId === msg._id && (
+                  {/* Message Bubble — w-fit ensures background only wraps text */}
                   <div
-                    ref={reactionPickerRef}
-                    className={`absolute top-0 z-50 ${isMe ? "right-full mr-2" : "left-full ml-2"}`}
+                    className={`p-4 rounded-2xl text-sm w-fit relative z-10 ${
+                      isMe
+                        ? `bg-teal-900/20 text-white rounded-br-none border border-teal-500/20 shadow-lg shadow-teal-500/5 ${msg.isOptimistic ? "opacity-60" : ""}`
+                        : "bg-[#1C2227] text-slate-300 rounded-bl-none"
+                    }`}
                   >
-                    <Picker
-                      data={data}
-                      onEmojiSelect={(emoji) =>
-                        toggleReaction(msg._id, emoji.native)
-                      }
-                      theme="dark"
-                      previewPosition="none"
-                      skinTonePosition="none"
-                      set="native"
-                      perLine={8}
-                      maxFrequentRows={1}
-                    />
+                    {msg.text}
+                    <div className="text-[9px] mt-2 opacity-50 text-right">
+                      {new Date(msg.createdAt).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </div>
                   </div>
-                )}
+
+                  {/* Reaction Picker — Positioned beside the bubble */}
+                  {reactionPickerMsgId === msg._id && (
+                    <div
+                      ref={reactionPickerRef}
+                      className={`absolute top-0 z-50 ${isMe ? "right-full mr-2" : "left-full ml-2"}`}
+                    >
+                      <Picker
+                        data={data}
+                        onEmojiSelect={(emoji) =>
+                          toggleReaction(msg._id, emoji.native)
+                        }
+                        theme="dark"
+                        previewPosition="none"
+                        skinTonePosition="none"
+                        set="native"
+                        perLine={8}
+                        maxFrequentRows={1}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Reactions display — Limited to 10 emojis in a 5-column grid */}
+                {reactions[msg._id] &&
+                  Object.keys(reactions[msg._id]).length > 0 && (
+                    <div
+                      className={`grid grid-cols-5 gap-1 mt-1.5 w-fit ${isMe ? "justify-items-end" : "justify-items-start"}`}
+                    >
+                      {Object.entries(reactions[msg._id])
+                        .slice(0, 10) // Limit to 10
+                        .map(([emoji, users]) => (
+                          <button
+                            key={emoji}
+                            onClick={() => toggleReaction(msg._id, emoji)}
+                            className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[13px] border transition-all duration-150 whitespace-nowrap ${
+                              users.includes(user?._id)
+                                ? "bg-teal-400/10 border-teal-400/30 text-teal-300"
+                                : "bg-[#1C2227] border-slate-700/50 text-slate-400 hover:border-slate-500"
+                            }`}
+                          >
+                            <span>{emoji}</span>
+                            <span className="text-[10px] font-bold">
+                              {users.length}
+                            </span>
+                          </button>
+                        ))}
+                    </div>
+                  )}
               </div>
             </div>
           );

@@ -12,6 +12,18 @@
   --color-primary: #13c8ec;
   /* Updated to match your UI primary */
   --color-secondary: teal;
+
+  /* Teal color palette */
+  --color-teal-light: #cef3fc;
+  --color-teal-light-hover: #b2ecf9;
+  --color-teal-light-active: #83e1f6;
+  --color-teal-normal: #13c8ec;
+  --color-teal-normal-hover: #0fb3d4;
+  --color-teal-normal-active: #0b9fbc;
+  --color-teal-dark: #088ba3;
+  --color-teal-dark-hover: #06758a;
+  --color-teal-dark-active: #045f70;
+  --color-teal-darker: #034858;
 }
 
 @custom-variant dark (&:where([data-theme=night], [data-theme=night] *));
@@ -22,6 +34,18 @@
   /* Defining your custom colors in the Tailwind 4 theme block */
   --color-background-light: #f6f8f8;
   --color-background-dark: #0a0b0d;
+
+  /* Teal palette – mirrors the light theme tokens for Tailwind utility use */
+  --color-teal-light: #e7fafd;
+  --color-teal-light-hover: #dcf7fc;
+  --color-teal-light-active: #b6eef9;
+  --color-teal-normal: #13c8ec;
+  --color-teal-normal-hover: #11b4d4;
+  --color-teal-normal-active: #0fa0bd;
+  --color-teal-dark: #0e96b1;
+  --color-teal-dark-hover: #0b788e;
+  --color-teal-dark-active: #095a6a;
+  --color-teal-darker: #074653;
   /* Standardized with Landing Page */
   --color-surface-dark: #161b22;
   --color-primary-glow: rgba(19, 200, 236, 0.3);

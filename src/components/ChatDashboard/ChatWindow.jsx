@@ -14,6 +14,91 @@ const GifPicker = dynamic(
   { ssr: false },
 );
 
+const EMOJI_MAP = {
+  ":smile:": "😊",
+  ":smile_cat:": "😸",
+  ":smiling_face_with_three_hearts:": "🥰",
+  ":smiling_eyes:": "😊",
+  ":grin:": "😁",
+  ":joy:": "😂",
+  ":rofl:": "🤣",
+  ":relaxed:": "☺️",
+  ":blush:": "😊",
+  ":innocent:": "😇",
+  ":slight_smile:": "🙂",
+  ":upside_down:": "🙃",
+  ":wink:": "😉",
+  ":heart_eyes:": "😍",
+  ":kissing_heart:": "😘",
+  ":yum:": "😋",
+  ":stuck_out_tongue:": "😛",
+  ":money_mouth:": "🤑",
+  ":hugging:": "🤗",
+  ":thinking:": "🤔",
+  ":neutral_face:": "😐",
+  ":expressionless:": "😑",
+  ":no_mouth:": "😶",
+  ":smirk:": "😏",
+  ":unamused:": "😒",
+  ":rolling_eyes:": "🙄",
+  ":grimacing:": "😬",
+  ":lying_face:": "🤥",
+  ":relieved:": "😌",
+  ":pensive:": "😔",
+  ":sleepy:": "😪",
+  ":sleeping:": "😴",
+  ":mask:": "😷",
+  ":sick:": "🤒",
+  ":dizzy_face:": "😵",
+  ":cool:": "😎",
+  ":nerd:": "🤓",
+  ":shush:": "🤫",
+  ":monocle:": "🧐",
+  ":confused:": "😕",
+  ":worried:": "😟",
+  ":frown:": "☹️",
+  ":open_mouth:": "😮",
+  ":hushed:": "😯",
+  ":astonished:": "😲",
+  ":flushed:": "😳",
+  ":pleading:": "🥺",
+  ":frowning:": "😦",
+  ":anguished:": "😧",
+  ":fearful:": "😨",
+  ":cold_sweat:": "😰",
+  ":cry:": "😢",
+  ":sob:": "😭",
+  ":scream:": "😱",
+  ":confounded:": "😖",
+  ":weary:": "😩",
+  ":tired_face:": "😫",
+  ":yawn:": "🥱",
+  ":triumph:": "😤",
+  ":rage:": "😡",
+  ":angry:": "😠",
+  ":skull:": "💀",
+  ":poop:": "💩",
+  ":clown:": "🤡",
+  ":ghost:": "👻",
+  ":alien:": "👽",
+  ":robot:": "🤖",
+  ":heart:": "❤️",
+  ":sparkles:": "✨",
+  ":fire:": "🔥",
+  ":star:": "⭐",
+  ":rocket:": "🚀",
+  ":ok_hand:": "👌",
+  ":thumbsup:": "👍",
+  ":thumbsdown:": "👎",
+  ":clap:": "👏",
+  ":pray:": "🙏",
+  ":muscle:": "💪",
+  ":eyes:": "👀",
+  ":party:": "🥳",
+  ":check:": "✅",
+  ":x:": "❌",
+};
+
 const formatLastSeen = (timestamp) => {
   if (!timestamp) return "";
   const date = new Date(timestamp);
@@ -35,6 +120,8 @@ export default function ChatWindow({ conversation, onMessageSent }) {
   const [reactionPickerMsgId, setReactionPickerMsgId] = useState(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showGifPicker, setShowGifPicker] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [suggestionIndex, setSuggestionIndex] = useState(0);
   const bottomRef = useRef(null);
   const reactionPickerRef = useRef(null);
   const inputEmojiPickerRef = useRef(null);
@@ -61,9 +148,56 @@ export default function ChatWindow({ conversation, onMessageSent }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [reactionPickerMsgId, showEmojiPicker, showGifPicker]);
 
-  // Append emoji to input text (emoji-picker-react format)
   const handleEmojiClick = (emojiData) =>
     setText((prev) => prev + emojiData.emoji);
+
+  const insertEmoji = (emoji) => {
+    setText((prev) => {
+      const match = prev.match(/:[a-zA-Z0-9_]*$/);
+      if (!match) return prev + emoji;
+      return prev.slice(0, match.index) + emoji;
+    });
+    setSuggestions([]);
+  };
+
+  const handleTextChange = (e) => {
+    let val = e.target.value;
+    const lastWord = val.split(" ").pop();
+    if (EMOJI_MAP[lastWord]) {
+      val = val.replace(lastWord, EMOJI_MAP[lastWord]);
+    }
+    setText(val);
+    const match = val.match(/:([a-zA-Z0-9_]*)$/);
+    if (match) {
+      const query = match[1].toLowerCase();
+      const filtered = Object.entries(EMOJI_MAP)
+        .filter(([code]) => code.includes(query))
+        .slice(0, 8);
+      setSuggestions(filtered);
+      setSuggestionIndex(0);
+    } else {
+      setSuggestions([]);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (suggestions.length > 0) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setSuggestionIndex((prev) => (prev + 1) % suggestions.length);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSuggestionIndex(
+          (prev) => (prev - 1 + suggestions.length) % suggestions.length,
+        );
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        insertEmoji(suggestions[suggestionIndex][1]);
+      } else if (e.key === "Escape") {
+        setSuggestions([]);
+      }
+    }
+  };
 
   const handleGifClick = (gif) => {
     if (!socket || !conversation) return;
@@ -190,6 +324,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
       text: text.trim(),
       tempId,
     });
+    setSuggestions([]);
   };
 
   if (!conversation) {
@@ -530,8 +665,28 @@ export default function ChatWindow({ conversation, onMessageSent }) {
             className="flex-1 bg-transparent outline-none text-sm text-slate-200 px-2 placeholder:text-slate-600"
             placeholder="Type a message..."
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={handleTextChange}
+            onKeyDown={handleKeyDown}
           />
+
+          {suggestions.length > 0 && (
+            <div className="absolute bottom-20 left-10 bg-[#15191C]/95 backdrop-blur-md border border-slate-800 rounded-xl p-1 shadow-2xl z-50 min-w-37.5">
+              {suggestions.map(([code, emoji], i) => (
+                <div
+                  key={code}
+                  onClick={() => insertEmoji(emoji)}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                    i === suggestionIndex
+                      ? "bg-teal-500/20 text-teal-400"
+                      : "hover:bg-slate-800 text-slate-400"
+                  }`}
+                >
+                  <span className="text-lg">{emoji}</span>
+                  <span className="text-xs font-mono">{code}</span>
+                </div>
+              ))}
+            </div>
+          )}
 
           <button
             type="button"

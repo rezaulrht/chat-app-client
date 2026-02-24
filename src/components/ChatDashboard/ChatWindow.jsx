@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { Phone, Video, Info, Plus, Smile, Send } from "lucide-react";
+import { Phone, Video, Info, Plus, Smile, Send, X, Reply } from "lucide-react";
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
@@ -32,10 +32,10 @@ const toDateKey = (dateStr) => {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 };
 
+// Helper function to format last seen time
 const formatLastSeen = (timestamp) => {
   if (!timestamp) return "";
   const date = new Date(timestamp);
-
   return date.toLocaleString([], {
     month: "short",
     day: "numeric",
@@ -51,12 +51,10 @@ export default function ChatWindow({ conversation }) {
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [loadingMessages, setLoadingMessages] = useState(false);
-
+  const [replyTo, setReplyTo] = useState(null);
   const bottomRef = useRef(null);
 
-  // ------------------------------------------------
-  // Fetch messages
-  // ------------------------------------------------
+  // Fetch message history
   useEffect(() => {
     if (!conversation?._id) return;
 
@@ -75,34 +73,11 @@ export default function ChatWindow({ conversation }) {
     fetchMessages();
   }, [conversation?._id]);
 
-  // ------------------------------------------------
-  // Auto mark messages as seen when conversation opens
-  // ------------------------------------------------
-  useEffect(() => {
-    if (!socket || !conversation?._id || !messages.length) return;
-
-    const unreadMessages = messages.filter(
-      (m) => m.sender?._id !== user?._id && m.status !== "read",
-    );
-
-    if (unreadMessages.length > 0) {
-      const lastUnread = unreadMessages[unreadMessages.length - 1];
-
-      socket.emit("conversation:seen", {
-        conversationId: conversation._id,
-        lastSeenMessageId: lastUnread._id,
-      });
-    }
-  }, [messages, socket, conversation?._id, user?._id]);
-
-  // ------------------------------------------------
   // Socket listeners
-  // ------------------------------------------------
   useEffect(() => {
     if (!socket) return;
 
-    // New message
-    const handleNewMessage = (msg) => {
+    const handleReceive = (msg) => {
       if (msg.conversationId !== conversation?._id) return;
 
       setMessages((prev) => {
@@ -126,10 +101,8 @@ export default function ChatWindow({ conversation }) {
       }
     };
 
-    // Status updates (delivered / read)
-    const handleStatus = (update) => {
+    const handleDelivered = (update) => {
       if (update.conversationId !== conversation?._id) return;
-
       setMessages((prev) =>
         prev.map((m) => {
           // Delivered update
@@ -154,18 +127,16 @@ export default function ChatWindow({ conversation }) {
       );
     };
 
-    socket.on("message:new", handleNewMessage);
-    socket.on("message:status", handleStatus);
+    socket.on("message:new", handleReceive);
+    socket.on("message:status", handleDelivered);
 
     return () => {
-      socket.off("message:new", handleNewMessage);
-      socket.off("message:status", handleStatus);
+      socket.off("message:new", handleReceive);
+      socket.off("message:status", handleDelivered);
     };
   }, [socket, conversation?._id, user?._id]);
 
-  // ------------------------------------------------
-  // Auto scroll
-  // ------------------------------------------------
+  // Auto-scroll
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -178,7 +149,6 @@ export default function ChatWindow({ conversation }) {
     if (!text.trim() || !socket || !conversation) return;
 
     const tempId = `temp-${Date.now()}`;
-
     const optimistic = {
       _id: tempId,
       conversationId: conversation._id,
@@ -187,6 +157,7 @@ export default function ChatWindow({ conversation }) {
       createdAt: new Date().toISOString(),
       status: "sent",
       isOptimistic: true,
+      replyTo,
     };
 
     setMessages((prev) => [...prev, optimistic]);
@@ -197,7 +168,10 @@ export default function ChatWindow({ conversation }) {
       receiverId: conversation.participant._id,
       text: optimistic.text,
       tempId,
+      replyTo: replyTo?._id || null,
     });
+
+    setReplyTo(null);
   };
 
   if (!conversation) {
@@ -322,7 +296,9 @@ export default function ChatWindow({ conversation }) {
                 </div>
               )}
               <div
-                className={`flex items-end gap-2 ${isMe ? "justify-end" : "justify-start"}`}
+                className={`flex items-end gap-2 group ${
+                  isMe ? "justify-end" : "justify-start"
+                }`}
               >
                 {!isMe && (
                   <Image
@@ -338,7 +314,9 @@ export default function ChatWindow({ conversation }) {
                   />
                 )}
                 <div
-                  className={`flex flex-col gap-1 max-w-[68%] ${isMe ? "items-end" : "items-start"}`}
+                  className={`flex flex-col gap-1 max-w-[68%] ${
+                    isMe ? "items-end" : "items-start"
+                  }`}
                 >
                   <div
                     className={`px-4 py-3 text-sm leading-relaxed w-full ${
@@ -347,9 +325,30 @@ export default function ChatWindow({ conversation }) {
                         : "bg-[#161b21] text-slate-300 rounded-2xl rounded-bl-sm border border-white/5"
                     }`}
                   >
+                    {/* Quoted reply preview */}
+                    {msg.replyTo && (
+                      <div
+                        className={`mb-2 px-3 py-2 rounded-xl border-l-2 text-[11px] leading-snug ${
+                          isMe
+                            ? "bg-white/10 border-teal-light/60 text-teal-light/80"
+                            : "bg-white/5 border-teal-normal/50 text-slate-400"
+                        }`}
+                      >
+                        <p className="font-semibold mb-0.5 truncate">
+                          {msg.replyTo.sender?.name ?? "Unknown"}
+                        </p>
+                        <p className="line-clamp-2 italic opacity-80">
+                          {msg.replyTo.text}
+                        </p>
+                      </div>
+                    )}
                     <p>{msg.text}</p>
                     <p
-                      className={`text-[9px] mt-1.5 ${isMe ? "text-right text-teal-light/60" : "text-left text-slate-600"}`}
+                      className={`text-[9px] mt-1.5 ${
+                        isMe
+                          ? "text-right text-teal-light/60"
+                          : "text-left text-slate-600"
+                      }`}
                     >
                       {new Date(msg.createdAt).toLocaleTimeString([], {
                         hour: "2-digit",
@@ -433,35 +432,64 @@ export default function ChatWindow({ conversation }) {
                     </div>
                   )}
                 </div>
+
+                {/* Reply button — visible on row hover */}
+                <button
+                  onClick={() => setReplyTo(msg)}
+                  title="Reply"
+                  className={`opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-full hover:bg-white/8 text-slate-500 hover:text-teal-400 shrink-0 self-center ${isMe ? "order-first" : ""}`}
+                >
+                  <Reply size={14} />
+                </button>
               </div>
             </React.Fragment>
           );
         })}
-
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
-      <form onSubmit={handleSend} className="px-4 pb-4 pt-2 shrink-0">
-        <div className="bg-[#0f1318] rounded-2xl flex items-center gap-2 p-2 border border-white/6 focus-within:border-teal-normal/30 focus-within:shadow-[0_0_0_3px_rgba(19,200,236,0.06)] transition-all">
-          <button
-            type="button"
-            className="w-8 h-8 rounded-xl bg-white/4 hover:bg-teal-normal/10 flex items-center justify-center text-slate-600 hover:text-teal-normal transition-all shrink-0"
-          >
-            <Plus size={17} />
-          </button>
+      {/* Input Area */}
+      <div className="p-6">
+        {replyTo && (
+          <div className="bg-[#15191C] border-t border-x border-slate-800 rounded-t-2xl p-3 flex justify-between items-center animate-in slide-in-from-bottom-2">
+            <div className="flex items-center gap-3">
+              <div className="w-1 h-8 bg-teal-400 rounded-full" />
+              <div className="overflow-hidden">
+                <p className="text-[10px] text-teal-400 font-bold uppercase">
+                  Replying to {replyTo.sender?.name}
+                </p>
+                <p className="text-xs text-slate-500 line-clamp-1 italic">
+                  "{replyTo.text}"
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setReplyTo(null)}
+              className="p-1.5 hover:bg-white/5 rounded-full text-slate-500 hover:text-red-400 transition-colors"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
+
+        <form
+          onSubmit={handleSend}
+          className={`bg-[#15191C] flex items-center p-2.5 border border-slate-800 focus-within:border-teal-500/50 transition-all ${replyTo ? "rounded-b-2xl" : "rounded-2xl"}`}
+        >
+          <Plus
+            size={20}
+            className="text-slate-500 mx-2 cursor-pointer hover:text-teal-400 transition-colors"
+          />
           <input
             className="flex-1 bg-transparent outline-none text-sm text-slate-200 placeholder:text-slate-600 py-1.5"
             placeholder="Type a message..."
             value={text}
             onChange={(e) => setText(e.target.value)}
           />
-          <button
-            type="button"
-            className="w-8 h-8 rounded-xl bg-white/4 hover:bg-teal-normal/10 flex items-center justify-center text-slate-600 hover:text-teal-normal transition-all shrink-0"
-          >
-            <Smile size={17} />
-          </button>
+          <Smile
+            size={20}
+            className="text-slate-500 mx-2 cursor-pointer hover:text-teal-400 transition-colors"
+          />
           <button
             type="submit"
             disabled={!text.trim()}
@@ -469,8 +497,8 @@ export default function ChatWindow({ conversation }) {
           >
             <Send size={16} />
           </button>
-        </div>
-      </form>
+        </form>
+      </div>
     </main>
   );
 }

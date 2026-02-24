@@ -18,9 +18,10 @@ const formatLastSeen = (timestamp) => {
   });
 };
 
-export default function ChatWindow({ conversation, onMessageSent }) {
+export default function ChatWindow({ conversation }) {
   const { socket, onlineUsers } = useSocket() || {};
   const { user } = useAuth();
+
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [loadingMessages, setLoadingMessages] = useState(false);
@@ -33,7 +34,6 @@ export default function ChatWindow({ conversation, onMessageSent }) {
 
     const fetchMessages = async () => {
       setLoadingMessages(true);
-      setMessages([]);
       try {
         const res = await api.get(`/api/chat/messages/${conversation._id}`);
         setMessages(res.data);
@@ -53,31 +53,71 @@ export default function ChatWindow({ conversation, onMessageSent }) {
 
     const handleReceive = (msg) => {
       if (msg.conversationId !== conversation?._id) return;
-      setMessages((prev) => [...prev, msg]);
+
+      setMessages((prev) => {
+        const optimisticIndex = prev.findIndex((m) => m._id === msg.tempId);
+
+        if (optimisticIndex !== -1) {
+          const updated = [...prev];
+          updated[optimisticIndex] = msg;
+          return updated;
+        }
+
+        return [...prev, msg];
+      });
+
+      // If I am receiver → mark as seen immediately
+      if (msg.sender?._id !== user?._id) {
+        socket.emit("conversation:seen", {
+          conversationId: conversation._id,
+          lastSeenMessageId: msg._id,
+        });
+      }
     };
 
     const handleDelivered = (msg) => {
       if (msg.conversationId !== conversation?._id) return;
       setMessages((prev) =>
-        prev.map((m) => (m._id === msg.tempId ? { ...msg } : m)),
+        prev.map((m) => {
+          // Delivered update
+          if (update.messageId && m._id === update.messageId) {
+            return { ...m, status: update.status };
+          }
+
+          // Bulk read update
+          if (
+            update.status === "read" &&
+            m.sender?._id === user?._id &&
+            m.status !== "read"
+          ) {
+            // Only mark messages up to lastSeenMessageId
+            if (m._id <= update.upToMessageId) {
+              return { ...m, status: "read" };
+            }
+          }
+
+          return m;
+        }),
       );
-      onMessageSent(msg.conversationId, msg.text);
     };
 
-    socket.on("message:receive", handleReceive);
-    socket.on("message:delivered", handleDelivered);
+    socket.on("message:new", handleNewMessage);
+    socket.on("message:status", handleStatus);
 
     return () => {
-      socket.off("message:receive", handleReceive);
-      socket.off("message:delivered", handleDelivered);
+      socket.off("message:new", handleNewMessage);
+      socket.off("message:status", handleStatus);
     };
-  }, [socket, conversation?._id, onMessageSent]);
+  }, [socket, conversation?._id, user?._id]);
 
   // Auto-scroll
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // ------------------------------------------------
+  // Send message
+  // ------------------------------------------------
   const handleSend = (e) => {
     e.preventDefault();
     if (!text.trim() || !socket || !conversation) return;
@@ -89,6 +129,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
       sender: { _id: user._id, name: user.name },
       text: text.trim(),
       createdAt: new Date().toISOString(),
+      status: "sent",
       isOptimistic: true,
       replyTo,
     };
@@ -99,7 +140,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
     socket.emit("message:send", {
       conversationId: conversation._id,
       receiverId: conversation.participant._id,
-      text: text.trim(),
+      text: optimistic.text,
       tempId,
       replyTo: replyTo?._id || null,
     });
@@ -185,6 +226,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
         {messages.map((msg) => {
           const isMe =
             msg.sender?._id === user?._id || msg.sender === user?._id;
+
           return (
             <div
               key={msg._id}

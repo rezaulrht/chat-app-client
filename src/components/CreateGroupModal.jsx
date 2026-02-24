@@ -115,18 +115,17 @@ export default function CreateGroupModal({ onGroupCreated }) {
       {/* CREATE GROUP BUTTON */}
       <button
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-5 py-2.5 rounded-xl font-medium transition-all active:scale-95"
+        className="flex items-center gap-2 text-white hover:text-[#13c8ec]/90  py-2.5 rounded-xl font-medium transition-all active:scale-95"
       >
         <UserPlus size={20} />
-        Create New Group
       </button>
 
       {/* MODAL */}
       {isOpen && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-900 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden">
+          <div className="bg-gray-900 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 px-6 py-4">
+            <div className="flex items-center justify-between border-b dark:border-gray-800 px-6 py-4">
               <div className="flex items-center gap-3">
                 <Users className="text-amber-600" size={28} />
                 <h2 className="text-2xl font-bold">Create New Group</h2>
@@ -155,7 +154,7 @@ export default function CreateGroupModal({ onGroupCreated }) {
                         className="object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                      <div className="w-full h-full dark:bg-gray-800 flex items-center justify-center">
                         <Upload className="text-amber-500" size={40} />
                       </div>
                     )}
@@ -187,7 +186,7 @@ export default function CreateGroupModal({ onGroupCreated }) {
                   value={groupName}
                   onChange={(e) => setGroupName(e.target.value)}
                   placeholder="e.g. Team Undefined 🔥"
-                  className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-lg"
+                  className="w-full px-4 py-3 bg-gray-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-lg"
                 />
               </div>
 
@@ -202,7 +201,7 @@ export default function CreateGroupModal({ onGroupCreated }) {
                   placeholder="Search friends..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-2xl mb-4 focus:outline-none"
+                  className="w-full px-4 py-3 bg-gray-800 rounded-2xl mb-4 focus:outline-none"
                 />
 
                 {/* Users List */}
@@ -211,7 +210,7 @@ export default function CreateGroupModal({ onGroupCreated }) {
                     <div
                       key={user.id}
                       onClick={() => toggleMember(user)}
-                      className="flex items-center gap-3 p-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-2xl cursor-pointer transition"
+                      className="flex items-center gap-3 p-3 hover:bg-gray-800 dark:hover:bg-gray-800 rounded-2xl cursor-pointer transition"
                     >
                       <input
                         type="checkbox"
@@ -275,7 +274,7 @@ export default function CreateGroupModal({ onGroupCreated }) {
                   setIsOpen(false);
                   resetForm();
                 }}
-                className="flex-1 py-3.5 rounded-2xl font-medium border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
+                className="flex-1 py-3.5 rounded-2xl font-medium border border-gray-300 dark:border-gray-700 hover:bg-gray-800 dark:hover:bg-gray-800"
               >
                 Cancel
               </button>
@@ -285,7 +284,7 @@ export default function CreateGroupModal({ onGroupCreated }) {
                 disabled={
                   loading || !groupName.trim() || selectedMembers.length === 0
                 }
-                className="flex-1 py-3.5 bg-amber-600 hover:bg-amber-700 disabled:bg-gray-400 text-white font-semibold rounded-2xl transition flex items-center justify-center gap-2"
+                className="flex-1 py-3.5 bg-amber-600 hover:bg-amber-700 disabled:bg-gray-700 text-white font-semibold rounded-2xl transition flex items-center justify-center gap-2"
               >
                 {loading ? "Creating..." : "✅ Create Group"}
               </button>

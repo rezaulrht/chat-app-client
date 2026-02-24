@@ -75,8 +75,8 @@ export default function ChatWindow({ conversation }) {
       }
     };
 
-    const handleDelivered = (msg) => {
-      if (msg.conversationId !== conversation?._id) return;
+    const handleDelivered = (update) => {
+      if (update.conversationId !== conversation?._id) return;
       setMessages((prev) =>
         prev.map((m) => {
           // Delivered update

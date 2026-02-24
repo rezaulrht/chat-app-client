@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { Search, Edit3, X } from "lucide-react";
+import Link from "next/link";
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
 import CreateGroupModal from "../CreateGroupModal";
@@ -160,11 +161,13 @@ export default function Sidebar({
         {/* Header */}
         <div className="px-5 pt-5 pb-4 flex justify-between items-center border-b border-white/5">
           <div className="flex items-center gap-2">
-            <img
-              src="https://i.ibb.co/PG0X3Tbf/Convo-X-logo.png"
-              alt="ConvoX Logo"
-              className="h-6 w-auto"
-            />
+            <Link href="/">
+              <img
+                src="https://i.ibb.co/PG0X3Tbf/Convo-X-logo.png"
+                alt="ConvoX Logo"
+                className="h-6 w-auto cursor-pointer"
+              />
+            </Link>
           </div>
           <div className="flex items-center gap-2">
             <CreateGroupModal />

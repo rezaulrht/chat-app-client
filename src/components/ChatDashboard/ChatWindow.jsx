@@ -30,24 +30,39 @@ export default function ChatWindow({ conversation, onMessageSent }) {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [reactions, setReactions] = useState({}); // { msgId: { '👍': ['userId1'], '❤️': ['userId2'] } }
   const [reactionPickerMsgId, setReactionPickerMsgId] = useState(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const bottomRef = useRef(null);
   const reactionPickerRef = useRef(null);
+  const inputEmojiPickerRef = useRef(null);
 
-  // Close reaction picker on outside click
+  // Close emoji pickers on outside click
   useEffect(() => {
     const handleClickOutside = (e) => {
+      // Close message reaction picker
       if (
         reactionPickerRef.current &&
         !reactionPickerRef.current.contains(e.target)
       ) {
         setReactionPickerMsgId(null);
       }
+      // Close input emoji picker
+      if (
+        inputEmojiPickerRef.current &&
+        !inputEmojiPickerRef.current.contains(e.target)
+      ) {
+        setShowEmojiPicker(false);
+      }
     };
-    if (reactionPickerMsgId) {
+    if (reactionPickerMsgId || showEmojiPicker) {
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [reactionPickerMsgId]);
+  }, [reactionPickerMsgId, showEmojiPicker]);
+
+  // Append emoji to input text
+  const handleEmojiClick = (emoji) => {
+    setText((prev) => prev + emoji.native);
+  };
 
   // Toggle a reaction — emit via socket for persistence + live sync
   const toggleReaction = useCallback(
@@ -429,25 +444,50 @@ export default function ChatWindow({ conversation, onMessageSent }) {
       </div>
 
       {/* Input Form */}
-      <form onSubmit={handleSend} className="p-6">
-        <div className="bg-[#15191C] rounded-2xl flex items-center p-2.5 border border-slate-800 focus-within:border-teal-500/50 transition-all">
-          <Plus
-            size={20}
-            className="text-slate-500 mx-2 cursor-pointer hover:text-teal-400"
-          />
+      <form onSubmit={handleSend} className="p-6 relative">
+        {/* Emoji Picker for Input */}
+        {showEmojiPicker && (
+          <div
+            ref={inputEmojiPickerRef}
+            className="absolute bottom-[100px] right-6 z-50 shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-200"
+          >
+            <Picker
+              data={data}
+              onEmojiSelect={handleEmojiClick}
+              theme="dark"
+              previewPosition="none"
+              skinTonePosition="none"
+              set="native"
+            />
+          </div>
+        )}
+
+        <div className="bg-[#15191C] rounded-2xl flex items-center p-2.5 border border-slate-800 focus-within:border-teal-500/50 transition-all shadow-lg">
+          <button type="button" className="p-1">
+            <Plus
+              size={20}
+              className="text-slate-500 mx-1 cursor-pointer hover:text-teal-400 transition-colors"
+            />
+          </button>
           <input
-            className="flex-1 bg-transparent outline-none text-sm text-slate-200 px-2"
+            className="flex-1 bg-transparent outline-none text-sm text-slate-200 px-2 placeholder:text-slate-600"
             placeholder="Type a message..."
             value={text}
             onChange={(e) => setText(e.target.value)}
           />
-          <Smile
-            size={20}
-            className="text-slate-500 mx-2 cursor-pointer hover:text-teal-400"
-          />
+          <button
+            type="button"
+            className="p-1"
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+          >
+            <Smile
+              size={20}
+              className={`mx-1 cursor-pointer transition-colors ${showEmojiPicker ? "text-teal-400" : "text-slate-500 hover:text-teal-400"}`}
+            />
+          </button>
           <button
             type="submit"
-            className="bg-teal-400 p-2.5 rounded-xl text-black ml-2 hover:bg-teal-300 transition-colors active:scale-95"
+            className="bg-teal-400 p-2.5 rounded-xl text-black ml-2 hover:bg-teal-300 transition-colors active:scale-95 shadow-lg shadow-teal-400/10"
           >
             <Send size={18} />
           </button>

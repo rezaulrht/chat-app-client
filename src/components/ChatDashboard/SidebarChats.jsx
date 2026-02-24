@@ -30,6 +30,8 @@ export default function Sidebar({
 
   // --- Conversation filter (local, client-side) ---
   const [filterTerm, setFilterTerm] = useState("");
+  const [searchedConversations, setSearchedConversations] =
+    useState(conversations);
 
   // --- New chat modal state ---
   const [modalOpen, setModalOpen] = useState(false);
@@ -89,10 +91,60 @@ export default function Sidebar({
     }
   };
 
-  // Client-side filter on existing conversations
-  const filteredConversations = conversations.filter((c) =>
-    c.participant?.name?.toLowerCase().includes(filterTerm.toLowerCase()),
-  );
+  useEffect(() => {
+    if (!filterTerm.trim()) {
+      setSearchedConversations(conversations);
+      return;
+    }
+
+    const controller = new AbortController(); // ✅ create abort controller
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await api.get(
+          `/api/chat/search-conversations?q=${encodeURIComponent(filterTerm)}`,
+          { signal: controller.signal }, // ✅ pass signal to axios
+        );
+        setSearchedConversations(res.data);
+      } catch (err) {
+        if (err.name === "CanceledError" || err.code === "ERR_CANCELED") return; 
+        console.error("Search failed:", err);
+        setSearchedConversations(conversations);
+      }
+    }, 400);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort(); 
+    };
+  }, [filterTerm]); 
+
+  // Keep searchedConversations in sync when not searching
+  useEffect(() => {
+    if (!filterTerm.trim()) {
+      setSearchedConversations(conversations);
+    }
+  }, [conversations]); // only syncs when not actively filtering
+
+  const highlightMatch = (text, query) => {
+    if (!query || !text) return text || "No messages yet";
+
+    const regex = new RegExp(`(${query})`, "gi");
+    const parts = String(text).split(regex);
+
+    return parts.map((part, index) =>
+      regex.test(part) ? (
+        <span
+          key={index}
+          className="bg-teal-600/40 text-teal-200 rounded px-0.5 font-medium"
+        >
+          {part}
+        </span>
+      ) : (
+        part
+      ),
+    );
+  };
 
   return (
     <>
@@ -127,12 +179,12 @@ export default function Sidebar({
             />
           </div>
 
-          <CreateGroupModal/>
+          <CreateGroupModal />
         </div>
 
         {/* Conversation list */}
         <div className="flex-1 overflow-y-auto px-3 space-y-2">
-          {filteredConversations.map((conv) => {
+          {searchedConversations.map((conv) => {
             const isUserOnline = onlineUsers?.get(
               conv.participant?._id,
             )?.online;
@@ -140,10 +192,10 @@ export default function Sidebar({
               <div
                 key={conv._id}
                 onClick={() => setActiveConversationId(conv._id)}
-                className={`flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all ${
+                className={`group flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-150 ${
                   activeConversationId === conv._id
-                    ? "bg-[#1C2227] border-l-4 border-teal-400"
-                    : "hover:bg-slate-800/30"
+                    ? "bg-teal-900/30 border-l-4 border-teal-500 shadow-sm"
+                    : "hover:bg-slate-800/50"
                 }`}
               >
                 <div className="relative">
@@ -168,7 +220,7 @@ export default function Sidebar({
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-center">
                     <span className="font-semibold text-sm truncate text-white">
-                      {conv.participant?.name}
+                      {highlightMatch(conv.participant?.name || "", filterTerm)}
                     </span>
                     <span className="text-[10px] text-slate-500">
                       {conv.lastMessage?.timestamp
@@ -182,14 +234,17 @@ export default function Sidebar({
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 truncate">
-                    {conv.lastMessage?.text || "No messages yet"}
+                    {highlightMatch(
+                      conv.lastMessage?.text || "No messages yet",
+                      filterTerm,
+                    )}
                   </p>
                 </div>
               </div>
             );
           })}
 
-          {filteredConversations.length === 0 && (
+          {searchedConversations.length === 0 && (
             <p className="text-center text-slate-600 text-xs mt-4">
               {conversations.length === 0
                 ? "No conversations yet. Click ✏️ to start one."

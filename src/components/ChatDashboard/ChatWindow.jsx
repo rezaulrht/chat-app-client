@@ -6,6 +6,7 @@ import { Phone, Video, Info, Plus, Smile, Send, X, Reply } from "lucide-react";
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
+import { EMOJI_MAP } from "@/utils/emojis";
 
 const EmojiPicker = dynamic(() => import("emoji-picker-react"), { ssr: false });
 const GifPicker = dynamic(
@@ -13,91 +14,6 @@ const GifPicker = dynamic(
     import("gif-picker-react-klipy").then((m) => m.GifPicker || m.default || m),
   { ssr: false },
 );
-
-const EMOJI_MAP = {
-  ":smile:": "😊",
-  ":smile_cat:": "😸",
-  ":smiling_face_with_three_hearts:": "🥰",
-  ":smiling_eyes:": "😊",
-  ":grin:": "😁",
-  ":joy:": "😂",
-  ":rofl:": "🤣",
-  ":relaxed:": "☺️",
-  ":blush:": "😊",
-  ":innocent:": "😇",
-  ":slight_smile:": "🙂",
-  ":upside_down:": "🙃",
-  ":wink:": "😉",
-  ":heart_eyes:": "😍",
-  ":kissing_heart:": "😘",
-  ":yum:": "😋",
-  ":stuck_out_tongue:": "😛",
-  ":money_mouth:": "🤑",
-  ":hugging:": "🤗",
-  ":thinking:": "🤔",
-  ":neutral_face:": "😐",
-  ":expressionless:": "😑",
-  ":no_mouth:": "😶",
-  ":smirk:": "😏",
-  ":unamused:": "😒",
-  ":rolling_eyes:": "🙄",
-  ":grimacing:": "😬",
-  ":lying_face:": "🤥",
-  ":relieved:": "😌",
-  ":pensive:": "😔",
-  ":sleepy:": "😪",
-  ":sleeping:": "😴",
-  ":mask:": "😷",
-  ":sick:": "🤒",
-  ":dizzy_face:": "😵",
-  ":cool:": "😎",
-  ":nerd:": "🤓",
-  ":shush:": "🤫",
-  ":monocle:": "🧐",
-  ":confused:": "😕",
-  ":worried:": "😟",
-  ":frown:": "☹️",
-  ":open_mouth:": "😮",
-  ":hushed:": "😯",
-  ":astonished:": "😲",
-  ":flushed:": "😳",
-  ":pleading:": "🥺",
-  ":frowning:": "😦",
-  ":anguished:": "😧",
-  ":fearful:": "😨",
-  ":cold_sweat:": "😰",
-  ":cry:": "😢",
-  ":sob:": "😭",
-  ":scream:": "😱",
-  ":confounded:": "😖",
-  ":weary:": "😩",
-  ":tired_face:": "😫",
-  ":yawn:": "🥱",
-  ":triumph:": "😤",
-  ":rage:": "😡",
-  ":angry:": "😠",
-  ":skull:": "💀",
-  ":poop:": "💩",
-  ":clown:": "🤡",
-  ":ghost:": "👻",
-  ":alien:": "👽",
-  ":robot:": "🤖",
-  ":heart:": "❤️",
-  ":sparkles:": "✨",
-  ":fire:": "🔥",
-  ":star:": "⭐",
-  ":rocket:": "🚀",
-  ":ok_hand:": "👌",
-  ":thumbsup:": "👍",
-  ":thumbsdown:": "👎",
-  ":clap:": "👏",
-  ":pray:": "🙏",
-  ":muscle:": "💪",
-  ":eyes:": "👀",
-  ":party:": "🥳",
-  ":check:": "✅",
-  ":x:": "❌",
-};
 
 const getDateLabel = (dateStr) => {
   const date = new Date(dateStr);
@@ -395,7 +311,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
 
   return (
     <main className="flex-1 flex flex-col bg-[#080b0f] relative h-full">
-      <header className="h-[68px] border-b border-white/5 flex justify-between items-center px-5 bg-[#0a0e13]/80 backdrop-blur-sm shrink-0">
+      <header className="h-17 border-b border-white/5 flex justify-between items-center px-5 bg-[#0a0e13]/80 backdrop-blur-sm shrink-0">
         <div className="flex items-center gap-3">
           <div className="relative">
             <div
@@ -534,7 +450,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                       </div>
                     )}
                     <div
-                      className={`${isGif ? "p-1" : "p-3.5"} rounded-2xl text-[13px] leading-relaxed relative z-10 ${isMe ? (isGif ? "bg-transparent" : "bg-teal-normal text-white rounded-br-none shadow-lg shadow-teal-normal/10") : isGif ? "bg-transparent" : "bg-[#161b22] text-slate-200 rounded-bl-none shadow-sm shadow-black/5"} ${msg.isOptimistic ? "opacity-60" : ""}`}
+                      className={`${isGif ? "p-1" : "p-3.5"} rounded-2xl text-[13px] leading-relaxed relative z-10 ${isMe ? (isGif ? "bg-transparent" : "bg-teal-normal text-white rounded-br-none shadow-lg shadow-teal-normal/10") : isGif ? "bg-transparent" : "bg-surface-dark text-slate-200 rounded-bl-none shadow-sm shadow-black/5"} ${msg.isOptimistic ? "opacity-60" : ""}`}
                     >
                       {msg.replyTo && (
                         <div className="mb-2 p-2 bg-black/20 rounded-lg border-l-2 border-teal-normal text-[11px] opacity-80 line-clamp-2">
@@ -630,7 +546,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
         className="p-4 relative bg-[#0a0e13]/80 backdrop-blur-sm border-t border-white/5"
       >
         {replyTo && (
-          <div className="absolute bottom-full left-0 right-0 p-3 bg-[#161b22] border-t border-teal-normal/30 flex items-center justify-between animate-in slide-in-from-bottom-2 fade-in">
+          <div className="absolute bottom-full left-0 right-0 p-3 bg-surface-dark border-t border-teal-normal/30 flex items-center justify-between animate-in slide-in-from-bottom-2 fade-in">
             <div className="flex items-center gap-3 overflow-hidden">
               <div className="w-1 bg-teal-normal h-8 rounded-full"></div>
               <div className="overflow-hidden">

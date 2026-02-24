@@ -2,12 +2,14 @@
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import { Phone, Video, Info, Plus, Smile, Send } from "lucide-react";
-import Picker from "@emoji-mart/react";
-import data from "@emoji-mart/data";
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
+
+// Dynamic imports — these rely on `window` and cannot SSR
+const EmojiPicker = dynamic(() => import("emoji-picker-react"), { ssr: false });
 
 // Helper function to format last seen time - show actual timestamp
 const formatLastSeen = (timestamp) => {
@@ -28,24 +30,22 @@ export default function ChatWindow({ conversation, onMessageSent }) {
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [loadingMessages, setLoadingMessages] = useState(false);
-  const [reactions, setReactions] = useState({}); // { msgId: { '👍': ['userId1'], '❤️': ['userId2'] } }
+  const [reactions, setReactions] = useState({});
   const [reactionPickerMsgId, setReactionPickerMsgId] = useState(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const bottomRef = useRef(null);
   const reactionPickerRef = useRef(null);
   const inputEmojiPickerRef = useRef(null);
 
-  // Close emoji pickers on outside click
+  // Close pickers on outside click
   useEffect(() => {
     const handleClickOutside = (e) => {
-      // Close message reaction picker
       if (
         reactionPickerRef.current &&
         !reactionPickerRef.current.contains(e.target)
       ) {
         setReactionPickerMsgId(null);
       }
-      // Close input emoji picker
       if (
         inputEmojiPickerRef.current &&
         !inputEmojiPickerRef.current.contains(e.target)
@@ -59,9 +59,9 @@ export default function ChatWindow({ conversation, onMessageSent }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [reactionPickerMsgId, showEmojiPicker]);
 
-  // Append emoji to input text
-  const handleEmojiClick = (emoji) => {
-    setText((prev) => prev + emoji.native);
+  // Append emoji to input text (emoji-picker-react format)
+  const handleEmojiClick = (emojiData) => {
+    setText((prev) => prev + emojiData.emoji);
   };
 
   // Toggle a reaction — emit via socket for persistence + live sync
@@ -116,22 +116,19 @@ export default function ChatWindow({ conversation, onMessageSent }) {
   useEffect(() => {
     if (!socket) return;
 
-    // A new message arrived from the other user
     const handleReceive = (msg) => {
       if (msg.conversationId !== conversation?._id) return;
       setMessages((prev) => [...prev, msg]);
     };
 
-    // Our sent message was saved — replace the optimistic temp entry with the real one
     const handleDelivered = (msg) => {
       if (msg.conversationId !== conversation?._id) return;
       setMessages((prev) =>
         prev.map((m) => (m._id === msg.tempId ? { ...msg } : m)),
       );
-      onMessageSent(msg.conversationId, msg.text);
+      onMessageSent(msg.conversationId, msg.text || "GIF");
     };
 
-    // Live reaction update from server
     const handleReacted = ({
       messageId,
       conversationId: cId,
@@ -163,7 +160,6 @@ export default function ChatWindow({ conversation, onMessageSent }) {
 
     const tempId = `temp-${Date.now()}`;
 
-    // Optimistic message — shown immediately before server ack
     const optimistic = {
       _id: tempId,
       conversationId: conversation._id,
@@ -213,7 +209,6 @@ export default function ChatWindow({ conversation, onMessageSent }) {
               alt={participant?.name || "avatar"}
               unoptimized
             />
-            {/* Online indicator in header */}
             {onlineUsers?.get(participant?._id)?.online && (
               <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#0B0E11]"></div>
             )}
@@ -265,13 +260,13 @@ export default function ChatWindow({ conversation, onMessageSent }) {
               key={msg._id}
               className={`flex ${isMe ? "justify-end" : "justify-start"} px-2`}
             >
-              {/* Message Group: Decouples bubble width from reaction width */}
+              {/* Message Group */}
               <div
                 className={`flex flex-col ${isMe ? "items-end" : "items-start"} max-w-[85%]`}
               >
-                {/* Bubble Wrapper: Anchors the toolbar and defines bubble width */}
+                {/* Bubble Wrapper */}
                 <div className="relative group w-fit">
-                  {/* Hover Actions — positioned top corner */}
+                  {/* Hover Actions */}
                   {!msg.isOptimistic && (
                     <div
                       className={`absolute -top-6 ${isMe ? "right-0" : "left-0"} hidden group-hover:flex items-center gap-0.5 bg-[#15191C] border border-slate-700/60 rounded-lg p-0.5 shadow-xl shadow-black/40 z-30`}
@@ -283,7 +278,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                             e.stopPropagation();
                             toggleReaction(msg._id, emoji);
                           }}
-                          className={`text-sm p-1 rounded-md transition-all duration-150 hover:bg-slate-700/60 hover:scale-110 ${
+                          className={`p-1.5 rounded-md transition-all duration-150 hover:bg-slate-700/60 hover:scale-125 ${
                             reactions[msg._id]?.[emoji]?.includes(user?._id)
                               ? "bg-teal-900/40"
                               : ""
@@ -370,7 +365,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                     </div>
                   )}
 
-                  {/* Message Bubble — w-fit ensures background only wraps text */}
+                  {/* Message Bubble */}
                   <div
                     className={`p-4 rounded-2xl text-sm w-fit relative z-10 ${
                       isMe
@@ -393,42 +388,45 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                       ref={reactionPickerRef}
                       className={`absolute top-0 z-50 ${isMe ? "right-full mr-2" : "left-full ml-2"}`}
                     >
-                      <Picker
-                        data={data}
-                        onEmojiSelect={(emoji) =>
-                          toggleReaction(msg._id, emoji.native)
+                      <EmojiPicker
+                        onEmojiClick={(emojiData) =>
+                          toggleReaction(msg._id, emojiData.emoji)
                         }
                         theme="dark"
-                        previewPosition="none"
-                        skinTonePosition="none"
-                        set="native"
-                        perLine={8}
-                        maxFrequentRows={1}
+                        emojiStyle="native"
+                        width={320}
+                        height={400}
+                        searchPlaceholder="Search emoji..."
+                        previewConfig={{ showPreview: false }}
+                        lazyLoadEmojis
                       />
                     </div>
                   )}
                 </div>
 
-                {/* Reactions display — Limited to 10 emojis in a 5-column grid */}
                 {reactions[msg._id] &&
                   Object.keys(reactions[msg._id]).length > 0 && (
                     <div
-                      className={`grid grid-cols-5 gap-1 mt-1.5 w-fit ${isMe ? "justify-items-end" : "justify-items-start"}`}
+                      className={`flex flex-wrap gap-1 mt-1.5 w-fit ${
+                        isMe ? "flex-row-reverse" : "flex-row"
+                      } max-w-[260px]`}
                     >
                       {Object.entries(reactions[msg._id])
-                        .slice(0, 10) // Limit to 10
+                        .slice(0, 10)
                         .map(([emoji, users]) => (
                           <button
                             key={emoji}
                             onClick={() => toggleReaction(msg._id, emoji)}
-                            className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[13px] border transition-all duration-150 whitespace-nowrap ${
+                            className={`flex items-center gap-1.5 px-2 py-1 rounded-full border transition-all duration-150 whitespace-nowrap shadow-sm hover:scale-105 active:scale-95 ${
                               users.includes(user?._id)
-                                ? "bg-teal-400/10 border-teal-400/30 text-teal-300"
-                                : "bg-[#1C2227] border-slate-700/50 text-slate-400 hover:border-slate-500"
+                                ? "bg-teal-400/10 border-teal-400/30"
+                                : "bg-[#1C2227] border-slate-700/50 hover:border-slate-500"
                             }`}
                           >
-                            <span>{emoji}</span>
-                            <span className="text-[10px] font-bold">
+                            <span className="text-[15px] leading-none">
+                              {emoji}
+                            </span>
+                            <span className="text-[10px] font-bold text-slate-300">
                               {users.length}
                             </span>
                           </button>
@@ -445,36 +443,41 @@ export default function ChatWindow({ conversation, onMessageSent }) {
 
       {/* Input Form */}
       <form onSubmit={handleSend} className="p-6 relative">
-        {/* Emoji Picker for Input */}
         {showEmojiPicker && (
           <div
             ref={inputEmojiPickerRef}
-            className="absolute bottom-[100px] right-6 z-50 shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-200"
+            className="absolute bottom-25 right-6 z-50 shadow-2xl"
           >
-            <Picker
-              data={data}
-              onEmojiSelect={handleEmojiClick}
+            <EmojiPicker
+              onEmojiClick={handleEmojiClick}
               theme="dark"
-              previewPosition="none"
-              skinTonePosition="none"
-              set="native"
+              emojiStyle="native"
+              width={350}
+              height={420}
+              searchPlaceholder="Search emoji..."
+              previewConfig={{ showPreview: false }}
+              lazyLoadEmojis
             />
           </div>
         )}
 
         <div className="bg-[#15191C] rounded-2xl flex items-center p-2.5 border border-slate-800 focus-within:border-teal-500/50 transition-all shadow-lg">
+          {/* Plus Button */}
           <button type="button" className="p-1">
             <Plus
               size={20}
               className="text-slate-500 mx-1 cursor-pointer hover:text-teal-400 transition-colors"
             />
           </button>
+
           <input
             className="flex-1 bg-transparent outline-none text-sm text-slate-200 px-2 placeholder:text-slate-600"
             placeholder="Type a message..."
             value={text}
             onChange={(e) => setText(e.target.value)}
           />
+
+          {/* Emoji Button */}
           <button
             type="button"
             className="p-1"
@@ -485,6 +488,8 @@ export default function ChatWindow({ conversation, onMessageSent }) {
               className={`mx-1 cursor-pointer transition-colors ${showEmojiPicker ? "text-teal-400" : "text-slate-500 hover:text-teal-400"}`}
             />
           </button>
+
+          {/* Send Button */}
           <button
             type="submit"
             className="bg-teal-400 p-2.5 rounded-xl text-black ml-2 hover:bg-teal-300 transition-colors active:scale-95 shadow-lg shadow-teal-400/10"

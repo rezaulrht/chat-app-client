@@ -106,6 +106,19 @@ export default function ChatWindow({ conversation, onMessageSent }) {
     const lastWord = val.split(" ").pop();
     if (EMOJI_MAP[lastWord]) val = val.replace(lastWord, EMOJI_MAP[lastWord]);
     setText(val);
+    if (socket && conversation) {
+      if (val.trim()) {
+        socket.emit("typing:start", {
+          conversationId: conversation._id,
+          receiverId: conversation.participant._id,
+        });
+      } else {
+        socket.emit("typing:stop", {
+          conversationId: conversation._id,
+          receiverId: conversation.participant._id,
+        });
+      }
+    }
     const match = val.match(/:([a-zA-Z0-9_]*)$/);
     if (match) {
       const query = match[1].toLowerCase();
@@ -277,6 +290,10 @@ export default function ChatWindow({ conversation, onMessageSent }) {
     };
     setMessages((prev) => [...prev, optimistic]);
     setText("");
+    socket.emit("typing:stop", {
+      conversationId: conversation._id,
+      receiverId: conversation.participant._id,
+    });
     socket.emit("message:send", {
       conversationId: conversation._id,
       receiverId: conversation.participant._id,

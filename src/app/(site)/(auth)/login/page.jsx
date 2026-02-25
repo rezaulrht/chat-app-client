@@ -33,7 +33,7 @@ export default function LoginPage() {
             {res.message}.{" "}
             <Link
               href={`/verify?email=${encodeURIComponent(data.email)}`}
-              className="text-[#13c8ec] underline font-bold ml-1 hover:text-white"
+              className="text-teal-normal underline font-bold ml-1 hover:text-white"
             >
               Verify now
             </Link>
@@ -54,7 +54,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-[#05050A] font-sans text-white flex items-center justify-center relative overflow-hidden">
       {/* Background Effects */}
       <div className="absolute inset-0 z-0">
-        <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-175 h-125 bg-[#13c8ec]/20 rounded-full blur-[120px] opacity-40 pointer-events-none" />
+        <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-175 h-125 bg-teal-normal/20 rounded-full blur-[120px] opacity-40 pointer-events-none" />
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-size-[64px_64px] mask-[radial-gradient(ellipse_at_center,black_50%,transparent_100%)] pointer-events-none" />
       </div>
 
@@ -137,7 +137,7 @@ export default function LoginPage() {
                   {...register("email", { required: "Email is required" })}
                   type="email"
                   placeholder="jane@example.com"
-                  className={`block w-full pl-10 pr-4 py-3 bg-white/5 border ${errors.email ? "border-red-500/50" : "border-white/10"} rounded-lg focus:outline-none focus:ring-1 focus:ring-[#13c8ec] text-white text-sm transition-all`}
+                  className={`block w-full pl-10 pr-4 py-3 bg-white/5 border ${errors.email ? "border-red-500/50" : "border-white/10"} rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-normal text-white text-sm transition-all`}
                 />
               </div>
               {errors.email && (
@@ -154,7 +154,7 @@ export default function LoginPage() {
                 </label>
                 <Link
                   href="/forgot-password"
-                  className="text-[10px] font-bold text-slate-500 hover:text-[#13c8ec] transition-colors"
+                  className="text-[10px] font-bold text-slate-500 hover:text-teal-normal transition-colors"
                 >
                   Forgot?
                 </Link>
@@ -167,7 +167,7 @@ export default function LoginPage() {
                   })}
                   type="password"
                   placeholder="••••••••"
-                  className={`block w-full pl-10 pr-4 py-3 bg-white/5 border ${errors.password ? "border-red-500/50" : "border-white/10"} rounded-lg focus:outline-none focus:ring-1 focus:ring-[#13c8ec] text-white text-sm transition-all`}
+                  className={`block w-full pl-10 pr-4 py-3 bg-white/5 border ${errors.password ? "border-red-500/50" : "border-white/10"} rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-normal text-white text-sm transition-all`}
                 />
               </div>
               {errors.password && (
@@ -179,7 +179,7 @@ export default function LoginPage() {
 
             <button
               disabled={loading}
-              className="w-full py-3.5 rounded-lg text-sm font-bold text-background-dark bg-[#13c8ec] hover:bg-[#13c8ec]/90 transition-all shadow-lg shadow-[#13c8ec]/20 mt-4 flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-3.5 rounded-lg text-sm font-bold text-background-dark bg-teal-normal hover:bg-teal-normal/90 transition-all shadow-lg shadow-teal-normal/20 mt-4 flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {loading && (
                 <span className="loading loading-spinner loading-xs text-background-dark"></span>
@@ -193,7 +193,7 @@ export default function LoginPage() {
               Don&apos;t have an account?
               <Link
                 href="/register"
-                className="font-bold text-[#13c8ec] hover:text-[#13c8ec]/80 transition-colors ml-1"
+                className="font-bold text-teal-normal hover:text-teal-normal/80 transition-colors ml-1"
               >
                 Create account
               </Link>

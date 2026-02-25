@@ -150,7 +150,7 @@ export default function NavBar() {
                   </Link>
                   <Link
                     href="/register"
-                    className="hidden sm:flex items-center justify-center px-5 py-2 text-sm font-semibold rounded-lg text-background-dark bg-[#13c8ec] hover:bg-[#13c8ec]/90 transition-all shadow-lg shadow-[#13c8ec]/20"
+                    className="hidden sm:flex items-center justify-center px-5 py-2 text-sm font-semibold rounded-lg text-background-dark bg-teal-normal hover:bg-teal-normal/90 transition-all shadow-lg shadow-teal-normal/20"
                   >
                     Get Started
                   </Link>
@@ -159,7 +159,7 @@ export default function NavBar() {
                 <>
                   <Link
                     href="/chat"
-                    className="hidden sm:flex items-center justify-center px-5 py-2 text-sm font-semibold rounded-lg text-background-dark bg-[#13c8ec] hover:bg-[#13c8ec]/90 transition-all shadow-lg shadow-[#13c8ec]/20"
+                    className="hidden sm:flex items-center justify-center px-5 py-2 text-sm font-semibold rounded-lg text-background-dark bg-teal-normal hover:bg-teal-normal/90 transition-all shadow-lg shadow-teal-normal/20"
                   >
                     Go to ConvoX
                   </Link>

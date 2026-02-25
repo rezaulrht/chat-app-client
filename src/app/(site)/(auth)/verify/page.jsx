@@ -123,15 +123,15 @@ function VerifyContent() {
     <div className="min-h-screen bg-[#05050A] font-sans text-white flex items-center justify-center relative overflow-hidden pt-16">
       {/* Background Effects */}
       <div className="absolute inset-0 z-0">
-        <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-175 h-125 bg-[#13c8ec]/10 rounded-full blur-[120px] opacity-40 pointer-events-none" />
+        <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-175 h-125 bg-teal-normal/10 rounded-full blur-[120px] opacity-40 pointer-events-none" />
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-size-[64px_64px] mask-[radial-gradient(ellipse_at_center,black_50%,transparent_100%)] pointer-events-none" />
       </div>
 
       <main className="relative z-10 w-full max-w-md px-6 py-12">
         <div className="glass-panel rounded-2xl p-8 sm:p-10 shadow-2xl border border-white/10">
           <div className="flex justify-center mb-6">
-            <div className="w-16 h-16 bg-[#13c8ec]/10 rounded-full flex items-center justify-center border border-[#13c8ec]/20 shadow-[0_0_15px_rgba(19,200,236,0.2)]">
-              <Shield className="w-8 h-8 text-[#13c8ec]" />
+            <div className="w-16 h-16 bg-teal-normal/10 rounded-full flex items-center justify-center border border-teal-normal/20 shadow-[0_0_15px_rgba(19,200,236,0.2)]">
+              <Shield className="w-8 h-8 text-teal-normal" />
             </div>
           </div>
 
@@ -167,7 +167,7 @@ function VerifyContent() {
                   className={`w-12 h-14 bg-white/5 border ${
                     error
                       ? "border-red-500/50 focus:ring-red-500/50"
-                      : "border-white/10 focus:ring-[#13c8ec]/50"
+                      : "border-white/10 focus:ring-teal-normal/50"
                   } rounded-lg text-center text-xl font-bold text-white focus:outline-none focus:ring-2 transition-all`}
                   autoComplete="off"
                 />
@@ -177,7 +177,7 @@ function VerifyContent() {
             <button
               type="submit"
               disabled={loading || otp.join("").length < 6}
-              className="w-full py-3.5 rounded-lg text-sm font-bold text-background-dark bg-[#13c8ec] hover:bg-[#13c8ec]/90 transition-all shadow-lg shadow-[#13c8ec]/20 flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-3.5 rounded-lg text-sm font-bold text-background-dark bg-teal-normal hover:bg-teal-normal/90 transition-all shadow-lg shadow-teal-normal/20 flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {loading && (
                 <span className="loading loading-spinner loading-xs text-background-dark"></span>
@@ -194,7 +194,7 @@ function VerifyContent() {
             <button
               onClick={handleResend}
               disabled={resendDisabled}
-              className="inline-flex items-center justify-center gap-2 text-sm font-medium text-white disabled:text-slate-500 transition-colors hover:text-[#13c8ec]"
+              className="inline-flex items-center justify-center gap-2 text-sm font-medium text-white disabled:text-slate-500 transition-colors hover:text-teal-normal"
             >
               <RefreshCcw className={`w-4 h-4 ${resendDisabled ? "" : ""}`} />
               {resendDisabled
@@ -213,7 +213,7 @@ export default function VerifyPage() {
     <Suspense
       fallback={
         <div className="min-h-screen bg-[#05050A] flex items-center justify-center">
-          <span className="loading loading-spinner text-[#13c8ec]"></span>
+          <span className="loading loading-spinner text-teal-normal"></span>
         </div>
       }
     >

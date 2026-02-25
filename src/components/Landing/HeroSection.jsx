@@ -39,7 +39,7 @@ export default function HeroSection() {
       <div className="relative z-10 px-6 max-w-5xl mx-auto text-center mt-10">
         <h1 className="text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight text-white mb-8 leading-[1.05]">
           Connect instantly <br />
-          <span className="text-transparent bg-clip-text bg-linear-to-r from-[#13c8ec] via-white to-[#13c8ec]">
+          <span className="text-transparent bg-clip-text bg-linear-to-r from-teal-normal via-white to-teal-normal">
             Anywhere.
           </span>
         </h1>

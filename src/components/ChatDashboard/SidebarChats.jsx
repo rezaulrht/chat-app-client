@@ -3,19 +3,55 @@
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { Search, Edit3, X } from "lucide-react";
+import Link from "next/link";
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
+import CreateGroupModal from "../CreateGroupModal";
+import useAuth from "@/hooks/useAuth";
+import { formatLastSeen } from "@/utils/formatLastSeen";
 
-// Helper function to format last seen time - show actual timestamp
-const formatLastSeen = (timestamp) => {
+// Smart relative/absolute timestamp for sidebar conversation list
+const formatConvTimestamp = (timestamp) => {
   if (!timestamp) return "";
 
   const date = new Date(timestamp);
-  return date.toLocaleString([], {
-    month: "short",
+  const now = new Date();
+
+  const isSameDay = (a, b) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+
+  if (isSameDay(date, now)) {
+    // Today → time
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+
+  if (isSameDay(date, yesterday)) {
+    // Yesterday
+    return "Yesterday";
+  }
+
+  const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 7) {
+    // Within past 7 days → day name abbreviated
+    return date.toLocaleDateString([], { weekday: "short" });
+  }
+
+  if (date.getFullYear() === now.getFullYear()) {
+    // Same year, older than 7 days → day + month
+    return date.toLocaleDateString([], { day: "numeric", month: "short" });
+  }
+
+  // Different year → day + month + year
+  return date.toLocaleDateString([], {
     day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+    month: "short",
+    year: "numeric",
   });
 };
 
@@ -26,9 +62,12 @@ export default function Sidebar({
   onNewConversation,
 }) {
   const { onlineUsers } = useSocket() || {};
+  const { user: currentUser } = useAuth();
 
   // --- Conversation filter (local, client-side) ---
   const [filterTerm, setFilterTerm] = useState("");
+  const [searchedConversations, setSearchedConversations] =
+    useState(conversations);
 
   // --- New chat modal state ---
   const [modalOpen, setModalOpen] = useState(false);
@@ -88,48 +127,169 @@ export default function Sidebar({
     }
   };
 
-  // Client-side filter on existing conversations
-  const filteredConversations = conversations.filter((c) =>
-    c.participant?.name?.toLowerCase().includes(filterTerm.toLowerCase()),
-  );
+  // Derive currently-online contacts from the conversations list
+  // Prepend the logged-in user first (they are always online when viewing the app)
+  const onlineParticipants = conversations
+    .filter((c) => c.participant && onlineUsers?.get(c.participant._id)?.online)
+    .map((c) => c.participant);
+
+  const activeNowUsers = currentUser
+    ? [
+        currentUser,
+        ...onlineParticipants.filter((u) => u._id !== currentUser._id),
+      ]
+    : onlineParticipants;
+
+  useEffect(() => {
+    if (!filterTerm.trim()) {
+      setSearchedConversations(conversations);
+      return;
+    }
+
+    const controller = new AbortController(); // ✅ create abort controller
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await api.get(
+          `/api/chat/search-conversations?q=${encodeURIComponent(filterTerm)}`,
+          { signal: controller.signal }, // ✅ pass signal to axios
+        );
+        setSearchedConversations(res.data);
+      } catch (err) {
+        if (err.name === "CanceledError" || err.code === "ERR_CANCELED") return; 
+        console.error("Search failed:", err);
+        setSearchedConversations(conversations);
+      }
+    }, 400);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort(); 
+    };
+  }, [filterTerm]); 
+
+  // Keep searchedConversations in sync when not searching
+  useEffect(() => {
+    if (!filterTerm.trim()) {
+      setSearchedConversations(conversations);
+    }
+  }, [conversations]); // only syncs when not actively filtering
+
+  const highlightMatch = (text, query) => {
+    if (!query || !text) return text || "No messages yet";
+
+    const regex = new RegExp(`(${query})`, "gi");
+    const parts = String(text).split(regex);
+
+    return parts.map((part, index) =>
+      regex.test(part) ? (
+        <span
+          key={index}
+          className="bg-teal-600/40 text-teal-200 rounded px-0.5 font-medium"
+        >
+          {part}
+        </span>
+      ) : (
+        part
+      ),
+    );
+  };
 
   return (
     <>
-      <aside className="w-80 bg-[#15191C] border-r border-slate-800/50 flex flex-col shrink-0 h-full">
-        <div className="p-5 flex justify-between items-center">
-          <img
-            src="https://i.ibb.co/PG0X3Tbf/Convo-X-logo.png"
-            alt="ConvoX Logo"
-            className="h-6 w-auto"
-          />
-          {/* Pencil icon opens the new-chat modal */}
-          <Edit3
-            size={18}
-            className="text-slate-400 cursor-pointer hover:text-teal-400 transition-colors"
-            onClick={() => setModalOpen(true)}
-          />
+      <aside className="w-80 bg-[#0f1318] border-r border-white/5 flex flex-col shrink-0 h-full">
+        {/* Header */}
+        <div className="px-5 pt-5 pb-4 flex justify-between items-center border-b border-white/5">
+          <div className="flex items-center gap-2">
+            <Link href="/">
+              <img
+                src="https://i.ibb.co/PG0X3Tbf/Convo-X-logo.png"
+                alt="ConvoX Logo"
+                className="h-6 w-auto cursor-pointer"
+              />
+            </Link>
+          </div>
+          <div className="flex items-center gap-2">
+            <CreateGroupModal />
+            <button
+              onClick={() => setModalOpen(true)}
+              className="w-8 h-8 rounded-xl bg-teal-normal/10 border border-teal-normal/20 flex items-center justify-center hover:bg-teal-normal/20 transition-all group"
+            >
+              <Edit3
+                size={15}
+                className="text-teal-normal group-hover:scale-110 transition-transform"
+              />
+            </button>
+          </div>
         </div>
 
-        {/* Filter existing conversations */}
-        <div className="px-5 mb-6">
+        {/* Search / Filter */}
+        <div className="px-4 py-3">
           <div className="relative">
             <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
-              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600"
+              size={15}
             />
             <input
               type="text"
               value={filterTerm}
               onChange={(e) => setFilterTerm(e.target.value)}
-              className="w-full bg-[#0B0E11] rounded-xl py-2 pl-10 pr-4 text-sm outline-none border border-transparent focus:border-teal-500/50 text-white"
-              placeholder="Filter conversations..."
+              className="w-full bg-white/5 rounded-xl py-2.5 pl-9 pr-4 text-xs outline-none border border-white/5 focus:border-teal-normal/40 focus:bg-white/8 text-slate-300 placeholder:text-slate-600 transition-all"
+              placeholder="Search conversations..."
             />
           </div>
         </div>
 
+        {/* Active Now section */}
+        {activeNowUsers.length > 0 && (
+          <div className="px-4 mb-3">
+            <p className="text-[9px] font-bold tracking-[0.15em] text-teal-dark uppercase mb-3">
+              Active Now
+            </p>
+            <div className="flex gap-3 overflow-x-auto py-2 px-1 scrollbar-hide">
+              {activeNowUsers.map((user) => (
+                <div
+                  key={user._id}
+                  className="flex flex-col items-center gap-1.5 shrink-0"
+                >
+                  <div className="relative">
+                    <div className="w-11 h-11 rounded-full ring-2 ring-teal-normal/70 ring-offset-1 ring-offset-[#0f1318] overflow-hidden">
+                      <Image
+                        src={
+                          user.avatar ||
+                          `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`
+                        }
+                        width={44}
+                        height={44}
+                        className="object-cover"
+                        alt={user.name || "avatar"}
+                        unoptimized
+                      />
+                    </div>
+                    <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-[#0f1318]"></span>
+                  </div>
+                  <span className="text-[9px] text-slate-500 truncate max-w-11 text-center leading-tight">
+                    {user._id === currentUser?._id
+                      ? "You"
+                      : user.name?.split(" ")[0]}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Section label */}
+        <div className="px-4 mb-2">
+          <p className="text-[9px] font-bold tracking-[0.15em] text-slate-600 uppercase">
+            Messages
+          </p>
+        </div>
+
         {/* Conversation list */}
-        <div className="flex-1 overflow-y-auto px-3 space-y-2">
-          {filteredConversations.map((conv) => {
+        <div className="flex-1 min-h-0 overflow-y-auto px-3 pb-3 space-y-0.5 scrollbar-hide">
+          {searchedConversations.map((conv) => {
+            const isActive = activeConversationId === conv._id;
             const isUserOnline = onlineUsers?.get(
               conv.participant?._id,
             )?.online;
@@ -137,61 +297,63 @@ export default function Sidebar({
               <div
                 key={conv._id}
                 onClick={() => setActiveConversationId(conv._id)}
-                className={`flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all ${
-                  activeConversationId === conv._id
-                    ? "bg-[#1C2227] border-l-4 border-teal-400"
-                    : "hover:bg-slate-800/30"
+                className={`flex items-center gap-3 px-3 py-3 rounded-2xl cursor-pointer transition-all duration-150 ${
+                  isActive
+                    ? "bg-teal-normal/10 border border-teal-normal/20"
+                    : "hover:bg-white/4 border border-transparent"
                 }`}
               >
-                <div className="relative">
-                  <Image
-                    src={
-                      conv.participant?.avatar ||
-                      `https://api.dicebear.com/7.x/avataaars/svg?seed=${conv.participant?.name}`
-                    }
-                    width={48}
-                    height={48}
-                    className="rounded-xl"
-                    alt={conv.participant?.name || "avatar"}
-                    unoptimized
-                  />
-                  {/* Online/Offline indicator - always show */}
+                <div className="relative shrink-0">
                   <div
-                    className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#15191C] ${
-                      isUserOnline ? "bg-green-500" : "bg-slate-500"
-                    }`}
+                    className={`rounded-full overflow-hidden ${isActive ? "ring-2 ring-teal-normal/50 ring-offset-1 ring-offset-[#0f1318]" : ""}`}
+                  >
+                    <Image
+                      src={
+                        conv.participant?.avatar ||
+                        `https://api.dicebear.com/7.x/avataaars/svg?seed=${conv.participant?.name}`
+                      }
+                      width={44}
+                      height={44}
+                      className="rounded-full"
+                      alt={conv.participant?.name || "avatar"}
+                      unoptimized
+                    />
+                  </div>
+                  <div
+                    className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#0f1318] ${isUserOnline ? "bg-green-400" : "bg-slate-600"}`}
                   ></div>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-center">
                     <span className="font-semibold text-sm truncate text-white">
-                      {conv.participant?.name}
+                      {highlightMatch(conv.participant?.name || "", filterTerm)}
                     </span>
-                    <span className="text-[10px] text-slate-500">
-                      {conv.lastMessage?.timestamp
-                        ? new Date(
-                            conv.lastMessage.timestamp,
-                          ).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
-                        : ""}
+                    <span className="text-[9px] text-slate-600 shrink-0">
+                      {formatConvTimestamp(conv.lastMessage?.timestamp)}
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 truncate">
-                    {conv.lastMessage?.text || "No messages yet"}
+                    {highlightMatch(
+                      conv.lastMessage?.text || "No messages yet",
+                      filterTerm,
+                    )}
                   </p>
                 </div>
               </div>
             );
           })}
 
-          {filteredConversations.length === 0 && (
-            <p className="text-center text-slate-600 text-xs mt-4">
-              {conversations.length === 0
-                ? "No conversations yet. Click ✏️ to start one."
-                : "No conversations found"}
-            </p>
+          {searchedConversations.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-10 gap-2">
+              <div className="w-10 h-10 rounded-2xl bg-teal-normal/10 flex items-center justify-center">
+                <Search size={16} className="text-teal-dark" />
+              </div>
+              <p className="text-slate-600 text-xs text-center">
+                {conversations.length === 0
+                  ? "No conversations yet.\nClick the edit icon to start one."
+                  : "No conversations found"}
+              </p>
+            </div>
           )}
         </div>
       </aside>
@@ -199,49 +361,58 @@ export default function Sidebar({
       {/* New Chat Modal */}
       {modalOpen && (
         <div
-          className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center"
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center"
           onClick={() => setModalOpen(false)}
         >
           <div
-            className="bg-[#15191C] rounded-2xl w-full max-w-sm mx-4 p-5 border border-slate-700/50 shadow-2xl"
+            className="bg-[#0f1318] rounded-3xl w-full max-w-sm mx-4 p-5 border border-white/8 shadow-2xl shadow-black/50"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal header */}
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-white font-bold text-sm">New Conversation</h2>
-              <X
-                size={18}
-                className="text-slate-400 cursor-pointer hover:text-white"
+              <div>
+                <h2 className="text-white font-bold text-sm">
+                  New Conversation
+                </h2>
+                <p className="text-slate-600 text-xs mt-0.5">
+                  Find someone to chat with
+                </p>
+              </div>
+              <button
                 onClick={() => setModalOpen(false)}
-              />
+                className="w-7 h-7 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all"
+              >
+                <X size={14} className="text-slate-400" />
+              </button>
             </div>
 
             {/* User search input */}
             <div className="relative mb-3">
               <Search
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
-                size={16}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600"
+                size={15}
               />
               <input
                 ref={searchInputRef}
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-[#0B0E11] rounded-xl py-2.5 pl-10 pr-4 text-sm outline-none border border-transparent focus:border-teal-500/50 text-white"
+                className="w-full bg-white/5 rounded-2xl py-3 pl-10 pr-4 text-sm outline-none border border-white/5 focus:border-teal-normal/40 text-slate-200 placeholder:text-slate-600 transition-all"
                 placeholder="Search by name or email..."
               />
             </div>
 
             {/* Results */}
-            <div className="space-y-1 max-h-60 overflow-y-auto">
+            <div className="space-y-1 max-h-60 overflow-y-auto scrollbar-hide">
               {searching && (
-                <p className="text-center text-slate-500 text-xs py-4">
-                  Searching...
-                </p>
+                <div className="flex items-center justify-center gap-2 py-6">
+                  <div className="w-4 h-4 rounded-full border-2 border-teal-normal border-t-transparent animate-spin"></div>
+                  <p className="text-slate-500 text-xs">Searching...</p>
+                </div>
               )}
 
               {!searching && searchQuery && searchResults.length === 0 && (
-                <p className="text-center text-slate-600 text-xs py-4">
+                <p className="text-center text-slate-600 text-xs py-6">
                   No users found
                 </p>
               )}
@@ -250,41 +421,39 @@ export default function Sidebar({
                 <div
                   key={user._id}
                   onClick={() => !startingChat && handleSelectUser(user)}
-                  className="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-slate-800/50 transition-all"
+                  className="flex items-center gap-3 p-3 rounded-2xl cursor-pointer hover:bg-teal-normal/8 border border-transparent hover:border-teal-normal/15 transition-all"
                 >
-                  <div className="relative">
+                  <div className="relative shrink-0">
                     <Image
                       src={
                         user.avatar ||
                         `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`
                       }
-                      width={36}
-                      height={36}
-                      className="rounded-xl"
+                      width={38}
+                      height={38}
+                      className="rounded-full"
                       alt={user.name || "avatar"}
                       unoptimized
                     />
-                    {/* Online indicator */}
                     {onlineUsers?.get(user._id)?.online && (
-                      <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-[#15191C]"></div>
+                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-[#0f1318]"></div>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm font-medium">
+                    <p className="text-slate-200 text-sm font-semibold truncate">
                       {user.name}
                     </p>
                     <p
-                      className={`text-xs ${
-                        onlineUsers?.get(user._id)?.online
-                          ? "text-green-500"
-                          : "text-slate-500"
-                      }`}
+                      className={`text-xs ${onlineUsers?.get(user._id)?.online ? "text-green-400" : "text-slate-600"}`}
                     >
                       {onlineUsers?.get(user._id)?.online
-                        ? "Online"
+                        ? "● Online"
                         : `Last seen ${formatLastSeen(onlineUsers?.get(user._id)?.lastSeen)}`}
                     </p>
                   </div>
+                  {startingChat && (
+                    <div className="w-4 h-4 rounded-full border-2 border-teal-normal border-t-transparent animate-spin shrink-0"></div>
+                  )}
                 </div>
               ))}
             </div>

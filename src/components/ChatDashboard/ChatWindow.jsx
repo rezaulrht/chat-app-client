@@ -479,17 +479,6 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                           hour: "2-digit",
                           minute: "2-digit",
                         })}
-                        {isMe && !msg.isOptimistic && (
-                          <span
-                            className={
-                              msg.status === "read"
-                                ? "text-teal-400"
-                                : "text-slate-500"
-                            }
-                          >
-                            {msg.status === "read" ? "✓✓" : "✓"}
-                          </span>
-                        )}
                       </div>
                     </div>
                     {reactionPickerMsgId === msg._id && (
@@ -533,6 +522,81 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                           ))}
                       </div>
                     )}
+                  {isMe && !msg.isOptimistic && (
+                    <div className="flex items-center gap-0.5 px-0.5 mt-0.5">
+                      {msg.status === "sent" && (
+                        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/6 text-slate-500 text-[8px] font-medium">
+                          <svg
+                            width="8"
+                            height="8"
+                            viewBox="0 0 12 12"
+                            fill="none"
+                          >
+                            <path
+                              d="M2 6l3 3 5-5"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                          Sent
+                        </span>
+                      )}
+                      {msg.status === "delivered" && (
+                        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/6 text-slate-400 text-[8px] font-medium">
+                          <svg
+                            width="10"
+                            height="8"
+                            viewBox="0 0 16 12"
+                            fill="none"
+                          >
+                            <path
+                              d="M1 6l3 3 5-5"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                            <path
+                              d="M5 6l3 3 5-5"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                          Delivered
+                        </span>
+                      )}
+                      {msg.status === "read" && (
+                        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-teal-normal/15 text-teal-normal text-[8px] font-semibold">
+                          <svg
+                            width="10"
+                            height="8"
+                            viewBox="0 0 16 12"
+                            fill="none"
+                          >
+                            <path
+                              d="M1 6l3 3 5-5"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                            <path
+                              d="M5 6l3 3 5-5"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                          Seen
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </React.Fragment>

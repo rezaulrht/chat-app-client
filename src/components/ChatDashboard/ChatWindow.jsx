@@ -202,6 +202,13 @@ export default function ChatWindow({ conversation, onMessageSent }) {
     fetchMessages();
   }, [conversation?._id]);
 
+  // Join the conversation room so we receive real-time reactions
+  useEffect(() => {
+    if (!socket || !conversation?._id) return;
+    socket.emit("conversation:join", conversation._id);
+    return () => socket.emit("conversation:leave", conversation._id);
+  }, [socket, conversation?._id]);
+
   useEffect(() => {
     if (!socket) return;
     const handleReceive = (msg) => {

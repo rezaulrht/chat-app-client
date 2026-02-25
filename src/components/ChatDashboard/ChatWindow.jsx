@@ -7,6 +7,7 @@ import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
 import { EMOJI_MAP } from "@/utils/emojis";
+import { formatLastSeen } from "@/utils/formatLastSeen";
 
 const EmojiPicker = dynamic(() => import("emoji-picker-react"), { ssr: false });
 const GifPicker = dynamic(
@@ -36,17 +37,6 @@ const getDateLabel = (dateStr) => {
 const toDateKey = (dateStr) => {
   const d = new Date(dateStr);
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-};
-
-const formatLastSeen = (timestamp) => {
-  if (!timestamp) return "";
-  const date = new Date(timestamp);
-  return date.toLocaleString([], {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 };
 
 export default function ChatWindow({ conversation, onMessageSent }) {
@@ -123,7 +113,25 @@ export default function ChatWindow({ conversation, onMessageSent }) {
     if (match) {
       const query = match[1].toLowerCase();
       const filtered = Object.entries(EMOJI_MAP)
-        .filter(([code]) => code.includes(query))
+        .filter(([code]) => {
+          // code looks like ":cat:" — strip colons to get "cat"
+          const name = code.slice(1, -1);
+          // Match only if query is at the start of the whole name OR a word segment
+          return (
+            name.startsWith(query) ||
+            name.split("_").some((w) => w.startsWith(query))
+          );
+        })
+        .sort(([a], [b]) => {
+          const an = a.slice(1, -1);
+          const bn = b.slice(1, -1);
+          // Exact-prefix matches first (e.g. "cat", "cat2")
+          const aFirst = an.startsWith(query);
+          const bFirst = bn.startsWith(query);
+          if (aFirst && !bFirst) return -1;
+          if (!aFirst && bFirst) return 1;
+          return an.localeCompare(bn);
+        })
         .slice(0, 8);
       setSuggestions(filtered);
       setSuggestionIndex(0);
@@ -214,6 +222,13 @@ export default function ChatWindow({ conversation, onMessageSent }) {
     };
     fetchMessages();
   }, [conversation?._id]);
+
+  // Join the conversation room so we receive real-time reactions
+  useEffect(() => {
+    if (!socket || !conversation?._id) return;
+    socket.emit("conversation:join", conversation._id);
+    return () => socket.emit("conversation:leave", conversation._id);
+  }, [socket, conversation?._id]);
 
   useEffect(() => {
     if (!socket) return;

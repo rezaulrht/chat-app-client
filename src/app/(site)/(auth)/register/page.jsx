@@ -109,7 +109,7 @@ export default function RegisterPage() {
               {res.message}{" "}
               <Link
                 href={`/verify?email=${encodeURIComponent(data.email)}`}
-                className="text-[#13c8ec] underline font-bold ml-1 hover:text-white"
+                className="text-teal-normal underline font-bold ml-1 hover:text-white"
               >
                 Verify now
               </Link>
@@ -165,13 +165,13 @@ export default function RegisterPage() {
 
             <div className="space-y-6 pt-4">
               <div className="flex items-center gap-4 text-slate-300">
-                <Shield className="w-6 h-6 text-[#13c8ec]" />
+                <Shield className="w-6 h-6 text-teal-normal" />
                 <span className="text-lg font-light tracking-wide">
                   End-to-End Encryption
                 </span>
               </div>
               <div className="flex items-center gap-4 text-slate-300">
-                <Zap className="w-6 h-6 text-[#13c8ec]" />
+                <Zap className="w-6 h-6 text-teal-normal" />
                 <span className="text-lg font-light tracking-wide">
                   Lightning Fast Sync
                 </span>
@@ -190,7 +190,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="glass-panel p-6 sm:p-8 rounded-xl relative border border-white/10 shadow-2xl">
-              <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-transparent via-[#13c8ec] to-transparent opacity-50"></div>
+              <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-transparent via-teal-normal to-transparent opacity-50"></div>
 
               {error && (
                 <div className="mb-6 p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-3 text-red-400 text-xs">
@@ -203,7 +203,7 @@ export default function RegisterPage() {
                 {/* Profile Picture Upload */}
                 <div className="flex justify-center mb-8">
                   <div className="relative group cursor-pointer w-28 h-28">
-                    <div className="w-full h-full rounded-full border-2 border-white/10 bg-background-dark/50 flex items-center justify-center overflow-hidden transition-all group-hover:border-[#13c8ec]/50 group-hover:shadow-[0_0_15px_rgba(19,200,236,0.2)]">
+                    <div className="w-full h-full rounded-full border-2 border-white/10 bg-background-dark/50 flex items-center justify-center overflow-hidden transition-all group-hover:border-teal-normal/50 group-hover:shadow-[0_0_15px_rgba(19,200,236,0.2)]">
                       {avatarPreview ? (
                         <>
                           <img
@@ -224,7 +224,7 @@ export default function RegisterPage() {
                           </div>
                         </>
                       ) : (
-                        <div className="flex flex-col items-center justify-center text-slate-500 group-hover:text-[#13c8ec] transition-colors">
+                        <div className="flex flex-col items-center justify-center text-slate-500 group-hover:text-teal-normal transition-colors">
                           <Camera className="w-8 h-8 mb-1" />
                           <span className="text-[10px] uppercase font-bold tracking-wider">
                             Upload
@@ -256,7 +256,7 @@ export default function RegisterPage() {
                         required: "Name is required",
                       })}
                       type="text"
-                      className={`block w-full pl-10 pr-3 py-2.5 bg-background-dark/50 border ${errors.fullname ? "border-red-500/50" : "border-white/10"} rounded-lg text-white text-sm focus:ring-1 focus:ring-[#13c8ec] outline-none transition-all`}
+                      className={`block w-full pl-10 pr-3 py-2.5 bg-background-dark/50 border ${errors.fullname ? "border-red-500/50" : "border-white/10"} rounded-lg text-white text-sm focus:ring-1 focus:ring-teal-normal outline-none transition-all`}
                       placeholder="Jane Doe"
                     />
                   </div>
@@ -282,7 +282,7 @@ export default function RegisterPage() {
                         },
                       })}
                       type="email"
-                      className={`block w-full pl-10 pr-3 py-2.5 bg-background-dark/50 border ${errors.email ? "border-red-500/50" : "border-white/10"} rounded-lg text-white text-sm focus:ring-1 focus:ring-[#13c8ec] outline-none transition-all`}
+                      className={`block w-full pl-10 pr-3 py-2.5 bg-background-dark/50 border ${errors.email ? "border-red-500/50" : "border-white/10"} rounded-lg text-white text-sm focus:ring-1 focus:ring-teal-normal outline-none transition-all`}
                       placeholder="jane@example.com"
                     />
                   </div>
@@ -305,7 +305,7 @@ export default function RegisterPage() {
                         minLength: { value: 6, message: "Min 6 characters" },
                       })}
                       type={showPassword ? "text" : "password"}
-                      className={`block w-full pl-10 pr-10 py-2.5 bg-background-dark/50 border ${errors.password ? "border-red-500/50" : "border-white/10"} rounded-lg text-white text-sm focus:ring-1 focus:ring-[#13c8ec] outline-none transition-all`}
+                      className={`block w-full pl-10 pr-10 py-2.5 bg-background-dark/50 border ${errors.password ? "border-red-500/50" : "border-white/10"} rounded-lg text-white text-sm focus:ring-1 focus:ring-teal-normal outline-none transition-all`}
                       placeholder="••••••••"
                     />
                     <button
@@ -330,7 +330,7 @@ export default function RegisterPage() {
                     })}
                     type="checkbox"
                     id="terms"
-                    className="h-4 w-4 rounded border-gray-700 bg-gray-900 text-[#13c8ec] focus:ring-[#13c8ec]"
+                    className="h-4 w-4 rounded border-gray-700 bg-gray-900 text-teal-normal focus:ring-teal-normal"
                   />
                   <label
                     htmlFor="terms"
@@ -339,7 +339,7 @@ export default function RegisterPage() {
                     I agree to the{" "}
                     <Link
                       href="#"
-                      className="text-[#13c8ec] hover:underline font-medium"
+                      className="text-teal-normal hover:underline font-medium"
                     >
                       Terms
                     </Link>
@@ -354,7 +354,7 @@ export default function RegisterPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3 rounded-lg text-sm font-bold text-background-dark bg-[#13c8ec] hover:bg-[#13c8ec]/90 transition-all shadow-lg shadow-[#13c8ec]/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full py-3 rounded-lg text-sm font-bold text-background-dark bg-teal-normal hover:bg-teal-normal/90 transition-all shadow-lg shadow-teal-normal/20 flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {loading && (
                     <span className="loading loading-spinner loading-xs text-background-dark"></span>
@@ -410,7 +410,7 @@ export default function RegisterPage() {
                 Joined already?{" "}
                 <Link
                   href="/login"
-                  className="font-bold text-[#13c8ec] hover:text-[#13c8ec]/80 transition-colors"
+                  className="font-bold text-teal-normal hover:text-teal-normal/80 transition-colors"
                 >
                   Log in
                 </Link>

@@ -648,7 +648,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
 
       <form
         onSubmit={handleSend}
-        className="p-4 relative bg-[#0a0e13]/80 backdrop-blur-sm border-t border-white/5"
+        className="p-4 relative bg-[#0a0e13]/80 backdrop-blur-sm border-t border-white/5 z-50"
       >
         {replyTo && (
           <div className="absolute bottom-full left-0 right-0 p-3 bg-surface-dark border-t border-teal-normal/30 flex items-center justify-between animate-in slide-in-from-bottom-2 fade-in">

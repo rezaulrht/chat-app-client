@@ -139,14 +139,17 @@ export default function ChatDashboard() {
 
   if (loadingConversations) {
     return (
-      <div className="flex h-screen w-full bg-[#05050A] items-center justify-center">
-        <p className="text-slate-500 text-sm">Loading conversations...</p>
+      <div className="flex h-screen w-full bg-[#080b0f] items-center justify-center flex-col gap-4">
+        <div className="w-12 h-12 rounded-2xl bg-teal-normal/10 border border-teal-normal/20 flex items-center justify-center">
+          <div className="w-5 h-5 rounded-full border-2 border-teal-normal border-t-transparent animate-spin"></div>
+        </div>
+        <p className="text-slate-600 text-xs">Loading conversations...</p>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen w-full bg-[#05050A] overflow-hidden font-sans">
+    <div className="flex h-screen w-full bg-[#080b0f] overflow-hidden font-sans">
       <Sidebar
         conversations={conversations}
         activeConversationId={activeConversationId}

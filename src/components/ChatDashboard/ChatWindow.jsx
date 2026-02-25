@@ -7,6 +7,7 @@ import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
 import { EMOJI_MAP } from "@/utils/emojis";
+import { formatLastSeen } from "@/utils/formatLastSeen";
 
 const EmojiPicker = dynamic(() => import("emoji-picker-react"), { ssr: false });
 const GifPicker = dynamic(
@@ -36,17 +37,6 @@ const getDateLabel = (dateStr) => {
 const toDateKey = (dateStr) => {
   const d = new Date(dateStr);
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-};
-
-const formatLastSeen = (timestamp) => {
-  if (!timestamp) return "";
-  const date = new Date(timestamp);
-  return date.toLocaleString([], {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 };
 
 export default function ChatWindow({ conversation, onMessageSent }) {

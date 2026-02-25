@@ -8,19 +8,7 @@ import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
 import CreateGroupModal from "../CreateGroupModal";
 import useAuth from "@/hooks/useAuth";
-
-// Helper function to format last seen time - show actual timestamp
-const formatLastSeen = (timestamp) => {
-  if (!timestamp) return "";
-
-  const date = new Date(timestamp);
-  return date.toLocaleString([], {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
+import { formatLastSeen } from "@/utils/formatLastSeen";
 
 // Smart relative/absolute timestamp for sidebar conversation list
 const formatConvTimestamp = (timestamp) => {

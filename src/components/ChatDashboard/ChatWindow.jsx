@@ -40,7 +40,7 @@ const toDateKey = (dateStr) => {
 };
 
 export default function ChatWindow({ conversation, onMessageSent }) {
-  const { socket, onlineUsers } = useSocket() || {};
+  const { socket, onlineUsers, typingUsers } = useSocket() || {};
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
@@ -96,6 +96,19 @@ export default function ChatWindow({ conversation, onMessageSent }) {
     const lastWord = val.split(" ").pop();
     if (EMOJI_MAP[lastWord]) val = val.replace(lastWord, EMOJI_MAP[lastWord]);
     setText(val);
+    if (socket && conversation) {
+      if (val.trim()) {
+        socket.emit("typing:start", {
+          conversationId: conversation._id,
+          receiverId: conversation.participant._id,
+        });
+      } else {
+        socket.emit("typing:stop", {
+          conversationId: conversation._id,
+          receiverId: conversation.participant._id,
+        });
+      }
+    }
     const match = val.match(/:([a-zA-Z0-9_]*)$/);
     if (match) {
       const query = match[1].toLowerCase();
@@ -292,6 +305,10 @@ export default function ChatWindow({ conversation, onMessageSent }) {
     };
     setMessages((prev) => [...prev, optimistic]);
     setText("");
+    socket.emit("typing:stop", {
+      conversationId: conversation._id,
+      receiverId: conversation.participant._id,
+    });
     socket.emit("message:send", {
       conversationId: conversation._id,
       receiverId: conversation.participant._id,
@@ -617,6 +634,15 @@ export default function ChatWindow({ conversation, onMessageSent }) {
             </React.Fragment>
           );
         })}
+        {typingUsers?.get(conversation._id) && (
+          <div className="flex items-end gap-2 justify-start">
+            <div className="flex items-center gap-1 px-4 py-3 bg-surface-dark rounded-2xl rounded-bl-none shadow-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:0ms]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:150ms]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:300ms]" />
+            </div>
+          </div>
+        )}
         <div ref={bottomRef} />
       </div>
 

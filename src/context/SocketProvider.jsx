@@ -9,6 +9,7 @@ export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState(new Map());
+  const [typingUsers, setTypingUsers] = useState(new Map());
 
   // Function to fetch last seen times for multiple users
   const fetchLastSeenTimes = useCallback(async (userIds) => {
@@ -66,7 +67,9 @@ export const SocketProvider = ({ children }) => {
 
     // --- Handle presence updates (user comes online/goes offline) ---
     newSocket.on("presence:update", async ({ userId, online }) => {
-      console.log(`Presence update: User ${userId} is ${online ? "online" : "offline"}`);
+      console.log(
+        `Presence update: User ${userId} is ${online ? "online" : "offline"}`,
+      );
 
       if (online) {
         // User came online
@@ -97,20 +100,34 @@ export const SocketProvider = ({ children }) => {
               if (updated.has(userId)) {
                 updated.set(userId, {
                   online: false,
-                  lastSeen: res.data.lastSeen
+                  lastSeen: res.data.lastSeen,
                 });
               }
               return updated;
             });
-            console.log(`Last seen for ${userId}: ${new Date(res.data.lastSeen).toLocaleString()}`);
+            console.log(
+              `Last seen for ${userId}: ${new Date(res.data.lastSeen).toLocaleString()}`,
+            );
           } else {
-            console.warn(`No lastSeen data received for ${userId}, using fallback`);
+            console.warn(
+              `No lastSeen data received for ${userId}, using fallback`,
+            );
           }
         } catch (err) {
           console.error(`Failed to fetch last seen for ${userId}:`, err);
           // Keep the fallback time that was already set
         }
       }
+    });
+
+    // --- Handle typing indicator updates ---
+    newSocket.on("typing:update", ({ conversationId, userId, isTyping }) => {
+      setTypingUsers((prev) => {
+        const updated = new Map(prev);
+        if (isTyping) updated.set(conversationId, { userId });
+        else updated.delete(conversationId);
+        return updated;
+      });
     });
 
     // --- Periodic presence ping to keep user online ---
@@ -129,7 +146,15 @@ export const SocketProvider = ({ children }) => {
   }, []);
 
   return (
-    <SocketContext.Provider value={{ socket, isConnected, onlineUsers, fetchLastSeenTimes }}>
+    <SocketContext.Provider
+      value={{
+        socket,
+        isConnected,
+        onlineUsers,
+        fetchLastSeenTimes,
+        typingUsers,
+      }}
+    >
       {children}
     </SocketContext.Provider>
   );

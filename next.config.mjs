@@ -28,6 +28,11 @@ const nextConfig = {
         port: "",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "i.ibb.co",
+        pathname: "/**",
+      },
     ],
   },
   transpilePackages: ["gif-picker-react-klipy"],

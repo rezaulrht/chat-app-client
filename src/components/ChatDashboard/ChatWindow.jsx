@@ -50,7 +50,7 @@ const formatLastSeen = (timestamp) => {
 };
 
 export default function ChatWindow({ conversation, onMessageSent }) {
-  const { socket, onlineUsers } = useSocket() || {};
+  const { socket, onlineUsers, typingUsers } = useSocket() || {};
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
@@ -619,6 +619,15 @@ export default function ChatWindow({ conversation, onMessageSent }) {
             </React.Fragment>
           );
         })}
+        {typingUsers?.get(conversation._id) && (
+          <div className="flex items-end gap-2 justify-start">
+            <div className="flex items-center gap-1 px-4 py-3 bg-surface-dark rounded-2xl rounded-bl-none shadow-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:0ms]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:150ms]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:300ms]" />
+            </div>
+          </div>
+        )}
         <div ref={bottomRef} />
       </div>
 

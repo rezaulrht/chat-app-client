@@ -225,14 +225,14 @@ export default function ChatWindow({ conversation, onMessageSent }) {
     });
   };
 
-  const handleDeleteForMe = (messageId) => {
-    if (!socket || !conversation) return;
+  // const handleDeleteForMe = (messageId) => {
+  //   if (!socket || !conversation) return;
 
-    socket.emit("message:deleteForMe", {
-      messageId,
-      conversationId: conversation._id,
-    });
-  };
+  //   socket.emit("message:deleteForMe", {
+  //     messageId,
+  //     conversationId: conversation._id,
+  //   });
+  // };
 
   useEffect(() => {
     if (!conversation?._id) return;
@@ -629,12 +629,12 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                               >
                                 Delete
                               </button>
-                              <button
+                              {/* <button
                                 onClick={() => handleDeleteForMe(msg._id)}
                                 className="text-yellow-400 hover:text-yellow-300"
                               >
                                 Delete for Me
-                              </button>
+                              </button> */}
                             </div>
                           )}
                         </div>

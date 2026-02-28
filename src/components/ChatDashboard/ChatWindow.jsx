@@ -39,7 +39,7 @@ const toDateKey = (dateStr) => {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 };
 
-export default function ChatWindow({ conversation, onMessageSent }) {
+export default function ChatWindow({ conversation, onMessageSent, onMessagesSeen }) {
   const { socket, onlineUsers, typingUsers } = useSocket() || {};
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
@@ -214,6 +214,26 @@ export default function ChatWindow({ conversation, onMessageSent }) {
           }
         }
         setReactions(rxns);
+
+        // Mark all unread messages as seen when conversation is opened
+        if (res.data.length > 0 && socket && user) {
+          // Find the last message from the other user that we haven't read
+          const lastUnreadMsg = [...res.data]
+            .reverse()
+            .find((msg) => msg.sender?._id !== user._id && msg.status !== "read");
+
+          if (lastUnreadMsg) {
+            socket.emit("conversation:seen", {
+              conversationId: conversation._id,
+              lastSeenMessageId: lastUnreadMsg._id,
+            });
+          }
+
+          // Notify parent to update unread count
+          if (onMessagesSeen) {
+            onMessagesSeen(conversation._id);
+          }
+        }
       } catch (err) {
         console.error("Failed to fetch messages:", err);
       } finally {
@@ -221,7 +241,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
       }
     };
     fetchMessages();
-  }, [conversation?._id]);
+  }, [conversation?._id, socket, user?._id, onMessagesSeen]);
 
   // Join the conversation room so we receive real-time reactions
   useEffect(() => {
@@ -248,6 +268,10 @@ export default function ChatWindow({ conversation, onMessageSent }) {
           conversationId: conversation._id,
           lastSeenMessageId: msg._id,
         });
+        // Notify parent to update unread count
+        if (onMessagesSeen) {
+          onMessagesSeen(conversation._id);
+        }
       }
     };
     const handleDelivered = (update) => {

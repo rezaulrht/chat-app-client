@@ -237,6 +237,18 @@ export default function Sidebar({
     setContextMenu(null);
   };
 
+  // Filter conversations based on archived status
+  const filteredConversations = showArchived
+    ? searchedConversations.filter((c) => c.isArchived)
+    : searchedConversations.filter((c) => !c.isArchived);
+
+  // Sort conversations - pinned first, then by updatedAt (with fallback to lastMessage timestamp)
+  const sortedConversations = [...filteredConversations].sort((a, b) => {
+    if (a.isPinned && !b.isPinned) return -1;
+    if (!a.isPinned && b.isPinned) return 1;
+    return new Date(b.updatedAt || b.lastMessage?.timestamp || 0).getTime() -
+      new Date(a.updatedAt || a.lastMessage?.timestamp || 0).getTime();
+  });
 
   const highlightMatch = (text, query) => {
     if (!query || !text) return text || "No messages yet";

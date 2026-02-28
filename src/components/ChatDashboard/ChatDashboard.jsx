@@ -77,6 +77,7 @@ export default function ChatDashboard() {
                 ...c,
                 lastMessage: {
                   text: msg.text,
+                  gifUrl: msg.gifUrl,
                   sender: msg.sender?._id || msg.sender,
                   timestamp: msg.createdAt,
                 },
@@ -162,7 +163,7 @@ export default function ChatDashboard() {
   );
 
   // Called by ChatWindow when a message is sent — update sidebar's lastMessage
-  const handleMessageSent = useCallback((conversationId, text) => {
+  const handleMessageSent = useCallback((conversationId, text, gifUrl = null) => {
     setConversations((prev) => {
       const updated = prev.map((c) =>
         c._id === conversationId
@@ -171,6 +172,7 @@ export default function ChatDashboard() {
             lastMessage: {
               ...c.lastMessage,
               text,
+              gifUrl,
               timestamp: new Date().toISOString(),
             },
             updatedAt: new Date().toISOString(),

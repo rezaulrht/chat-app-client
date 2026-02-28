@@ -179,7 +179,7 @@ export default function ChatWindow({ conversation, onMessageSent, onMessagesSeen
       gifUrl,
       tempId,
     });
-    onMessageSent?.(conversation._id, "GIF");
+    onMessageSent?.(conversation._id, null, gifUrl);
   };
 
   const toggleReaction = useCallback(

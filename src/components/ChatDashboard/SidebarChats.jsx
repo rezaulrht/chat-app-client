@@ -361,7 +361,7 @@ export default function Sidebar({
           </p>
           <button
             onClick={() => setShowArchived(!showArchived)}
-            className="text-[9px] text-teal-normal hover:text-teal-light transition-colors"
+            className="cursor-pointer text-[9px] text-teal-normal hover:text-teal-light transition-colors"
           >
             {showArchived ? "Show All" : "Show Archived"}
           </button>
@@ -384,8 +384,10 @@ export default function Sidebar({
                 <div
                   onClick={() => setActiveConversationId(conv._id)}
                   className={`flex items-center gap-3 px-3 py-3 rounded-2xl cursor-pointer transition-all duration-150 ${isActive
-                    ? "bg-teal-normal/10 border border-teal-normal/20"
-                    : "hover:bg-white/4 border border-transparent"
+                      ? "bg-teal-normal/10 border border-teal-normal/20"
+                      : conv.isPinned
+                        ? "bg-teal-normal/2 hover:bg-teal-normal/8 border border-teal-normal/2"
+                        : "hover:bg-white/4 border border-transparent"
                     }`}
                 >
                   <div className="relative shrink-0">
@@ -439,10 +441,11 @@ export default function Sidebar({
                         ? conv.unreadCount === 1
                           ? "1 new message"
                           : `${conv.unreadCount} new messages`
-                        : highlightMatch(
-                          conv.lastMessage?.text || "No messages yet",
-                          filterTerm,
-                        )}
+                        : conv.lastMessage?.gifUrl
+                          ? "GIF"
+                          : conv.lastMessage?.text
+                            ? highlightMatch(conv.lastMessage.text, filterTerm)
+                            : "No messages yet"}
                     </p>
                   </div>
                   <button
@@ -450,7 +453,7 @@ export default function Sidebar({
                       e.stopPropagation();
                       setContextMenu(contextMenu === conv._id ? null : conv._id);
                     }}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 w-6 h-6 rounded-lg hover:bg-white/10 flex items-center justify-center"
+                    className="cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity shrink-0 w-6 h-6 rounded-lg hover:bg-white/10 flex items-center justify-center"
                   >
                     <MoreVertical size={14} className="text-slate-400" />
                   </button>

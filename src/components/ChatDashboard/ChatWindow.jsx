@@ -332,7 +332,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
             ? {
                 ...m,
                 text: (
-                  <p className="italic text-gray-400 text-xs">
+                  <p className="italic text-gray-600 text-xs">
                     This message was deleted
                   </p>
                 ),
@@ -574,7 +574,11 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                         </div>
                       )}
 
-                      {editingMessageId === msg._id ? (
+                      {msg.isDeleted ? (
+                        <p className="italic text-gray-600 text-xs">
+                          This message was deleted
+                        </p>
+                      ) : editingMessageId === msg._id ? (
                         <div className="flex flex-col gap-2">
                           <input
                             className="bg-gray-800 text-white text-sm p-2 rounded border border-teal-normal focus:outline-none focus:ring-2 focus:ring-teal-normal"
@@ -612,7 +616,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                           {msg.text}
 
                           {isMe && !msg.isOptimistic && !msg.isDeleted && (
-                            <div className="absolute -top-3 right-0 hidden group-hover:flex gap-2 text-[10px] bg-black/70 px-2 py-1 rounded">
+                            <div className="absolute top-3 right-0 hidden group-hover:flex gap-3 text-[10px] bg-black/70 px-2 py-1 rounded">
                               <button
                                 onClick={() => handleEdit(msg._id, msg.text)}
                                 className="text-blue-400 hover:text-blue-300"

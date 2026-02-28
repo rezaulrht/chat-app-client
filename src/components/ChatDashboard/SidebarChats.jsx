@@ -192,6 +192,21 @@ export default function Sidebar({
     }
   }, [conversations]); // only syncs when not actively filtering
 
+  // Handle pin/unpin
+  const handleTogglePin = async (e, conversationId) => {
+    e.stopPropagation();
+    try {
+      await api.patch(`/api/chat/conversations/${conversationId}/pin`);
+      if (onConversationUpdate) {
+        const res = await api.get("/api/chat/conversations");
+        onConversationUpdate(res.data);
+      }
+    } catch (err) {
+      console.error("Failed to toggle pin:", err);
+    }
+    setContextMenu(null);
+  };
+
 
   const highlightMatch = (text, query) => {
     if (!query || !text) return text || "No messages yet";

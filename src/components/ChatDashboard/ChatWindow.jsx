@@ -3,7 +3,18 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import dynamic from "next/dynamic";
-import { Phone, Video, Info, Plus, Smile, Send, X, Reply } from "lucide-react";
+import {
+  Phone,
+  Video,
+  Info,
+  Plus,
+  Smile,
+  Send,
+  X,
+  Reply,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
@@ -528,6 +539,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                       <div
                         className={`absolute -top-6 ${isMe ? "right-0" : "left-0"} hidden group-hover:flex items-center gap-0.5 bg-[#15191C] border border-slate-700/60 rounded-lg p-0.5 shadow-xl shadow-black/40 z-30`}
                       >
+                        {/* Reaction emojis */}
                         {["👍", "❤️", "😂", "😮", "😢"].map((emoji) => (
                           <button
                             key={emoji}
@@ -535,12 +547,19 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                               e.stopPropagation();
                               toggleReaction(msg._id, emoji);
                             }}
-                            className={`p-1.5 rounded-md transition-all duration-150 hover:bg-slate-700/60 hover:scale-125 ${reactions[msg._id]?.[emoji]?.includes(user?._id) ? "bg-teal-900/40" : ""}`}
+                            className={`p-1.5 rounded-md transition-all duration-150 hover:bg-slate-700/60 hover:scale-125 ${
+                              reactions[msg._id]?.[emoji]?.includes(user?._id)
+                                ? "bg-teal-900/40"
+                                : ""
+                            }`}
                           >
                             {emoji}
                           </button>
                         ))}
+
                         <div className="w-px h-5 bg-slate-700/60 mx-0.5" />
+
+                        {/* More Emoji (Smile) */}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -548,16 +567,49 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                               reactionPickerMsgId === msg._id ? null : msg._id,
                             );
                           }}
-                          className="p-1 text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 rounded-md transition-all duration-150"
+                          className="p-1.5 rounded-md text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 transition-all duration-150"
                         >
                           <Smile size={14} />
                         </button>
+
+                        {/* Reply */}
                         <button
                           onClick={() => setReplyTo(msg)}
-                          className="p-1 text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 rounded-md transition-all duration-150"
+                          className="p-1.5 rounded-md text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 transition-all duration-150"
                         >
                           <Reply size={14} />
                         </button>
+
+                        {/* Divider before Edit/Delete (only for own messages) */}
+                        {isMe && !msg.isOptimistic && !msg.isDeleted && (
+                          <>
+                            <div className="w-px h-5 bg-slate-700/60 mx-0.5" />
+
+                            {/* Edit - Blue Pencil Icon */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(msg._id, msg.text);
+                              }}
+                              className="p-1.5 rounded-md text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 transition-all duration-150"
+                              title="Edit message"
+                            >
+                              <Pencil size={16} />
+                            </button>
+
+                            {/* Delete - Red Trash Icon */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(msg._id);
+                              }}
+                              className="p-1.5 rounded-md text-red-400 hover:text-red-300 hover:bg-red-500/20 transition-all duration-150"
+                              title="Delete message"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </>
+                        )}
                       </div>
                     )}
                     <div
@@ -612,32 +664,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                           loading="lazy"
                         />
                       ) : (
-                        <div className="relative group">
-                          {msg.text}
-
-                          {isMe && !msg.isOptimistic && !msg.isDeleted && (
-                            <div className="absolute top-3 right-0 hidden group-hover:flex gap-3 text-[10px] bg-black/70 px-2 py-1 rounded">
-                              <button
-                                onClick={() => handleEdit(msg._id, msg.text)}
-                                className="text-blue-400 hover:text-blue-300"
-                              >
-                                Edit
-                              </button>
-                              <button
-                                onClick={() => handleDelete(msg._id)}
-                                className="text-red-400 hover:text-red-300"
-                              >
-                                Delete
-                              </button>
-                              {/* <button
-                                onClick={() => handleDeleteForMe(msg._id)}
-                                className="text-yellow-400 hover:text-yellow-300"
-                              >
-                                Delete for Me
-                              </button> */}
-                            </div>
-                          )}
-                        </div>
+                        <div className="relative group">{msg.text}</div>
                       )}
 
                       <div

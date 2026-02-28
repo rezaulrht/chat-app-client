@@ -122,24 +122,15 @@ export default function ChatDashboard() {
     };
 
     const handleUnreadUpdate = ({ conversationId, unreadCount }) => {
-      setConversations((prev) => {
-        const updated = prev.map((c) =>
+      // Only update unread count, don't change the sort order
+      // (Conversations should not move when messages are just being read)
+      setConversations((prev) =>
+        prev.map((c) =>
           c._id === conversationId
-            ? {
-              ...c,
-              unreadCount,
-              updatedAt: new Date().toISOString() // Update timestamp to move to top
-            }
+            ? { ...c, unreadCount }
             : c,
-        );
-        // Sort: pinned first, then by most recent within each group
-        return updated.sort((a, b) => {
-          if (a.isPinned && !b.isPinned) return -1;
-          if (!a.isPinned && b.isPinned) return 1;
-          return new Date(b.updatedAt || b.lastMessage?.timestamp || 0).getTime() -
-            new Date(a.updatedAt || a.lastMessage?.timestamp || 0).getTime();
-        });
-      });
+        ),
+      );
     };
 
     const handleMessageStatus = (update) => {

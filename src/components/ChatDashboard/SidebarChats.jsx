@@ -222,6 +222,22 @@ export default function Sidebar({
     setContextMenu(null);
   };
 
+  // Handle mute/unmute
+  const handleToggleMute = async (e, conversationId) => {
+    e.stopPropagation();
+    try {
+      await api.patch(`/api/chat/conversations/${conversationId}/mute`);
+      if (onConversationUpdate) {
+        const res = await api.get("/api/chat/conversations");
+        onConversationUpdate(res.data);
+      }
+    } catch (err) {
+      console.error("Failed to toggle mute:", err);
+    }
+    setContextMenu(null);
+  };
+
+
   const highlightMatch = (text, query) => {
     if (!query || !text) return text || "No messages yet";
 

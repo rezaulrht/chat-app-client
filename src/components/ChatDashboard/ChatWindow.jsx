@@ -328,7 +328,16 @@ export default function ChatWindow({ conversation, onMessageSent }) {
       if (!messageId) return;
       setMessages((prev) =>
         prev.map((m) =>
-          m._id === messageId ? { ...m, text: "This message was deleted" } : m,
+          m._id === messageId
+            ? {
+                ...m,
+                text: (
+                  <p className="italic text-gray-400 text-xs">
+                    This message was deleted
+                  </p>
+                ),
+              }
+            : m,
         ),
       );
     };
@@ -602,8 +611,8 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                         <div className="relative group">
                           {msg.text}
 
-                          {isMe && !msg.isOptimistic && (
-                            <div className="absolute top-4 right-0 hidden group-hover:flex gap-2 text-[10px] bg-black/70 px-2 py-1 rounded">
+                          {isMe && !msg.isOptimistic && !msg.isDeleted && (
+                            <div className="absolute -top-3 right-0 hidden group-hover:flex gap-2 text-[10px] bg-black/70 px-2 py-1 rounded">
                               <button
                                 onClick={() => handleEdit(msg._id, msg.text)}
                                 className="text-blue-400 hover:text-blue-300"

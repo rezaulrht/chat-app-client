@@ -317,9 +317,10 @@ export default function ChatWindow({ conversation, onMessageSent }) {
 
     // ── Edit & Delete Listeners ──
     const handleEdited = (updatedMsg) => {
-      if (updatedMsg.conversationId !== conversation?._id) return;
       setMessages((prev) =>
-        prev.map((m) => (m._id === updatedMsg._id ? updatedMsg : m)),
+        prev.map((m) =>
+          m._id === updatedMsg._id ? { ...m, ...updatedMsg } : m,
+        ),
       );
     };
 

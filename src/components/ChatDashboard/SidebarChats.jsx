@@ -207,6 +207,20 @@ export default function Sidebar({
     setContextMenu(null);
   };
 
+  // Handle archive/unarchive
+  const handleToggleArchive = async (e, conversationId) => {
+    e.stopPropagation();
+    try {
+      await api.patch(`/api/chat/conversations/${conversationId}/archive`);
+      if (onConversationUpdate) {
+        const res = await api.get("/api/chat/conversations");
+        onConversationUpdate(res.data);
+      }
+    } catch (err) {
+      console.error("Failed to toggle archive:", err);
+    }
+    setContextMenu(null);
+  };
 
   const highlightMatch = (text, query) => {
     if (!query || !text) return text || "No messages yet";

@@ -57,6 +57,7 @@ export default function ChatWindow({ conversation, onMessageSent, onMessagesSeen
   const reactionPickerRef = useRef(null);
   const inputEmojiPickerRef = useRef(null);
   const gifPickerRef = useRef(null);
+  const seenInitializedConversationRef = useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -224,9 +225,10 @@ export default function ChatWindow({ conversation, onMessageSent, onMessagesSeen
     fetchMessages();
   }, [conversation?._id]);
 
-  // Mark messages as seen when messages are loaded or conversation changes
+  // Mark initial loaded messages as seen once per active conversation
   useEffect(() => {
-    if (!messages.length || !socket || !user || !conversation?._id) return;
+    if (!socket || !user || !conversation?._id || loadingMessages) return;
+    if (seenInitializedConversationRef.current === conversation._id) return;
 
     // Find the last message from the other user that we haven't read
     const lastUnreadMsg = [...messages]
@@ -242,7 +244,9 @@ export default function ChatWindow({ conversation, onMessageSent, onMessagesSeen
       // Notify parent to update unread count
       onMessagesSeen?.(conversation._id);
     }
-  }, [conversation?._id, messages, socket, user]);
+
+    seenInitializedConversationRef.current = conversation._id;
+  }, [conversation?._id, messages, socket, user, loadingMessages, onMessagesSeen]);
 
   // Join the conversation room so we receive real-time reactions
   useEffect(() => {

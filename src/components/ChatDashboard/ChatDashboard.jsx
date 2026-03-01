@@ -5,6 +5,7 @@ import Sidebar from "./SidebarChats";
 import ChatWindow from "./ChatWindow";
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
+import { sortConversations } from "@/utils/sortConversations";
 
 export default function ChatDashboard() {
   const [conversations, setConversations] = useState([]);
@@ -18,12 +19,7 @@ export default function ChatDashboard() {
       try {
         const res = await api.get("/api/chat/conversations");
         // Sort conversations: pinned first, then by most recent
-        const sorted = res.data.sort((a, b) => {
-          if (a.isPinned && !b.isPinned) return -1;
-          if (!a.isPinned && b.isPinned) return 1;
-          return new Date(b.updatedAt || b.lastMessage?.timestamp || 0).getTime() -
-            new Date(a.updatedAt || a.lastMessage?.timestamp || 0).getTime();
-        });
+        const sorted = sortConversations(res.data);
         setConversations(sorted);
 
         // Fetch last seen times for all conversation participants
@@ -37,7 +33,7 @@ export default function ChatDashboard() {
               "Fetching last seen times for conversation participants:",
               userIds,
             );
-            await fetchLastSeenTimes(userIds);
+            fetchLastSeenTimes(userIds);
           }
         }
 
@@ -53,7 +49,7 @@ export default function ChatDashboard() {
     };
 
     fetchConversations();
-  }, []); // Empty dependency array - load conversations only once on mount
+  }, [fetchLastSeenTimes]); // Dependency on fetchLastSeenTimes to ensure it's defined
 
   // Ref to access current conversations in socket handlers without stale closures
   const conversationsRef = useRef([]);
@@ -85,15 +81,7 @@ export default function ChatDashboard() {
               }
               : c,
           );
-          // Sort: pinned first, then by most recent messages within each group
-          return updated.sort((a, b) => {
-            // Pinned conversations always come first
-            if (a.isPinned && !b.isPinned) return -1;
-            if (!a.isPinned && b.isPinned) return 1;
-            // Within the same group (both pinned or both non-pinned), sort by most recent
-            return new Date(b.updatedAt || b.lastMessage?.timestamp || 0).getTime() -
-              new Date(a.updatedAt || a.lastMessage?.timestamp || 0).getTime();
-          });
+          return sortConversations(updated);
         });
       } else {
         // New conversation from another user — fetch from server and add to list
@@ -104,13 +92,7 @@ export default function ChatDashboard() {
             setConversations((prev) => {
               if (prev.find((c) => c._id === newConv._id)) return prev;
               const updated = [newConv, ...prev];
-              // Sort: pinned first, then by most recent within each group
-              return updated.sort((a, b) => {
-                if (a.isPinned && !b.isPinned) return -1;
-                if (!a.isPinned && b.isPinned) return 1;
-                return new Date(b.updatedAt || b.lastMessage?.timestamp || 0).getTime() -
-                  new Date(a.updatedAt || a.lastMessage?.timestamp || 0).getTime();
-              });
+              return sortConversations(updated);
             });
             if (newConv.participant?._id && fetchLastSeenTimes) {
               fetchLastSeenTimes([newConv.participant._id]);
@@ -179,13 +161,7 @@ export default function ChatDashboard() {
           }
           : c,
       );
-      // Sort: pinned first, then by most recent within each group
-      return updated.sort((a, b) => {
-        if (a.isPinned && !b.isPinned) return -1;
-        if (!a.isPinned && b.isPinned) return 1;
-        return new Date(b.updatedAt || b.lastMessage?.timestamp || 0).getTime() -
-          new Date(a.updatedAt || a.lastMessage?.timestamp || 0).getTime();
-      });
+      return sortConversations(updated);
     });
   }, []);
 
@@ -196,13 +172,7 @@ export default function ChatDashboard() {
       const exists = prev.find((c) => c._id === conversation._id);
       if (exists) return prev;
       const updated = [conversation, ...prev];
-      // Sort: pinned first, then by most recent within each group
-      return updated.sort((a, b) => {
-        if (a.isPinned && !b.isPinned) return -1;
-        if (!a.isPinned && b.isPinned) return 1;
-        return new Date(b.updatedAt || b.lastMessage?.timestamp || 0).getTime() -
-          new Date(a.updatedAt || a.lastMessage?.timestamp || 0).getTime();
-      });
+      return sortConversations(updated);
     });
     setActiveConversationId(conversation._id);
   }, []);
@@ -210,12 +180,7 @@ export default function ChatDashboard() {
   // Called when conversation is updated (pin/archive/mute)
   const handleConversationUpdate = useCallback((updatedConversations) => {
     // Sort: pinned first, then by most recent within each group
-    const sorted = updatedConversations.sort((a, b) => {
-      if (a.isPinned && !b.isPinned) return -1;
-      if (!a.isPinned && b.isPinned) return 1;
-      return new Date(b.updatedAt || b.lastMessage?.timestamp || 0).getTime() -
-        new Date(a.updatedAt || a.lastMessage?.timestamp || 0).getTime();
-    });
+    const sorted = sortConversations(updatedConversations);
     setConversations(sorted);
   }, []);
 

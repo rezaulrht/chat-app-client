@@ -194,6 +194,7 @@ export default function ChatWindow({ conversation, onMessageSent, onMessagesSeen
     [socket, conversation?._id],
   );
 
+  // Fetch messages when conversation changes
   useEffect(() => {
     if (!conversation?._id) return;
     const fetchMessages = async () => {
@@ -214,26 +215,6 @@ export default function ChatWindow({ conversation, onMessageSent, onMessagesSeen
           }
         }
         setReactions(rxns);
-
-        // Mark all unread messages as seen when conversation is opened
-        if (res.data.length > 0 && socket && user) {
-          // Find the last message from the other user that we haven't read
-          const lastUnreadMsg = [...res.data]
-            .reverse()
-            .find((msg) => msg.sender?._id !== user._id && msg.status !== "read");
-
-          if (lastUnreadMsg) {
-            socket.emit("conversation:seen", {
-              conversationId: conversation._id,
-              lastSeenMessageId: lastUnreadMsg._id,
-            });
-          }
-
-          // Notify parent to update unread count
-          if (onMessagesSeen) {
-            onMessagesSeen(conversation._id);
-          }
-        }
       } catch (err) {
         console.error("Failed to fetch messages:", err);
       } finally {
@@ -241,7 +222,27 @@ export default function ChatWindow({ conversation, onMessageSent, onMessagesSeen
       }
     };
     fetchMessages();
-  }, [conversation?._id, socket, user?._id, onMessagesSeen]);
+  }, [conversation?._id]);
+
+  // Mark messages as seen when messages are loaded or conversation changes
+  useEffect(() => {
+    if (!messages.length || !socket || !user || !conversation?._id) return;
+
+    // Find the last message from the other user that we haven't read
+    const lastUnreadMsg = [...messages]
+      .reverse()
+      .find((msg) => msg.sender?._id !== user._id && msg.status !== "read");
+
+    if (lastUnreadMsg) {
+      socket.emit("conversation:seen", {
+        conversationId: conversation._id,
+        lastSeenMessageId: lastUnreadMsg._id,
+      });
+
+      // Notify parent to update unread count
+      onMessagesSeen?.(conversation._id);
+    }
+  }, [conversation?._id, messages, socket, user]);
 
   // Join the conversation room so we receive real-time reactions
   useEffect(() => {

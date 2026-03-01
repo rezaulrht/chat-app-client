@@ -197,9 +197,13 @@ export default function Sidebar({
     e.stopPropagation();
     try {
       await api.patch(`/api/chat/conversations/${conversationId}/pin`);
+      // Optimistic update: toggle isPinned locally
       if (onConversationUpdate) {
-        const res = await api.get("/api/chat/conversations");
-        onConversationUpdate(res.data);
+        onConversationUpdate(
+          conversations.map((c) =>
+            c._id === conversationId ? { ...c, isPinned: !c.isPinned } : c
+          )
+        );
       }
     } catch (err) {
       console.error("Failed to toggle pin:", err);
@@ -212,9 +216,13 @@ export default function Sidebar({
     e.stopPropagation();
     try {
       await api.patch(`/api/chat/conversations/${conversationId}/archive`);
+      // Optimistic update: toggle isArchived locally
       if (onConversationUpdate) {
-        const res = await api.get("/api/chat/conversations");
-        onConversationUpdate(res.data);
+        onConversationUpdate(
+          conversations.map((c) =>
+            c._id === conversationId ? { ...c, isArchived: !c.isArchived } : c
+          )
+        );
       }
     } catch (err) {
       console.error("Failed to toggle archive:", err);
@@ -227,9 +235,13 @@ export default function Sidebar({
     e.stopPropagation();
     try {
       await api.patch(`/api/chat/conversations/${conversationId}/mute`);
+      // Optimistic update: toggle isMuted locally
       if (onConversationUpdate) {
-        const res = await api.get("/api/chat/conversations");
-        onConversationUpdate(res.data);
+        onConversationUpdate(
+          conversations.map((c) =>
+            c._id === conversationId ? { ...c, isMuted: !c.isMuted } : c
+          )
+        );
       }
     } catch (err) {
       console.error("Failed to toggle mute:", err);
@@ -238,17 +250,10 @@ export default function Sidebar({
   };
 
   // Filter conversations based on archived status
-  const filteredConversations = showArchived
+  // (Conversations are already sorted in parent ChatDashboard component)
+  const sortedConversations = showArchived
     ? searchedConversations.filter((c) => c.isArchived)
     : searchedConversations.filter((c) => !c.isArchived);
-
-  // Sort conversations - pinned first, then by updatedAt (with fallback to lastMessage timestamp)
-  const sortedConversations = [...filteredConversations].sort((a, b) => {
-    if (a.isPinned && !b.isPinned) return -1;
-    if (!a.isPinned && b.isPinned) return 1;
-    return new Date(b.updatedAt || b.lastMessage?.timestamp || 0).getTime() -
-      new Date(a.updatedAt || a.lastMessage?.timestamp || 0).getTime();
-  });
 
   const highlightMatch = (text, query) => {
     if (!query || !text) return text || "No messages yet";
@@ -384,10 +389,10 @@ export default function Sidebar({
                 <div
                   onClick={() => setActiveConversationId(conv._id)}
                   className={`flex items-center gap-3 px-3 py-3 rounded-2xl cursor-pointer transition-all duration-150 ${isActive
-                      ? "bg-teal-normal/10 border border-teal-normal/20"
-                      : conv.isPinned
-                        ? "bg-teal-normal/2 hover:bg-teal-normal/8 border border-teal-normal/2"
-                        : "hover:bg-white/4 border border-transparent"
+                    ? "bg-teal-normal/10 border border-teal-normal/20"
+                    : conv.isPinned
+                      ? "bg-teal-normal/2 hover:bg-teal-normal/8 border border-teal-normal/2"
+                      : "hover:bg-white/4 border border-transparent"
                     }`}
                 >
                   <div className="relative shrink-0">
@@ -428,7 +433,7 @@ export default function Sidebar({
                           {formatConvTimestamp(conv.lastMessage?.timestamp)}
                         </span>
                         {hasUnread && !conv.isMuted && (
-                          <div className="min-w-4.5 h-4.5 px-1 rounded-full bg-teal-normal flex items-center justify-center">
+                          <div className="min-w-4_5 h-4_5 px-1 rounded-full bg-teal-normal flex items-center justify-center">
                             <span className="text-[9px] font-bold text-white">
                               {conv.unreadCount > 99 ? "99+" : conv.unreadCount}
                             </span>

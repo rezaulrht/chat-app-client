@@ -1,10 +1,11 @@
 // src/components/ChatDashboard/ChatDashboard.jsx
 "use client";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Sidebar from "./SidebarChats";
 import ChatWindow from "./ChatWindow";
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
+import { sortConversations } from "@/utils/sortConversations";
 
 export default function ChatDashboard() {
   const [conversations, setConversations] = useState([]);
@@ -12,16 +13,18 @@ export default function ChatDashboard() {
   const [loadingConversations, setLoadingConversations] = useState(true);
   const { socket, fetchLastSeenTimes } = useSocket() || {};
 
-  // Fetch all conversations for the logged-in user on mount
+  // Fetch all conversations for the logged-in user on mount (only once)
   useEffect(() => {
     const fetchConversations = async () => {
       try {
         const res = await api.get("/api/chat/conversations");
-        setConversations(res.data);
+        // Sort conversations: pinned first, then by most recent
+        const sorted = sortConversations(res.data);
+        setConversations(sorted);
 
         // Fetch last seen times for all conversation participants
-        if (res.data.length > 0 && fetchLastSeenTimes) {
-          const userIds = res.data
+        if (sorted.length > 0 && fetchLastSeenTimes) {
+          const userIds = sorted
             .map((conv) => conv.participant?._id)
             .filter(Boolean);
 
@@ -30,13 +33,13 @@ export default function ChatDashboard() {
               "Fetching last seen times for conversation participants:",
               userIds,
             );
-            await fetchLastSeenTimes(userIds);
+            fetchLastSeenTimes(userIds);
           }
         }
 
-        // Auto-select the first conversation if any exist
-        if (res.data.length > 0) {
-          setActiveConversationId(res.data[0]._id);
+        // Auto-select the first conversation if any exist (uses sorted order)
+        if (sorted.length > 0) {
+          setActiveConversationId(sorted[0]._id);
         }
       } catch (err) {
         console.error("Failed to fetch conversations:", err);
@@ -46,7 +49,7 @@ export default function ChatDashboard() {
     };
 
     fetchConversations();
-  }, [fetchLastSeenTimes]);
+  }, [fetchLastSeenTimes]); // Dependency on fetchLastSeenTimes to ensure it's defined
 
   // Ref to access current conversations in socket handlers without stale closures
   const conversationsRef = useRef([]);
@@ -62,21 +65,24 @@ export default function ChatDashboard() {
       );
 
       if (exists) {
-        // Update lastMessage for the existing conversation
-        setConversations((prev) =>
-          prev.map((c) =>
+        // Update lastMessage and move to top by updating both lastMessage and updatedAt
+        setConversations((prev) => {
+          const updated = prev.map((c) =>
             c._id === msg.conversationId
               ? {
-                  ...c,
-                  lastMessage: {
-                    text: msg.text,
-                    sender: msg.sender?._id || msg.sender,
-                    timestamp: msg.createdAt,
-                  },
-                }
+                ...c,
+                lastMessage: {
+                  text: msg.text,
+                  gifUrl: msg.gifUrl,
+                  sender: msg.sender?._id || msg.sender,
+                  timestamp: msg.createdAt,
+                },
+                updatedAt: msg.createdAt, // Update to move conversation to top
+              }
               : c,
-          ),
-        );
+          );
+          return sortConversations(updated);
+        });
       } else {
         // New conversation from another user — fetch from server and add to list
         try {
@@ -85,7 +91,8 @@ export default function ChatDashboard() {
           if (newConv) {
             setConversations((prev) => {
               if (prev.find((c) => c._id === newConv._id)) return prev;
-              return [newConv, ...prev];
+              const updated = [newConv, ...prev];
+              return sortConversations(updated);
             });
             if (newConv.participant?._id && fetchLastSeenTimes) {
               fetchLastSeenTimes([newConv.participant._id]);
@@ -97,10 +104,39 @@ export default function ChatDashboard() {
       }
     };
 
+    const handleUnreadUpdate = ({ conversationId, unreadCount }) => {
+      // Only update unread count, don't change the sort order
+      // (Conversations should not move when messages are just being read)
+      setConversations((prev) =>
+        prev.map((c) =>
+          c._id === conversationId
+            ? { ...c, unreadCount }
+            : c,
+        ),
+      );
+    };
+
+    const handleMessageStatus = (update) => {
+      // When messages are marked as read, clear unread count
+      if (update.status === "read") {
+        setConversations((prev) =>
+          prev.map((c) =>
+            c._id === update.conversationId
+              ? { ...c, unreadCount: 0 }
+              : c,
+          ),
+        );
+      }
+    };
+
     socket.on("message:new", handleGlobalMessage);
+    socket.on("unread:update", handleUnreadUpdate);
+    socket.on("message:status", handleMessageStatus);
 
     return () => {
       socket.off("message:new", handleGlobalMessage);
+      socket.off("unread:update", handleUnreadUpdate);
+      socket.off("message:status", handleMessageStatus);
     };
   }, [socket, fetchLastSeenTimes]);
 
@@ -109,33 +145,80 @@ export default function ChatDashboard() {
   );
 
   // Called by ChatWindow when a message is sent — update sidebar's lastMessage
-  const handleMessageSent = (conversationId, text) => {
-    setConversations((prev) =>
-      prev.map((c) =>
+  const handleMessageSent = useCallback((conversationId, text, gifUrl = null) => {
+    setConversations((prev) => {
+      const updated = prev.map((c) =>
         c._id === conversationId
           ? {
-              ...c,
-              lastMessage: {
-                ...c.lastMessage,
-                text,
-                timestamp: new Date().toISOString(),
-              },
-            }
+            ...c,
+            lastMessage: {
+              ...c.lastMessage,
+              text,
+              gifUrl,
+              timestamp: new Date().toISOString(),
+            },
+            updatedAt: new Date().toISOString(),
+          }
           : c,
-      ),
-    );
-  };
+      );
+      return sortConversations(updated);
+    });
+  }, []);
 
   // Called when a new conversation is started from the search modal
-  const handleNewConversation = (conversation) => {
+  const handleNewConversation = useCallback((conversation) => {
     // Add to list if it doesn't already exist
     setConversations((prev) => {
       const exists = prev.find((c) => c._id === conversation._id);
       if (exists) return prev;
-      return [conversation, ...prev];
+      const updated = [conversation, ...prev];
+      return sortConversations(updated);
     });
     setActiveConversationId(conversation._id);
-  };
+  }, []);
+
+  // Called when conversation is updated (pin/archive/mute)
+  const handleConversationUpdate = useCallback((updatedConversations) => {
+    // Sort: pinned first, then by most recent within each group
+    const sorted = sortConversations(updatedConversations);
+    setConversations(sorted);
+  }, []);
+
+  // Called when messages are marked as seen in ChatWindow
+  const handleMessagesSeen = useCallback((conversationId) => {
+    setConversations((prev) => {
+      let changed = false;
+
+      const next = prev.map((c) => {
+        if (c._id === conversationId && c.unreadCount !== 0) {
+          changed = true;
+          return { ...c, unreadCount: 0 };
+        }
+        return c;
+      });
+
+      return changed ? next : prev;
+    });
+  }, []);
+
+  // Clear unread count when conversation is opened
+  useEffect(() => {
+    if (activeConversationId) {
+      setConversations((prev) => {
+        let changed = false;
+
+        const next = prev.map((c) => {
+          if (c._id === activeConversationId && c.unreadCount !== 0) {
+            changed = true;
+            return { ...c, unreadCount: 0 };
+          }
+          return c;
+        });
+
+        return changed ? next : prev;
+      });
+    }
+  }, [activeConversationId]);
 
   if (loadingConversations) {
     return (
@@ -155,10 +238,12 @@ export default function ChatDashboard() {
         activeConversationId={activeConversationId}
         setActiveConversationId={setActiveConversationId}
         onNewConversation={handleNewConversation}
+        onConversationUpdate={handleConversationUpdate}
       />
       <ChatWindow
         conversation={activeConversation}
         onMessageSent={handleMessageSent}
+        onMessagesSeen={handleMessagesSeen}
       />
     </div>
   );

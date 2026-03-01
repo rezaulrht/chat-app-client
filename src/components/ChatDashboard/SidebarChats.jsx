@@ -156,7 +156,7 @@ export default function Sidebar({
         );
         setSearchedConversations(res.data);
       } catch (err) {
-        if (err.name === "CanceledError" || err.code === "ERR_CANCELED") return; 
+        if (err.name === "CanceledError" || err.code === "ERR_CANCELED") return;
         console.error("Search failed:", err);
         setSearchedConversations(conversations);
       }
@@ -164,9 +164,9 @@ export default function Sidebar({
 
     return () => {
       clearTimeout(timer);
-      controller.abort(); 
+      controller.abort();
     };
-  }, [filterTerm]); 
+  }, [filterTerm]);
 
   // Keep searchedConversations in sync when not searching
   useEffect(() => {
@@ -197,164 +197,198 @@ export default function Sidebar({
 
   return (
     <>
-      <aside className="w-80 bg-[#0f1318] border-r border-white/5 flex flex-col shrink-0 h-full">
-        {/* Header */}
-        <div className="px-5 pt-5 pb-4 flex justify-between items-center border-b border-white/5">
+      <aside className="w-64 bg-background-dark border-r border-white/5 flex flex-col shrink-0 hidden md:flex h-full">
+        {/* Workspace Header */}
+        <div className="h-14 px-4 flex items-center justify-between border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer group">
           <div className="flex items-center gap-2">
             <Link href="/">
-              <img
-                src="https://i.ibb.co/PG0X3Tbf/Convo-X-logo.png"
-                alt="ConvoX Logo"
-                className="h-6 w-auto cursor-pointer"
-              />
+              <span className="font-bold text-base truncate text-white">
+                ConvoX Dashboard
+              </span>
             </Link>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <CreateGroupModal />
             <button
               onClick={() => setModalOpen(true)}
-              className="w-8 h-8 rounded-xl bg-teal-normal/10 border border-teal-normal/20 flex items-center justify-center hover:bg-teal-normal/20 transition-all group"
+              className="text-text-secondary-dark group-hover:text-white transition-colors p-1"
             >
-              <Edit3
-                size={15}
-                className="text-teal-normal group-hover:scale-110 transition-transform"
-              />
+              <Edit3 size={16} />
             </button>
           </div>
         </div>
 
         {/* Search / Filter */}
         <div className="px-4 py-3">
-          <div className="relative">
+          <div className="relative group">
             <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors"
               size={15}
             />
             <input
               type="text"
               value={filterTerm}
               onChange={(e) => setFilterTerm(e.target.value)}
-              className="w-full bg-white/5 rounded-xl py-2.5 pl-9 pr-4 text-xs outline-none border border-white/5 focus:border-teal-normal/40 focus:bg-white/8 text-slate-300 placeholder:text-slate-600 transition-all"
-              placeholder="Search conversations..."
+              className="w-full bg-[#0b1117] rounded py-2 pl-9 pr-4 text-xs outline-none border border-transparent focus:border-primary/50 text-white placeholder:text-text-secondary-dark focus:ring-1 focus:ring-primary transition-all shadow-inner"
+              placeholder="Filter DMs..."
             />
           </div>
         </div>
 
-        {/* Active Now section */}
-        {activeNowUsers.length > 0 && (
-          <div className="px-4 mb-3">
-            <p className="text-[9px] font-bold tracking-[0.15em] text-teal-dark uppercase mb-3">
-              Active Now
-            </p>
-            <div className="flex gap-3 overflow-x-auto py-2 px-1 scrollbar-hide">
-              {activeNowUsers.map((user) => (
-                <div
-                  key={user._id}
-                  className="flex flex-col items-center gap-1.5 shrink-0"
-                >
-                  <div className="relative">
-                    <div className="w-11 h-11 rounded-full ring-2 ring-teal-normal/70 ring-offset-1 ring-offset-[#0f1318] overflow-hidden">
-                      <Image
-                        src={
-                          user.avatar ||
-                          `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`
-                        }
-                        width={44}
-                        height={44}
-                        className="object-cover"
-                        alt={user.name || "avatar"}
-                        unoptimized
-                      />
-                    </div>
-                    <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-[#0f1318]"></span>
-                  </div>
-                  <span className="text-[9px] text-slate-500 truncate max-w-11 text-center leading-tight">
-                    {user._id === currentUser?._id
-                      ? "You"
-                      : user.name?.split(" ")[0]}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Section label */}
-        <div className="px-4 mb-2">
-          <p className="text-[9px] font-bold tracking-[0.15em] text-slate-600 uppercase">
-            Messages
-          </p>
-        </div>
-
-        {/* Conversation list */}
-        <div className="flex-1 min-h-0 overflow-y-auto px-3 pb-3 space-y-0.5 scrollbar-hide">
-          {searchedConversations.map((conv) => {
-            const isActive = activeConversationId === conv._id;
-            const isUserOnline = onlineUsers?.get(
-              conv.participant?._id,
-            )?.online;
-            return (
-              <div
-                key={conv._id}
-                onClick={() => setActiveConversationId(conv._id)}
-                className={`flex items-center gap-3 px-3 py-3 rounded-2xl cursor-pointer transition-all duration-150 ${
-                  isActive
-                    ? "bg-teal-normal/10 border border-teal-normal/20"
-                    : "hover:bg-white/4 border border-transparent"
-                }`}
-              >
-                <div className="relative shrink-0">
+        {/* Scrollable list of DMs / Channels */}
+        <div className="flex-1 overflow-y-auto pt-1 pb-3 custom-scrollbar">
+          {/* Section: Active Now */}
+          {activeNowUsers.length > 0 && (
+            <div className="mb-4">
+              <div className="px-4 flex items-center justify-between text-[11px] font-bold text-text-secondary-dark uppercase mb-2">
+                <span>Active Now</span>
+                <span className="bg-white/5 px-1.5 rounded text-[10px]">
+                  {activeNowUsers.length}
+                </span>
+              </div>
+              <div className="flex gap-3 overflow-x-auto px-4 pb-2 scrollbar-hide">
+                {activeNowUsers.map((user) => (
                   <div
-                    className={`rounded-full overflow-hidden ${isActive ? "ring-2 ring-teal-normal/50 ring-offset-1 ring-offset-[#0f1318]" : ""}`}
+                    key={user._id}
+                    className="flex flex-col items-center gap-1.5 shrink-0 cursor-pointer group"
                   >
-                    <Image
-                      src={
-                        conv.participant?.avatar ||
-                        `https://api.dicebear.com/7.x/avataaars/svg?seed=${conv.participant?.name}`
-                      }
-                      width={44}
-                      height={44}
-                      className="rounded-full"
-                      alt={conv.participant?.name || "avatar"}
-                      unoptimized
-                    />
-                  </div>
-                  <div
-                    className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#0f1318] ${isUserOnline ? "bg-green-400" : "bg-slate-600"}`}
-                  ></div>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-center">
-                    <span className="font-semibold text-sm truncate text-white">
-                      {highlightMatch(conv.participant?.name || "", filterTerm)}
-                    </span>
-                    <span className="text-[9px] text-slate-600 shrink-0">
-                      {formatConvTimestamp(conv.lastMessage?.timestamp)}
+                    <div className="relative">
+                      <div className="w-10 h-10 rounded-full border border-white/10 group-hover:border-primary/50 overflow-hidden transition-colors">
+                        <Image
+                          src={
+                            user.avatar ||
+                            `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`
+                          }
+                          width={40}
+                          height={40}
+                          className="object-cover"
+                          alt="avatar"
+                          unoptimized
+                        />
+                      </div>
+                      <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-background-dark"></span>
+                    </div>
+                    <span className="text-[10px] text-text-secondary-dark group-hover:text-white truncate max-w-[44px] text-center leading-tight transition-colors">
+                      {user._id === currentUser?._id
+                        ? "You"
+                        : user.name?.split(" ")[0]}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500 truncate">
-                    {highlightMatch(
-                      conv.lastMessage?.text || "No messages yet",
-                      filterTerm,
-                    )}
-                  </p>
-                </div>
+                ))}
               </div>
-            );
-          })}
-
-          {searchedConversations.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-10 gap-2">
-              <div className="w-10 h-10 rounded-2xl bg-teal-normal/10 flex items-center justify-center">
-                <Search size={16} className="text-teal-dark" />
-              </div>
-              <p className="text-slate-600 text-xs text-center">
-                {conversations.length === 0
-                  ? "No conversations yet.\nClick the edit icon to start one."
-                  : "No conversations found"}
-              </p>
             </div>
           )}
+
+          {/* Section: Direct Messages */}
+          <div className="mb-4">
+            <div className="px-3 flex items-center gap-1 text-[11px] font-bold text-text-secondary-dark uppercase hover:text-white cursor-pointer mb-1 transition-colors">
+              <span className="material-symbols-outlined text-[14px]">
+                expand_more
+              </span>
+              <span>Direct Messages</span>
+            </div>
+            <div className="flex flex-col gap-[2px]">
+              {searchedConversations.map((conv) => {
+                const isActive = activeConversationId === conv._id;
+                const isUserOnline = onlineUsers?.get(
+                  conv.participant?._id,
+                )?.online;
+                return (
+                  <div
+                    key={conv._id}
+                    onClick={() => setActiveConversationId(conv._id)}
+                    className={`mx-2 px-2 py-2 rounded flex items-center gap-2 cursor-pointer transition-colors group relative ${
+                      isActive
+                        ? "bg-primary/10 text-white"
+                        : "hover:bg-white/5 text-text-secondary-dark hover:text-white"
+                    }`}
+                  >
+                    {isActive && (
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-primary rounded-r"></div>
+                    )}
+
+                    <div className="relative shrink-0">
+                      <Image
+                        src={
+                          conv.participant?.avatar ||
+                          `https://api.dicebear.com/7.x/avataaars/svg?seed=${conv.participant?.name}`
+                        }
+                        width={28}
+                        height={28}
+                        className="rounded-full overflow-hidden"
+                        alt="avatar"
+                        unoptimized
+                      />
+                      <div
+                        className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background-dark ${isUserOnline ? "bg-green-500" : "bg-slate-600"}`}
+                      ></div>
+                    </div>
+
+                    <div className="flex-1 min-w-0 pr-1">
+                      <div
+                        className={`text-[13px] truncate ${isActive ? "font-bold text-white" : "font-medium"}`}
+                      >
+                        {highlightMatch(
+                          conv.participant?.name || "",
+                          filterTerm,
+                        )}
+                      </div>
+                      <div className="text-[10px] text-text-secondary-dark truncate mt-0.5">
+                        {highlightMatch(
+                          conv.lastMessage?.text || "No messages yet",
+                          filterTerm,
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              {searchedConversations.length === 0 && (
+                <div className="text-[11px] text-text-secondary-dark text-center py-4 bg-white/[0.02] rounded mx-2 border border-white/5 mt-2">
+                  No matches found
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* User Controls Panel (Bottom) */}
+        <div className="bg-[#0b1117] p-2 flex items-center gap-2 border-t border-white/5">
+          <div className="relative group cursor-pointer hover:opacity-80 transition-opacity">
+            <Image
+              src={
+                currentUser?.avatar ||
+                `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser?.name || "User"}`
+              }
+              width={32}
+              height={32}
+              className="rounded-full overflow-hidden"
+              alt="User avatar"
+              unoptimized
+            />
+            <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-[#0b1117] rounded-full"></div>
+          </div>
+          <div className="flex-1 overflow-hidden">
+            <div className="text-[13px] font-bold truncate text-white">
+              {currentUser?.name || "CurrentUser"}
+            </div>
+            <div className="text-[10px] text-text-secondary-dark truncate hover:underline cursor-pointer">
+              Online
+            </div>
+          </div>
+          <button className="p-1 rounded hover:bg-white/10 text-text-secondary-dark hover:text-white transition-colors">
+            <span className="material-symbols-outlined text-[18px]">mic</span>
+          </button>
+          <button className="p-1 rounded hover:bg-white/10 text-text-secondary-dark hover:text-white transition-colors">
+            <span className="material-symbols-outlined text-[18px]">
+              headset
+            </span>
+          </button>
+          <button className="p-1 rounded hover:bg-white/10 text-text-secondary-dark hover:text-white transition-colors">
+            <span className="material-symbols-outlined text-[18px]">
+              settings
+            </span>
+          </button>
         </div>
       </aside>
 
@@ -365,7 +399,7 @@ export default function Sidebar({
           onClick={() => setModalOpen(false)}
         >
           <div
-            className="bg-[#0f1318] rounded-3xl w-full max-w-sm mx-4 p-5 border border-white/8 shadow-2xl shadow-black/50"
+            className="bg-surface-dark rounded-xl w-full max-w-sm mx-4 p-5 border border-white/10 shadow-2xl shadow-black/50"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal header */}
@@ -374,45 +408,47 @@ export default function Sidebar({
                 <h2 className="text-white font-bold text-sm">
                   New Conversation
                 </h2>
-                <p className="text-slate-600 text-xs mt-0.5">
+                <p className="text-text-secondary-dark text-xs mt-0.5">
                   Find someone to chat with
                 </p>
               </div>
               <button
                 onClick={() => setModalOpen(false)}
-                className="w-7 h-7 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all"
+                className="w-7 h-7 rounded hover:bg-white/10 flex items-center justify-center transition-all text-text-secondary-dark hover:text-white"
               >
-                <X size={14} className="text-slate-400" />
+                <X size={16} />
               </button>
             </div>
 
             {/* User search input */}
             <div className="relative mb-3">
               <Search
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600"
-                size={15}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary-dark"
+                size={16}
               />
               <input
                 ref={searchInputRef}
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white/5 rounded-2xl py-3 pl-10 pr-4 text-sm outline-none border border-white/5 focus:border-teal-normal/40 text-slate-200 placeholder:text-slate-600 transition-all"
+                className="w-full bg-[#0b1117] rounded-lg py-2.5 pl-10 pr-4 text-sm outline-none border border-white/5 focus:border-primary text-white placeholder:text-text-secondary-dark transition-all"
                 placeholder="Search by name or email..."
               />
             </div>
 
             {/* Results */}
-            <div className="space-y-1 max-h-60 overflow-y-auto scrollbar-hide">
+            <div className="space-y-1 max-h-60 overflow-y-auto custom-scrollbar">
               {searching && (
                 <div className="flex items-center justify-center gap-2 py-6">
-                  <div className="w-4 h-4 rounded-full border-2 border-teal-normal border-t-transparent animate-spin"></div>
-                  <p className="text-slate-500 text-xs">Searching...</p>
+                  <div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
+                  <p className="text-text-secondary-dark text-xs">
+                    Searching...
+                  </p>
                 </div>
               )}
 
               {!searching && searchQuery && searchResults.length === 0 && (
-                <p className="text-center text-slate-600 text-xs py-6">
+                <p className="text-center text-text-secondary-dark text-xs py-6">
                   No users found
                 </p>
               )}
@@ -421,7 +457,7 @@ export default function Sidebar({
                 <div
                   key={user._id}
                   onClick={() => !startingChat && handleSelectUser(user)}
-                  className="flex items-center gap-3 p-3 rounded-2xl cursor-pointer hover:bg-teal-normal/8 border border-transparent hover:border-teal-normal/15 transition-all"
+                  className="flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-primary/20 border border-transparent transition-all group"
                 >
                   <div className="relative shrink-0">
                     <Image
@@ -429,22 +465,22 @@ export default function Sidebar({
                         user.avatar ||
                         `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`
                       }
-                      width={38}
-                      height={38}
+                      width={36}
+                      height={36}
                       className="rounded-full"
                       alt={user.name || "avatar"}
                       unoptimized
                     />
                     {onlineUsers?.get(user._id)?.online && (
-                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-[#0f1318]"></div>
+                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-surface-dark"></div>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-slate-200 text-sm font-semibold truncate">
+                    <p className="text-white text-sm font-semibold truncate group-hover:text-primary transition-colors">
                       {user.name}
                     </p>
                     <p
-                      className={`text-xs ${onlineUsers?.get(user._id)?.online ? "text-green-400" : "text-slate-600"}`}
+                      className={`text-xs ${onlineUsers?.get(user._id)?.online ? "text-green-500" : "text-text-secondary-dark"}`}
                     >
                       {onlineUsers?.get(user._id)?.online
                         ? "● Online"
@@ -452,7 +488,7 @@ export default function Sidebar({
                     </p>
                   </div>
                   {startingChat && (
-                    <div className="w-4 h-4 rounded-full border-2 border-teal-normal border-t-transparent animate-spin shrink-0"></div>
+                    <div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin shrink-0"></div>
                   )}
                 </div>
               ))}

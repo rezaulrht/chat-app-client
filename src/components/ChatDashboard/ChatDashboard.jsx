@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Sidebar from "./SidebarChats";
 import ChatWindow from "./ChatWindow";
+import RightSidebar from "./RightSidebar";
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
 
@@ -139,9 +140,9 @@ export default function ChatDashboard() {
 
   if (loadingConversations) {
     return (
-      <div className="flex h-screen w-full bg-[#080b0f] items-center justify-center flex-col gap-4">
-        <div className="w-12 h-12 rounded-2xl bg-teal-normal/10 border border-teal-normal/20 flex items-center justify-center">
-          <div className="w-5 h-5 rounded-full border-2 border-teal-normal border-t-transparent animate-spin"></div>
+      <div className="flex h-screen w-full bg-background-dark items-center justify-center flex-col gap-4">
+        <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+          <div className="w-5 h-5 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
         </div>
         <p className="text-slate-600 text-xs">Loading conversations...</p>
       </div>
@@ -149,7 +150,7 @@ export default function ChatDashboard() {
   }
 
   return (
-    <div className="flex h-screen w-full bg-[#080b0f] overflow-hidden font-sans">
+    <div className="flex h-full w-full bg-background-dark overflow-hidden font-sans">
       <Sidebar
         conversations={conversations}
         activeConversationId={activeConversationId}
@@ -160,6 +161,7 @@ export default function ChatDashboard() {
         conversation={activeConversation}
         onMessageSent={handleMessageSent}
       />
+      <RightSidebar />
     </div>
   );
 }

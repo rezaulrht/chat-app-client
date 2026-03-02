@@ -52,7 +52,7 @@ const toDateKey = (dateStr) => {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 };
 
-export default function ChatWindow({ conversation, onMessageSent }) {
+export default function ChatWindow({ conversation, onMessageSent, onMessagesSeen }) {
   const { socket, onlineUsers, typingUsers } = useSocket() || {};
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
@@ -74,6 +74,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
   const reactionPickerRef = useRef(null);
   const inputEmojiPickerRef = useRef(null);
   const gifPickerRef = useRef(null);
+  const seenInitializedConversationRef = useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -193,7 +194,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
       gifUrl,
       tempId,
     });
-    onMessageSent?.(conversation._id, "GIF");
+    onMessageSent?.(conversation._id, null, gifUrl);
   };
 
   const toggleReaction = useCallback(
@@ -245,6 +246,44 @@ export default function ChatWindow({ conversation, onMessageSent }) {
   //   });
   // };
 
+  // ── Edit & Delete Handlers ──
+  const handleEdit = (messageId, currentText) => {
+    setEditingMessageId(messageId);
+    setEditedText(currentText);
+  };
+
+  const handleEditSave = () => {
+    if (!editedText.trim() || !socket || !conversation) return;
+
+    socket.emit("message:edit", {
+      messageId: editingMessageId,
+      conversationId: conversation._id,
+      newText: editedText.trim(),
+    });
+
+    setEditingMessageId(null);
+    setEditedText("");
+  };
+
+  const handleDelete = (messageId) => {
+    if (!socket || !conversation) return;
+
+    socket.emit("message:delete", {
+      messageId,
+      conversationId: conversation._id,
+    });
+  };
+
+  // const handleDeleteForMe = (messageId) => {
+  //   if (!socket || !conversation) return;
+
+  //   socket.emit("message:deleteForMe", {
+  //     messageId,
+  //     conversationId: conversation._id,
+  //   });
+  // };
+
+  // Fetch messages when conversation changes
   useEffect(() => {
     if (!conversation?._id) return;
     const fetchMessages = async () => {
@@ -274,6 +313,52 @@ export default function ChatWindow({ conversation, onMessageSent }) {
     fetchMessages();
   }, [conversation?._id]);
 
+  // Mark initial loaded messages as seen once per active conversation
+  useEffect(() => {
+    if (!socket || !user || !conversation?._id || loadingMessages) return;
+    if (seenInitializedConversationRef.current === conversation._id) return;
+
+    // Find the last message from the other user that we haven't read
+    const lastUnreadMsg = [...messages]
+      .reverse()
+      .find((msg) => msg.sender?._id !== user._id && msg.status !== "read");
+
+    if (lastUnreadMsg) {
+      socket.emit("conversation:seen", {
+        conversationId: conversation._id,
+        lastSeenMessageId: lastUnreadMsg._id,
+      });
+
+      // Notify parent to update unread count
+      onMessagesSeen?.(conversation._id);
+    }
+
+    seenInitializedConversationRef.current = conversation._id;
+  }, [conversation?._id, messages, socket, user, loadingMessages, onMessagesSeen]);
+
+  // Mark initial loaded messages as seen once per active conversation
+  useEffect(() => {
+    if (!socket || !user || !conversation?._id || loadingMessages) return;
+    if (seenInitializedConversationRef.current === conversation._id) return;
+
+    // Find the last message from the other user that we haven't read
+    const lastUnreadMsg = [...messages]
+      .reverse()
+      .find((msg) => msg.sender?._id !== user._id && msg.status !== "read");
+
+    if (lastUnreadMsg) {
+      socket.emit("conversation:seen", {
+        conversationId: conversation._id,
+        lastSeenMessageId: lastUnreadMsg._id,
+      });
+
+      // Notify parent to update unread count
+      onMessagesSeen?.(conversation._id);
+    }
+
+    seenInitializedConversationRef.current = conversation._id;
+  }, [conversation?._id, messages, socket, user, loadingMessages, onMessagesSeen]);
+
   useEffect(() => {
     if (!socket || !conversation?._id) return;
     socket.emit("conversation:join", conversation._id);
@@ -298,6 +383,10 @@ export default function ChatWindow({ conversation, onMessageSent }) {
           conversationId: conversation._id,
           lastSeenMessageId: msg._id,
         });
+        // Notify parent to update unread count
+        if (onMessagesSeen) {
+          onMessagesSeen(conversation._id);
+        }
       }
     };
     const handleDelivered = (update) => {

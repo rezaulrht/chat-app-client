@@ -2,7 +2,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { Search, Edit3, X } from "lucide-react";
+import { Search, Edit3, X, Pin, Archive, Bell, BellOff, MoreVertical } from "lucide-react";
 import Link from "next/link";
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
@@ -60,6 +60,7 @@ export default function Sidebar({
   activeConversationId,
   setActiveConversationId,
   onNewConversation,
+  onConversationUpdate,
 }) {
   const { onlineUsers } = useSocket() || {};
   const { user: currentUser } = useAuth();
@@ -68,6 +69,8 @@ export default function Sidebar({
   const [filterTerm, setFilterTerm] = useState("");
   const [searchedConversations, setSearchedConversations] =
     useState(conversations);
+  const [showArchived, setShowArchived] = useState(false);
+  const [contextMenu, setContextMenu] = useState(null);
 
   // --- New chat modal state ---
   const [modalOpen, setModalOpen] = useState(false);
@@ -76,6 +79,20 @@ export default function Sidebar({
   const [searching, setSearching] = useState(false);
   const [startingChat, setStartingChat] = useState(false);
   const searchInputRef = useRef(null);
+  const contextMenuRef = useRef(null);
+
+  // Close context menu on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target)) {
+        setContextMenu(null);
+      }
+    };
+    if (contextMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [contextMenu]);
 
   // Focus search input when modal opens
   useEffect(() => {
@@ -135,9 +152,9 @@ export default function Sidebar({
 
   const activeNowUsers = currentUser
     ? [
-        currentUser,
-        ...onlineParticipants.filter((u) => u._id !== currentUser._id),
-      ]
+      currentUser,
+      ...onlineParticipants.filter((u) => u._id !== currentUser._id),
+    ]
     : onlineParticipants;
 
   useEffect(() => {
@@ -156,7 +173,7 @@ export default function Sidebar({
         );
         setSearchedConversations(res.data);
       } catch (err) {
-        if (err.name === "CanceledError" || err.code === "ERR_CANCELED") return; 
+        if (err.name === "CanceledError" || err.code === "ERR_CANCELED") return;
         console.error("Search failed:", err);
         setSearchedConversations(conversations);
       }
@@ -164,9 +181,9 @@ export default function Sidebar({
 
     return () => {
       clearTimeout(timer);
-      controller.abort(); 
+      controller.abort();
     };
-  }, [filterTerm]); 
+  }, [filterTerm]);
 
   // Keep searchedConversations in sync when not searching
   useEffect(() => {
@@ -174,6 +191,69 @@ export default function Sidebar({
       setSearchedConversations(conversations);
     }
   }, [conversations]); // only syncs when not actively filtering
+
+  // Handle pin/unpin
+  const handleTogglePin = async (e, conversationId) => {
+    e.stopPropagation();
+    try {
+      await api.patch(`/api/chat/conversations/${conversationId}/pin`);
+      // Optimistic update: toggle isPinned locally
+      if (onConversationUpdate) {
+        onConversationUpdate(
+          conversations.map((c) =>
+            c._id === conversationId ? { ...c, isPinned: !c.isPinned } : c
+          )
+        );
+      }
+    } catch (err) {
+      console.error("Failed to toggle pin:", err);
+    }
+    setContextMenu(null);
+  };
+
+  // Handle archive/unarchive
+  const handleToggleArchive = async (e, conversationId) => {
+    e.stopPropagation();
+    try {
+      await api.patch(`/api/chat/conversations/${conversationId}/archive`);
+      // Optimistic update: toggle isArchived locally
+      if (onConversationUpdate) {
+        onConversationUpdate(
+          conversations.map((c) =>
+            c._id === conversationId ? { ...c, isArchived: !c.isArchived } : c
+          )
+        );
+      }
+    } catch (err) {
+      console.error("Failed to toggle archive:", err);
+    }
+    setContextMenu(null);
+  };
+
+  // Handle mute/unmute
+  const handleToggleMute = async (e, conversationId) => {
+    e.stopPropagation();
+    try {
+      await api.patch(`/api/chat/conversations/${conversationId}/mute`);
+      // Optimistic update: toggle isMuted locally
+      if (onConversationUpdate) {
+        onConversationUpdate(
+          conversations.map((c) =>
+            c._id === conversationId ? { ...c, isMuted: !c.isMuted } : c
+          )
+        );
+      }
+    } catch (err) {
+      console.error("Failed to toggle mute:", err);
+    }
+    setContextMenu(null);
+  };
+
+  // Filter conversations based on archived status
+  // (Conversations are already sorted in parent ChatDashboard component)
+  const sortedConversations = showArchived
+    ? searchedConversations.filter((c) => c.isArchived)
+    : searchedConversations.filter((c) => !c.isArchived);
 
   const highlightMatch = (text, query) => {
     if (!query || !text) return text || "No messages yet";
@@ -280,78 +360,158 @@ export default function Sidebar({
         )}
 
         {/* Section label */}
-        <div className="px-4 mb-2">
+        <div className="px-4 mb-2 flex justify-between items-center">
           <p className="text-[9px] font-bold tracking-[0.15em] text-slate-600 uppercase">
             Messages
           </p>
+          <button
+            onClick={() => setShowArchived(!showArchived)}
+            className="cursor-pointer text-[9px] text-teal-normal hover:text-teal-light transition-colors"
+          >
+            {showArchived ? "Show All" : "Show Archived"}
+          </button>
         </div>
 
         {/* Conversation list */}
         <div className="flex-1 min-h-0 overflow-y-auto px-3 pb-3 space-y-0.5 scrollbar-hide">
-          {searchedConversations.map((conv) => {
+          {sortedConversations.map((conv) => {
             const isActive = activeConversationId === conv._id;
             const isUserOnline = onlineUsers?.get(
               conv.participant?._id,
             )?.online;
+            const hasUnread = conv.unreadCount > 0;
+
             return (
               <div
                 key={conv._id}
-                onClick={() => setActiveConversationId(conv._id)}
-                className={`flex items-center gap-3 px-3 py-3 rounded-2xl cursor-pointer transition-all duration-150 ${
-                  isActive
-                    ? "bg-teal-normal/10 border border-teal-normal/20"
-                    : "hover:bg-white/4 border border-transparent"
-                }`}
+                className="relative group"
               >
-                <div className="relative shrink-0">
-                  <div
-                    className={`rounded-full overflow-hidden ${isActive ? "ring-2 ring-teal-normal/50 ring-offset-1 ring-offset-[#0f1318]" : ""}`}
+                <div
+                  onClick={() => setActiveConversationId(conv._id)}
+                  className={`flex items-center gap-3 px-3 py-3 rounded-2xl cursor-pointer transition-all duration-150 ${isActive
+                    ? "bg-teal-normal/10 border border-teal-normal/20"
+                    : conv.isPinned
+                      ? "bg-teal-normal/2 hover:bg-teal-normal/8 border border-teal-normal/2"
+                      : "hover:bg-white/4 border border-transparent"
+                    }`}
+                >
+                  <div className="relative shrink-0">
+                    <div
+                      className={`rounded-full overflow-hidden ${isActive ? "ring-2 ring-teal-normal/50 ring-offset-1 ring-offset-[#0f1318]" : ""}`}
+                    >
+                      <Image
+                        src={
+                          conv.participant?.avatar ||
+                          `https://api.dicebear.com/7.x/avataaars/svg?seed=${conv.participant?.name}`
+                        }
+                        width={44}
+                        height={44}
+                        className="rounded-full"
+                        alt={conv.participant?.name || "avatar"}
+                        unoptimized
+                      />
+                    </div>
+                    <div
+                      className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#0f1318] ${isUserOnline ? "bg-green-400" : "bg-slate-600"}`}
+                    ></div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-center gap-2">
+                      <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                        {conv.isPinned && (
+                          <Pin size={12} className="text-teal-normal shrink-0" />
+                        )}
+                        <span className="font-semibold text-sm truncate text-white">
+                          {highlightMatch(conv.participant?.name || "", filterTerm)}
+                        </span>
+                        {conv.isMuted && (
+                          <BellOff size={12} className="text-slate-600 shrink-0" />
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-[9px] text-slate-600">
+                          {formatConvTimestamp(conv.lastMessage?.timestamp)}
+                        </span>
+                        {hasUnread && !conv.isMuted && (
+                          <div className="min-w-4_5 h-4_5 px-1 rounded-full bg-teal-normal flex items-center justify-center">
+                            <span className="text-[9px] font-bold text-white">
+                              {conv.unreadCount > 99 ? "99+" : conv.unreadCount}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <p className={`text-xs ${hasUnread && !conv.isMuted ? "text-white font-medium" : "text-slate-500"} truncate`}>
+                      {hasUnread && !conv.isMuted
+                        ? conv.unreadCount === 1
+                          ? "1 new message"
+                          : `${conv.unreadCount} new messages`
+                        : conv.lastMessage?.gifUrl
+                          ? "GIF"
+                          : conv.lastMessage?.text
+                            ? highlightMatch(conv.lastMessage.text, filterTerm)
+                            : "No messages yet"}
+                    </p>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setContextMenu(contextMenu === conv._id ? null : conv._id);
+                    }}
+                    className="cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity shrink-0 w-6 h-6 rounded-lg hover:bg-white/10 flex items-center justify-center"
                   >
-                    <Image
-                      src={
-                        conv.participant?.avatar ||
-                        `https://api.dicebear.com/7.x/avataaars/svg?seed=${conv.participant?.name}`
-                      }
-                      width={44}
-                      height={44}
-                      className="rounded-full"
-                      alt={conv.participant?.name || "avatar"}
-                      unoptimized
-                    />
-                  </div>
+                    <MoreVertical size={14} className="text-slate-400" />
+                  </button>
+                </div>
+
+                {/* Context Menu */}
+                {contextMenu === conv._id && (
                   <div
-                    className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#0f1318] ${isUserOnline ? "bg-green-400" : "bg-slate-600"}`}
-                  ></div>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-center">
-                    <span className="font-semibold text-sm truncate text-white">
-                      {highlightMatch(conv.participant?.name || "", filterTerm)}
-                    </span>
-                    <span className="text-[9px] text-slate-600 shrink-0">
-                      {formatConvTimestamp(conv.lastMessage?.timestamp)}
-                    </span>
+                    ref={contextMenuRef}
+                    className="absolute right-3 top-14 bg-[#1a1f26] border border-white/10 rounded-xl shadow-2xl z-10 py-1 min-w-40"
+                  >
+                    <button
+                      onClick={(e) => handleTogglePin(e, conv._id)}
+                      className="w-full px-4 py-2 text-left text-xs text-slate-300 hover:bg-white/5 flex items-center gap-2"
+                    >
+                      <Pin size={14} />
+                      {conv.isPinned ? "Unpin" : "Pin"}
+                    </button>
+                    <button
+                      onClick={(e) => handleToggleMute(e, conv._id)}
+                      className="w-full px-4 py-2 text-left text-xs text-slate-300 hover:bg-white/5 flex items-center gap-2"
+                    >
+                      {conv.isMuted ? <Bell size={14} /> : <BellOff size={14} />}
+                      {conv.isMuted ? "Unmute" : "Mute"}
+                    </button>
+                    <button
+                      onClick={(e) => handleToggleArchive(e, conv._id)}
+                      className="w-full px-4 py-2 text-left text-xs text-slate-300 hover:bg-white/5 flex items-center gap-2"
+                    >
+                      <Archive size={14} />
+                      {conv.isArchived ? "Unarchive" : "Archive"}
+                    </button>
                   </div>
-                  <p className="text-xs text-slate-500 truncate">
-                    {highlightMatch(
-                      conv.lastMessage?.text || "No messages yet",
-                      filterTerm,
-                    )}
-                  </p>
-                </div>
+                )}
               </div>
             );
           })}
 
-          {searchedConversations.length === 0 && (
+          {sortedConversations.length === 0 && (
             <div className="flex flex-col items-center justify-center py-10 gap-2">
               <div className="w-10 h-10 rounded-2xl bg-teal-normal/10 flex items-center justify-center">
-                <Search size={16} className="text-teal-dark" />
+                {showArchived ? (
+                  <Archive size={16} className="text-teal-dark" />
+                ) : (
+                  <Search size={16} className="text-teal-dark" />
+                )}
               </div>
               <p className="text-slate-600 text-xs text-center">
-                {conversations.length === 0
-                  ? "No conversations yet.\nClick the edit icon to start one."
-                  : "No conversations found"}
+                {showArchived
+                  ? "No archived conversations"
+                  : conversations.length === 0
+                    ? "No conversations yet.\nClick the edit icon to start one."
+                    : "No conversations found"}
               </p>
             </div>
           )}

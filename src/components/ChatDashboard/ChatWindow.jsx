@@ -1,13 +1,26 @@
 "use client";
+
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import dynamic from "next/dynamic";
-import { Phone, Video, Info, Plus, Smile, Send, X, Reply } from "lucide-react";
+import {
+  Phone,
+  Video,
+  Info,
+  Plus,
+  Smile,
+  Send,
+  X,
+  Reply,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
 import { EMOJI_MAP } from "@/utils/emojis";
 import { formatLastSeen } from "@/utils/formatLastSeen";
+import toast from "react-hot-toast";
 
 const EmojiPicker = dynamic(() => import("emoji-picker-react"), { ssr: false });
 const GifPicker = dynamic(
@@ -52,6 +65,10 @@ export default function ChatWindow({ conversation, onMessageSent, onMessagesSeen
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const [suggestionIndex, setSuggestionIndex] = useState(0);
+
+  // ── Edit & Delete States ──
+  const [editingMessageId, setEditingMessageId] = useState(null);
+  const [editedText, setEditedText] = useState("");
 
   const bottomRef = useRef(null);
   const reactionPickerRef = useRef(null);
@@ -115,9 +132,7 @@ export default function ChatWindow({ conversation, onMessageSent, onMessagesSeen
       const query = match[1].toLowerCase();
       const filtered = Object.entries(EMOJI_MAP)
         .filter(([code]) => {
-          // code looks like ":cat:" — strip colons to get "cat"
           const name = code.slice(1, -1);
-          // Match only if query is at the start of the whole name OR a word segment
           return (
             name.startsWith(query) ||
             name.split("_").some((w) => w.startsWith(query))
@@ -126,7 +141,6 @@ export default function ChatWindow({ conversation, onMessageSent, onMessagesSeen
         .sort(([a], [b]) => {
           const an = a.slice(1, -1);
           const bn = b.slice(1, -1);
-          // Exact-prefix matches first (e.g. "cat", "cat2")
           const aFirst = an.startsWith(query);
           const bFirst = bn.startsWith(query);
           if (aFirst && !bFirst) return -1;
@@ -195,6 +209,43 @@ export default function ChatWindow({ conversation, onMessageSent, onMessagesSeen
     [socket, conversation?._id],
   );
 
+  // ── Edit & Delete Handlers ──
+  const handleEdit = (messageId, currentText) => {
+    setEditingMessageId(messageId);
+    setEditedText(currentText);
+  };
+
+  const handleEditSave = () => {
+    if (!editedText.trim() || !socket || !conversation) return;
+
+    socket.emit("message:edit", {
+      messageId: editingMessageId,
+      conversationId: conversation._id,
+      newText: editedText.trim(),
+    });
+
+    setEditingMessageId(null);
+    setEditedText("");
+  };
+
+  const handleDelete = (messageId) => {
+    if (!socket || !conversation) return;
+
+    socket.emit("message:delete", {
+      messageId,
+      conversationId: conversation._id,
+    });
+  };
+
+  // const handleDeleteForMe = (messageId) => {
+  //   if (!socket || !conversation) return;
+
+  //   socket.emit("message:deleteForMe", {
+  //     messageId,
+  //     conversationId: conversation._id,
+  //   });
+  // };
+
   // Fetch messages when conversation changes
   useEffect(() => {
     if (!conversation?._id) return;
@@ -248,7 +299,29 @@ export default function ChatWindow({ conversation, onMessageSent, onMessagesSeen
     seenInitializedConversationRef.current = conversation._id;
   }, [conversation?._id, messages, socket, user, loadingMessages, onMessagesSeen]);
 
-  // Join the conversation room so we receive real-time reactions
+  // Mark initial loaded messages as seen once per active conversation
+  useEffect(() => {
+    if (!socket || !user || !conversation?._id || loadingMessages) return;
+    if (seenInitializedConversationRef.current === conversation._id) return;
+
+    // Find the last message from the other user that we haven't read
+    const lastUnreadMsg = [...messages]
+      .reverse()
+      .find((msg) => msg.sender?._id !== user._id && msg.status !== "read");
+
+    if (lastUnreadMsg) {
+      socket.emit("conversation:seen", {
+        conversationId: conversation._id,
+        lastSeenMessageId: lastUnreadMsg._id,
+      });
+
+      // Notify parent to update unread count
+      onMessagesSeen?.(conversation._id);
+    }
+
+    seenInitializedConversationRef.current = conversation._id;
+  }, [conversation?._id, messages, socket, user, loadingMessages, onMessagesSeen]);
+
   useEffect(() => {
     if (!socket || !conversation?._id) return;
     socket.emit("conversation:join", conversation._id);
@@ -304,13 +377,53 @@ export default function ChatWindow({ conversation, onMessageSent, onMessagesSeen
       if (cId !== conversation?._id) return;
       setReactions((prev) => ({ ...prev, [messageId]: rxns }));
     };
+
+    // ── Edit & Delete Listeners ──
+    const handleEdited = (updatedMsg) => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m._id === updatedMsg._id ? { ...m, ...updatedMsg } : m,
+        ),
+      );
+    };
+
+    const handleDeleted = ({ messageId }) => {
+      if (!messageId) return;
+      setMessages((prev) =>
+        prev.map((m) =>
+          m._id === messageId
+            ? {
+                ...m,
+                text: (
+                  <p className="italic text-gray-600 text-xs">
+                    This message was deleted
+                  </p>
+                ),
+              }
+            : m,
+        ),
+      );
+    };
+
+    const handleDeletedForMe = ({ messageId }) => {
+      if (!messageId) return;
+      setMessages((prev) => prev.filter((m) => m._id !== messageId));
+    };
+
     socket.on("message:new", handleReceive);
     socket.on("message:status", handleDelivered);
     socket.on("message:reacted", handleReacted);
+    socket.on("message:edited", handleEdited);
+    socket.on("message:deleted", handleDeleted);
+    socket.on("message:deletedForMe", handleDeletedForMe);
+
     return () => {
       socket.off("message:new", handleReceive);
       socket.off("message:status", handleDelivered);
       socket.off("message:reacted", handleReacted);
+      socket.off("message:edited", handleEdited);
+      socket.off("message:deleted", handleDeleted);
+      socket.off("message:deletedForMe", handleDeletedForMe);
     };
   }, [socket, conversation?._id, user?._id]);
 
@@ -478,6 +591,7 @@ export default function ChatWindow({ conversation, onMessageSent, onMessagesSeen
                       <div
                         className={`absolute -top-6 ${isMe ? "right-0" : "left-0"} hidden group-hover:flex items-center gap-0.5 bg-[#15191C] border border-slate-700/60 rounded-lg p-0.5 shadow-xl shadow-black/40 z-30`}
                       >
+                        {/* Reaction emojis */}
                         {["👍", "❤️", "😂", "😮", "😢"].map((emoji) => (
                           <button
                             key={emoji}
@@ -485,12 +599,19 @@ export default function ChatWindow({ conversation, onMessageSent, onMessagesSeen
                               e.stopPropagation();
                               toggleReaction(msg._id, emoji);
                             }}
-                            className={`p-1.5 rounded-md transition-all duration-150 hover:bg-slate-700/60 hover:scale-125 ${reactions[msg._id]?.[emoji]?.includes(user?._id) ? "bg-teal-900/40" : ""}`}
+                            className={`p-1.5 rounded-md transition-all duration-150 hover:bg-slate-700/60 hover:scale-125 ${
+                              reactions[msg._id]?.[emoji]?.includes(user?._id)
+                                ? "bg-teal-900/40"
+                                : ""
+                            }`}
                           >
                             {emoji}
                           </button>
                         ))}
+
                         <div className="w-px h-5 bg-slate-700/60 mx-0.5" />
+
+                        {/* More Emoji (Smile) */}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -498,16 +619,49 @@ export default function ChatWindow({ conversation, onMessageSent, onMessagesSeen
                               reactionPickerMsgId === msg._id ? null : msg._id,
                             );
                           }}
-                          className="p-1 text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 rounded-md transition-all duration-150"
+                          className="p-1.5 rounded-md text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 transition-all duration-150"
                         >
                           <Smile size={14} />
                         </button>
+
+                        {/* Reply */}
                         <button
                           onClick={() => setReplyTo(msg)}
-                          className="p-1 text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 rounded-md transition-all duration-150"
+                          className="p-1.5 rounded-md text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 transition-all duration-150"
                         >
                           <Reply size={14} />
                         </button>
+
+                        {/* Divider before Edit/Delete (only for own messages) */}
+                        {isMe && !msg.isOptimistic && !msg.isDeleted && (
+                          <>
+                            <div className="w-px h-5 bg-slate-700/60 mx-0.5" />
+
+                            {/* Edit - Blue Pencil Icon */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(msg._id, msg.text);
+                              }}
+                              className="p-1.5 rounded-md text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 transition-all duration-150"
+                              title="Edit message"
+                            >
+                              <Pencil size={16} />
+                            </button>
+
+                            {/* Delete - Red Trash Icon */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(msg._id);
+                              }}
+                              className="p-1.5 rounded-md text-red-400 hover:text-red-300 hover:bg-red-500/20 transition-all duration-150"
+                              title="Delete message"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </>
+                        )}
                       </div>
                     )}
                     <div
@@ -523,7 +677,38 @@ export default function ChatWindow({ conversation, onMessageSent, onMessagesSeen
                           {msg.replyTo.text}
                         </div>
                       )}
-                      {isGif ? (
+
+                      {msg.isDeleted ? (
+                        <p className="italic text-gray-600 text-xs">
+                          This message was deleted
+                        </p>
+                      ) : editingMessageId === msg._id ? (
+                        <div className="flex flex-col gap-2">
+                          <input
+                            className="bg-gray-800 text-white text-sm p-2 rounded border border-teal-normal focus:outline-none focus:ring-2 focus:ring-teal-normal"
+                            value={editedText}
+                            onChange={(e) => setEditedText(e.target.value)}
+                            autoFocus
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={handleEditSave}
+                              className="text-xs bg-teal-normal text-black px-3 py-1 rounded hover:bg-teal-light"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEditingMessageId(null);
+                                setEditedText("");
+                              }}
+                              className="text-xs text-gray-400 hover:text-gray-300"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : isGif ? (
                         <img
                           src={msg.gifUrl}
                           alt="GIF"
@@ -531,8 +716,9 @@ export default function ChatWindow({ conversation, onMessageSent, onMessagesSeen
                           loading="lazy"
                         />
                       ) : (
-                        msg.text
+                        <div className="relative group">{msg.text}</div>
                       )}
+
                       <div
                         className={`text-[9px] mt-1.5 opacity-40 text-right ${isGif ? "px-2" : ""} flex items-center justify-end gap-1`}
                       >
@@ -542,6 +728,7 @@ export default function ChatWindow({ conversation, onMessageSent, onMessagesSeen
                         })}
                       </div>
                     </div>
+
                     {reactionPickerMsgId === msg._id && (
                       <div
                         ref={reactionPickerRef}
@@ -562,6 +749,7 @@ export default function ChatWindow({ conversation, onMessageSent, onMessagesSeen
                       </div>
                     )}
                   </div>
+
                   {reactions[msg._id] &&
                     Object.keys(reactions[msg._id]).length > 0 && (
                       <div
@@ -583,6 +771,7 @@ export default function ChatWindow({ conversation, onMessageSent, onMessagesSeen
                           ))}
                       </div>
                     )}
+
                   {isMe && !msg.isOptimistic && (
                     <div className="flex items-center gap-0.5 px-0.5 mt-0.5">
                       {msg.status === "sent" && (
@@ -677,7 +866,7 @@ export default function ChatWindow({ conversation, onMessageSent, onMessagesSeen
 
       <form
         onSubmit={handleSend}
-        className="p-4 relative bg-[#0a0e13]/80 backdrop-blur-sm border-t border-white/5 z-50"
+        className="p-4 relative bg-[#0a0e13]/80 backdrop-blur-sm border-t border-white/5"
       >
         {replyTo && (
           <div className="absolute bottom-full left-0 right-0 p-3 bg-surface-dark border-t border-teal-normal/30 flex items-center justify-between animate-in slide-in-from-bottom-2 fade-in">
@@ -742,6 +931,7 @@ export default function ChatWindow({ conversation, onMessageSent, onMessagesSeen
           >
             <Plus size={20} />
           </button>
+
           <input
             className="flex-1 bg-transparent outline-none text-sm text-slate-200 px-3 placeholder:text-slate-600"
             placeholder="Type a message..."
@@ -749,6 +939,7 @@ export default function ChatWindow({ conversation, onMessageSent, onMessagesSeen
             onChange={handleTextChange}
             onKeyDown={handleKeyDown}
           />
+
           {suggestions.length > 0 && (
             <div className="absolute bottom-20 left-10 bg-[#15191C]/95 backdrop-blur-md border border-slate-800 rounded-xl p-1 shadow-2xl z-50 min-w-37.5">
               {suggestions.map(([code, emoji], i) => (
@@ -763,6 +954,7 @@ export default function ChatWindow({ conversation, onMessageSent, onMessagesSeen
               ))}
             </div>
           )}
+
           <button
             type="button"
             onClick={() => {
@@ -783,6 +975,7 @@ export default function ChatWindow({ conversation, onMessageSent, onMessagesSeen
           >
             <Smile size={20} />
           </button>
+
           <button
             type="submit"
             className="w-9 h-9 flex items-center justify-center bg-teal-normal hover:bg-teal-light text-black rounded-xl ml-2 transition-all active:scale-95 shadow-lg shadow-teal-normal/20"

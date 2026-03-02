@@ -246,43 +246,6 @@ export default function ChatWindow({ conversation, onMessageSent, onMessagesSeen
   //   });
   // };
 
-  // ── Edit & Delete Handlers ──
-  const handleEdit = (messageId, currentText) => {
-    setEditingMessageId(messageId);
-    setEditedText(currentText);
-  };
-
-  const handleEditSave = () => {
-    if (!editedText.trim() || !socket || !conversation) return;
-
-    socket.emit("message:edit", {
-      messageId: editingMessageId,
-      conversationId: conversation._id,
-      newText: editedText.trim(),
-    });
-
-    setEditingMessageId(null);
-    setEditedText("");
-  };
-
-  const handleDelete = (messageId) => {
-    if (!socket || !conversation) return;
-
-    socket.emit("message:delete", {
-      messageId,
-      conversationId: conversation._id,
-    });
-  };
-
-  // const handleDeleteForMe = (messageId) => {
-  //   if (!socket || !conversation) return;
-
-  //   socket.emit("message:deleteForMe", {
-  //     messageId,
-  //     conversationId: conversation._id,
-  //   });
-  // };
-
   // Fetch messages when conversation changes
   useEffect(() => {
     if (!conversation?._id) return;

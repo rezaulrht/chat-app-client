@@ -342,79 +342,82 @@ export default function ChatWindow({ conversation, onMessageSent }) {
   const isParticipantOnline = onlineUsers?.get(participant?._id)?.online;
 
   return (
-    <main className="flex-1 flex flex-col bg-[#080b0f] relative h-full">
-      <header className="h-17 border-b border-white/5 flex justify-between items-center px-5 bg-[#0a0e13]/80 backdrop-blur-sm shrink-0">
+    <main className="flex-1 flex flex-col bg-[#313338] relative h-full overflow-hidden">
+      <header className="h-12 border-b border-[#1e1f22] flex justify-between items-center px-4 bg-[#313338] shrink-0">
         <div className="flex items-center gap-3">
-          <div className="relative">
-            <div
-              className={`rounded-2xl overflow-hidden ${isParticipantOnline ? "ring-2 ring-teal-normal/60 ring-offset-1 ring-offset-[#0a0e13]" : ""}`}
-            >
+          <div className="relative shrink-0">
+            <div className="w-8 h-8 rounded-full overflow-hidden">
               <Image
                 src={
                   participant?.avatar ||
                   `https://api.dicebear.com/7.x/avataaars/svg?seed=${participant?.name}`
                 }
-                width={40}
-                height={40}
-                className="rounded-2xl"
+                width={32}
+                height={32}
+                className="rounded-full"
                 alt={participant?.name || "avatar"}
                 unoptimized
               />
             </div>
             <div
-              className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#0a0e13] ${isParticipantOnline ? "bg-green-400" : "bg-slate-600"}`}
+              className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-[3px] border-[#313338] ${isParticipantOnline ? "bg-[#23a559]" : "bg-[#80848e]"}`}
             ></div>
           </div>
           <div>
-            <h2 className="font-bold text-slate-100 text-sm leading-tight">
+            <h2 className="font-bold text-white text-[15px] leading-tight flex items-center gap-2">
               {participant?.name}
             </h2>
-            <p className="text-[10px] mt-0.5">
-              {isParticipantOnline ? (
-                <span className="text-green-400 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block"></span>
-                  Online
-                </span>
-              ) : (
-                <span className="text-slate-600">
-                  Last seen{" "}
-                  {formatLastSeen(
-                    onlineUsers?.get(participant?._id)?.lastSeen,
-                  ) || "recently"}
-                </span>
-              )}
+            <p className="text-[11px] text-[#949ba4] font-medium leading-tight">
+              {isParticipantOnline
+                ? "Online"
+                : `Last seen ${formatLastSeen(onlineUsers?.get(participant?._id)?.lastSeen) || "recently"}`}
             </p>
           </div>
         </div>
-        <div className="flex gap-1">
+        <div className="flex gap-4">
           {[{ icon: Phone }, { icon: Video }, { icon: Info }].map(
             ({ icon: Icon }, i) => (
               <button
                 key={i}
-                className="w-8 h-8 rounded-xl bg-white/4 hover:bg-teal-normal/10 hover:text-teal-normal flex items-center justify-center text-slate-500 transition-all"
+                className="text-[#b5bac1] hover:text-[#dbdee1] transition-colors"
               >
-                <Icon size={16} />
+                <Icon size={20} strokeWidth={2.5} />
               </button>
             ),
           )}
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-3 scrollbar-hide">
+      <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-1 scrollbar-hide">
         {loadingMessages && (
           <div className="flex items-center justify-center gap-2 mt-8">
             <div className="w-4 h-4 rounded-full border-2 border-teal-normal border-t-transparent animate-spin"></div>
-            <p className="text-slate-600 text-xs">Loading messages...</p>
+            <p className="text-[#949ba4] text-xs">Loading messages...</p>
           </div>
         )}
         {!loadingMessages && messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center flex-1 gap-3">
-            <div className="w-12 h-12 rounded-3xl bg-teal-normal/10 border border-teal-normal/15 flex items-center justify-center">
-              <span className="text-xl">👋</span>
+          <div className="flex flex-col items-center justify-center flex-1 gap-4">
+            <div className="w-20 h-20 rounded-full bg-[#2b2d31] flex items-center justify-center shadow-inner">
+              <Image
+                src={
+                  participant?.avatar ||
+                  `https://api.dicebear.com/7.x/avataaars/svg?seed=${participant?.name}`
+                }
+                width={80}
+                height={80}
+                className="rounded-full"
+                alt={participant?.name || "avatar"}
+                unoptimized
+              />
             </div>
-            <p className="text-slate-600 text-xs">
-              No messages yet. Say hello!
-            </p>
+            <div className="text-center">
+              <h3 className="text-white font-bold text-2xl">
+                {participant?.name}
+              </h3>
+              <p className="text-[#949ba4] text-sm mt-2">
+                This is the start of your direct message history.
+              </p>
+            </div>
           </div>
         )}
 
@@ -430,12 +433,12 @@ export default function ChatWindow({ conversation, onMessageSent }) {
           return (
             <React.Fragment key={msg._id}>
               {showDateSeparator && (
-                <div className="flex items-center gap-3 my-2">
-                  <div className="flex-1 h-px bg-white/5"></div>
-                  <span className="text-[10px] font-medium text-slate-600 px-3 py-1 rounded-full bg-white/4 border border-white/6 shrink-0">
+                <div className="flex items-center gap-3 my-4">
+                  <div className="flex-1 h-px bg-[#1e1f22]"></div>
+                  <span className="text-[11px] font-bold text-[#949ba4] uppercase tracking-wider px-2">
                     {getDateLabel(msg.createdAt)}
                   </span>
-                  <div className="flex-1 h-px bg-white/5"></div>
+                  <div className="flex-1 h-px bg-[#1e1f22]"></div>
                 </div>
               )}
               <div
@@ -447,7 +450,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                   <div className="relative group w-fit">
                     {!msg.isOptimistic && (
                       <div
-                        className={`absolute -top-6 ${isMe ? "right-0" : "left-0"} hidden group-hover:flex items-center gap-0.5 bg-[#15191C] border border-slate-700/60 rounded-lg p-0.5 shadow-xl shadow-black/40 z-30`}
+                        className={`absolute -top-7 ${isMe ? "right-0" : "left-0"} hidden group-hover:flex items-center gap-0.5 bg-[#232428] border border-[#1e1f22] rounded-lg p-0.5 shadow-xl z-30`}
                       >
                         {["👍", "❤️", "😂", "😮", "😢"].map((emoji) => (
                           <button
@@ -456,12 +459,12 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                               e.stopPropagation();
                               toggleReaction(msg._id, emoji);
                             }}
-                            className={`p-1.5 rounded-md transition-all duration-150 hover:bg-slate-700/60 hover:scale-125 ${reactions[msg._id]?.[emoji]?.includes(user?._id) ? "bg-teal-900/40" : ""}`}
+                            className={`p-1.5 rounded-md transition-all duration-150 hover:bg-[#35373c] hover:scale-125 ${reactions[msg._id]?.[emoji]?.includes(user?._id) ? "bg-teal-normal/20" : ""}`}
                           >
                             {emoji}
                           </button>
                         ))}
-                        <div className="w-px h-5 bg-slate-700/60 mx-0.5" />
+                        <div className="w-px h-5 bg-[#1e1f22] mx-0.5" />
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -469,24 +472,24 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                               reactionPickerMsgId === msg._id ? null : msg._id,
                             );
                           }}
-                          className="p-1 text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 rounded-md transition-all duration-150"
+                          className="p-1.5 text-[#b5bac1] hover:text-[#dbdee1] hover:bg-[#35373c] rounded-md transition-all duration-150"
                         >
-                          <Smile size={14} />
+                          <Smile size={16} />
                         </button>
                         <button
                           onClick={() => setReplyTo(msg)}
-                          className="p-1 text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 rounded-md transition-all duration-150"
+                          className="p-1.5 text-[#b5bac1] hover:text-[#dbdee1] hover:bg-[#35373c] rounded-md transition-all duration-150"
                         >
-                          <Reply size={14} />
+                          <Reply size={16} />
                         </button>
                       </div>
                     )}
                     <div
-                      className={`${isGif ? "p-1" : "p-3.5"} rounded-2xl text-[13px] leading-relaxed relative z-10 ${isMe ? (isGif ? "bg-transparent" : "bg-teal-normal text-white rounded-br-none shadow-lg shadow-teal-normal/10") : isGif ? "bg-transparent" : "bg-surface-dark text-slate-200 rounded-bl-none shadow-sm shadow-black/5"} ${msg.isOptimistic ? "opacity-60" : ""}`}
+                      className={`${isGif ? "p-1" : "p-3"} rounded-xl text-[15px] leading-snug relative z-10 shadow-sm ${isMe ? (isGif ? "bg-transparent" : "bg-teal-normal text-white rounded-br-none") : isGif ? "bg-transparent" : "bg-[#2b2d31] text-[#dbdee1] rounded-bl-none"} ${msg.isOptimistic ? "opacity-60" : ""}`}
                     >
                       {msg.replyTo && (
-                        <div className="mb-2 p-2 bg-black/20 rounded-lg border-l-2 border-teal-normal text-[11px] opacity-80 line-clamp-2">
-                          <p className="font-bold mb-0.5">
+                        <div className="mb-2 p-2 bg-black/10 rounded-lg border-l-2 border-teal-normal/50 text-[12px] opacity-90 line-clamp-2 italic">
+                          <p className="font-bold mb-0.5 non-italic text-[11px]">
                             {msg.replyTo.sender?.name === user.name
                               ? "You"
                               : msg.replyTo.sender?.name || "Participant"}
@@ -498,14 +501,14 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                         <img
                           src={msg.gifUrl}
                           alt="GIF"
-                          className="max-w-70 rounded-xl"
+                          className="max-w-70 rounded-lg"
                           loading="lazy"
                         />
                       ) : (
                         msg.text
                       )}
                       <div
-                        className={`text-[9px] mt-1.5 opacity-40 text-right ${isGif ? "px-2" : ""} flex items-center justify-end gap-1`}
+                        className={`text-[10px] mt-1 opacity-50 text-right ${isGif ? "px-2" : ""} flex items-center justify-end gap-1 font-medium`}
                       >
                         {new Date(msg.createdAt).toLocaleTimeString([], {
                           hour: "2-digit",
@@ -516,7 +519,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                     {reactionPickerMsgId === msg._id && (
                       <div
                         ref={reactionPickerRef}
-                        className={`absolute top-0 z-50 ${isMe ? "right-full mr-2" : "left-full ml-2"}`}
+                        className={`absolute bottom-full mb-2 z-50 ${isMe ? "right-0" : "left-0"}`}
                       >
                         <EmojiPicker
                           onEmojiClick={(emojiData) =>
@@ -544,10 +547,10 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                             <button
                               key={emoji}
                               onClick={() => toggleReaction(msg._id, emoji)}
-                              className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded-full border transition-all duration-150 ${users.includes(user?._id) ? "bg-teal-400/10 border-teal-400/30" : "bg-[#1C2227] border-slate-800"}`}
+                              className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded-full border transition-all duration-150 ${users.includes(user?._id) ? "bg-teal-normal/10 border-teal-normal/30" : "bg-[#2b2d31] border-[#1e1f22]"}`}
                             >
-                              <span className="text-[12px]">{emoji}</span>
-                              <span className="text-[9px] font-bold text-slate-400">
+                              <span className="text-[14px]">{emoji}</span>
+                              <span className="text-[11px] font-bold text-[#b5bac1]">
                                 {users.length}
                               </span>
                             </button>
@@ -555,12 +558,12 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                       </div>
                     )}
                   {isMe && !msg.isOptimistic && (
-                    <div className="flex items-center gap-0.5 px-0.5 mt-0.5">
+                    <div className="flex items-center gap-1 px-1 mt-0.5">
                       {msg.status === "sent" && (
-                        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/6 text-slate-500 text-[8px] font-medium">
+                        <span className="text-[#949ba4] text-[10px] font-medium flex items-center gap-1">
                           <svg
-                            width="8"
-                            height="8"
+                            width="10"
+                            height="10"
                             viewBox="0 0 12 12"
                             fill="none"
                           >
@@ -572,14 +575,13 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                               strokeLinejoin="round"
                             />
                           </svg>
-                          Sent
                         </span>
                       )}
                       {msg.status === "delivered" && (
-                        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/6 text-slate-400 text-[8px] font-medium">
+                        <span className="text-[#949ba4] text-[10px] font-medium flex items-center gap-0">
                           <svg
-                            width="10"
-                            height="8"
+                            width="12"
+                            height="10"
                             viewBox="0 0 16 12"
                             fill="none"
                           >
@@ -598,14 +600,13 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                               strokeLinejoin="round"
                             />
                           </svg>
-                          Delivered
                         </span>
                       )}
                       {msg.status === "read" && (
-                        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-teal-normal/15 text-teal-normal text-[8px] font-semibold">
+                        <span className="text-teal-normal text-[10px] font-medium flex items-center gap-0">
                           <svg
-                            width="10"
-                            height="8"
+                            width="12"
+                            height="10"
                             viewBox="0 0 16 12"
                             fill="none"
                           >
@@ -624,7 +625,6 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                               strokeLinejoin="round"
                             />
                           </svg>
-                          Seen
                         </span>
                       )}
                     </div>
@@ -636,7 +636,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
         })}
         {typingUsers?.get(conversation._id) && (
           <div className="flex items-end gap-2 justify-start">
-            <div className="flex items-center gap-1 px-4 py-3 bg-surface-dark rounded-2xl rounded-bl-none shadow-sm">
+            <div className="flex items-center gap-1 px-4 py-3 bg-[#2b2d31] rounded-2xl rounded-bl-none shadow-sm">
               <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:0ms]" />
               <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:150ms]" />
               <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:300ms]" />

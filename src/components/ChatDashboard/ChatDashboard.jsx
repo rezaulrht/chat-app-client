@@ -2,7 +2,9 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import Sidebar from "./SidebarChats";
+import ChannelSidebar from "./ChannelSidebar";
 import ChatWindow from "./ChatWindow";
+import WorkspaceSidebar from "./WorkspaceSidebar";
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
 
@@ -11,6 +13,8 @@ export default function ChatDashboard() {
   const [activeConversationId, setActiveConversationId] = useState(null);
   const [loadingConversations, setLoadingConversations] = useState(true);
   const { socket, fetchLastSeenTimes } = useSocket() || {};
+  const [activeView, setActiveView] = useState("home"); // 'home' or 'workspace'
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState(null);
 
   // Fetch all conversations for the logged-in user on mount
   useEffect(() => {
@@ -150,12 +154,24 @@ export default function ChatDashboard() {
 
   return (
     <div className="flex h-screen w-full bg-[#080b0f] overflow-hidden font-sans">
-      <Sidebar
-        conversations={conversations}
-        activeConversationId={activeConversationId}
-        setActiveConversationId={setActiveConversationId}
-        onNewConversation={handleNewConversation}
+      <WorkspaceSidebar
+        activeView={activeView}
+        setActiveView={setActiveView}
+        selectedWorkspaceId={selectedWorkspaceId}
+        setSelectedWorkspaceId={setSelectedWorkspaceId}
       />
+
+      {activeView === "home" ? (
+        <Sidebar
+          conversations={conversations}
+          activeConversationId={activeConversationId}
+          setActiveConversationId={setActiveConversationId}
+          onNewConversation={handleNewConversation}
+        />
+      ) : (
+        <ChannelSidebar selectedWorkspaceId={selectedWorkspaceId} />
+      )}
+
       <ChatWindow
         conversation={activeConversation}
         onMessageSent={handleMessageSent}

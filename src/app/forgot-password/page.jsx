@@ -30,7 +30,7 @@ export default function ForgotPasswordPage() {
 
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/send-reset-email`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/reset/forgot-password`,
         {
           method: "POST",
           headers: {
@@ -41,6 +41,8 @@ export default function ForgotPasswordPage() {
       );
 
       const data = await res.json();
+      console.log(data);
+
 
       if (!res.ok) throw new Error(data.error || "Failed to send reset email");
 

@@ -53,6 +53,10 @@ export default function ChatWindow({ conversation, onMessageSent }) {
   const [suggestions, setSuggestions] = useState([]);
   const [suggestionIndex, setSuggestionIndex] = useState(0);
 
+  const [scheduleMode, setScheduleMode] = useState(false);
+  const [sendAt, setSendAt] = useState(""); // datetime-local value
+  const [scheduling, setScheduling] = useState(false);
+
   const bottomRef = useRef(null);
   const reactionPickerRef = useRef(null);
   const inputEmojiPickerRef = useRef(null);
@@ -276,9 +280,54 @@ export default function ChatWindow({ conversation, onMessageSent }) {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSend = (e) => {
+  const scheduleMessage = async () => {
+    if (!text.trim() || !conversation?._id) return;
+    if (!sendAt) return alert("Select schedule date & time");
+
+    try {
+      setScheduling(true);
+
+      await api.post("/api/messages/schedule", {
+        conversationId: conversation._id,
+        content: text.trim(),
+        sendAt: new Date(sendAt).toISOString(),
+      });
+
+      // Clear input
+      setText("");
+      setSendAt("");
+      setScheduleMode(false);
+      setSuggestions([]);
+      setReplyTo(null);
+
+      // optional: notify parent
+      onMessageSent?.(conversation._id, "SCHEDULED");
+
+      alert("✅ Message scheduled!");
+    } catch (err) {
+      console.error(err);
+      alert(
+        err?.response?.data?.error ||
+          err?.response?.data?.message ||
+          "Failed to schedule",
+      );
+    } finally {
+      setScheduling(false);
+    }
+  };
+
+  const handleSend = async (e) => {
     e.preventDefault();
-    if (!text.trim() || !socket || !conversation) return;
+    if (!text.trim() || !conversation) return;
+
+    // ✅ Scheduled send (API)
+    if (scheduleMode) {
+      return scheduleMessage(); // uses api.post("/api/messages/schedule"...)
+    }
+
+    // ✅ Normal send (Socket)
+    if (!socket) return;
+
     const tempId = `temp-${Date.now()}`;
     const optimistic = {
       _id: tempId,
@@ -290,8 +339,10 @@ export default function ChatWindow({ conversation, onMessageSent }) {
       isOptimistic: true,
       replyTo,
     };
+
     setMessages((prev) => [...prev, optimistic]);
     setText("");
+
     socket.emit("message:send", {
       conversationId: conversation._id,
       receiverId: conversation.participant._id,
@@ -299,6 +350,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
       tempId,
       replyTo: replyTo?._id || null,
     });
+
     setSuggestions([]);
     setReplyTo(null);
   };
@@ -713,6 +765,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
             onClick={() => {
               setShowGifPicker(!showGifPicker);
               setShowEmojiPicker(false);
+              setScheduleMode(false);
             }}
             className={`px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${showGifPicker ? "bg-teal-normal/20 border-teal-normal/40 text-teal-normal" : "bg-white/4 border-white/10 text-slate-500 hover:text-slate-300"}`}
           >
@@ -720,9 +773,30 @@ export default function ChatWindow({ conversation, onMessageSent }) {
           </button>
           <button
             type="button"
+            onClick={() => setScheduleMode((v) => !v)}
+            className={`px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${
+              scheduleMode
+                ? "bg-teal-normal/20 border-teal-normal/40 text-teal-normal"
+                : "bg-white/4 border-white/10 text-slate-500 hover:text-slate-300"
+            }`}
+          >
+            SCHEDULE
+          </button>
+
+          {scheduleMode && (
+            <input
+              type="datetime-local"
+              value={sendAt}
+              onChange={(e) => setSendAt(e.target.value)}
+              className="mx-1 px-2 py-1 rounded-md bg-[#0B0E11] border border-white/10 text-slate-200 text-[11px]"
+            />
+          )}
+          <button
+            type="button"
             onClick={() => {
               setShowEmojiPicker(!showEmojiPicker);
               setShowGifPicker(false);
+              setScheduleMode(false);
             }}
             className={`w-9 h-9 flex items-center justify-center transition-all ${showEmojiPicker ? "text-teal-normal" : "text-slate-500 hover:text-slate-300"}`}
           >
@@ -730,7 +804,12 @@ export default function ChatWindow({ conversation, onMessageSent }) {
           </button>
           <button
             type="submit"
-            className="w-9 h-9 flex items-center justify-center bg-teal-normal hover:bg-teal-light text-black rounded-xl ml-2 transition-all active:scale-95 shadow-lg shadow-teal-normal/20"
+            disabled={scheduling}
+            className={`w-9 h-9 flex items-center justify-center rounded-xl ml-2 transition-all active:scale-95 shadow-lg ${
+              scheduling
+                ? "bg-slate-700 text-slate-400 cursor-not-allowed"
+                : "bg-teal-normal hover:bg-teal-light text-black shadow-teal-normal/20"
+            }`}
           >
             <Send size={18} />
           </button>

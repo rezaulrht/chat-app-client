@@ -1,7 +1,7 @@
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Providers from "@/components/Providers";
-import {  Toaster } from "sonner"; 
+import { Toaster } from "react-hot-toast";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -19,27 +19,22 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body className={inter.className}>
         <Providers>{children}</Providers>
-        {/* Sonner Toaster (required for toasts to appear) */}
         <Toaster
           position="top-right"
-          richColors
-          closeButton
-          theme="dark"
-          duration={6000}
           toastOptions={{
-            className: "border border-teal-normal/30 rounded-xl",
-            // Style the action button globally
-            actionButtonStyle: {
-              backgroundColor: "#0ea5e9", 
-              color: "white",
-              borderRadius: "0.75rem", 
-              padding: "0.5rem 1rem",
-              fontWeight: "500",
-              border: "none",
-              transition: "all 0.2s ease",
+            duration: 4000,
+            style: {
+              background: "#15191C",
+              color: "#e2e8f0",
+              border: "1px solid rgba(45,212,191,0.2)",
+              borderRadius: "0.75rem",
             },
-            // Optional: hover effect
-            actionButtonClassName: "hover:bg-sky-600 active:scale-95",
+            success: {
+              iconTheme: { primary: "#2dd4bf", secondary: "#0B0E11" },
+            },
+            error: {
+              iconTheme: { primary: "#f87171", secondary: "#0B0E11" },
+            },
           }}
         />
       </body>

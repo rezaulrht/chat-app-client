@@ -9,7 +9,7 @@ import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
 import { sortConversations } from "@/utils/sortConversations";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 
 export default function ChatDashboard() {
   const [conversations, setConversations] = useState([]);
@@ -65,21 +65,42 @@ export default function ChatDashboard() {
     (msg) => {
       if (!msg.sender?.name) return;
 
-      toast(`💬 New message from ${msg.sender.name}`, {
-        description: msg.gifUrl
-          ? "Sent a GIF"
-          : msg.text
-            ? msg.text.length > 65
-              ? msg.text.slice(0, 62) + "..."
-              : msg.text
-            : "",
-        action: {
-          label: "Open Chat",
-          onClick: () => setActiveConversationId(msg.conversationId),
-        },
-        duration: 4000,
-        richColors: true,
-      });
+      const description = msg.gifUrl
+        ? "Sent a GIF"
+        : msg.text
+          ? msg.text.length > 65
+            ? msg.text.slice(0, 62) + "..."
+            : msg.text
+          : "";
+
+      toast.custom(
+        (t) => (
+          <div
+            className={`flex flex-col gap-1 px-4 py-3 rounded-xl shadow-xl border border-teal-normal/20 bg-[#15191C] text-slate-200 text-sm min-w-[260px] max-w-[340px] transition-all ${
+              t.visible
+                ? "opacity-100 translate-y-0"
+                : "opacity-0 -translate-y-2"
+            }`}
+          >
+            <p className="font-semibold text-slate-100">
+              💬 New message from {msg.sender.name}
+            </p>
+            {description && (
+              <p className="text-xs text-slate-400 truncate">{description}</p>
+            )}
+            <button
+              onClick={() => {
+                setActiveConversationId(msg.conversationId);
+                toast.dismiss(t.id);
+              }}
+              className="mt-1 self-start text-xs font-bold text-teal-400 hover:text-teal-300 transition-colors"
+            >
+              Open Chat →
+            </button>
+          </div>
+        ),
+        { duration: 4000 },
+      );
     },
     [setActiveConversationId],
   );
@@ -92,8 +113,8 @@ export default function ChatDashboard() {
       // 🔥 TOAST ONLY WHEN NOT IN THIS CHAT AND NOT OUR OWN MESSAGE
       const isInActiveChat =
         activeConversationIdRef.current === msg.conversationId;
-        const isMyMessage =
-          user?._id && String(msg.sender?._id) === String(user._id);
+      const isMyMessage =
+        user?._id && String(msg.sender?._id) === String(user._id);
 
       if (!isInActiveChat && !isMyMessage) {
         showNewMessageToast(msg);

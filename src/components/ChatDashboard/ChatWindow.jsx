@@ -1009,31 +1009,48 @@ export default function ChatWindow({
         })}
         {typingUsers?.get(conversation._id) &&
           (() => {
-            const typingData = typingUsers.get(conversation._id);
-            const typerName = isGroup
-              ? (conversation.participants || []).find(
-                  (p) => p._id === typingData?.userId,
-                )?.name
-              : null;
+            const typingSet = typingUsers.get(conversation._id);
+            if (!typingSet || typingSet.size === 0) return null;
+
+            // For groups resolve names; for DMs just show dots
+            let typerNames = [];
+            if (isGroup) {
+              const members = conversation.participants || [];
+              typerNames = [...typingSet]
+                .map((uid) => members.find((p) => p._id === uid)?.name)
+                .filter(Boolean);
+            }
+
+            let label = null;
+            if (isGroup && typerNames.length > 0) {
+              if (typerNames.length === 1) label = `${typerNames[0]} is typing`;
+              else if (typerNames.length === 2)
+                label = `${typerNames[0]} and ${typerNames[1]} are typing`;
+              else
+                label = `${typerNames[0]}, ${typerNames[1]} and ${typerNames.length - 2} more are typing`;
+            }
+
+            const firstTyperName = typerNames[0];
+
             return (
               <div className="flex items-end gap-2 justify-start">
-                {isGroup && typerName && (
+                {isGroup && firstTyperName && (
                   <div className="w-6 h-6 rounded-lg shrink-0 overflow-hidden self-end mb-0.5">
                     <div
                       className="w-6 h-6 rounded-lg flex items-center justify-center text-[8px] font-bold"
                       style={{
-                        background: getGroupAvatarColor(typerName).bg,
-                        color: getGroupAvatarColor(typerName).text,
+                        background: getGroupAvatarColor(firstTyperName).bg,
+                        color: getGroupAvatarColor(firstTyperName).text,
                       }}
                     >
-                      {getGroupInitials(typerName)}
+                      {getGroupInitials(firstTyperName)}
                     </div>
                   </div>
                 )}
                 <div>
-                  {isGroup && typerName && (
+                  {isGroup && label && (
                     <span className="text-[9px] font-semibold text-teal-400/80 mb-0.5 px-1 block">
-                      {typerName}
+                      {label}
                     </span>
                   )}
                   <div className="flex items-center gap-1 px-4 py-3 bg-surface-dark rounded-2xl rounded-bl-none shadow-sm">

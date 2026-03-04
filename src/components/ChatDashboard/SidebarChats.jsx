@@ -2,13 +2,29 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { Search, Edit3, X, Pin, Archive, Bell, BellOff, MoreVertical } from "lucide-react";
+import {
+  Search,
+  Edit3,
+  X,
+  Pin,
+  Archive,
+  Bell,
+  BellOff,
+  MoreVertical,
+  LogOut,
+} from "lucide-react";
 import Link from "next/link";
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
 import CreateGroupModal from "../CreateGroupModal";
 import useAuth from "@/hooks/useAuth";
 import { formatLastSeen } from "@/utils/formatLastSeen";
+import { getGroupInitials, getGroupAvatarColor } from "@/utils/groupAvatar";
+import {
+  getOnlineCount,
+  getGroupLastMessagePreview,
+} from "@/utils/groupHelpers";
+import toast from "react-hot-toast";
 
 // Smart relative/absolute timestamp for sidebar conversation list
 const formatConvTimestamp = (timestamp) => {
@@ -84,7 +100,10 @@ export default function Sidebar({
   // Close context menu on outside click
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target)) {
+      if (
+        contextMenuRef.current &&
+        !contextMenuRef.current.contains(e.target)
+      ) {
         setContextMenu(null);
       }
     };
@@ -144,17 +163,21 @@ export default function Sidebar({
     }
   };
 
-  // Derive currently-online contacts from the conversations list
-  // Prepend the logged-in user first (they are always online when viewing the app)
+  // Derive currently-online contacts from DM conversations only (groups excluded from Active Now)
   const onlineParticipants = conversations
-    .filter((c) => c.participant && onlineUsers?.get(c.participant._id)?.online)
+    .filter(
+      (c) =>
+        c.type !== "group" &&
+        c.participant &&
+        onlineUsers?.get(c.participant._id)?.online,
+    )
     .map((c) => c.participant);
 
   const activeNowUsers = currentUser
     ? [
-      currentUser,
-      ...onlineParticipants.filter((u) => u._id !== currentUser._id),
-    ]
+        currentUser,
+        ...onlineParticipants.filter((u) => u._id !== currentUser._id),
+      ]
     : onlineParticipants;
 
   useEffect(() => {
@@ -201,8 +224,8 @@ export default function Sidebar({
       if (onConversationUpdate) {
         onConversationUpdate(
           conversations.map((c) =>
-            c._id === conversationId ? { ...c, isPinned: !c.isPinned } : c
-          )
+            c._id === conversationId ? { ...c, isPinned: !c.isPinned } : c,
+          ),
         );
       }
     } catch (err) {
@@ -220,8 +243,8 @@ export default function Sidebar({
       if (onConversationUpdate) {
         onConversationUpdate(
           conversations.map((c) =>
-            c._id === conversationId ? { ...c, isArchived: !c.isArchived } : c
-          )
+            c._id === conversationId ? { ...c, isArchived: !c.isArchived } : c,
+          ),
         );
       }
     } catch (err) {
@@ -235,18 +258,36 @@ export default function Sidebar({
     e.stopPropagation();
     try {
       await api.patch(`/api/chat/conversations/${conversationId}/mute`);
-      // Optimistic update: toggle isMuted locally
       if (onConversationUpdate) {
         onConversationUpdate(
           conversations.map((c) =>
-            c._id === conversationId ? { ...c, isMuted: !c.isMuted } : c
-          )
+            c._id === conversationId ? { ...c, isMuted: !c.isMuted } : c,
+          ),
         );
       }
     } catch (err) {
       console.error("Failed to toggle mute:", err);
     }
     setContextMenu(null);
+  };
+
+  // Handle leave group
+  const handleLeaveGroup = async (e, conversationId) => {
+    e.stopPropagation();
+    setContextMenu(null);
+    try {
+      await api.post(`/api/chat/conversations/${conversationId}/leave`);
+      // Remove from local list; parent will handle socket cleanup too
+      if (onConversationUpdate) {
+        onConversationUpdate(
+          conversations.filter((c) => c._id !== conversationId),
+        );
+      }
+      toast.success("You left the group");
+    } catch (err) {
+      console.error("Failed to leave group:", err);
+      toast.error(err.response?.data?.message || "Could not leave group");
+    }
   };
 
   // Filter conversations based on archived status
@@ -290,7 +331,7 @@ export default function Sidebar({
             </Link>
           </div>
           <div className="flex items-center gap-2">
-            <CreateGroupModal />
+            <CreateGroupModal onGroupCreated={onNewConversation} />
             <button
               onClick={() => setModalOpen(true)}
               className="w-8 h-8 rounded-xl bg-teal-normal/10 border border-teal-normal/20 flex items-center justify-center hover:bg-teal-normal/20 transition-all group"
@@ -376,56 +417,115 @@ export default function Sidebar({
         <div className="flex-1 min-h-0 overflow-y-auto px-3 pb-3 space-y-0.5 scrollbar-hide">
           {sortedConversations.map((conv) => {
             const isActive = activeConversationId === conv._id;
-            const isUserOnline = onlineUsers?.get(
-              conv.participant?._id,
-            )?.online;
+            const isGroup = conv.type === "group";
             const hasUnread = conv.unreadCount > 0;
 
+            // DM-specific
+            const isUserOnline =
+              !isGroup && onlineUsers?.get(conv.participant?._id)?.online;
+
+            // Group-specific
+            const groupInitials = isGroup ? getGroupInitials(conv.name) : null;
+            const groupColor = isGroup ? getGroupAvatarColor(conv.name) : null;
+            const onlineCount = isGroup ? getOnlineCount(conv, onlineUsers) : 0;
+            const groupPreview = isGroup
+              ? getGroupLastMessagePreview(conv.lastMessage, currentUser?._id)
+              : null;
+
             return (
-              <div
-                key={conv._id}
-                className="relative group"
-              >
+              <div key={conv._id} className="relative group">
                 <div
                   onClick={() => setActiveConversationId(conv._id)}
-                  className={`flex items-center gap-3 px-3 py-3 rounded-2xl cursor-pointer transition-all duration-150 ${isActive
-                    ? "bg-teal-normal/10 border border-teal-normal/20"
-                    : conv.isPinned
-                      ? "bg-teal-normal/2 hover:bg-teal-normal/8 border border-teal-normal/2"
-                      : "hover:bg-white/4 border border-transparent"
-                    }`}
+                  className={`flex items-center gap-3 px-3 py-3 rounded-2xl cursor-pointer transition-all duration-150 ${
+                    isActive
+                      ? "bg-teal-normal/10 border border-teal-normal/20"
+                      : conv.isPinned
+                        ? "bg-teal-normal/2 hover:bg-teal-normal/8 border border-teal-normal/2"
+                        : "hover:bg-white/4 border border-transparent"
+                  }`}
                 >
+                  {/* ── Avatar ──────────────────────────────── */}
                   <div className="relative shrink-0">
-                    <div
-                      className={`rounded-full overflow-hidden ${isActive ? "ring-2 ring-teal-normal/50 ring-offset-1 ring-offset-[#0f1318]" : ""}`}
-                    >
-                      <Image
-                        src={
-                          conv.participant?.avatar ||
-                          `https://api.dicebear.com/7.x/avataaars/svg?seed=${conv.participant?.name}`
-                        }
-                        width={44}
-                        height={44}
-                        className="rounded-full"
-                        alt={conv.participant?.name || "avatar"}
-                        unoptimized
-                      />
-                    </div>
-                    <div
-                      className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#0f1318] ${isUserOnline ? "bg-green-400" : "bg-slate-600"}`}
-                    ></div>
+                    {isGroup ? (
+                      <div
+                        className={`w-11 h-11 rounded-full flex items-center justify-center font-black text-sm overflow-hidden ${
+                          isActive
+                            ? "ring-2 ring-teal-normal/50 ring-offset-1 ring-offset-[#0f1318]"
+                            : ""
+                        }`}
+                        style={{
+                          backgroundColor: conv.avatar
+                            ? "transparent"
+                            : groupColor.bg,
+                          color: groupColor.text,
+                        }}
+                      >
+                        {conv.avatar ? (
+                          <Image
+                            src={conv.avatar}
+                            width={44}
+                            height={44}
+                            className="w-full h-full object-cover"
+                            alt={conv.name}
+                            unoptimized
+                          />
+                        ) : (
+                          groupInitials
+                        )}
+                      </div>
+                    ) : (
+                      <>
+                        <div
+                          className={`rounded-full overflow-hidden ${
+                            isActive
+                              ? "ring-2 ring-teal-normal/50 ring-offset-1 ring-offset-[#0f1318]"
+                              : ""
+                          }`}
+                        >
+                          <Image
+                            src={
+                              conv.participant?.avatar ||
+                              `https://api.dicebear.com/7.x/avataaars/svg?seed=${conv.participant?.name}`
+                            }
+                            width={44}
+                            height={44}
+                            className="rounded-full"
+                            alt={conv.participant?.name || "avatar"}
+                            unoptimized
+                          />
+                        </div>
+                        <div
+                          className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#0f1318] ${
+                            isUserOnline ? "bg-green-400" : "bg-slate-600"
+                          }`}
+                        />
+                      </>
+                    )}
                   </div>
+
+                  {/* ── Text content ─────────────────────────── */}
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-center gap-2">
                       <div className="flex items-center gap-1.5 flex-1 min-w-0">
                         {conv.isPinned && (
-                          <Pin size={12} className="text-teal-normal shrink-0" />
+                          <Pin
+                            size={12}
+                            className="text-teal-normal shrink-0"
+                          />
                         )}
                         <span className="font-semibold text-sm truncate text-white">
-                          {highlightMatch(conv.participant?.name || "", filterTerm)}
+                          {isGroup
+                            ? highlightMatch(conv.name || "", filterTerm)
+                            : highlightMatch(
+                                conv.participant?.name || "",
+                                filterTerm,
+                              )}
                         </span>
                         {conv.isMuted && (
-                          <BellOff size={12} className="text-slate-600 shrink-0" />
+                          <BellOff
+                            size={12}
+                            className="text-slate-600 shrink-0"
+                          />
                         )}
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
@@ -441,22 +541,51 @@ export default function Sidebar({
                         )}
                       </div>
                     </div>
-                    <p className={`text-xs ${hasUnread && !conv.isMuted ? "text-white font-medium" : "text-slate-500"} truncate`}>
+
+                    {/* Last message / unread preview */}
+                    <p
+                      className={`text-xs ${
+                        hasUnread && !conv.isMuted
+                          ? "text-white font-medium"
+                          : "text-slate-500"
+                      } truncate`}
+                    >
                       {hasUnread && !conv.isMuted
                         ? conv.unreadCount === 1
                           ? "1 new message"
                           : `${conv.unreadCount} new messages`
-                        : conv.lastMessage?.gifUrl
-                          ? "GIF"
-                          : conv.lastMessage?.text
-                            ? highlightMatch(conv.lastMessage.text, filterTerm)
-                            : "No messages yet"}
+                        : isGroup
+                          ? highlightMatch(groupPreview, filterTerm)
+                          : conv.lastMessage?.gifUrl
+                            ? "GIF"
+                            : conv.lastMessage?.text
+                              ? highlightMatch(
+                                  conv.lastMessage.text,
+                                  filterTerm,
+                                )
+                              : "No messages yet"}
                     </p>
+
+                    {/* Group member / online count */}
+                    {isGroup && !hasUnread && (
+                      <p className="text-[9px] text-slate-700 mt-0.5 truncate">
+                        {conv.participants?.length ?? 0} members
+                        {onlineCount > 0 && (
+                          <span className="text-green-500/60 ml-1">
+                            · {onlineCount} online
+                          </span>
+                        )}
+                      </p>
+                    )}
                   </div>
+
+                  {/* ── 3-dot menu button ────────────────────── */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setContextMenu(contextMenu === conv._id ? null : conv._id);
+                      setContextMenu(
+                        contextMenu === conv._id ? null : conv._id,
+                      );
                     }}
                     className="cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity shrink-0 w-6 h-6 rounded-lg hover:bg-white/10 flex items-center justify-center"
                   >
@@ -464,7 +593,7 @@ export default function Sidebar({
                   </button>
                 </div>
 
-                {/* Context Menu */}
+                {/* ── Context Menu ─────────────────────────────── */}
                 {contextMenu === conv._id && (
                   <div
                     ref={contextMenuRef}
@@ -481,7 +610,11 @@ export default function Sidebar({
                       onClick={(e) => handleToggleMute(e, conv._id)}
                       className="w-full px-4 py-2 text-left text-xs text-slate-300 hover:bg-white/5 flex items-center gap-2"
                     >
-                      {conv.isMuted ? <Bell size={14} /> : <BellOff size={14} />}
+                      {conv.isMuted ? (
+                        <Bell size={14} />
+                      ) : (
+                        <BellOff size={14} />
+                      )}
                       {conv.isMuted ? "Unmute" : "Mute"}
                     </button>
                     <button
@@ -491,6 +624,18 @@ export default function Sidebar({
                       <Archive size={14} />
                       {conv.isArchived ? "Unarchive" : "Archive"}
                     </button>
+                    {isGroup && (
+                      <>
+                        <div className="my-1 mx-2 border-t border-white/8" />
+                        <button
+                          onClick={(e) => handleLeaveGroup(e, conv._id)}
+                          className="w-full px-4 py-2 text-left text-xs text-red-400 hover:bg-red-500/8 flex items-center gap-2"
+                        >
+                          <LogOut size={14} />
+                          Leave Group
+                        </button>
+                      </>
+                    )}
                   </div>
                 )}
               </div>

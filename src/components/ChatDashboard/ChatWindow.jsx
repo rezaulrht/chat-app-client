@@ -21,7 +21,8 @@ import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
 import { EMOJI_MAP } from "@/utils/emojis";
 import { formatLastSeen } from "@/utils/formatLastSeen";
-
+import { getGroupInitials, getGroupAvatarColor } from "@/utils/groupAvatar";
+import toast from "react-hot-toast";
 
 import {
   createScheduledMessage,
@@ -65,6 +66,9 @@ export default function ChatWindow({
   conversation,
   onMessageSent,
   onMessagesSeen,
+  showGroupInfo,
+  onToggleGroupInfo,
+  onConversationUpdate,
 }) {
   const { socket, onlineUsers, typingUsers } = useSocket() || {};
   const { user } = useAuth();
@@ -152,15 +156,16 @@ export default function ChatWindow({
 
     // typing indicator
     if (socket && conversation) {
+      const isGrp = conversation.type === "group";
       if (val.trim()) {
         socket.emit("typing:start", {
           conversationId: conversation._id,
-          receiverId: conversation.participant?._id,
+          ...(isGrp ? {} : { receiverId: conversation.participant?._id }),
         });
       } else {
         socket.emit("typing:stop", {
           conversationId: conversation._id,
-          receiverId: conversation.participant?._id,
+          ...(isGrp ? {} : { receiverId: conversation.participant?._id }),
         });
       }
     }
@@ -239,7 +244,9 @@ export default function ChatWindow({
 
     socket.emit("message:send", {
       conversationId: conversation._id,
-      receiverId: conversation.participant?._id,
+      ...(conversation.type !== "group"
+        ? { receiverId: conversation.participant?._id }
+        : {}),
       gifUrl,
       tempId,
     });
@@ -283,6 +290,8 @@ export default function ChatWindow({
       setEditingMessageId(null);
       setEditedText("");
       setReplyTo(null);
+      setScheduleMode(false);
+      setShowScheduledPanel(false);
 
       try {
         const res = await api.get(`/api/chat/messages/${conversation._id}`);
@@ -554,10 +563,14 @@ export default function ChatWindow({
 
     setMessages((prev) => [...prev, optimistic]);
     setText("");
-
+    const isGrp = conversation.type === "group";
+    socket.emit("typing:stop", {
+      conversationId: conversation._id,
+      ...(isGrp ? {} : { receiverId: conversation.participant?._id }),
+    });
     socket.emit("message:send", {
       conversationId: conversation._id,
-      receiverId: conversation.participant?._id,
+      ...(isGrp ? {} : { receiverId: conversation.participant?._id }),
       text: optimistic.text,
       tempId,
       replyTo: replyTo?._id || null,
@@ -585,74 +598,134 @@ export default function ChatWindow({
     );
   }
 
+  const isGroup = conversation.type === "group";
   const participant = conversation.participant;
   const isParticipantOnline = onlineUsers?.get(participant?._id)?.online;
+  const groupMemberCount = isGroup
+    ? (conversation.participants?.length ?? 0)
+    : 0;
+  const groupOnlineCount = isGroup
+    ? (conversation.participants || []).filter(
+        (p) => onlineUsers?.get(p._id)?.online,
+      ).length
+    : 0;
+  const groupAvatarColors = isGroup
+    ? getGroupAvatarColor(conversation.name)
+    : null;
 
   return (
-    <main className="flex-1 flex flex-col bg-[#080b0f] relative h-full">
+    <main className="flex-1 min-w-0 flex flex-col bg-[#080b0f] relative h-full">
       <header className="h-17 border-b border-white/5 flex justify-between items-center px-5 bg-[#0a0e13]/80 backdrop-blur-sm shrink-0">
         <div className="flex items-center gap-3">
-          <div className="relative">
-            <div
-              className={`rounded-2xl overflow-hidden ${
-                isParticipantOnline
-                  ? "ring-2 ring-teal-normal/60 ring-offset-1 ring-offset-[#0a0e13]"
-                  : ""
-              }`}
-            >
-              <Image
-                src={
-                  participant?.avatar ||
-                  `https://api.dicebear.com/7.x/avataaars/svg?seed=${participant?.name}`
-                }
-                width={40}
-                height={40}
-                className="rounded-2xl"
-                alt={participant?.name || "avatar"}
-                unoptimized
-              />
-            </div>
-            <div
-              className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#0a0e13] ${
-                isParticipantOnline ? "bg-green-400" : "bg-slate-600"
-              }`}
-            />
-          </div>
+          {isGroup ? (
+            <>
+              <div className="w-10 h-10 rounded-2xl shrink-0 overflow-hidden">
+                {conversation.avatar ? (
+                  <Image
+                    src={conversation.avatar}
+                    width={40}
+                    height={40}
+                    className="rounded-2xl object-cover"
+                    alt={conversation.name || "group"}
+                    unoptimized
+                  />
+                ) : (
+                  <div
+                    className="w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-sm"
+                    style={{
+                      background: groupAvatarColors?.bg,
+                      color: groupAvatarColors?.text,
+                    }}
+                  >
+                    {getGroupInitials(conversation.name)}
+                  </div>
+                )}
+              </div>
+              <div>
+                <h2 className="font-bold text-slate-100 text-sm leading-tight">
+                  {conversation.name}
+                </h2>
+                <p className="text-[10px] mt-0.5 text-slate-500">
+                  {groupMemberCount} member{groupMemberCount !== 1 ? "s" : ""}
+                  {groupOnlineCount > 0 && (
+                    <span className="text-green-400 ml-1">
+                      · {groupOnlineCount} online
+                    </span>
+                  )}
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="relative">
+                <div
+                  className={`rounded-2xl overflow-hidden ${
+                    isParticipantOnline
+                      ? "ring-2 ring-teal-normal/60 ring-offset-1 ring-offset-[#0a0e13]"
+                      : ""
+                  }`}
+                >
+                  <Image
+                    src={
+                      participant?.avatar ||
+                      `https://api.dicebear.com/7.x/avataaars/svg?seed=${participant?.name}`
+                    }
+                    width={40}
+                    height={40}
+                    className="rounded-2xl"
+                    alt={participant?.name || "avatar"}
+                    unoptimized
+                  />
+                </div>
+                <div
+                  className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#0a0e13] ${
+                    isParticipantOnline ? "bg-green-400" : "bg-slate-600"
+                  }`}
+                />
+              </div>
 
-          <div>
-            <h2 className="font-bold text-slate-100 text-sm leading-tight">
-              {participant?.name}
-            </h2>
-            <p className="text-[10px] mt-0.5">
-              {isParticipantOnline ? (
-                <span className="text-green-400 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
-                  Online
-                </span>
-              ) : (
-                <span className="text-slate-600">
-                  Last seen{" "}
-                  {formatLastSeen(
-                    onlineUsers?.get(participant?._id)?.lastSeen,
-                  ) || "recently"}
-                </span>
-              )}
-            </p>
-          </div>
+              <div>
+                <h2 className="font-bold text-slate-100 text-sm leading-tight">
+                  {participant?.name}
+                </h2>
+                <p className="text-[10px] mt-0.5">
+                  {isParticipantOnline ? (
+                    <span className="text-green-400 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
+                      Online
+                    </span>
+                  ) : (
+                    <span className="text-slate-600">
+                      Last seen{" "}
+                      {formatLastSeen(
+                        onlineUsers?.get(participant?._id)?.lastSeen,
+                      ) || "recently"}
+                    </span>
+                  )}
+                </p>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="flex gap-1">
-          {[{ icon: Phone }, { icon: Video }, { icon: Info }].map(
-            ({ icon: Icon }, i) => (
-              <button
-                key={i}
-                className="w-8 h-8 rounded-xl bg-white/4 hover:bg-teal-normal/10 hover:text-teal-normal flex items-center justify-center text-slate-500 transition-all"
-                type="button"
-              >
-                <Icon size={16} />
-              </button>
-            ),
-          )}
+          <button className="w-8 h-8 rounded-xl bg-white/4 hover:bg-teal-normal/10 hover:text-teal-normal flex items-center justify-center text-slate-500 transition-all">
+            <Phone size={16} />
+          </button>
+          <button className="w-8 h-8 rounded-xl bg-white/4 hover:bg-teal-normal/10 hover:text-teal-normal flex items-center justify-center text-slate-500 transition-all">
+            <Video size={16} />
+          </button>
+          <button
+            type="button"
+            onClick={isGroup ? onToggleGroupInfo : undefined}
+            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
+              isGroup && showGroupInfo
+                ? "bg-teal-normal/20 text-teal-normal border border-teal-normal/30"
+                : "bg-white/4 hover:bg-teal-normal/10 hover:text-teal-normal text-slate-500"
+            }`}
+          >
+            <Info size={16} />
+          </button>
         </div>
       </header>
 
@@ -700,9 +773,41 @@ export default function ChatWindow({
               <div
                 className={`flex items-end gap-2 group ${isMe ? "justify-end" : "justify-start"}`}
               >
+                {isGroup && !isMe && (
+                  <div className="w-6 h-6 rounded-lg shrink-0 overflow-hidden self-end mb-0.5">
+                    {msg.sender?.avatar ? (
+                      <Image
+                        src={msg.sender.avatar}
+                        width={24}
+                        height={24}
+                        className="rounded-lg object-cover"
+                        alt={msg.sender?.name || ""}
+                        unoptimized
+                      />
+                    ) : (
+                      <div
+                        className="w-6 h-6 rounded-lg flex items-center justify-center text-[8px] font-bold"
+                        style={{
+                          background: getGroupAvatarColor(
+                            msg.sender?.name || "",
+                          ).bg,
+                          color: getGroupAvatarColor(msg.sender?.name || "")
+                            .text,
+                        }}
+                      >
+                        {getGroupInitials(msg.sender?.name || "?")}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div
                   className={`flex flex-col ${isMe ? "items-end" : "items-start"} max-w-[85%]`}
                 >
+                  {isGroup && !isMe && (
+                    <span className="text-[10px] font-semibold text-teal-400/80 mb-0.5 px-1">
+                      {msg.sender?.name || "Member"}
+                    </span>
+                  )}
                   <div className="relative group w-fit">
                     {!msg.isOptimistic && (
                       <div
@@ -939,17 +1044,20 @@ export default function ChatWindow({
 
                   {isMe && !msg.isOptimistic && (
                     <div className="flex items-center gap-0.5 px-0.5 mt-0.5">
-                      {msg.status === "sent" && (
+                      {(msg.status === "sent" ||
+                        (isGroup &&
+                          (msg.status === "delivered" ||
+                            msg.status === "read"))) && (
                         <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/6 text-slate-500 text-[8px] font-medium">
                           Sent
                         </span>
                       )}
-                      {msg.status === "delivered" && (
+                      {!isGroup && msg.status === "delivered" && (
                         <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/6 text-slate-400 text-[8px] font-medium">
                           Delivered
                         </span>
                       )}
-                      {msg.status === "read" && (
+                      {!isGroup && msg.status === "read" && (
                         <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-teal-normal/15 text-teal-normal text-[8px] font-semibold">
                           Seen
                         </span>
@@ -961,17 +1069,61 @@ export default function ChatWindow({
             </React.Fragment>
           );
         })}
+        {typingUsers?.get(conversation._id) &&
+          (() => {
+            const typingSet = typingUsers.get(conversation._id);
+            if (!typingSet || typingSet.size === 0) return null;
 
-        {typingUsers?.get(conversation._id) && (
-          <div className="flex items-end gap-2 justify-start">
-            <div className="flex items-center gap-1 px-4 py-3 bg-surface-dark rounded-2xl rounded-bl-none shadow-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:0ms]" />
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:150ms]" />
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:300ms]" />
-            </div>
-          </div>
-        )}
+            // For groups resolve names; for DMs just show dots
+            let typerNames = [];
+            if (isGroup) {
+              const members = conversation.participants || [];
+              typerNames = [...typingSet]
+                .map((uid) => members.find((p) => p._id === uid)?.name)
+                .filter(Boolean);
+            }
 
+            let label = null;
+            if (isGroup && typerNames.length > 0) {
+              if (typerNames.length === 1) label = `${typerNames[0]} is typing`;
+              else if (typerNames.length === 2)
+                label = `${typerNames[0]} and ${typerNames[1]} are typing`;
+              else
+                label = `${typerNames[0]}, ${typerNames[1]} and ${typerNames.length - 2} more are typing`;
+            }
+
+            const firstTyperName = typerNames[0];
+
+            return (
+              <div className="flex items-end gap-2 justify-start">
+                {isGroup && firstTyperName && (
+                  <div className="w-6 h-6 rounded-lg shrink-0 overflow-hidden self-end mb-0.5">
+                    <div
+                      className="w-6 h-6 rounded-lg flex items-center justify-center text-[8px] font-bold"
+                      style={{
+                        background: getGroupAvatarColor(firstTyperName).bg,
+                        color: getGroupAvatarColor(firstTyperName).text,
+                      }}
+                    >
+                      {getGroupInitials(firstTyperName)}
+                    </div>
+                  </div>
+                )}
+                <div>
+                  {isGroup && label && (
+                    <span className="text-[9px] font-semibold text-teal-400/80 mb-0.5 px-1 block">
+                      {label}
+                    </span>
+                  )}
+                  <div className="flex items-center gap-1 px-4 py-3 bg-surface-dark rounded-2xl rounded-bl-none shadow-sm">
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:0ms]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:150ms]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:300ms]" />
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         <div ref={bottomRef} />
       </div>
 
@@ -1144,37 +1296,41 @@ export default function ChatWindow({
             GIF
           </button>
 
-          <button
-            type="button"
-            title="View scheduled messages"
-            aria-label="View scheduled messages"
-            onClick={() => {
-              setShowScheduledPanel((v) => !v);
-              refreshScheduled();
-            }}
-            className="px-2 py-1 mx-1 text-[10px] font-black rounded-md border bg-white/4 border-white/10 text-slate-500 hover:text-slate-300"
-          >
-            PENDING
-          </button>
+          {!isGroup && (
+            <button
+              type="button"
+              title="View scheduled messages"
+              aria-label="View scheduled messages"
+              onClick={() => {
+                setShowScheduledPanel((v) => !v);
+                refreshScheduled();
+              }}
+              className="px-2 py-1 mx-1 text-[10px] font-black rounded-md border bg-white/4 border-white/10 text-slate-500 hover:text-slate-300"
+            >
+              PENDING
+            </button>
+          )}
 
-          <button
-            type="button"
-            title="Schedule message"
-            aria-label="Schedule message"
-            onClick={() => {
-              setScheduleMode((v) => !v);
-              setShowScheduledPanel(true);
-            }}
-            className={`px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${
-              scheduleMode
-                ? "bg-teal-normal/20 border-teal-normal/40 text-teal-normal"
-                : "bg-white/4 border-white/10 text-slate-500 hover:text-slate-300"
-            }`}
-          >
-            SCHEDULE
-          </button>
+          {!isGroup && (
+            <button
+              type="button"
+              title="Schedule message"
+              aria-label="Schedule message"
+              onClick={() => {
+                setScheduleMode((v) => !v);
+                setShowScheduledPanel(true);
+              }}
+              className={`px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${
+                scheduleMode
+                  ? "bg-teal-normal/20 border-teal-normal/40 text-teal-normal"
+                  : "bg-white/4 border-white/10 text-slate-500 hover:text-slate-300"
+              }`}
+            >
+              SCHEDULE
+            </button>
+          )}
 
-          {scheduleMode && (
+          {!isGroup && scheduleMode && (
             <input
               type="datetime-local"
               value={sendAt}

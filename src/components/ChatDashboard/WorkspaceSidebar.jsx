@@ -24,77 +24,74 @@ export default function WorkspaceSidebar({
   ];
 
   return (
-    <aside className="w-[72px] bg-[#0e0f11] flex flex-col items-center py-3 shrink-0 h-full overflow-y-auto scrollbar-hide gap-2">
-      {/* Home / DMs Button */}
-      <div className="relative group mb-1">
+    <aside className="w-18 bg-background-dark py-3 flex flex-col items-center gap-2 shrink-0 h-full overflow-hidden border-r border-white/5">
+      {/* Home / DM Button */}
+      <div
+        onClick={() => setActiveView("home")}
+        className="relative group cursor-pointer mb-2"
+      >
         <div
-          className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 bg-white rounded-r-full transition-all duration-200 ${
-            activeView === "home" ? "h-8" : "h-0 group-hover:h-5"
-          }`}
-        />
-        <button
-          onClick={() => setActiveView("home")}
-          className={`w-12 h-12 flex items-center justify-center transition-all duration-200 group-hover:rounded-2xl ${
-            activeView === "home"
-              ? "bg-teal-normal rounded-2xl text-white shadow-lg shadow-teal-normal/20"
-              : "bg-[#313338] rounded-3xl text-[#dbdee1] hover:bg-teal-normal hover:text-white"
-          }`}
+          className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 bg-white rounded-r-full transition-all duration-200 ${activeView === "home" ? "h-8" : "h-0 group-hover:h-5"}`}
+        ></div>
+        <div
+          className={`w-12 h-12 flex items-center justify-center rounded-2xl transition-all duration-200 shadow-lg ${activeView === "home" ? "bg-teal-normal text-white" : "bg-white/5 text-teal-normal hover:bg-teal-normal hover:text-white rounded-3xl hover:rounded-2xl"}`}
         >
           <Image
             src="/favicon.png"
-            alt="Home"
             width={28}
             height={28}
-            className="rounded-sm"
+            alt="ConvoX"
+            className={activeView === "home" ? "brightness-0 invert" : ""}
           />
-        </button>
+        </div>
       </div>
 
-      <div className="w-8 h-[2px] bg-[#313338] rounded-full mx-auto my-1" />
+      <div className="w-8 h-0.5 bg-white/5 rounded-full mb-2"></div>
 
-      {/* Workspace List */}
-      {workspaces.map((ws) => (
-        <div key={ws.id} className="relative group">
+      {/* Workspace List (Mockup) */}
+      <div className="flex-1 w-full flex flex-col items-center gap-2 overflow-y-auto scrollbar-hide px-2">
+        {workspaces.map((ws) => (
           <div
-            className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 bg-white rounded-r-full transition-all duration-200 ${
-              selectedWorkspaceId === ws.id && activeView === "workspace"
-                ? "h-8"
-                : "h-0 group-hover:h-5"
-            }`}
-          />
-          <button
-            onClick={() => {
-              setActiveView("workspace");
-              setSelectedWorkspaceId(ws.id);
-            }}
-            className={`w-12 h-12 flex items-center justify-center transition-all duration-200 group-hover:rounded-2xl overflow-hidden ${
-              selectedWorkspaceId === ws.id && activeView === "workspace"
-                ? "rounded-2xl"
-                : "bg-[#313338] rounded-3xl hover:rounded-2xl shadow-lg shadow-teal-normal/10"
-            }`}
-            title={ws.name}
+            key={ws.id}
+            onClick={() => setActiveView("workspace")}
+            className="relative group cursor-pointer"
           >
-            <Image
-              src={ws.icon}
-              alt={ws.name}
-              width={48}
-              height={48}
-              className="object-cover"
-              unoptimized
-            />
-          </button>
-        </div>
-      ))}
+            <div
+              className={`absolute -left-2 top-1/2 -translate-y-1/2 w-1 bg-white rounded-r-full transition-all duration-200 ${
+                activeView === "workspace" && ws.id === "1"
+                  ? "h-8"
+                  : "h-0 group-hover:h-5"
+              }`}
+            ></div>
+            <div
+              className={`w-12 h-12 flex items-center justify-center text-lg font-bold transition-all duration-200 shadow-md ${
+                activeView === "workspace" && ws.id === "1"
+                  ? "bg-teal-normal text-white rounded-2xl"
+                  : "bg-surface-dark/50 text-slate-400 hover:bg-teal-normal hover:text-white rounded-3xl hover:rounded-2xl border border-white/5"
+              }`}
+            >
+              {ws.name[0]}
+            </div>
 
-      {/* Action Buttons */}
-      <button className="w-12 h-12 rounded-3xl bg-[#313338] text-teal-normal flex items-center justify-center hover:bg-teal-normal hover:text-black hover:rounded-2xl transition-all duration-200 mt-1 shadow-sm">
-        <Plus size={24} />
-      </button>
+            {/* Tooltip on hover */}
+            <div className="absolute left-16 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-black text-white text-sm font-bold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 translate-x-2 group-hover:translate-x-0 z-50 whitespace-nowrap shadow-xl border border-white/10">
+              {ws.name}
+            </div>
+          </div>
+        ))}
+
+        {/* Add Workspace Button */}
+        <div className="relative group cursor-pointer">
+          <div className="w-12 h-12 flex items-center justify-center bg-surface-dark text-teal-normal/50 hover:bg-teal-normal hover:text-white rounded-2xl transition-all duration-200 mt-1 shadow-md border border-white/5">
+            <Plus size={24} />
+          </div>
+        </div>
+      </div>
 
       <div className="flex-1" />
 
       {/* Bottom Download Icon (Discord-like) */}
-      <button className="w-12 h-12 rounded-3xl bg-[#313338] text-teal-normal flex items-center justify-center hover:bg-teal-normal hover:text-black hover:rounded-2xl transition-all duration-200 mb-2">
+      <button className="w-12 h-12 rounded-3xl bg-surface-dark text-teal-normal flex items-center justify-center hover:bg-teal-normal hover:text-black hover:rounded-2xl transition-all duration-200 mb-2 border border-white/5">
         <Download size={20} />
       </button>
     </aside>

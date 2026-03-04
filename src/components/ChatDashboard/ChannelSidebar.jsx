@@ -20,24 +20,24 @@ export default function ChannelSidebar({ selectedWorkspaceId }) {
   ];
 
   return (
-    <aside className="w-60 bg-[#2b2d31] flex flex-col shrink-0 h-full overflow-hidden">
+    <aside className="w-60 bg-surface-dark flex flex-col shrink-0 h-full overflow-hidden border-r border-white/5">
       {/* Workspace Header */}
-      <div className="h-12 px-4 flex items-center justify-between shadow-sm border-b border-[#1e1f22] hover:bg-[#35373c] cursor-pointer transition-colors group">
+      <div className="h-12 px-4 flex items-center justify-between shadow-sm border-b border-white/5 hover:bg-white/5 cursor-pointer transition-colors group">
         <h2 className="text-white font-bold text-[15px] truncate">
           Workspace Name
         </h2>
         <ChevronDown
           size={18}
-          className="text-[#949ba4] group-hover:text-white"
+          className="text-slate-500 group-hover:text-white"
         />
       </div>
 
-      <div className="flex-1 overflow-y-auto scrollbar-hide py-3 px-2">
+      <div className="flex-1 overflow-y-auto scrollbar-hide py-3 px-2 custom-scrollbar">
         <div className="space-y-6">
           {categories.map((category) => (
             <div key={category.name}>
               <div className="flex items-center justify-between px-2 mb-1 group cursor-pointer">
-                <div className="flex items-center gap-1 text-[#949ba4] uppercase text-[11px] font-bold hover:text-white transition-colors">
+                <div className="flex items-center gap-1 text-slate-500 uppercase text-[11px] font-bold hover:text-slate-300 transition-colors">
                   <span className="text-[8px] transform rotate-90 inline-block">
                     ▼
                   </span>
@@ -45,20 +45,20 @@ export default function ChannelSidebar({ selectedWorkspaceId }) {
                 </div>
                 <Plus
                   size={14}
-                  className="text-[#949ba4] hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="text-slate-500 hover:text-teal-normal opacity-0 group-hover:opacity-100 transition-opacity"
                 />
               </div>
               <div className="space-y-0.5">
                 {category.channels.map((channel) => (
                   <div
                     key={channel}
-                    className="flex items-center gap-2.5 px-2 py-1.5 rounded-sm hover:bg-[#35373c] text-[#949ba4] hover:text-[#dbdee1] cursor-pointer group"
+                    className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-white/5 text-slate-400 hover:text-slate-200 cursor-pointer group transition-all"
                   >
                     <Hash
                       size={20}
-                      className="text-[#80848e] group-hover:text-[#dbdee1]"
+                      className="text-slate-600 group-hover:text-teal-normal transition-colors"
                     />
-                    <span className="text-[15px] font-medium leading-none">
+                    <span className="text-[14px] font-medium leading-none">
                       {channel}
                     </span>
                   </div>
@@ -70,9 +70,9 @@ export default function ChannelSidebar({ selectedWorkspaceId }) {
       </div>
 
       {/* Simplified User Status Bar */}
-      <div className="h-13 bg-[#232428] px-2 flex items-center gap-2">
-        <div className="relative shrink-0 cursor-pointer">
-          <div className="w-8 h-8 rounded-full overflow-hidden">
+      <div className="h-14 bg-background-dark/80 px-3 flex items-center gap-2 border-t border-white/5">
+        <div className="relative shrink-0 cursor-pointer group">
+          <div className="w-8 h-8 rounded-full overflow-hidden border border-white/10 group-hover:border-teal-normal/50 transition-colors">
             <Image
               src={
                 currentUser?.avatar ||
@@ -85,15 +85,18 @@ export default function ChannelSidebar({ selectedWorkspaceId }) {
               unoptimized
             />
           </div>
-          <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-[3px] border-[#232428] bg-[#23a559]"></div>
+          <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-[3px] border-background-dark/80 bg-teal-normal"></div>
         </div>
-        <div className="flex-1 min-w-0 cursor-pointer">
-          <p className="text-white text-[13px] font-bold truncate leading-tight">
+        <div className="flex-1 min-w-0 cursor-pointer group">
+          <p className="text-white text-[13px] font-bold truncate leading-tight group-hover:text-teal-normal transition-colors">
             {currentUser?.name?.split(" ")[0]}
           </p>
-          <p className="text-[#949ba4] text-[11px] truncate leading-tight">
-            Online
-          </p>
+          <div className="flex items-center gap-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-teal-normal"></div>
+            <p className="text-slate-500 text-[10px] font-medium truncate leading-tight uppercase tracking-tighter">
+              Online
+            </p>
+          </div>
         </div>
       </div>
     </aside>

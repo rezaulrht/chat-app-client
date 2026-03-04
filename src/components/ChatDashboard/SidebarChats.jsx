@@ -193,104 +193,116 @@ export default function Sidebar({
 
   return (
     <>
-      <aside className="w-60 bg-[#2b2d31] flex flex-col shrink-0 h-full overflow-hidden">
-        {/* Header - Search Button */}
-        <div className="h-12 px-2 flex items-center shadow-sm border-b border-[#1e1f22]">
-          <button
-            onClick={() => setModalOpen(true)}
-            className="w-full h-7 bg-[#1e1f22] rounded text-[#949ba4] text-[13px] px-2 text-left hover:bg-[#1e1f22]/80 transition-all font-medium"
-          >
-            Find or start a conversation
-          </button>
+      <aside className="w-60 bg-surface-dark flex flex-col shrink-0 h-full overflow-hidden border-r border-white/5">
+        {/* Search Header */}
+        <div className="h-12 px-3 flex items-center justify-between shadow-sm border-b border-white/5 bg-surface-dark/50 backdrop-blur-sm">
+          <div className="relative flex-1 group">
+            <Search
+              size={14}
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-teal-normal transition-colors"
+            />
+            <input
+              type="text"
+              placeholder="Search or start a conversation"
+              className="w-full bg-background-dark text-[12px] py-1.5 pl-8 pr-2 rounded-md outline-none border border-transparent focus:border-teal-normal/30 transition-all placeholder:text-slate-600"
+              value={filterTerm}
+              onChange={(e) => setFilterTerm(e.target.value)}
+            />
+          </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto scrollbar-hide py-3 px-2">
-          <div className="space-y-0.5">
-            {/* Top Navigation Items */}
-            <button className="w-full flex items-center gap-3 px-2 py-2 rounded-sm text-[#949ba4] hover:bg-[#35373c] hover:text-[#dbdee1] transition-colors group">
-              <div className="w-8 h-8 flex items-center justify-center">
-                <span className="text-xl">✨</span>
-              </div>
-              <span className="text-[15px] font-medium">Feed</span>
+        {/* Main Conversation List */}
+        <div className="flex-1 overflow-y-auto scrollbar-hide py-2 px-2 custom-scrollbar">
+          {/* "Direct Messages" Header */}
+          <div className="flex items-center justify-between px-2 mb-2 group">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              Direct Messages
+            </span>
+            <button
+              onClick={() => setModalOpen(true)}
+              className="p-1 hover:bg-white/5 rounded text-slate-500 hover:text-teal-normal transition-all"
+              title="Start New Chat"
+            >
+              <Plus size={14} />
             </button>
+          </div>
 
-            <div className="mt-4 mb-1 px-2">
-              <p className="text-[11px] font-bold text-[#949ba4] uppercase tracking-wide flex justify-between items-center group">
-                Direct Messages
-                <Plus
-                  size={14}
-                  className="cursor-pointer hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={() => setModalOpen(true)}
-                />
-              </p>
-            </div>
+          <div className="space-y-0.5">
+            {searchedConversations.length > 0 ? (
+              searchedConversations.map((conv) => {
+                const part = conv.participant;
+                const isOnline = onlineUsers?.get(part?._id)?.online;
+                const isActive = activeConversationId === conv._id;
 
-            {/* DM List */}
-            {searchedConversations.map((conv) => {
-              const isActive = activeConversationId === conv._id;
-              const isUserOnline = onlineUsers?.get(
-                conv.participant?._id,
-              )?.online;
-              return (
-                <div
-                  key={conv._id}
-                  onClick={() => setActiveConversationId(conv._id)}
-                  className={`flex items-center gap-3 px-2 py-1.5 rounded-sm cursor-pointer transition-all duration-75 group ${
-                    isActive
-                      ? "bg-[#404249] text-white"
-                      : "hover:bg-[#35373c] text-[#949ba4] hover:text-[#dbdee1]"
-                  }`}
-                >
-                  <div className="relative shrink-0">
-                    <div className="w-8 h-8 rounded-full overflow-hidden">
-                      <Image
-                        src={
-                          conv.participant?.avatar ||
-                          `https://api.dicebear.com/7.x/avataaars/svg?seed=${conv.participant?.name}`
-                        }
-                        width={32}
-                        height={32}
-                        className="rounded-full"
-                        alt={conv.participant?.name || "avatar"}
-                        unoptimized
-                      />
-                    </div>
-                    <div
-                      className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-[3px] border-[#2b2d31] group-hover:border-[#35373c] ${isActive ? "border-[#404249]" : ""} ${isUserOnline ? "bg-[#23a559]" : "bg-[#80848e]"}`}
-                    ></div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-center">
-                      <span
-                        className={`text-[15px] truncate font-medium ${isActive ? "text-white" : "text-[#949ba4] group-hover:text-[#dbdee1]"}`}
+                return (
+                  <div
+                    key={conv._id}
+                    onClick={() => setActiveConversationId(conv._id)}
+                    className={`flex items-center gap-3 px-2 py-2 rounded-lg cursor-pointer transition-all duration-200 group relative ${
+                      isActive
+                        ? "bg-teal-normal/10 text-teal-normal shadow-sm"
+                        : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                    }`}
+                  >
+                    <div className="relative shrink-0">
+                      <div
+                        className={`w-8 h-8 rounded-full overflow-hidden border ${isActive ? "border-teal-normal/30" : "border-white/5"}`}
                       >
-                        {conv.participant?.name || "Deleted User"}
-                      </span>
+                        <Image
+                          src={
+                            part?.avatar ||
+                            `https://api.dicebear.com/7.x/avataaars/svg?seed=${part?.name}`
+                          }
+                          width={32}
+                          height={32}
+                          className="rounded-full"
+                          alt={part?.name || "avatar"}
+                          unoptimized
+                        />
+                      </div>
+                      {isOnline && (
+                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-[3px] border-surface-dark bg-teal-normal"></div>
+                      )}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-center mb-0.5">
+                        <span
+                          className={`text-[14px] font-semibold truncate ${isActive ? "text-teal-normal" : "text-slate-300"}`}
+                        >
+                          {part?.name}
+                        </span>
+                        {conv.lastMessage?.createdAt && (
+                          <span className="text-[10px] text-slate-600 font-medium">
+                            {formatConvTimestamp(conv.lastMessage.createdAt)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <p className="text-[12px] text-slate-500 truncate leading-tight">
+                          {conv.lastMessage
+                            ? conv.lastMessage.text
+                            : "No messages yet"}
+                        </p>
+                        {conv.unreadCount > 0 && (
+                          <span className="ml-1 bg-teal-normal text-black text-[10px] font-black w-4 h-4 flex items-center justify-center rounded-full shrink-0 shadow-lg shadow-teal-normal/20">
+                            {conv.unreadCount}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  {isActive && (
-                    <X
-                      size={14}
-                      className="text-[#949ba4] hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // Logic to "close" DM would go here
-                      }}
-                    />
-                  )}
+                );
+              })
+            ) : (
+              <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+                <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mb-3">
+                  <Search size={20} className="text-slate-700" />
                 </div>
-              );
-            })}
-
-            {searchedConversations.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-10 gap-2">
-                <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center">
-                  <Search size={16} className="text-[#949ba4]" />
-                </div>
-                <p className="text-[#949ba4] text-xs text-center">
-                  {conversations.length === 0
-                    ? "No conversations yet.\nStart one above!"
-                    : "No matches found"}
+                <p className="text-xs text-slate-600 font-medium">
+                  {filterTerm
+                    ? "No conversations match your search"
+                    : "Start a conversation to get chatting"}
                 </p>
               </div>
             )}
@@ -298,9 +310,9 @@ export default function Sidebar({
         </div>
 
         {/* Simplified User Status Bar */}
-        <div className="h-13 bg-[#232428] px-2 flex items-center gap-2">
-          <div className="relative shrink-0 cursor-pointer">
-            <div className="w-8 h-8 rounded-full overflow-hidden">
+        <div className="h-14 bg-background-dark/80 px-3 flex items-center gap-2 border-t border-white/5">
+          <div className="relative shrink-0 cursor-pointer group">
+            <div className="w-8 h-8 rounded-full overflow-hidden border border-white/10 group-hover:border-teal-normal/50 transition-colors">
               <Image
                 src={
                   currentUser?.avatar ||
@@ -313,15 +325,18 @@ export default function Sidebar({
                 unoptimized
               />
             </div>
-            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-[3px] border-[#232428] bg-[#23a559]"></div>
+            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-[3px] border-background-dark/80 bg-teal-normal"></div>
           </div>
-          <div className="flex-1 min-w-0 cursor-pointer">
-            <p className="text-white text-[13px] font-bold truncate leading-tight">
+          <div className="flex-1 min-w-0 cursor-pointer group">
+            <p className="text-white text-[13px] font-bold truncate leading-tight group-hover:text-teal-normal transition-colors">
               {currentUser?.name?.split(" ")[0]}
             </p>
-            <p className="text-[#949ba4] text-[11px] truncate leading-tight">
-              Online
-            </p>
+            <div className="flex items-center gap-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-teal-normal"></div>
+              <p className="text-slate-500 text-[10px] font-medium truncate leading-tight uppercase tracking-tighter">
+                Online
+              </p>
+            </div>
           </div>
         </div>
       </aside>
@@ -333,7 +348,7 @@ export default function Sidebar({
           onClick={() => setModalOpen(false)}
         >
           <div
-            className="bg-[#0f1318] rounded-3xl w-full max-w-sm mx-4 p-5 border border-white/8 shadow-2xl shadow-black/50"
+            className="bg-surface-dark rounded-3xl w-full max-w-sm mx-4 p-5 border border-white/8 shadow-2xl shadow-black/50"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal header */}
@@ -406,7 +421,7 @@ export default function Sidebar({
                       unoptimized
                     />
                     {onlineUsers?.get(user_res._id)?.online && (
-                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-[#0f1318]"></div>
+                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-teal-normal rounded-full border-2 border-surface-dark"></div>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -414,7 +429,7 @@ export default function Sidebar({
                       {user_res.name}
                     </p>
                     <p
-                      className={`text-[11px] mt-1 ${onlineUsers?.get(user_res._id)?.online ? "text-green-400" : "text-slate-600"}`}
+                      className={`text-[11px] mt-1 ${onlineUsers?.get(user_res._id)?.online ? "text-teal-normal" : "text-slate-600"}`}
                     >
                       {onlineUsers?.get(user_res._id)?.online
                         ? "● Online"

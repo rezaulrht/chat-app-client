@@ -322,16 +322,17 @@ export default function ChatWindow({ conversation, onMessageSent }) {
 
   if (!conversation) {
     return (
-      <div className="flex-1 bg-[#080b0f] flex flex-col items-center justify-center gap-4">
-        <div className="w-16 h-16 rounded-3xl bg-teal-normal/10 border border-teal-normal/20 flex items-center justify-center">
-          <Send size={24} className="text-teal-dark" />
+      <div className="flex-1 bg-background-dark flex flex-col items-center justify-center gap-6 p-8">
+        <div className="w-20 h-20 rounded-[2.5rem] bg-teal-normal/5 border border-teal-normal/10 flex items-center justify-center animate-pulse shadow-2xl shadow-teal-normal/5">
+          <Send size={32} className="text-teal-normal opacity-40 rotate-12" />
         </div>
-        <div className="text-center">
-          <p className="text-slate-400 text-sm font-medium">
-            No conversation selected
-          </p>
-          <p className="text-slate-700 text-xs mt-1">
-            Choose one from the sidebar to start chatting
+        <div className="text-center max-w-xs transition-all">
+          <h2 className="text-white font-bold text-lg tracking-tight">
+            Select a Conversation
+          </h2>
+          <p className="text-slate-500 text-sm mt-2 leading-relaxed font-medium">
+            Choose a friend from the sidebar or start a new chat to begin your
+            ConvoX experience.
           </p>
         </div>
       </div>
@@ -342,80 +343,95 @@ export default function ChatWindow({ conversation, onMessageSent }) {
   const isParticipantOnline = onlineUsers?.get(participant?._id)?.online;
 
   return (
-    <main className="flex-1 flex flex-col bg-[#313338] relative h-full overflow-hidden">
-      <header className="h-12 border-b border-[#1e1f22] flex justify-between items-center px-4 bg-[#313338] shrink-0">
-        <div className="flex items-center gap-3">
+    <main className="flex-1 flex flex-col bg-background-dark relative h-full overflow-hidden">
+      <header className="h-14 border-b border-white/5 flex justify-between items-center px-6 bg-background-dark/80 backdrop-blur-xl shrink-0 z-40">
+        <div className="flex items-center gap-4">
           <div className="relative shrink-0">
-            <div className="w-8 h-8 rounded-full overflow-hidden">
+            <div className="w-9 h-9 rounded-full overflow-hidden ring-1 ring-white/10 ring-offset-2 ring-offset-background-dark">
               <Image
                 src={
                   participant?.avatar ||
                   `https://api.dicebear.com/7.x/avataaars/svg?seed=${participant?.name}`
                 }
-                width={32}
-                height={32}
-                className="rounded-full"
+                width={36}
+                height={36}
+                className="rounded-full object-cover"
                 alt={participant?.name || "avatar"}
                 unoptimized
               />
             </div>
             <div
-              className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-[3px] border-[#313338] ${isParticipantOnline ? "bg-[#23a559]" : "bg-[#80848e]"}`}
+              className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-[3px] border-background-dark active-status-shadow ${isParticipantOnline ? "bg-[#23a559]" : "bg-slate-600"}`}
             ></div>
           </div>
-          <div>
-            <h2 className="font-bold text-white text-[15px] leading-tight flex items-center gap-2">
+          <div className="flex flex-col">
+            <h2 className="font-bold text-white text-[15px] leading-tight tracking-tight flex items-center gap-2">
               {participant?.name}
+              <span className="w-1 h-1 rounded-full bg-slate-700"></span>
+              <span className="text-[10px] text-slate-500 uppercase tracking-widest font-black">
+                Direct
+              </span>
             </h2>
-            <p className="text-[11px] text-[#949ba4] font-medium leading-tight">
-              {isParticipantOnline
-                ? "Online"
-                : `Last seen ${formatLastSeen(onlineUsers?.get(participant?._id)?.lastSeen) || "recently"}`}
-            </p>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <p className="text-[10px] text-slate-500 font-black leading-tight uppercase tracking-widest">
+                {isParticipantOnline
+                  ? "Available Now"
+                  : `Away • ${formatLastSeen(onlineUsers?.get(participant?._id)?.lastSeen) || "Recently"}`}
+              </p>
+            </div>
           </div>
         </div>
-        <div className="flex gap-4">
+        <div className="flex items-center gap-2">
           {[{ icon: Phone }, { icon: Video }, { icon: Info }].map(
             ({ icon: Icon }, i) => (
               <button
                 key={i}
-                className="text-[#b5bac1] hover:text-[#dbdee1] transition-colors"
+                className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-teal-normal hover:bg-white/5 rounded-2xl transition-all duration-300"
               >
-                <Icon size={20} strokeWidth={2.5} />
+                <Icon size={18} strokeWidth={2.5} />
               </button>
             ),
           )}
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-1 scrollbar-hide">
+      <div className="flex-1 overflow-y-auto px-6 py-6 flex flex-col gap-1.5 custom-scrollbar bg-background-dark overflow-x-hidden">
         {loadingMessages && (
-          <div className="flex items-center justify-center gap-2 mt-8">
-            <div className="w-4 h-4 rounded-full border-2 border-teal-normal border-t-transparent animate-spin"></div>
-            <p className="text-[#949ba4] text-xs">Loading messages...</p>
+          <div className="flex flex-col items-center justify-center gap-4 mt-16 scale-110">
+            <div className="w-8 h-8 rounded-full border-[3px] border-teal-normal/20 border-t-teal-normal animate-spin shadow-lg shadow-teal-normal/5"></div>
+            <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] animate-pulse">
+              Syncing messages...
+            </p>
           </div>
         )}
         {!loadingMessages && messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center flex-1 gap-4">
-            <div className="w-20 h-20 rounded-full bg-[#2b2d31] flex items-center justify-center shadow-inner">
-              <Image
-                src={
-                  participant?.avatar ||
-                  `https://api.dicebear.com/7.x/avataaars/svg?seed=${participant?.name}`
-                }
-                width={80}
-                height={80}
-                className="rounded-full"
-                alt={participant?.name || "avatar"}
-                unoptimized
-              />
+          <div className="flex flex-col items-center justify-center flex-1 gap-6 max-w-sm mx-auto text-center py-20">
+            <div className="relative">
+              <div className="absolute inset-0 bg-teal-normal/20 blur-3xl rounded-full scale-150 opacity-20 animate-pulse"></div>
+              <div className="relative w-24 h-24 rounded-[2.5rem] bg-surface-dark flex items-center justify-center shadow-2xl border border-white/5 rotate-3 hover:rotate-0 transition-transform duration-500">
+                <Image
+                  src={
+                    participant?.avatar ||
+                    `https://api.dicebear.com/7.x/avataaars/svg?seed=${participant?.name}`
+                  }
+                  width={96}
+                  height={96}
+                  className="rounded-[2.25rem] object-cover p-1"
+                  alt={participant?.name || "avatar"}
+                  unoptimized
+                />
+              </div>
             </div>
-            <div className="text-center">
-              <h3 className="text-white font-bold text-2xl">
+            <div className="space-y-2">
+              <h3 className="text-white font-black text-3xl tracking-tighter">
                 {participant?.name}
               </h3>
-              <p className="text-[#949ba4] text-sm mt-2">
-                This is the start of your direct message history.
+              <p className="text-slate-500 text-sm leading-relaxed font-medium">
+                Your secure interaction with{" "}
+                <span className="text-teal-normal font-bold">
+                  {participant?.name}
+                </span>{" "}
+                starts here. Send a greeting to begin!
               </p>
             </div>
           </div>
@@ -433,24 +449,24 @@ export default function ChatWindow({ conversation, onMessageSent }) {
           return (
             <React.Fragment key={msg._id}>
               {showDateSeparator && (
-                <div className="flex items-center gap-3 my-4">
-                  <div className="flex-1 h-px bg-[#1e1f22]"></div>
-                  <span className="text-[11px] font-bold text-[#949ba4] uppercase tracking-wider px-2">
+                <div className="flex items-center gap-4 my-8 first:mt-2">
+                  <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/5 to-transparent"></div>
+                  <span className="text-[9px] font-black text-slate-600 uppercase tracking-[0.3em] font-mono">
                     {getDateLabel(msg.createdAt)}
                   </span>
-                  <div className="flex-1 h-px bg-[#1e1f22]"></div>
+                  <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/5 to-transparent"></div>
                 </div>
               )}
               <div
-                className={`flex items-end gap-2 group ${isMe ? "justify-end" : "justify-start"}`}
+                className={`flex items-end gap-3 group mb-0.5 animate-in fade-in slide-in-from-bottom-1 duration-300 ${isMe ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`flex flex-col ${isMe ? "items-end" : "items-start"} max-w-[85%]`}
+                  className={`flex flex-col ${isMe ? "items-end" : "items-start"} max-w-[80%]`}
                 >
                   <div className="relative group w-fit">
                     {!msg.isOptimistic && (
                       <div
-                        className={`absolute -top-7 ${isMe ? "right-0" : "left-0"} hidden group-hover:flex items-center gap-0.5 bg-[#232428] border border-[#1e1f22] rounded-lg p-0.5 shadow-xl z-30`}
+                        className={`absolute -top-10 ${isMe ? "right-0" : "left-0"} hidden group-hover:flex items-center gap-1 bg-surface-dark border border-white/10 rounded-2xl p-1 shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-30 animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-200`}
                       >
                         {["👍", "❤️", "😂", "😮", "😢"].map((emoji) => (
                           <button
@@ -459,12 +475,14 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                               e.stopPropagation();
                               toggleReaction(msg._id, emoji);
                             }}
-                            className={`p-1.5 rounded-md transition-all duration-150 hover:bg-[#35373c] hover:scale-125 ${reactions[msg._id]?.[emoji]?.includes(user?._id) ? "bg-teal-normal/20" : ""}`}
+                            className={`p-2 rounded-xl transition-all duration-200 hover:bg-white/10 hover:scale-125 active:scale-95 ${reactions[msg._id]?.[emoji]?.includes(user?._id) ? "bg-teal-normal/20 border border-teal-normal/20" : ""}`}
                           >
-                            {emoji}
+                            <span className="text-base leading-none">
+                              {emoji}
+                            </span>
                           </button>
                         ))}
-                        <div className="w-px h-5 bg-[#1e1f22] mx-0.5" />
+                        <div className="w-px h-6 bg-white/10 mx-1" />
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -472,43 +490,49 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                               reactionPickerMsgId === msg._id ? null : msg._id,
                             );
                           }}
-                          className="p-1.5 text-[#b5bac1] hover:text-[#dbdee1] hover:bg-[#35373c] rounded-md transition-all duration-150"
+                          className="p-2 text-slate-400 hover:text-teal-normal hover:bg-white/10 rounded-xl transition-all duration-200"
                         >
-                          <Smile size={16} />
+                          <Smile size={18} />
                         </button>
                         <button
                           onClick={() => setReplyTo(msg)}
-                          className="p-1.5 text-[#b5bac1] hover:text-[#dbdee1] hover:bg-[#35373c] rounded-md transition-all duration-150"
+                          className="p-2 text-slate-400 hover:text-teal-normal hover:bg-white/10 rounded-xl transition-all duration-200"
                         >
-                          <Reply size={16} />
+                          <Reply size={18} />
                         </button>
                       </div>
                     )}
                     <div
-                      className={`${isGif ? "p-1" : "p-3"} rounded-xl text-[15px] leading-snug relative z-10 shadow-sm ${isMe ? (isGif ? "bg-transparent" : "bg-teal-normal text-white rounded-br-none") : isGif ? "bg-transparent" : "bg-[#2b2d31] text-[#dbdee1] rounded-bl-none"} ${msg.isOptimistic ? "opacity-60" : ""}`}
+                      className={`${isGif ? "p-1.5" : "p-3 px-4"} rounded-2xl text-[14px] leading-[1.6] relative z-20 shadow-xl transition-all duration-300 group-hover:shadow-black/30 ${isMe ? (isGif ? "bg-transparent" : "bg-teal-normal text-black font-semibold rounded-br-none shadow-teal-normal/10 hover:shadow-teal-normal/20") : isGif ? "bg-transparent" : "bg-surface-dark text-slate-200 border border-white/5 rounded-bl-none shadow-black/20 hover:border-white/10"} ${msg.isOptimistic ? "opacity-60 blur-[1px]" : ""}`}
                     >
                       {msg.replyTo && (
-                        <div className="mb-2 p-2 bg-black/10 rounded-lg border-l-2 border-teal-normal/50 text-[12px] opacity-90 line-clamp-2 italic">
-                          <p className="font-bold mb-0.5 non-italic text-[11px]">
+                        <div className="mb-3 p-2.5 bg-black/30 rounded-xl border-l-[3px] border-teal-normal/50 text-[11px] opacity-90 line-clamp-2 backdrop-blur-sm">
+                          <p className="font-black mb-1 text-[10px] text-teal-normal uppercase tracking-wider">
                             {msg.replyTo.sender?.name === user.name
                               ? "You"
                               : msg.replyTo.sender?.name || "Participant"}
                           </p>
-                          {msg.replyTo.text}
+                          <span className="opacity-80 leading-relaxed italic">
+                            {msg.replyTo.text}
+                          </span>
                         </div>
                       )}
                       {isGif ? (
-                        <img
-                          src={msg.gifUrl}
-                          alt="GIF"
-                          className="max-w-70 rounded-lg"
-                          loading="lazy"
-                        />
+                        <div className="relative group/gif overflow-hidden rounded-2xl">
+                          <img
+                            src={msg.gifUrl}
+                            alt="GIF"
+                            className="max-w-[18rem] rounded-2xl shadow-2xl border border-white/10 transition-transform duration-500 group-hover/gif:scale-105"
+                            loading="lazy"
+                          />
+                        </div>
                       ) : (
-                        msg.text
+                        <span className="whitespace-pre-wrap tracking-tight">
+                          {msg.text}
+                        </span>
                       )}
                       <div
-                        className={`text-[10px] mt-1 opacity-50 text-right ${isGif ? "px-2" : ""} flex items-center justify-end gap-1 font-medium`}
+                        className={`text-[9px] mt-2 opacity-50 flex items-center justify-end gap-1.5 font-black uppercase tracking-widest ${isMe ? "text-black/70" : "text-slate-500"}`}
                       >
                         {new Date(msg.createdAt).toLocaleTimeString([], {
                           hour: "2-digit",
@@ -519,7 +543,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                     {reactionPickerMsgId === msg._id && (
                       <div
                         ref={reactionPickerRef}
-                        className={`absolute bottom-full mb-2 z-50 ${isMe ? "right-0" : "left-0"}`}
+                        className={`absolute bottom-full mb-4 z-50 ${isMe ? "right-0" : "left-0"} shadow-[0_30px_60px_-12px_rgba(0,0,0,0.6)] rounded-3xl overflow-hidden ring-1 ring-white/10 animate-in fade-in slide-in-from-bottom-4 duration-300`}
                       >
                         <EmojiPicker
                           onEmojiClick={(emojiData) =>
@@ -529,7 +553,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                           emojiStyle="native"
                           width={320}
                           height={400}
-                          searchPlaceholder="Search emoji..."
+                          searchPlaceholder="Find perfect emoji..."
                           previewConfig={{ showPreview: false }}
                           lazyLoadEmojis
                         />
@@ -539,7 +563,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                   {reactions[msg._id] &&
                     Object.keys(reactions[msg._id]).length > 0 && (
                       <div
-                        className={`flex flex-wrap gap-1 mt-1 ${isMe ? "flex-row-reverse" : "flex-row"} max-w-65`}
+                        className={`flex flex-wrap gap-1.5 mt-2 ${isMe ? "flex-row-reverse" : "flex-row"} max-w-65`}
                       >
                         {Object.entries(reactions[msg._id])
                           .slice(0, 10)
@@ -547,10 +571,12 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                             <button
                               key={emoji}
                               onClick={() => toggleReaction(msg._id, emoji)}
-                              className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded-full border transition-all duration-150 ${users.includes(user?._id) ? "bg-teal-normal/10 border-teal-normal/30" : "bg-[#2b2d31] border-[#1e1f22]"}`}
+                              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-full border border-white/5 backdrop-blur-md transition-all duration-300 hover:scale-110 active:scale-95 ${users.includes(user?._id) ? "bg-teal-normal/20 border-teal-normal/50 text-teal-normal shadow-lg shadow-teal-normal/10" : "bg-surface-dark/60 text-slate-400 hover:border-white/20 hover:text-slate-200 shadow-xl"}`}
                             >
-                              <span className="text-[14px]">{emoji}</span>
-                              <span className="text-[11px] font-bold text-[#b5bac1]">
+                              <span className="text-[14px] leading-none">
+                                {emoji}
+                              </span>
+                              <span className="text-[10px] font-black font-mono">
                                 {users.length}
                               </span>
                             </button>
@@ -558,74 +584,56 @@ export default function ChatWindow({ conversation, onMessageSent }) {
                       </div>
                     )}
                   {isMe && !msg.isOptimistic && (
-                    <div className="flex items-center gap-1 px-1 mt-0.5">
+                    <div className="flex items-center gap-1.5 px-2 mt-1.5 opacity-80 group/status">
                       {msg.status === "sent" && (
-                        <span className="text-[#949ba4] text-[10px] font-medium flex items-center gap-1">
+                        <div className="text-slate-600 transition-colors group-hover/status:text-slate-400">
                           <svg
-                            width="10"
-                            height="10"
-                            viewBox="0 0 12 12"
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
                             fill="none"
+                            stroke="currentColor"
+                            strokeWidth="3.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
                           >
-                            <path
-                              d="M2 6l3 3 5-5"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
+                            <polyline points="20 6 9 17 4 12"></polyline>
                           </svg>
-                        </span>
+                        </div>
                       )}
                       {msg.status === "delivered" && (
-                        <span className="text-[#949ba4] text-[10px] font-medium flex items-center gap-0">
+                        <div className="text-slate-600 flex transition-colors group-hover/status:text-slate-400">
                           <svg
-                            width="12"
-                            height="10"
-                            viewBox="0 0 16 12"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
                             fill="none"
+                            stroke="currentColor"
+                            strokeWidth="3.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
                           >
-                            <path
-                              d="M1 6l3 3 5-5"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                            <path
-                              d="M5 6l3 3 5-5"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
+                            <polyline points="7 13 12 18 22 8"></polyline>
+                            <polyline points="2 13 7 18 17 8"></polyline>
                           </svg>
-                        </span>
+                        </div>
                       )}
                       {msg.status === "read" && (
-                        <span className="text-teal-normal text-[10px] font-medium flex items-center gap-0">
+                        <div className="text-teal-normal flex drop-shadow-[0_0_8px_rgba(45,212,191,0.4)] animate-in fade-in duration-500">
                           <svg
-                            width="12"
-                            height="10"
-                            viewBox="0 0 16 12"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
                             fill="none"
+                            stroke="currentColor"
+                            strokeWidth="3.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
                           >
-                            <path
-                              d="M1 6l3 3 5-5"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                            <path
-                              d="M5 6l3 3 5-5"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
+                            <polyline points="7 13 12 18 22 8"></polyline>
+                            <polyline points="2 13 7 18 17 8"></polyline>
                           </svg>
-                        </span>
+                        </div>
                       )}
                     </div>
                   )}
@@ -635,39 +643,42 @@ export default function ChatWindow({ conversation, onMessageSent }) {
           );
         })}
         {typingUsers?.get(conversation._id) && (
-          <div className="flex items-end gap-2 justify-start">
-            <div className="flex items-center gap-1 px-4 py-3 bg-[#2b2d31] rounded-2xl rounded-bl-none shadow-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:0ms]" />
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:150ms]" />
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:300ms]" />
+          <div className="flex items-end gap-3 justify-start mt-4 mb-2 animate-in slide-in-from-left-4 fade-in duration-500">
+            <div className="flex items-center gap-1.5 px-5 py-4 bg-surface-dark rounded-3xl rounded-bl-none shadow-2xl border border-white/5 backdrop-blur-md">
+              <span className="w-1.5 h-1.5 rounded-full bg-teal-normal animate-bounce [animation-delay:-300ms] shadow-[0_0_8px_rgba(45,212,191,0.5)]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-teal-normal animate-bounce [animation-delay:-150ms] shadow-[0_0_8px_rgba(45,212,191,0.5)]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-teal-normal animate-bounce [animation-delay:0ms] shadow-[0_0_8px_rgba(45,212,191,0.5)]" />
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">
+                Typing
+              </span>
             </div>
           </div>
         )}
-        <div ref={bottomRef} />
+        <div ref={bottomRef} className="h-4" />
       </div>
 
       <form
         onSubmit={handleSend}
-        className="p-4 relative bg-[#0a0e13]/80 backdrop-blur-sm border-t border-white/5 z-50"
+        className="p-6 relative bg-background-dark/95 backdrop-blur-xl border-t border-white/5 z-50"
       >
         {replyTo && (
-          <div className="absolute bottom-full left-0 right-0 p-3 bg-surface-dark border-t border-teal-normal/30 flex items-center justify-between animate-in slide-in-from-bottom-2 fade-in">
-            <div className="flex items-center gap-3 overflow-hidden">
-              <div className="w-1 bg-teal-normal h-8 rounded-full"></div>
-              <div className="overflow-hidden">
-                <p className="text-[11px] font-bold text-teal-normal">
+          <div className="absolute bottom-[calc(100%+8px)] left-6 right-6 p-4 bg-surface-dark border border-teal-normal/20 rounded-2xl flex items-center justify-between animate-in slide-in-from-bottom-4 fade-in duration-300 shadow-2xl backdrop-blur-xl">
+            <div className="flex items-center gap-4 overflow-hidden">
+              <div className="w-1.5 bg-teal-normal h-10 rounded-full shadow-[0_0_15px_rgba(45,212,191,0.3)]"></div>
+              <div className="overflow-hidden space-y-0.5">
+                <p className="text-[10px] font-black text-teal-normal uppercase tracking-[0.2em]">
                   Replying to {replyTo.sender?.name}
                 </p>
-                <p className="text-xs text-slate-400 truncate">
+                <p className="text-[13px] text-slate-300 truncate font-medium">
                   {replyTo.text}
                 </p>
               </div>
             </div>
             <button
               onClick={() => setReplyTo(null)}
-              className="p-1.5 hover:bg-white/5 rounded-full text-slate-500"
+              className="w-8 h-8 flex items-center justify-center hover:bg-white/10 rounded-xl text-slate-500 transition-all hover:text-white"
             >
-              <X size={16} />
+              <X size={18} />
             </button>
           </div>
         )}
@@ -675,15 +686,15 @@ export default function ChatWindow({ conversation, onMessageSent }) {
         {showGifPicker && (
           <div
             ref={gifPickerRef}
-            className="absolute bottom-20 right-4 z-50 shadow-2xl rounded-2xl overflow-hidden border border-slate-800"
+            className="absolute bottom-24 right-6 z-50 shadow-[0_40px_100px_rgba(0,0,0,0.8)] rounded-3xl overflow-hidden border border-white/10 ring-1 ring-white/5 animate-in zoom-in-95 fade-in slide-in-from-bottom-8 duration-300"
           >
-            <style>{`.gpr-picker { --gpr-bg-color: #15191C !important; --gpr-secondary-bg: #1C2227 !important; --gpr-text-color: #cbd5e1 !important; --gpr-text-secondary: #94a3b8 !important; --gpr-border-color: #1e293b !important; --gpr-highlight-color: #2dd4bf !important; --gpr-highlight-hover: #5eead4 !important; --gpr-input-bg: #0B0E11 !important; --gpr-hover-bg: rgba(45, 212, 191, 0.1) !important; --gpr-radius: 16px !important; border: none !important; } .gpr-trending-terms { display: none !important; }`}</style>
+            <style>{`.gpr-picker { --gpr-bg-color: #0d1117 !important; --gpr-secondary-bg: #161b22 !important; --gpr-text-color: #e2e8f0 !important; --gpr-text-secondary: #94a3b8 !important; --gpr-border-color: #30363d !important; --gpr-highlight-color: #13c8ec !important; --gpr-highlight-hover: #5eead4 !important; --gpr-input-bg: #010409 !important; --gpr-hover-bg: rgba(19, 200, 236, 0.1) !important; --gpr-radius: 20px !important; border: none !important; } .gpr-trending-terms { display: none !important; }`}</style>
             <GifPicker
               klipyApiKey={process.env.NEXT_PUBLIC_KLIPY_API_KEY}
               onGifClick={handleGifClick}
               theme="dark"
-              width={380}
-              height={450}
+              width={400}
+              height={500}
               columns={2}
             />
           </div>
@@ -691,75 +702,83 @@ export default function ChatWindow({ conversation, onMessageSent }) {
         {showEmojiPicker && (
           <div
             ref={inputEmojiPickerRef}
-            className="absolute bottom-20 right-4 z-50 shadow-2xl"
+            className="absolute bottom-24 right-6 z-50 shadow-[0_40px_100px_rgba(0,0,0,0.8)] rounded-3xl overflow-hidden ring-1 ring-white/10 animate-in zoom-in-95 fade-in slide-in-from-bottom-8 duration-300"
           >
             <EmojiPicker
               onEmojiClick={handleEmojiClick}
               theme="dark"
               emojiStyle="native"
-              width={350}
-              height={420}
-              searchPlaceholder="Search emoji..."
+              width={380}
+              height={450}
+              searchPlaceholder="Spark an emotion..."
               previewConfig={{ showPreview: false }}
               lazyLoadEmojis
             />
           </div>
         )}
 
-        <div className="bg-[#12181f] rounded-2xl flex items-center p-2 border border-white/5 focus-within:border-teal-normal/50 transition-all shadow-inner">
+        <div className="bg-[#0a0f14] rounded-[2rem] flex items-center p-2.5 border border-white/5 focus-within:border-teal-normal/40 focus-within:ring-4 focus-within:ring-teal-normal/5 transition-all shadow-2xl backdrop-blur-md group/input">
           <button
             type="button"
-            className="w-9 h-9 flex items-center justify-center text-slate-500 hover:text-teal-normal transition-colors"
+            className="w-11 h-11 flex items-center justify-center text-slate-500 hover:text-teal-normal hover:bg-white/5 rounded-2xl transition-all duration-300 group-focus-within/input:text-teal-normal"
           >
-            <Plus size={20} />
+            <Plus size={22} strokeWidth={2.5} />
           </button>
           <input
-            className="flex-1 bg-transparent outline-none text-sm text-slate-200 px-3 placeholder:text-slate-600"
-            placeholder="Type a message..."
+            className="flex-1 bg-transparent outline-none text-[15px] font-medium text-white px-4 placeholder:text-slate-600 placeholder:font-black placeholder:uppercase placeholder:tracking-widest placeholder:text-[11px]"
+            placeholder="Broadcast your thoughts..."
             value={text}
             onChange={handleTextChange}
             onKeyDown={handleKeyDown}
           />
           {suggestions.length > 0 && (
-            <div className="absolute bottom-20 left-10 bg-[#15191C]/95 backdrop-blur-md border border-slate-800 rounded-xl p-1 shadow-2xl z-50 min-w-37.5">
+            <div className="absolute bottom-[calc(100%+12px)] left-6 bg-surface-dark/95 backdrop-blur-2xl border border-white/10 rounded-2xl p-1.5 shadow-[0_30px_60px_-12px_rgba(0,0,0,0.7)] z-50 min-w-[12rem] animate-in slide-in-from-bottom-2 duration-200">
+              <p className="px-3 py-1.5 text-[9px] font-black text-slate-500 uppercase tracking-widest border-b border-white/5 mb-1.5">
+                Emoji Hints
+              </p>
               {suggestions.map(([code, emoji], i) => (
                 <div
                   key={code}
                   onClick={() => insertEmoji(emoji)}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${i === suggestionIndex ? "bg-teal-500/20 text-teal-400" : "hover:bg-slate-800 text-slate-400"}`}
+                  className={`flex items-center gap-4 px-3.5 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${i === suggestionIndex ? "bg-teal-normal/20 text-teal-normal shadow-lg shadow-teal-normal/5" : "hover:bg-white/5 text-slate-400"}`}
                 >
-                  <span className="text-lg">{emoji}</span>
-                  <span className="text-xs font-mono">{code}</span>
+                  <span className="text-xl leading-none">{emoji}</span>
+                  <span className="text-[11px] font-black font-mono tracking-tighter opacity-80">
+                    {code}
+                  </span>
                 </div>
               ))}
             </div>
           )}
-          <button
-            type="button"
-            onClick={() => {
-              setShowGifPicker(!showGifPicker);
-              setShowEmojiPicker(false);
-            }}
-            className={`px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${showGifPicker ? "bg-teal-normal/20 border-teal-normal/40 text-teal-normal" : "bg-white/4 border-white/10 text-slate-500 hover:text-slate-300"}`}
-          >
-            GIF
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setShowEmojiPicker(!showEmojiPicker);
-              setShowGifPicker(false);
-            }}
-            className={`w-9 h-9 flex items-center justify-center transition-all ${showEmojiPicker ? "text-teal-normal" : "text-slate-500 hover:text-slate-300"}`}
-          >
-            <Smile size={20} />
-          </button>
-          <button
-            type="submit"
-            className="w-9 h-9 flex items-center justify-center bg-teal-normal hover:bg-teal-light text-black rounded-xl ml-2 transition-all active:scale-95 shadow-lg shadow-teal-normal/20"
-          >
-            <Send size={18} />
-          </button>
+          <div className="flex items-center gap-1.5 pr-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                setShowGifPicker(!showGifPicker);
+                setShowEmojiPicker(false);
+              }}
+              className={`h-9 px-3 text-[10px] font-black rounded-xl border transition-all duration-300 tracking-widest uppercase ${showGifPicker ? "bg-teal-normal text-black border-teal-normal shadow-lg shadow-teal-normal/20" : "bg-white/5 border-white/5 text-slate-500 hover:text-slate-300 hover:bg-white/10"}`}
+            >
+              GIF
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowEmojiPicker(!showEmojiPicker);
+                setShowGifPicker(false);
+              }}
+              className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all duration-300 ${showEmojiPicker ? "text-teal-normal bg-teal-normal/10" : "text-slate-500 hover:text-slate-200 hover:bg-white/5"}`}
+            >
+              <Smile size={22} strokeWidth={2.5} />
+            </button>
+            <button
+              type="submit"
+              disabled={!text.trim()}
+              className={`w-11 h-11 flex items-center justify-center rounded-2xl transition-all duration-500 shadow-2xl ${text.trim() ? "bg-teal-normal text-black hover:scale-105 active:scale-95 shadow-teal-normal/20" : "bg-white/5 text-slate-700 opacity-50 cursor-not-allowed"}`}
+            >
+              <Send size={20} strokeWidth={2.5} />
+            </button>
+          </div>
         </div>
       </form>
     </main>

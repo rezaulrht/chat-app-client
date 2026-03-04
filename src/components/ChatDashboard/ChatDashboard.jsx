@@ -143,17 +143,27 @@ export default function ChatDashboard() {
 
   if (loadingConversations) {
     return (
-      <div className="flex h-screen w-full bg-[#080b0f] items-center justify-center flex-col gap-4">
-        <div className="w-12 h-12 rounded-2xl bg-teal-normal/10 border border-teal-normal/20 flex items-center justify-center">
-          <div className="w-5 h-5 rounded-full border-2 border-teal-normal border-t-transparent animate-spin"></div>
+      <div className="flex h-screen w-full bg-background-dark items-center justify-center flex-col gap-6">
+        <div className="relative">
+          <div className="absolute inset-0 bg-teal-normal/20 blur-xl rounded-full scale-150 animate-pulse"></div>
+          <div className="relative w-16 h-16 rounded-3xl bg-surface-dark border border-white/5 flex items-center justify-center shadow-2xl">
+            <div className="w-6 h-6 rounded-full border-[3px] border-teal-normal/20 border-t-teal-normal animate-spin"></div>
+          </div>
         </div>
-        <p className="text-slate-600 text-xs">Loading conversations...</p>
+        <div className="text-center space-y-1">
+          <p className="text-white font-bold text-sm tracking-tight text-center">
+            Initializing ConvoX
+          </p>
+          <p className="text-slate-600 text-[10px] font-black uppercase tracking-[0.2em]">
+            Syncing your conversations...
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen w-full bg-[#080b0f] overflow-hidden font-sans">
+    <div className="flex h-screen w-full bg-background-dark overflow-hidden font-sans selection:bg-teal-normal/30">
       <WorkspaceSidebar
         activeView={activeView}
         setActiveView={setActiveView}

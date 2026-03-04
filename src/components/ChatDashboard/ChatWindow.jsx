@@ -14,13 +14,14 @@ import {
   Reply,
   Pencil,
   Trash2,
+  Check,
 } from "lucide-react";
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
 import { EMOJI_MAP } from "@/utils/emojis";
 import { formatLastSeen } from "@/utils/formatLastSeen";
-import toast from "react-hot-toast";
+
 
 import {
   createScheduledMessage,
@@ -812,12 +813,32 @@ export default function ChatWindow({
                           This message was deleted
                         </p>
                       ) : editingMessageId === msg._id ? (
-                        <div className="flex flex-col gap-2">
-                          <input
-                            className="bg-gray-800 text-white text-sm p-2 rounded border border-teal-normal focus:outline-none focus:ring-2 focus:ring-teal-normal"
+                        <div className="flex flex-col gap-2 w-full min-w-[220px]">
+                          {/* Edit header */}
+                          <div className="flex items-center gap-1.5 text-teal-normal/80 text-[10px] font-semibold">
+                            <Pencil size={10} />
+                            <span>Editing message</span>
+                            <span className="ml-auto text-slate-600 text-[9px] font-normal tracking-wide">
+                              Shift+Enter for new line
+                            </span>
+                          </div>
+                          {/* Textarea */}
+                          <textarea
+                            className="w-full min-h-[52px] max-h-40 bg-[#0d1117] text-slate-100 text-sm px-3 py-2.5 rounded-xl border border-teal-normal/40 focus:outline-none focus:border-teal-normal focus:ring-1 focus:ring-teal-normal/25 resize-none leading-relaxed transition-all scrollbar-hide"
                             value={editedText}
                             onChange={(e) => setEditedText(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && !e.shiftKey) {
+                                e.preventDefault();
+                                handleEditSave();
+                              }
+                              if (e.key === "Escape") {
+                                setEditingMessageId(null);
+                                setEditedText("");
+                              }
+                            }}
                             autoFocus
+                            rows={2}
                           />
                           <div className="flex gap-2">
                             <button
@@ -833,9 +854,17 @@ export default function ChatWindow({
                                 setEditingMessageId(null);
                                 setEditedText("");
                               }}
-                              className="text-xs text-gray-400 hover:text-gray-300"
+                              className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-slate-300 px-2.5 py-1 rounded-lg hover:bg-white/5 transition-all"
                             >
+                              <X size={11} />
                               Cancel
+                            </button>
+                            <button
+                              onClick={handleEditSave}
+                              className="flex items-center gap-1.5 text-[11px] bg-teal-normal/90 hover:bg-teal-normal text-black font-bold px-3 py-1.5 rounded-lg transition-all active:scale-95 shadow-sm shadow-teal-normal/20"
+                            >
+                              <Check size={11} />
+                              Save
                             </button>
                           </div>
                         </div>

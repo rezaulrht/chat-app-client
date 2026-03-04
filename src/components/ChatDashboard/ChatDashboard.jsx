@@ -1,14 +1,15 @@
 // src/components/ChatDashboard/ChatDashboard.jsx
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import Image from "next/image";
+
 import Sidebar from "./SidebarChats";
 import ChatWindow from "./ChatWindow";
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
 import { sortConversations } from "@/utils/sortConversations";
-import { toast, Toaster } from "sonner"; // ← Added
+
 import useAuth from "@/hooks/useAuth"; // ← Added
+import { toast } from "sonner";
 
 export default function ChatDashboard() {
   const [conversations, setConversations] = useState([]);
@@ -86,8 +87,8 @@ export default function ChatDashboard() {
       // 🔥 TOAST ONLY WHEN NOT IN THIS CHAT AND NOT OUR OWN MESSAGE
       const isInActiveChat =
         activeConversationIdRef.current === msg.conversationId;
-      const isMyMessage =
-        msg.sender?._id === user?._id || msg.sender === user?._id;
+        const isMyMessage =
+          user?._id && String(msg.sender?._id) === String(user._id);
 
       if (!isInActiveChat && !isMyMessage) {
         showNewMessageToast(msg);
@@ -260,9 +261,6 @@ export default function ChatDashboard() {
         onMessageSent={handleMessageSent}
         onMessagesSeen={handleMessagesSeen}
       />
-
-      {/* Sonner Toaster (required for toasts to appear) */}
-      <Toaster position="top-right" richColors closeButton theme="dark" />
     </div>
   );
 }

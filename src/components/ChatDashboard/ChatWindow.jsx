@@ -14,6 +14,7 @@ import {
   Reply,
   Pencil,
   Trash2,
+  Check,
 } from "lucide-react";
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
@@ -52,7 +53,11 @@ const toDateKey = (dateStr) => {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 };
 
-export default function ChatWindow({ conversation, onMessageSent, onMessagesSeen }) {
+export default function ChatWindow({
+  conversation,
+  onMessageSent,
+  onMessagesSeen,
+}) {
   const { socket, onlineUsers, typingUsers } = useSocket() || {};
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
@@ -297,7 +302,14 @@ export default function ChatWindow({ conversation, onMessageSent, onMessagesSeen
     }
 
     seenInitializedConversationRef.current = conversation._id;
-  }, [conversation?._id, messages, socket, user, loadingMessages, onMessagesSeen]);
+  }, [
+    conversation?._id,
+    messages,
+    socket,
+    user,
+    loadingMessages,
+    onMessagesSeen,
+  ]);
 
   // Mark initial loaded messages as seen once per active conversation
   useEffect(() => {
@@ -320,7 +332,14 @@ export default function ChatWindow({ conversation, onMessageSent, onMessagesSeen
     }
 
     seenInitializedConversationRef.current = conversation._id;
-  }, [conversation?._id, messages, socket, user, loadingMessages, onMessagesSeen]);
+  }, [
+    conversation?._id,
+    messages,
+    socket,
+    user,
+    loadingMessages,
+    onMessagesSeen,
+  ]);
 
   useEffect(() => {
     if (!socket || !conversation?._id) return;
@@ -665,7 +684,17 @@ export default function ChatWindow({ conversation, onMessageSent, onMessagesSeen
                       </div>
                     )}
                     <div
-                      className={`${isGif ? "p-1" : "p-3.5"} rounded-2xl text-[13px] leading-relaxed relative z-10 ${isMe ? (isGif ? "bg-transparent" : "bg-teal-normal text-white rounded-br-none shadow-lg shadow-teal-normal/10") : isGif ? "bg-transparent" : "bg-surface-dark text-slate-200 rounded-bl-none shadow-sm shadow-black/5"} ${msg.isOptimistic ? "opacity-60" : ""}`}
+                      className={`${isGif ? "p-1" : "p-3.5"} rounded-2xl text-[13px] leading-relaxed relative z-10 ${
+                        editingMessageId === msg._id
+                          ? "bg-transparent border border-teal-normal/40 text-slate-200 rounded-br-none"
+                          : isMe
+                            ? isGif
+                              ? "bg-transparent"
+                              : "bg-teal-normal text-white rounded-br-none shadow-lg shadow-teal-normal/10"
+                            : isGif
+                              ? "bg-transparent"
+                              : "bg-surface-dark text-slate-200 rounded-bl-none shadow-sm shadow-black/5"
+                      } ${msg.isOptimistic ? "opacity-60" : ""}`}
                     >
                       {msg.replyTo && (
                         <div className="mb-2 p-2 bg-black/20 rounded-lg border-l-2 border-teal-normal text-[11px] opacity-80 line-clamp-2">
@@ -683,28 +712,51 @@ export default function ChatWindow({ conversation, onMessageSent, onMessagesSeen
                           This message was deleted
                         </p>
                       ) : editingMessageId === msg._id ? (
-                        <div className="flex flex-col gap-2">
-                          <input
-                            className="bg-gray-800 text-white text-sm p-2 rounded border border-teal-normal focus:outline-none focus:ring-2 focus:ring-teal-normal"
+                        <div className="flex flex-col gap-2 w-full min-w-[220px]">
+                          {/* Edit header */}
+                          <div className="flex items-center gap-1.5 text-teal-normal/80 text-[10px] font-semibold">
+                            <Pencil size={10} />
+                            <span>Editing message</span>
+                            <span className="ml-auto text-slate-600 text-[9px] font-normal tracking-wide">
+                              Shift+Enter for new line
+                            </span>
+                          </div>
+                          {/* Textarea */}
+                          <textarea
+                            className="w-full min-h-[52px] max-h-40 bg-[#0d1117] text-slate-100 text-sm px-3 py-2.5 rounded-xl border border-teal-normal/40 focus:outline-none focus:border-teal-normal focus:ring-1 focus:ring-teal-normal/25 resize-none leading-relaxed transition-all scrollbar-hide"
                             value={editedText}
                             onChange={(e) => setEditedText(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && !e.shiftKey) {
+                                e.preventDefault();
+                                handleEditSave();
+                              }
+                              if (e.key === "Escape") {
+                                setEditingMessageId(null);
+                                setEditedText("");
+                              }
+                            }}
                             autoFocus
+                            rows={2}
                           />
-                          <div className="flex gap-2">
-                            <button
-                              onClick={handleEditSave}
-                              className="text-xs bg-teal-normal text-black px-3 py-1 rounded hover:bg-teal-light"
-                            >
-                              Save
-                            </button>
+                          {/* Action row */}
+                          <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() => {
                                 setEditingMessageId(null);
                                 setEditedText("");
                               }}
-                              className="text-xs text-gray-400 hover:text-gray-300"
+                              className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-slate-300 px-2.5 py-1 rounded-lg hover:bg-white/5 transition-all"
                             >
+                              <X size={11} />
                               Cancel
+                            </button>
+                            <button
+                              onClick={handleEditSave}
+                              className="flex items-center gap-1.5 text-[11px] bg-teal-normal/90 hover:bg-teal-normal text-black font-bold px-3 py-1.5 rounded-lg transition-all active:scale-95 shadow-sm shadow-teal-normal/20"
+                            >
+                              <Check size={11} />
+                              Save
                             </button>
                           </div>
                         </div>

@@ -1,6 +1,7 @@
 // src/components/ChatDashboard/ChatDashboard.jsx
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from "react";
+
 import Sidebar from "./SidebarChats";
 import ChatWindow from "./ChatWindow";
 import GroupInfoPanel from "./GroupInfoPanel";
@@ -8,6 +9,7 @@ import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
 import { sortConversations } from "@/utils/sortConversations";
+import { toast } from "sonner";
 
 export default function ChatDashboard() {
   const [conversations, setConversations] = useState([]);
@@ -16,6 +18,13 @@ export default function ChatDashboard() {
   // Controls the slide-out GroupInfoPanel beside ChatWindow
   const [showGroupInfo, setShowGroupInfo] = useState(false);
   const { socket, fetchLastSeenTimes } = useSocket() || {};
+  const { user } = useAuth(); // ← New (for self-message check)
+
+  // Refs to avoid stale closures in socket handlers
+  const conversationsRef = useRef([]);
+  const activeConversationIdRef = useRef(null);
+  conversationsRef.current = conversations;
+  activeConversationIdRef.current = activeConversationId;
   const { user: currentUser } = useAuth();
 
   // Fetch all conversations for the logged-in user on mount (only once)
@@ -23,11 +32,10 @@ export default function ChatDashboard() {
     const fetchConversations = async () => {
       try {
         const res = await api.get("/api/chat/conversations");
-        // Sort conversations: pinned first, then by most recent
         const sorted = sortConversations(res.data);
         setConversations(sorted);
 
-        // Fetch last seen times for DM participants only (groups use online count)
+        // Fetch last seen times for all conversation participants
         if (sorted.length > 0 && fetchLastSeenTimes) {
           const userIds = sorted
             .filter((conv) => conv.type !== "group")
@@ -39,7 +47,6 @@ export default function ChatDashboard() {
           }
         }
 
-        // Auto-select the first conversation if any exist (uses sorted order)
         if (sorted.length > 0) {
           setActiveConversationId(sorted[0]._id);
         }
@@ -51,24 +58,54 @@ export default function ChatDashboard() {
     };
 
     fetchConversations();
-  }, [fetchLastSeenTimes]); // Dependency on fetchLastSeenTimes to ensure it's defined
+  }, [fetchLastSeenTimes]);
 
-  // Ref to access current conversations in socket handlers without stale closures
-  const conversationsRef = useRef([]);
-  conversationsRef.current = conversations;
+  // Toast for new messages when user is NOT in the active chat
+  const showNewMessageToast = useCallback(
+    (msg) => {
+      if (!msg.sender?.name) return;
 
-  // Global listener: update sidebar when any message arrives (sent or received)
+      toast(`💬 New message from ${msg.sender.name}`, {
+        description: msg.gifUrl
+          ? "Sent a GIF"
+          : msg.text
+            ? msg.text.length > 65
+              ? msg.text.slice(0, 62) + "..."
+              : msg.text
+            : "",
+        action: {
+          label: "Open Chat",
+          onClick: () => setActiveConversationId(msg.conversationId),
+        },
+        duration: 4000,
+        richColors: true,
+      });
+    },
+    [setActiveConversationId],
+  );
+
+  // Global listener: update sidebar when any message arrives + show toast
   useEffect(() => {
     if (!socket) return;
 
     const handleGlobalMessage = async (msg) => {
+      // 🔥 TOAST ONLY WHEN NOT IN THIS CHAT AND NOT OUR OWN MESSAGE
+      const isInActiveChat =
+        activeConversationIdRef.current === msg.conversationId;
+        const isMyMessage =
+          user?._id && String(msg.sender?._id) === String(user._id);
+
+      if (!isInActiveChat && !isMyMessage) {
+        showNewMessageToast(msg);
+      }
+
+      // === YOUR ORIGINAL LOGIC (unchanged) ===
       const exists = conversationsRef.current.find(
         (c) => c._id === msg.conversationId,
       );
 
       if (exists) {
-        // Update lastMessage and move to top
-        // Store the full sender object so group previews can show "Rakib: Hey"
+        // Update lastMessage and move to top by updating both lastMessage and updatedAt
         setConversations((prev) => {
           const updated = prev.map((c) =>
             c._id === msg.conversationId
@@ -88,7 +125,6 @@ export default function ChatDashboard() {
           return sortConversations(updated);
         });
       } else {
-        // New conversation from another user — fetch from server and add to list
         try {
           const res = await api.get("/api/chat/conversations");
           const newConv = res.data.find((c) => c._id === msg.conversationId);
@@ -109,15 +145,12 @@ export default function ChatDashboard() {
     };
 
     const handleUnreadUpdate = ({ conversationId, unreadCount }) => {
-      // Only update unread count, don't change the sort order
-      // (Conversations should not move when messages are just being read)
       setConversations((prev) =>
         prev.map((c) => (c._id === conversationId ? { ...c, unreadCount } : c)),
       );
     };
 
     const handleMessageStatus = (update) => {
-      // When messages are marked as read, clear unread count
       if (update.status === "read") {
         setConversations((prev) =>
           prev.map((c) =>
@@ -216,7 +249,7 @@ export default function ChatDashboard() {
       socket.off("group:member-left", handleGroupRefetch);
       socket.off("group:admin-updated", handleGroupRefetch);
     };
-  }, [socket, fetchLastSeenTimes]);
+  }, [socket, fetchLastSeenTimes, user, showNewMessageToast]);
 
   const activeConversation = conversations.find(
     (c) => c._id === activeConversationId,
@@ -246,9 +279,7 @@ export default function ChatDashboard() {
     [],
   );
 
-  // Called when a new conversation is started from the search modal
   const handleNewConversation = useCallback((conversation) => {
-    // Add to list if it doesn't already exist
     setConversations((prev) => {
       const exists = prev.find((c) => c._id === conversation._id);
       if (exists) return prev;
@@ -280,11 +311,9 @@ export default function ChatDashboard() {
     );
   }, []);
 
-  // Called when messages are marked as seen in ChatWindow
   const handleMessagesSeen = useCallback((conversationId) => {
     setConversations((prev) => {
       let changed = false;
-
       const next = prev.map((c) => {
         if (c._id === conversationId && c.unreadCount !== 0) {
           changed = true;
@@ -292,17 +321,14 @@ export default function ChatDashboard() {
         }
         return c;
       });
-
       return changed ? next : prev;
     });
   }, []);
 
-  // Clear unread count when conversation is opened
   useEffect(() => {
     if (activeConversationId) {
       setConversations((prev) => {
         let changed = false;
-
         const next = prev.map((c) => {
           if (c._id === activeConversationId && c.unreadCount !== 0) {
             changed = true;
@@ -310,7 +336,6 @@ export default function ChatDashboard() {
           }
           return c;
         });
-
         return changed ? next : prev;
       });
     }

@@ -24,6 +24,12 @@ import { formatLastSeen } from "@/utils/formatLastSeen";
 import { getGroupInitials, getGroupAvatarColor } from "@/utils/groupAvatar";
 import toast from "react-hot-toast";
 
+import {
+  createScheduledMessage,
+  listScheduledMessages,
+  cancelScheduledMessage,
+} from "@/utils/scheduleApi";
+
 const EmojiPicker = dynamic(() => import("emoji-picker-react"), { ssr: false });
 const GifPicker = dynamic(
   () =>
@@ -36,10 +42,12 @@ const getDateLabel = (dateStr) => {
   const today = new Date();
   const yesterday = new Date();
   yesterday.setDate(today.getDate() - 1);
+
   const isSameDay = (a, b) =>
     a.getFullYear() === b.getFullYear() &&
     a.getMonth() === b.getMonth() &&
     a.getDate() === b.getDate();
+
   if (isSameDay(date, today)) return "Today";
   if (isSameDay(date, yesterday)) return "Yesterday";
   return date.toLocaleDateString([], {
@@ -64,18 +72,32 @@ export default function ChatWindow({
 }) {
   const { socket, onlineUsers, typingUsers } = useSocket() || {};
   const { user } = useAuth();
+
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [loadingMessages, setLoadingMessages] = useState(false);
+
   const [replyTo, setReplyTo] = useState(null);
+
   const [reactions, setReactions] = useState({});
   const [reactionPickerMsgId, setReactionPickerMsgId] = useState(null);
+
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showGifPicker, setShowGifPicker] = useState(false);
+
   const [suggestions, setSuggestions] = useState([]);
   const [suggestionIndex, setSuggestionIndex] = useState(0);
 
-  // ── Edit & Delete States ──
+  // Scheduled messages UI
+  const [scheduleMode, setScheduleMode] = useState(false);
+  const [sendAt, setSendAt] = useState("");
+  const [scheduling, setScheduling] = useState(false);
+
+  const [scheduledItems, setScheduledItems] = useState([]);
+  const [showScheduledPanel, setShowScheduledPanel] = useState(false);
+  const [loadingScheduled, setLoadingScheduled] = useState(false);
+
+  // Edit/Delete UI
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editedText, setEditedText] = useState("");
 
@@ -85,21 +107,26 @@ export default function ChatWindow({
   const gifPickerRef = useRef(null);
   const seenInitializedConversationRef = useRef(null);
 
+  // Close pickers on outside click
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (
         reactionPickerRef.current &&
         !reactionPickerRef.current.contains(e.target)
-      )
+      ) {
         setReactionPickerMsgId(null);
+      }
       if (
         inputEmojiPickerRef.current &&
         !inputEmojiPickerRef.current.contains(e.target)
-      )
+      ) {
         setShowEmojiPicker(false);
-      if (gifPickerRef.current && !gifPickerRef.current.contains(e.target))
+      }
+      if (gifPickerRef.current && !gifPickerRef.current.contains(e.target)) {
         setShowGifPicker(false);
+      }
     };
+
     if (reactionPickerMsgId || showEmojiPicker || showGifPicker) {
       document.addEventListener("mousedown", handleClickOutside);
     }
@@ -120,9 +147,14 @@ export default function ChatWindow({
 
   const handleTextChange = (e) => {
     let val = e.target.value;
+
+    // replace :code: with emoji if exact lastWord
     const lastWord = val.split(" ").pop();
     if (EMOJI_MAP[lastWord]) val = val.replace(lastWord, EMOJI_MAP[lastWord]);
+
     setText(val);
+
+    // typing indicator
     if (socket && conversation) {
       const isGrp = conversation.type === "group";
       if (val.trim()) {
@@ -137,6 +169,8 @@ export default function ChatWindow({
         });
       }
     }
+
+    // suggestions for :xxx
     const match = val.match(/:([a-zA-Z0-9_]*)$/);
     if (match) {
       const query = match[1].toLowerCase();
@@ -148,16 +182,9 @@ export default function ChatWindow({
             name.split("_").some((w) => w.startsWith(query))
           );
         })
-        .sort(([a], [b]) => {
-          const an = a.slice(1, -1);
-          const bn = b.slice(1, -1);
-          const aFirst = an.startsWith(query);
-          const bFirst = bn.startsWith(query);
-          if (aFirst && !bFirst) return -1;
-          if (!aFirst && bFirst) return 1;
-          return an.localeCompare(bn);
-        })
+        .sort(([a], [b]) => a.localeCompare(b))
         .slice(0, 8);
+
       setSuggestions(filtered);
       setSuggestionIndex(0);
     } else {
@@ -184,31 +211,6 @@ export default function ChatWindow({
     }
   };
 
-  const handleGifClick = (gif) => {
-    if (!socket || !conversation) return;
-    const tempId = `temp-${Date.now()}`;
-    const gifUrl = gif.url || gif.previewUrl;
-    const optimistic = {
-      _id: tempId,
-      conversationId: conversation._id,
-      sender: { _id: user._id, name: user.name },
-      gifUrl,
-      createdAt: new Date().toISOString(),
-      isOptimistic: true,
-    };
-    setMessages((prev) => [...prev, optimistic]);
-    setShowGifPicker(false);
-    socket.emit("message:send", {
-      conversationId: conversation._id,
-      ...(conversation.type !== "group"
-        ? { receiverId: conversation.participant?._id }
-        : {}),
-      gifUrl,
-      tempId,
-    });
-    onMessageSent?.(conversation._id, null, gifUrl);
-  };
-
   const toggleReaction = useCallback(
     (msgId, emoji) => {
       if (!socket || !conversation?._id) return;
@@ -221,55 +223,83 @@ export default function ChatWindow({
     [socket, conversation?._id],
   );
 
-  // ── Edit & Delete Handlers ──
+  const handleGifClick = (gif) => {
+    if (!socket || !conversation) return;
+
+    const tempId = `temp-${Date.now()}`;
+    const gifUrl = gif.url || gif.previewUrl;
+
+    const optimistic = {
+      _id: tempId,
+      conversationId: conversation._id,
+      sender: { _id: user?._id, name: user?.name },
+      gifUrl,
+      createdAt: new Date().toISOString(),
+      status: "sent",
+      isOptimistic: true,
+    };
+
+    setMessages((prev) => [...prev, optimistic]);
+    setShowGifPicker(false);
+
+    socket.emit("message:send", {
+      conversationId: conversation._id,
+      ...(conversation.type !== "group"
+        ? { receiverId: conversation.participant?._id }
+        : {}),
+      gifUrl,
+      tempId,
+    });
+
+    onMessageSent?.(conversation._id, null, gifUrl);
+  };
+
+  // Edit/Delete handlers
   const handleEdit = (messageId, currentText) => {
     setEditingMessageId(messageId);
-    setEditedText(currentText);
+    setEditedText(typeof currentText === "string" ? currentText : "");
   };
 
   const handleEditSave = () => {
     if (!editedText.trim() || !socket || !conversation) return;
-
     socket.emit("message:edit", {
       messageId: editingMessageId,
       conversationId: conversation._id,
       newText: editedText.trim(),
     });
-
     setEditingMessageId(null);
     setEditedText("");
   };
 
   const handleDelete = (messageId) => {
     if (!socket || !conversation) return;
-
     socket.emit("message:delete", {
       messageId,
       conversationId: conversation._id,
     });
   };
 
-  // const handleDeleteForMe = (messageId) => {
-  //   if (!socket || !conversation) return;
-
-  //   socket.emit("message:deleteForMe", {
-  //     messageId,
-  //     conversationId: conversation._id,
-  //   });
-  // };
-
   // Fetch messages when conversation changes
   useEffect(() => {
     if (!conversation?._id) return;
+
     const fetchMessages = async () => {
       setLoadingMessages(true);
       setMessages([]);
       setReactions({});
+      setEditingMessageId(null);
+      setEditedText("");
+      setReplyTo(null);
+      setScheduleMode(false);
+      setShowScheduledPanel(false);
+
       try {
         const res = await api.get(`/api/chat/messages/${conversation._id}`);
-        setMessages(res.data);
+        setMessages(res.data || []);
+
+        // load reactions map
         const rxns = {};
-        for (const msg of res.data) {
+        for (const msg of res.data || []) {
           if (msg.reactions && typeof msg.reactions === "object") {
             const entries =
               msg.reactions instanceof Map
@@ -279,85 +309,60 @@ export default function ChatWindow({
           }
         }
         setReactions(rxns);
+
+        // reset seen-init marker for new conversation
+        seenInitializedConversationRef.current = null;
       } catch (err) {
         console.error("Failed to fetch messages:", err);
       } finally {
         setLoadingMessages(false);
       }
     };
+
     fetchMessages();
   }, [conversation?._id]);
 
-  // Mark initial loaded messages as seen once per active conversation
-  useEffect(() => {
-    if (!socket || !user || !conversation?._id || loadingMessages) return;
-    if (seenInitializedConversationRef.current === conversation._id) return;
-
-    // Find the last message from the other user that we haven't read
-    const lastUnreadMsg = [...messages]
-      .reverse()
-      .find((msg) => msg.sender?._id !== user._id && msg.status !== "read");
-
-    if (lastUnreadMsg) {
-      socket.emit("conversation:seen", {
-        conversationId: conversation._id,
-        lastSeenMessageId: lastUnreadMsg._id,
-      });
-
-      // Notify parent to update unread count
-      onMessagesSeen?.(conversation._id);
-    }
-
-    seenInitializedConversationRef.current = conversation._id;
-  }, [
-    conversation?._id,
-    messages,
-    socket,
-    user,
-    loadingMessages,
-    onMessagesSeen,
-  ]);
-
-  // Mark initial loaded messages as seen once per active conversation
-  useEffect(() => {
-    if (!socket || !user || !conversation?._id || loadingMessages) return;
-    if (seenInitializedConversationRef.current === conversation._id) return;
-
-    // Find the last message from the other user that we haven't read
-    const lastUnreadMsg = [...messages]
-      .reverse()
-      .find((msg) => msg.sender?._id !== user._id && msg.status !== "read");
-
-    if (lastUnreadMsg) {
-      socket.emit("conversation:seen", {
-        conversationId: conversation._id,
-        lastSeenMessageId: lastUnreadMsg._id,
-      });
-
-      // Notify parent to update unread count
-      onMessagesSeen?.(conversation._id);
-    }
-
-    seenInitializedConversationRef.current = conversation._id;
-  }, [
-    conversation?._id,
-    messages,
-    socket,
-    user,
-    loadingMessages,
-    onMessagesSeen,
-  ]);
-
+  // Join/leave conversation room (for reactions + other events)
   useEffect(() => {
     if (!socket || !conversation?._id) return;
     socket.emit("conversation:join", conversation._id);
     return () => socket.emit("conversation:leave", conversation._id);
   }, [socket, conversation?._id]);
 
+  // Mark initial loaded messages as seen once per active conversation
+  useEffect(() => {
+    if (!socket || !user || !conversation?._id || loadingMessages) return;
+    if (seenInitializedConversationRef.current === conversation._id) return;
+
+    const lastUnreadMsg = [...messages]
+      .reverse()
+      .find((msg) => msg.sender?._id !== user._id && msg.status !== "read");
+
+    if (lastUnreadMsg) {
+      socket.emit("conversation:seen", {
+        conversationId: conversation._id,
+        lastSeenMessageId: lastUnreadMsg._id,
+      });
+      onMessagesSeen?.(conversation._id);
+    }
+
+    seenInitializedConversationRef.current = conversation._id;
+  }, [
+    socket,
+    user,
+    conversation?._id,
+    loadingMessages,
+    messages,
+    onMessagesSeen,
+  ]);
+
+  // Socket listeners
   useEffect(() => {
     if (!socket) return;
+
     const handleReceive = (msg) => {
       if (msg.conversationId !== conversation?._id) return;
+
       setMessages((prev) => {
         const optimisticIndex = prev.findIndex((m) => m._id === msg.tempId);
         if (optimisticIndex !== -1) {
@@ -367,17 +372,16 @@ export default function ChatWindow({
         }
         return [...prev, msg];
       });
+
       if (msg.sender?._id !== user?._id) {
         socket.emit("conversation:seen", {
           conversationId: conversation._id,
           lastSeenMessageId: msg._id,
         });
-        // Notify parent to update unread count
-        if (onMessagesSeen) {
-          onMessagesSeen(conversation._id);
-        }
+        onMessagesSeen?.(conversation._id);
       }
     };
+
     const handleDelivered = (update) => {
       if (update.conversationId !== conversation?._id) return;
       setMessages((prev) =>
@@ -387,14 +391,16 @@ export default function ChatWindow({
           if (
             update.status === "read" &&
             m.sender?._id === user?._id &&
-            m.status !== "read"
+            m.status !== "read" &&
+            m._id <= update.upToMessageId
           ) {
-            if (m._id <= update.upToMessageId) return { ...m, status: "read" };
+            return { ...m, status: "read" };
           }
           return m;
         }),
       );
     };
+
     const handleReacted = ({
       messageId,
       conversationId: cId,
@@ -404,7 +410,6 @@ export default function ChatWindow({
       setReactions((prev) => ({ ...prev, [messageId]: rxns }));
     };
 
-    // ── Edit & Delete Listeners ──
     const handleEdited = (updatedMsg) => {
       setMessages((prev) =>
         prev.map((m) =>
@@ -417,23 +422,9 @@ export default function ChatWindow({
       if (!messageId) return;
       setMessages((prev) =>
         prev.map((m) =>
-          m._id === messageId
-            ? {
-                ...m,
-                text: (
-                  <p className="italic text-gray-600 text-xs">
-                    This message was deleted
-                  </p>
-                ),
-              }
-            : m,
+          m._id === messageId ? { ...m, isDeleted: true, text: m.text } : m,
         ),
       );
-    };
-
-    const handleDeletedForMe = ({ messageId }) => {
-      if (!messageId) return;
-      setMessages((prev) => prev.filter((m) => m._id !== messageId));
     };
 
     socket.on("message:new", handleReceive);
@@ -441,7 +432,6 @@ export default function ChatWindow({
     socket.on("message:reacted", handleReacted);
     socket.on("message:edited", handleEdited);
     socket.on("message:deleted", handleDeleted);
-    socket.on("message:deletedForMe", handleDeletedForMe);
 
     return () => {
       socket.off("message:new", handleReceive);
@@ -449,28 +439,128 @@ export default function ChatWindow({
       socket.off("message:reacted", handleReacted);
       socket.off("message:edited", handleEdited);
       socket.off("message:deleted", handleDeleted);
-      socket.off("message:deletedForMe", handleDeletedForMe);
     };
-  }, [socket, conversation?._id, user?._id]);
+  }, [socket, conversation?._id, user?._id, onMessagesSeen]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSend = (e) => {
+  // Scheduled: refresh list
+  const refreshScheduled = useCallback(async () => {
+    if (!conversation?._id) return;
+    setLoadingScheduled(true);
+    try {
+      const data = await listScheduledMessages({
+        conversationId: conversation._id,
+      });
+      setScheduledItems(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error(err);
+      toast.error(
+        err?.response?.data?.error ||
+          err?.response?.data?.message ||
+          "Failed to load scheduled messages",
+      );
+    } finally {
+      setLoadingScheduled(false);
+    }
+  }, [conversation?._id]);
+
+  useEffect(() => {
+    if (!conversation?._id) return;
+    refreshScheduled();
+  }, [conversation?._id, refreshScheduled]);
+
+  const onCancelScheduled = async (id) => {
+    try {
+      await cancelScheduledMessage({ scheduledId: id });
+      toast.success("Scheduled message cancelled");
+      refreshScheduled();
+    } catch (err) {
+      console.error(err);
+      toast.error(
+        err?.response?.data?.error ||
+          err?.response?.data?.message ||
+          "Failed to cancel scheduled message",
+      );
+    }
+  };
+
+  // Scheduled: create
+  const scheduleMessage = async () => {
+    if (!text.trim() || !conversation?._id) return;
+
+    if (!sendAt) {
+      toast.error("Select schedule date & time");
+      return;
+    }
+
+    const dt = new Date(sendAt);
+    if (isNaN(dt.getTime())) {
+      toast.error("Invalid schedule date/time");
+      return;
+    }
+
+    if (dt.getTime() <= Date.now()) {
+      toast.error("Scheduled time must be in the future");
+      return;
+    }
+
+    try {
+      setScheduling(true);
+
+      await createScheduledMessage({
+        conversationId: conversation._id,
+        content: text.trim(),
+        sendAt: dt.toISOString(),
+      });
+
+      setText("");
+      setSendAt("");
+      setScheduleMode(false);
+      setSuggestions([]);
+      setReplyTo(null);
+
+      onMessageSent?.(conversation._id, "SCHEDULED");
+      toast.success("✅ Message scheduled!");
+
+      setShowScheduledPanel(true);
+      refreshScheduled();
+    } catch (err) {
+      console.error(err);
+      toast.error(
+        err?.response?.data?.error ||
+          err?.response?.data?.message ||
+          "Failed to schedule",
+      );
+    } finally {
+      setScheduling(false);
+    }
+  };
+
+  const handleSend = async (e) => {
     e.preventDefault();
-    if (!text.trim() || !socket || !conversation) return;
+    if (!text.trim() || !conversation) return;
+
+    // Scheduled send
+    if (scheduleMode) return scheduleMessage();
+
+    // Normal send (socket)
+    if (!socket) return;
+
     const tempId = `temp-${Date.now()}`;
     const optimistic = {
       _id: tempId,
       conversationId: conversation._id,
-      sender: { _id: user._id, name: user.name },
+      sender: { _id: user?._id, name: user?.name },
       text: text.trim(),
       createdAt: new Date().toISOString(),
       status: "sent",
       isOptimistic: true,
       replyTo,
     };
+
     setMessages((prev) => [...prev, optimistic]);
     setText("");
     const isGrp = conversation.type === "group";
@@ -485,6 +575,7 @@ export default function ChatWindow({
       tempId,
       replyTo: replyTo?._id || null,
     });
+
     setSuggestions([]);
     setReplyTo(null);
   };
@@ -568,7 +659,11 @@ export default function ChatWindow({
             <>
               <div className="relative">
                 <div
-                  className={`rounded-2xl overflow-hidden ${isParticipantOnline ? "ring-2 ring-teal-normal/60 ring-offset-1 ring-offset-[#0a0e13]" : ""}`}
+                  className={`rounded-2xl overflow-hidden ${
+                    isParticipantOnline
+                      ? "ring-2 ring-teal-normal/60 ring-offset-1 ring-offset-[#0a0e13]"
+                      : ""
+                  }`}
                 >
                   <Image
                     src={
@@ -583,9 +678,12 @@ export default function ChatWindow({
                   />
                 </div>
                 <div
-                  className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#0a0e13] ${isParticipantOnline ? "bg-green-400" : "bg-slate-600"}`}
-                ></div>
+                  className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#0a0e13] ${
+                    isParticipantOnline ? "bg-green-400" : "bg-slate-600"
+                  }`}
+                />
               </div>
+
               <div>
                 <h2 className="font-bold text-slate-100 text-sm leading-tight">
                   {participant?.name}
@@ -593,7 +691,7 @@ export default function ChatWindow({
                 <p className="text-[10px] mt-0.5">
                   {isParticipantOnline ? (
                     <span className="text-green-400 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block"></span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
                       Online
                     </span>
                   ) : (
@@ -609,6 +707,7 @@ export default function ChatWindow({
             </>
           )}
         </div>
+
         <div className="flex gap-1">
           <button className="w-8 h-8 rounded-xl bg-white/4 hover:bg-teal-normal/10 hover:text-teal-normal flex items-center justify-center text-slate-500 transition-all">
             <Phone size={16} />
@@ -617,6 +716,7 @@ export default function ChatWindow({
             <Video size={16} />
           </button>
           <button
+            type="button"
             onClick={isGroup ? onToggleGroupInfo : undefined}
             className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
               isGroup && showGroupInfo
@@ -632,10 +732,11 @@ export default function ChatWindow({
       <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-3 scrollbar-hide">
         {loadingMessages && (
           <div className="flex items-center justify-center gap-2 mt-8">
-            <div className="w-4 h-4 rounded-full border-2 border-teal-normal border-t-transparent animate-spin"></div>
+            <div className="w-4 h-4 rounded-full border-2 border-teal-normal border-t-transparent animate-spin" />
             <p className="text-slate-600 text-xs">Loading messages...</p>
           </div>
         )}
+
         {!loadingMessages && messages.length === 0 && (
           <div className="flex flex-col items-center justify-center flex-1 gap-3">
             <div className="w-12 h-12 rounded-3xl bg-teal-normal/10 border border-teal-normal/15 flex items-center justify-center">
@@ -651,6 +752,7 @@ export default function ChatWindow({
           const isMe =
             msg.sender?._id === user?._id || msg.sender === user?._id;
           const isGif = !!msg.gifUrl;
+
           const currentDateKey = toDateKey(msg.createdAt);
           const prevDateKey =
             index > 0 ? toDateKey(messages[index - 1].createdAt) : null;
@@ -660,13 +762,14 @@ export default function ChatWindow({
             <React.Fragment key={msg._id}>
               {showDateSeparator && (
                 <div className="flex items-center gap-3 my-2">
-                  <div className="flex-1 h-px bg-white/5"></div>
+                  <div className="flex-1 h-px bg-white/5" />
                   <span className="text-[10px] font-medium text-slate-600 px-3 py-1 rounded-full bg-white/4 border border-white/6 shrink-0">
                     {getDateLabel(msg.createdAt)}
                   </span>
-                  <div className="flex-1 h-px bg-white/5"></div>
+                  <div className="flex-1 h-px bg-white/5" />
                 </div>
               )}
+
               <div
                 className={`flex items-end gap-2 group ${isMe ? "justify-end" : "justify-start"}`}
               >
@@ -708,12 +811,14 @@ export default function ChatWindow({
                   <div className="relative group w-fit">
                     {!msg.isOptimistic && (
                       <div
-                        className={`absolute -top-6 ${isMe ? "right-0" : "left-0"} hidden group-hover:flex items-center gap-0.5 bg-[#15191C] border border-slate-700/60 rounded-lg p-0.5 shadow-xl shadow-black/40 z-30`}
+                        className={`absolute -top-6 ${
+                          isMe ? "right-0" : "left-0"
+                        } hidden group-hover:flex items-center gap-0.5 bg-[#15191C] border border-slate-700/60 rounded-lg p-0.5 shadow-xl shadow-black/40 z-30`}
                       >
-                        {/* Reaction emojis */}
                         {["👍", "❤️", "😂", "😮", "😢"].map((emoji) => (
                           <button
                             key={emoji}
+                            type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               toggleReaction(msg._id, emoji);
@@ -723,6 +828,7 @@ export default function ChatWindow({
                                 ? "bg-teal-900/40"
                                 : ""
                             }`}
+                            title={`React ${emoji}`}
                           >
                             {emoji}
                           </button>
@@ -730,8 +836,8 @@ export default function ChatWindow({
 
                         <div className="w-px h-5 bg-slate-700/60 mx-0.5" />
 
-                        {/* More Emoji (Smile) */}
                         <button
+                          type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             setReactionPickerMsgId(
@@ -739,25 +845,25 @@ export default function ChatWindow({
                             );
                           }}
                           className="p-1.5 rounded-md text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 transition-all duration-150"
+                          title="More reactions"
                         >
                           <Smile size={14} />
                         </button>
 
-                        {/* Reply */}
                         <button
+                          type="button"
                           onClick={() => setReplyTo(msg)}
                           className="p-1.5 rounded-md text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 transition-all duration-150"
+                          title="Reply"
                         >
                           <Reply size={14} />
                         </button>
 
-                        {/* Divider before Edit/Delete (only for own messages) */}
                         {isMe && !msg.isOptimistic && !msg.isDeleted && (
                           <>
                             <div className="w-px h-5 bg-slate-700/60 mx-0.5" />
-
-                            {/* Edit - Blue Pencil Icon */}
                             <button
+                              type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleEdit(msg._id, msg.text);
@@ -767,9 +873,8 @@ export default function ChatWindow({
                             >
                               <Pencil size={16} />
                             </button>
-
-                            {/* Delete - Red Trash Icon */}
                             <button
+                              type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleDelete(msg._id);
@@ -783,23 +888,24 @@ export default function ChatWindow({
                         )}
                       </div>
                     )}
+
                     <div
-                      className={`${isGif ? "p-1" : "p-3.5"} rounded-2xl text-[13px] leading-relaxed relative z-10 ${
-                        editingMessageId === msg._id
-                          ? "bg-transparent border border-teal-normal/40 text-slate-200 rounded-br-none"
-                          : isMe
-                            ? isGif
-                              ? "bg-transparent"
-                              : "bg-teal-normal text-white rounded-br-none shadow-lg shadow-teal-normal/10"
-                            : isGif
-                              ? "bg-transparent"
-                              : "bg-surface-dark text-slate-200 rounded-bl-none shadow-sm shadow-black/5"
+                      className={`${
+                        isGif ? "p-1" : "p-3.5"
+                      } rounded-2xl text-[13px] leading-relaxed relative z-10 ${
+                        isMe
+                          ? isGif
+                            ? "bg-transparent"
+                            : "bg-teal-normal text-white rounded-br-none shadow-lg shadow-teal-normal/10"
+                          : isGif
+                            ? "bg-transparent"
+                            : "bg-surface-dark text-slate-200 rounded-bl-none shadow-sm shadow-black/5"
                       } ${msg.isOptimistic ? "opacity-60" : ""}`}
                     >
                       {msg.replyTo && (
                         <div className="mb-2 p-2 bg-black/20 rounded-lg border-l-2 border-teal-normal text-[11px] opacity-80 line-clamp-2">
                           <p className="font-bold mb-0.5">
-                            {msg.replyTo.sender?.name === user.name
+                            {msg.replyTo.sender?.name === user?.name
                               ? "You"
                               : msg.replyTo.sender?.name || "Participant"}
                           </p>
@@ -839,9 +945,16 @@ export default function ChatWindow({
                             autoFocus
                             rows={2}
                           />
-                          {/* Action row */}
-                          <div className="flex items-center justify-end gap-2">
+                          <div className="flex gap-2">
                             <button
+                              type="button"
+                              onClick={handleEditSave}
+                              className="text-xs bg-teal-normal text-black px-3 py-1 rounded hover:bg-teal-light"
+                            >
+                              Save
+                            </button>
+                            <button
+                              type="button"
                               onClick={() => {
                                 setEditingMessageId(null);
                                 setEditedText("");
@@ -868,7 +981,7 @@ export default function ChatWindow({
                           loading="lazy"
                         />
                       ) : (
-                        <div className="relative group">{msg.text}</div>
+                        msg.text
                       )}
 
                       <div
@@ -912,8 +1025,13 @@ export default function ChatWindow({
                           .map(([emoji, users]) => (
                             <button
                               key={emoji}
+                              type="button"
                               onClick={() => toggleReaction(msg._id, emoji)}
-                              className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded-full border transition-all duration-150 ${users.includes(user?._id) ? "bg-teal-400/10 border-teal-400/30" : "bg-[#1C2227] border-slate-800"}`}
+                              className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded-full border transition-all duration-150 ${
+                                users.includes(user?._id)
+                                  ? "bg-teal-400/10 border-teal-400/30"
+                                  : "bg-[#1C2227] border-slate-800"
+                              }`}
                             >
                               <span className="text-[12px]">{emoji}</span>
                               <span className="text-[9px] font-bold text-slate-400">
@@ -931,72 +1049,16 @@ export default function ChatWindow({
                           (msg.status === "delivered" ||
                             msg.status === "read"))) && (
                         <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/6 text-slate-500 text-[8px] font-medium">
-                          <svg
-                            width="8"
-                            height="8"
-                            viewBox="0 0 12 12"
-                            fill="none"
-                          >
-                            <path
-                              d="M2 6l3 3 5-5"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
                           Sent
                         </span>
                       )}
                       {!isGroup && msg.status === "delivered" && (
                         <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/6 text-slate-400 text-[8px] font-medium">
-                          <svg
-                            width="10"
-                            height="8"
-                            viewBox="0 0 16 12"
-                            fill="none"
-                          >
-                            <path
-                              d="M1 6l3 3 5-5"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                            <path
-                              d="M5 6l3 3 5-5"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
                           Delivered
                         </span>
                       )}
                       {!isGroup && msg.status === "read" && (
                         <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-teal-normal/15 text-teal-normal text-[8px] font-semibold">
-                          <svg
-                            width="10"
-                            height="8"
-                            viewBox="0 0 16 12"
-                            fill="none"
-                          >
-                            <path
-                              d="M1 6l3 3 5-5"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                            <path
-                              d="M5 6l3 3 5-5"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
                           Seen
                         </span>
                       )}
@@ -1070,9 +1132,9 @@ export default function ChatWindow({
         className="p-4 relative bg-[#0a0e13]/80 backdrop-blur-sm border-t border-white/5"
       >
         {replyTo && (
-          <div className="absolute bottom-full left-0 right-0 p-3 bg-surface-dark border-t border-teal-normal/30 flex items-center justify-between animate-in slide-in-from-bottom-2 fade-in">
+          <div className="absolute bottom-full left-0 right-0 p-3 bg-surface-dark border-t border-teal-normal/30 flex items-center justify-between">
             <div className="flex items-center gap-3 overflow-hidden">
-              <div className="w-1 bg-teal-normal h-8 rounded-full"></div>
+              <div className="w-1 bg-teal-normal h-8 rounded-full" />
               <div className="overflow-hidden">
                 <p className="text-[11px] font-bold text-teal-normal">
                   Replying to {replyTo.sender?.name}
@@ -1083,11 +1145,66 @@ export default function ChatWindow({
               </div>
             </div>
             <button
+              type="button"
               onClick={() => setReplyTo(null)}
               className="p-1.5 hover:bg-white/5 rounded-full text-slate-500"
+              aria-label="Cancel reply"
+              title="Cancel reply"
             >
               <X size={16} />
             </button>
+          </div>
+        )}
+
+        {showScheduledPanel && (
+          <div className="mb-3 p-3 rounded-2xl bg-[#12181f] border border-white/5">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-bold text-slate-200">
+                Scheduled messages
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowScheduledPanel(false)}
+                className="text-slate-500 hover:text-slate-300"
+                aria-label="Close scheduled messages"
+                title="Close"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {loadingScheduled ? (
+              <p className="text-xs text-slate-500">Loading...</p>
+            ) : scheduledItems.length === 0 ? (
+              <p className="text-xs text-slate-600">No scheduled messages</p>
+            ) : (
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {scheduledItems.map((s) => (
+                  <div
+                    key={s._id}
+                    className="flex items-center justify-between gap-3 p-2 rounded-xl bg-black/20 border border-white/5"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-xs text-slate-200 truncate">
+                        {s.content}
+                      </p>
+                      <p className="text-[10px] text-slate-500">
+                        {new Date(s.sendAt).toLocaleString()} • {s.status}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onCancelScheduled(s._id)}
+                      className="px-2 py-1 text-[10px] font-bold rounded-md border border-red-500/30 text-red-400 hover:bg-red-500/10"
+                      aria-label="Cancel scheduled message"
+                      title="Cancel"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -1107,6 +1224,7 @@ export default function ChatWindow({
             />
           </div>
         )}
+
         {showEmojiPicker && (
           <div
             ref={inputEmojiPickerRef}
@@ -1129,6 +1247,8 @@ export default function ChatWindow({
           <button
             type="button"
             className="w-9 h-9 flex items-center justify-center text-slate-500 hover:text-teal-normal transition-colors"
+            title="More"
+            aria-label="More"
           >
             <Plus size={20} />
           </button>
@@ -1147,7 +1267,11 @@ export default function ChatWindow({
                 <div
                   key={code}
                   onClick={() => insertEmoji(emoji)}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${i === suggestionIndex ? "bg-teal-500/20 text-teal-400" : "hover:bg-slate-800 text-slate-400"}`}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                    i === suggestionIndex
+                      ? "bg-teal-500/20 text-teal-400"
+                      : "hover:bg-slate-800 text-slate-400"
+                  }`}
                 >
                   <span className="text-lg">{emoji}</span>
                   <span className="text-xs font-mono">{code}</span>
@@ -1161,25 +1285,89 @@ export default function ChatWindow({
             onClick={() => {
               setShowGifPicker(!showGifPicker);
               setShowEmojiPicker(false);
+              setScheduleMode(false);
             }}
-            className={`px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${showGifPicker ? "bg-teal-normal/20 border-teal-normal/40 text-teal-normal" : "bg-white/4 border-white/10 text-slate-500 hover:text-slate-300"}`}
+            className={`px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${
+              showGifPicker
+                ? "bg-teal-normal/20 border-teal-normal/40 text-teal-normal"
+                : "bg-white/4 border-white/10 text-slate-500 hover:text-slate-300"
+            }`}
           >
             GIF
           </button>
+
+          {!isGroup && (
+            <button
+              type="button"
+              title="View scheduled messages"
+              aria-label="View scheduled messages"
+              onClick={() => {
+                setShowScheduledPanel((v) => !v);
+                refreshScheduled();
+              }}
+              className="px-2 py-1 mx-1 text-[10px] font-black rounded-md border bg-white/4 border-white/10 text-slate-500 hover:text-slate-300"
+            >
+              PENDING
+            </button>
+          )}
+
+          {!isGroup && (
+            <button
+              type="button"
+              title="Schedule message"
+              aria-label="Schedule message"
+              onClick={() => {
+                setScheduleMode((v) => !v);
+                setShowScheduledPanel(true);
+              }}
+              className={`px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${
+                scheduleMode
+                  ? "bg-teal-normal/20 border-teal-normal/40 text-teal-normal"
+                  : "bg-white/4 border-white/10 text-slate-500 hover:text-slate-300"
+              }`}
+            >
+              SCHEDULE
+            </button>
+          )}
+
+          {!isGroup && scheduleMode && (
+            <input
+              type="datetime-local"
+              value={sendAt}
+              min={new Date().toISOString().slice(0, 16)}
+              onChange={(e) => setSendAt(e.target.value)}
+              className="mx-1 px-2 py-1 rounded-md bg-teal-normal border border-white/10 text-slate-200 text-[11px]"
+            />
+          )}
+
           <button
             type="button"
             onClick={() => {
               setShowEmojiPicker(!showEmojiPicker);
               setShowGifPicker(false);
+              setScheduleMode(false);
             }}
-            className={`w-9 h-9 flex items-center justify-center transition-all ${showEmojiPicker ? "text-teal-normal" : "text-slate-500 hover:text-slate-300"}`}
+            className={`w-9 h-9 flex items-center justify-center transition-all ${
+              showEmojiPicker
+                ? "text-teal-normal"
+                : "text-slate-500 hover:text-slate-300"
+            }`}
+            title="Emoji"
+            aria-label="Emoji"
           >
             <Smile size={20} />
           </button>
 
           <button
             type="submit"
-            className="w-9 h-9 flex items-center justify-center bg-teal-normal hover:bg-teal-light text-black rounded-xl ml-2 transition-all active:scale-95 shadow-lg shadow-teal-normal/20"
+            disabled={scheduling}
+            className={`w-9 h-9 flex items-center justify-center rounded-xl ml-2 transition-all active:scale-95 shadow-lg ${
+              scheduling
+                ? "bg-slate-700 text-slate-400 cursor-not-allowed"
+                : "bg-teal-normal hover:bg-teal-light text-black shadow-teal-normal/20"
+            }`}
+            title={scheduleMode ? "Schedule send" : "Send"}
+            aria-label={scheduleMode ? "Schedule send" : "Send"}
           >
             <Send size={18} />
           </button>

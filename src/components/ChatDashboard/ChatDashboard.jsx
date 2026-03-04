@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Sidebar from "./SidebarChats";
 import ChatWindow from "./ChatWindow";
+import GroupInfoPanel from "./GroupInfoPanel";
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
@@ -258,10 +259,25 @@ export default function ChatDashboard() {
   }, []);
 
   // Called when conversation is updated (pin/archive/mute)
-  const handleConversationUpdate = useCallback((updatedConversations) => {
-    // Sort: pinned first, then by most recent within each group
-    const sorted = sortConversations(updatedConversations);
-    setConversations(sorted);
+  const handleConversationUpdate = useCallback((updated) => {
+    // Array → full list refresh (from SidebarChats pin/mute/archive/leave)
+    if (Array.isArray(updated)) {
+      setConversations(sortConversations(updated));
+      return;
+    }
+    // Single object with _removed / _deleted flag → remove from list
+    if (updated._removed || updated._deleted) {
+      setConversations((prev) => prev.filter((c) => c._id !== updated._id));
+      setActiveConversationId((prev) => (prev === updated._id ? null : prev));
+      setShowGroupInfo(false);
+      return;
+    }
+    // Single updated conversation → merge into list
+    setConversations((prev) =>
+      sortConversations(
+        prev.map((c) => (c._id === updated._id ? { ...c, ...updated } : c)),
+      ),
+    );
   }, []);
 
   // Called when messages are marked as seen in ChatWindow
@@ -333,6 +349,14 @@ export default function ChatDashboard() {
         onConversationUpdate={handleConversationUpdate}
         conversations={conversations}
       />
+      {showGroupInfo && activeConversation?.type === "group" && (
+        <GroupInfoPanel
+          conversation={activeConversation}
+          currentUser={currentUser}
+          onClose={() => setShowGroupInfo(false)}
+          onConversationUpdate={handleConversationUpdate}
+        />
+      )}
     </div>
   );
 }

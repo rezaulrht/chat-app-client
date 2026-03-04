@@ -249,17 +249,17 @@ export default function Sidebar({
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
               Direct Messages
             </span>
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-300">
               <button
                 onClick={() => setGroupModalOpen(true)}
-                className="p-1 hover:bg-white/5 rounded text-slate-500 hover:text-teal-normal transition-all"
+                className="w-6 h-6 flex items-center justify-center rounded-md bg-white/0 hover:bg-teal-normal/10 text-slate-500 hover:text-teal-normal transition-all duration-200 border border-transparent hover:border-teal-normal/20"
                 title="Create Group Chat"
               >
-                <Users size={14} />
+                <Users size={12} />
               </button>
               <button
                 onClick={() => setModalOpen(true)}
-                className="p-1 hover:bg-white/5 rounded text-slate-500 hover:text-teal-normal transition-all"
+                className="w-6 h-6 flex items-center justify-center rounded-md bg-white/0 hover:bg-teal-normal/10 text-slate-500 hover:text-teal-normal transition-all duration-200 border border-transparent hover:border-teal-normal/20"
                 title="Start New Chat"
               >
                 <Plus size={14} />

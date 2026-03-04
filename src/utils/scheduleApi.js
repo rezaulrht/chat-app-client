@@ -1,67 +1,35 @@
 // src/utils/scheduleApi.js
-const API = process.env.NEXT_PUBLIC_API_URL; // e.g. http://localhost:5000
-
-function authHeaders(token) {
-  return {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
-  };
-}
+import api from "@/app/api/Axios";
 
 export async function createScheduledMessage({
-  token,
   conversationId,
   content,
   sendAt,
 }) {
-  const res = await fetch(`${API}/api/messages/schedule`, {
-    method: "POST",
-    headers: authHeaders(token),
-    body: JSON.stringify({ conversationId, content, sendAt }),
+  const res = await api.post("/api/messages/schedule", {
+    conversationId,
+    content,
+    sendAt,
   });
-  const data = await res.json();
-  if (!res.ok)
-    throw new Error(data?.error || data?.message || "Failed to schedule");
-  return data;
+  return res.data;
 }
 
-export async function listScheduledMessages({ token, conversationId }) {
-  const res = await fetch(
-    `${API}/api/messages/scheduled?conversationId=${conversationId}`,
-    {
-      headers: authHeaders(token),
-    },
+export async function listScheduledMessages({ conversationId }) {
+  const res = await api.get(
+    `/api/messages/scheduled?conversationId=${conversationId}`,
   );
-  const data = await res.json();
-  if (!res.ok)
-    throw new Error(data?.error || data?.message || "Failed to load scheduled");
-  return data;
+  return res.data;
 }
 
-export async function cancelScheduledMessage({ token, scheduledId }) {
-  const res = await fetch(`${API}/api/messages/scheduled/${scheduledId}`, {
-    method: "DELETE",
-    headers: authHeaders(token),
-  });
-  const data = await res.json();
-  if (!res.ok)
-    throw new Error(data?.error || data?.message || "Failed to cancel");
-  return data;
+export async function cancelScheduledMessage({ scheduledId }) {
+  const res = await api.delete(`/api/messages/scheduled/${scheduledId}`);
+  return res.data;
 }
 
-export async function editScheduledMessage({
-  token,
-  scheduledId,
-  content,
-  sendAt,
-}) {
-  const res = await fetch(`${API}/api/messages/scheduled/${scheduledId}`, {
-    method: "PATCH",
-    headers: authHeaders(token),
-    body: JSON.stringify({ content, sendAt }),
+export async function editScheduledMessage({ scheduledId, content, sendAt }) {
+  const res = await api.patch(`/api/messages/scheduled/${scheduledId}`, {
+    content,
+    sendAt,
   });
-  const data = await res.json();
-  if (!res.ok)
-    throw new Error(data?.error || data?.message || "Failed to edit");
-  return data;
+  return res.data;
 }

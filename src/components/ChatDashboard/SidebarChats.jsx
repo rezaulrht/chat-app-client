@@ -10,6 +10,8 @@ import {
   Mic,
   Headphones,
   Settings,
+  LayoutGrid,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 import api from "@/app/api/Axios";
@@ -65,6 +67,7 @@ const formatConvTimestamp = (timestamp) => {
 
 export default function Sidebar({
   activeView = "home",
+  setActiveView,
   conversations,
   activeConversationId,
   setActiveConversationId,
@@ -83,7 +86,7 @@ export default function Sidebar({
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
-  const [startingChat, setStartingChat] = useState(false);
+  const [groupModalOpen, setGroupModalOpen] = useState(false);
   const searchInputRef = useRef(null);
 
   // Focus search input when modal opens
@@ -168,8 +171,21 @@ export default function Sidebar({
   useEffect(() => {
     if (!filterTerm.trim()) {
       setSearchedConversations(conversations);
+    } else {
+      // Re-run search logic or filter local results if necessary
+      // for now, searchConversations backend handles it, but we need to re-trigger if conversations change
+      // but let's keep it simple: if filtering, let the filterTerm effector handle it.
+      // If we want local filter while typing fast:
+      const filtered = conversations.filter(
+        (c) =>
+          c.participant?.name
+            ?.toLowerCase()
+            .includes(filterTerm.toLowerCase()) ||
+          c.lastMessage?.text?.toLowerCase().includes(filterTerm.toLowerCase()),
+      );
+      setSearchedConversations(filtered);
     }
-  }, [conversations]); // only syncs when not actively filtering
+  }, [conversations, filterTerm]);
 
   const highlightMatch = (text, query) => {
     if (!query || !text) return text || "No messages yet";
@@ -211,20 +227,44 @@ export default function Sidebar({
           </div>
         </div>
 
+        {/* Navigation Section */}
+        <div className="px-2 pt-2">
+          <button
+            onClick={() => setActiveView("feed")}
+            className={`w-full flex items-center gap-3 px-2 py-2 rounded-lg transition-all duration-200 group ${activeView === "feed" ? "bg-teal-normal/10 text-teal-normal font-bold" : "text-slate-400 hover:bg-white/5 hover:text-white"}`}
+            title="Activity Feed"
+          >
+            <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
+              <LayoutGrid size={18} />
+            </div>
+            <span className="text-[14px]">Feed</span>
+          </button>
+        </div>
+
+        <div className="w-full h-px bg-white/5 my-2 mx-auto max-w-[90%]"></div>
+
         {/* Main Conversation List */}
-        <div className="flex-1 overflow-y-auto scrollbar-hide py-2 px-2 custom-scrollbar">
-          {/* "Direct Messages" Header */}
+        <div className="flex-1 overflow-y-auto scrollbar-hide py-1 px-2 custom-scrollbar">
           <div className="flex items-center justify-between px-2 mb-2 group">
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
               Direct Messages
             </span>
-            <button
-              onClick={() => setModalOpen(true)}
-              className="p-1 hover:bg-white/5 rounded text-slate-500 hover:text-teal-normal transition-all"
-              title="Start New Chat"
-            >
-              <Plus size={14} />
-            </button>
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                onClick={() => setGroupModalOpen(true)}
+                className="p-1 hover:bg-white/5 rounded text-slate-500 hover:text-teal-normal transition-all"
+                title="Create Group Chat"
+              >
+                <Users size={14} />
+              </button>
+              <button
+                onClick={() => setModalOpen(true)}
+                className="p-1 hover:bg-white/5 rounded text-slate-500 hover:text-teal-normal transition-all"
+                title="Start New Chat"
+              >
+                <Plus size={14} />
+              </button>
+            </div>
           </div>
 
           <div className="space-y-0.5">
@@ -405,7 +445,7 @@ export default function Sidebar({
               {searchResults.map((user_res) => (
                 <div
                   key={user_res._id}
-                  onClick={() => !startingChat && handleSelectUser(user_res)}
+                  onClick={() => handleSelectUser(user_res)}
                   className="flex items-center gap-3 p-3 rounded-2xl cursor-pointer hover:bg-teal-normal/8 border border-transparent hover:border-teal-normal/15 transition-all"
                 >
                   <div className="relative shrink-0">
@@ -436,15 +476,22 @@ export default function Sidebar({
                         : `Last seen ${formatLastSeen(onlineUsers?.get(user_res._id)?.lastSeen)}`}
                     </p>
                   </div>
-                  {startingChat && (
-                    <div className="w-4 h-4 rounded-full border-2 border-teal-normal border-t-transparent animate-spin shrink-0"></div>
-                  )}
                 </div>
               ))}
             </div>
           </div>
         </div>
       )}
+
+      {/* Create Group Modal Integration */}
+      <CreateGroupModal
+        isOpen={groupModalOpen}
+        onClose={() => setGroupModalOpen(false)}
+        onGroupCreated={(newGroup) => {
+          onNewConversation(newGroup);
+          setGroupModalOpen(false);
+        }}
+      />
     </>
   );
 }

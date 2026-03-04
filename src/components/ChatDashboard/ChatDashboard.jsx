@@ -173,6 +173,8 @@ export default function ChatDashboard() {
 
       {activeView === "home" ? (
         <Sidebar
+          activeView={activeView}
+          setActiveView={setActiveView}
           conversations={conversations}
           activeConversationId={activeConversationId}
           setActiveConversationId={setActiveConversationId}
@@ -185,6 +187,7 @@ export default function ChatDashboard() {
       <ChatWindow
         conversation={activeConversation}
         onMessageSent={handleMessageSent}
+        activeView={activeView}
       />
     </div>
   );

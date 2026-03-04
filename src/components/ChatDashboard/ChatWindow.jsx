@@ -2,7 +2,19 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import dynamic from "next/dynamic";
-import { Phone, Video, Info, Plus, Smile, Send, X, Reply } from "lucide-react";
+import {
+  Phone,
+  Video,
+  Info,
+  Plus,
+  Smile,
+  Send,
+  X,
+  Reply,
+  LayoutGrid,
+  MessageSquare,
+} from "lucide-react";
+
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
@@ -39,7 +51,11 @@ const toDateKey = (dateStr) => {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 };
 
-export default function ChatWindow({ conversation, onMessageSent }) {
+export default function ChatWindow({
+  conversation,
+  onMessageSent,
+  activeView,
+}) {
   const { socket, onlineUsers, typingUsers } = useSocket() || {};
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
@@ -114,9 +130,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
       const query = match[1].toLowerCase();
       const filtered = Object.entries(EMOJI_MAP)
         .filter(([code]) => {
-          // code looks like ":cat:" — strip colons to get "cat"
           const name = code.slice(1, -1);
-          // Match only if query is at the start of the whole name OR a word segment
           return (
             name.startsWith(query) ||
             name.split("_").some((w) => w.startsWith(query))
@@ -125,7 +139,6 @@ export default function ChatWindow({ conversation, onMessageSent }) {
         .sort(([a], [b]) => {
           const an = a.slice(1, -1);
           const bn = b.slice(1, -1);
-          // Exact-prefix matches first (e.g. "cat", "cat2")
           const aFirst = an.startsWith(query);
           const bFirst = bn.startsWith(query);
           if (aFirst && !bFirst) return -1;
@@ -223,7 +236,6 @@ export default function ChatWindow({ conversation, onMessageSent }) {
     fetchMessages();
   }, [conversation?._id]);
 
-  // Join the conversation room so we receive real-time reactions
   useEffect(() => {
     if (!socket || !conversation?._id) return;
     socket.emit("conversation:join", conversation._id);
@@ -320,22 +332,52 @@ export default function ChatWindow({ conversation, onMessageSent }) {
     setReplyTo(null);
   };
 
+  if (activeView === "feed") {
+    return (
+      <main className="flex-1 flex flex-col bg-background-dark items-center justify-center p-8 text-center">
+        <div className="relative mb-8">
+          <div className="absolute inset-0 bg-teal-normal/20 blur-3xl rounded-full scale-150 animate-pulse"></div>
+          <div className="relative w-24 h-24 rounded-4xl bg-surface-dark border border-white/5 flex items-center justify-center shadow-2xl">
+            <LayoutGrid size={48} className="text-teal-normal" />
+          </div>
+        </div>
+        <h2 className="text-3xl font-black text-white mb-3 tracking-tighter">
+          Your Activity Feed
+        </h2>
+        <p className="text-slate-500 max-w-sm leading-relaxed font-medium">
+          Stay updated with the latest updates, announcements, and activity from
+          your ConvoX circles.
+        </p>
+        <div className="mt-8 flex gap-4">
+          <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/5 text-[11px] font-black uppercase tracking-widest text-slate-400">
+            Coming Soon
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   if (!conversation) {
     return (
-      <div className="flex-1 bg-background-dark flex flex-col items-center justify-center gap-6 p-8">
-        <div className="w-20 h-20 rounded-[2.5rem] bg-teal-normal/5 border border-teal-normal/10 flex items-center justify-center animate-pulse shadow-2xl shadow-teal-normal/5">
-          <Send size={32} className="text-teal-normal opacity-40 rotate-12" />
+      <main className="flex-1 flex flex-col bg-background-dark items-center justify-center p-8 text-center overflow-hidden">
+        <div className="relative mb-12">
+          <div className="absolute inset-0 bg-teal-normal/20 blur-[100px] rounded-full scale-150 opacity-50 animate-pulse"></div>
+          <div className="relative w-28 h-28 rounded-[3rem] bg-surface-dark border border-white/5 flex items-center justify-center shadow-2xl transform hover:rotate-6 transition-transform duration-500">
+            <div className="p-5 bg-teal-normal/5 rounded-4xl">
+              <MessageSquare size={40} className="text-teal-normal/30" />
+            </div>
+          </div>
         </div>
-        <div className="text-center max-w-xs transition-all">
-          <h2 className="text-white font-bold text-lg tracking-tight">
-            Select a Conversation
+        <div className="space-y-4 max-w-sm px-6">
+          <h2 className="text-4xl font-black text-white leading-none tracking-tighter">
+            Select a <span className="text-teal-normal">conversation</span>
           </h2>
-          <p className="text-slate-500 text-sm mt-2 leading-relaxed font-medium">
-            Choose a friend from the sidebar or start a new chat to begin your
-            ConvoX experience.
+          <p className="text-slate-600 text-sm leading-relaxed font-medium">
+            Jump back into your messages or start a new interaction from the
+            sidebar to begin chatting.
           </p>
         </div>
-      </div>
+      </main>
     );
   }
 
@@ -450,11 +492,11 @@ export default function ChatWindow({ conversation, onMessageSent }) {
             <React.Fragment key={msg._id}>
               {showDateSeparator && (
                 <div className="flex items-center gap-4 my-8 first:mt-2">
-                  <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/5 to-transparent"></div>
+                  <div className="flex-1 h-px bg-linear-to-r from-transparent via-white/5 to-transparent"></div>
                   <span className="text-[9px] font-black text-slate-600 uppercase tracking-[0.3em] font-mono">
                     {getDateLabel(msg.createdAt)}
                   </span>
-                  <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/5 to-transparent"></div>
+                  <div className="flex-1 h-px bg-linear-to-r from-transparent via-white/5 to-transparent"></div>
                 </div>
               )}
               <div
@@ -717,7 +759,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
           </div>
         )}
 
-        <div className="bg-[#0a0f14] rounded-[2rem] flex items-center p-2.5 border border-white/5 focus-within:border-teal-normal/40 focus-within:ring-4 focus-within:ring-teal-normal/5 transition-all shadow-2xl backdrop-blur-md group/input">
+        <div className="bg-[#0a0f14] rounded-4xl flex items-center p-2.5 border border-white/5 focus-within:border-teal-normal/40 focus-within:ring-4 focus-within:ring-teal-normal/5 transition-all shadow-2xl backdrop-blur-md group/input">
           <button
             type="button"
             className="w-11 h-11 flex items-center justify-center text-slate-500 hover:text-teal-normal hover:bg-white/5 rounded-2xl transition-all duration-300 group-focus-within/input:text-teal-normal"
@@ -732,7 +774,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
             onKeyDown={handleKeyDown}
           />
           {suggestions.length > 0 && (
-            <div className="absolute bottom-[calc(100%+12px)] left-6 bg-surface-dark/95 backdrop-blur-2xl border border-white/10 rounded-2xl p-1.5 shadow-[0_30px_60px_-12px_rgba(0,0,0,0.7)] z-50 min-w-[12rem] animate-in slide-in-from-bottom-2 duration-200">
+            <div className="absolute bottom-[calc(100%+12px)] left-6 bg-surface-dark/95 backdrop-blur-2xl border border-white/10 rounded-2xl p-1.5 shadow-[0_30px_60px_-12px_rgba(0,0,0,0.7)] z-50 min-w-48 animate-in slide-in-from-bottom-2 duration-200">
               <p className="px-3 py-1.5 text-[9px] font-black text-slate-500 uppercase tracking-widest border-b border-white/5 mb-1.5">
                 Emoji Hints
               </p>

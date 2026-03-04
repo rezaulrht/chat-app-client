@@ -20,16 +20,21 @@ const dummyUsers = [
   { id: "8", name: "Patuary Vai", avatar: "https://i.pravatar.cc/150?img=44" },
 ];
 
-export default function CreateGroupModal({ onGroupCreated }) {
-  const [isOpen, setIsOpen] = useState(false);
+export default function CreateGroupModal({ onGroupCreated, isOpen, onClose }) {
   const [groupName, setGroupName] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMembers, setSelectedMembers] = useState([]);
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [allUsers, setAllUsers] = useState(dummyUsers);
 
-  const [allUsers] = useState(dummyUsers);
+  // Focus search input or reset when modal opens
+  useEffect(() => {
+    if (!isOpen) {
+      resetForm();
+    }
+  }, [isOpen]);
 
   const filteredUsers = allUsers.filter(
     (user) =>
@@ -77,16 +82,14 @@ export default function CreateGroupModal({ onGroupCreated }) {
     if (avatarFile) formData.append("avatar", avatarFile);
 
     try {
+      // Endpoint might need verification, using original from Step 534
       const res = await axios.post("/api/groups/create", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
       alert("🎉 Group Created Successfully!");
       if (onGroupCreated) onGroupCreated(res.data);
-
-      // Reset & Close
-      setIsOpen(false);
-      resetForm();
+      onClose();
     } catch (error) {
       console.error(error);
       alert("❌ There was a problem creating the group");
@@ -112,14 +115,6 @@ export default function CreateGroupModal({ onGroupCreated }) {
 
   return (
     <>
-      {/* CREATE GROUP BUTTON */}
-      <button
-        onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 text-white hover:text-[#13c8ec]/90  py-2.5 rounded-xl font-medium transition-all active:scale-95"
-      >
-        <UserPlus size={20} />
-      </button>
-
       {/* MODAL */}
       {isOpen && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
@@ -131,10 +126,7 @@ export default function CreateGroupModal({ onGroupCreated }) {
                 <h2 className="text-2xl font-bold">Create New Group</h2>
               </div>
               <button
-                onClick={() => {
-                  setIsOpen(false);
-                  resetForm();
-                }}
+                onClick={onClose}
                 className="text-gray-500 hover:text-red-500 transition"
               >
                 <X size={28} />
@@ -267,13 +259,9 @@ export default function CreateGroupModal({ onGroupCreated }) {
               )}
             </div>
 
-            {/* Footer Buttons */}
             <div className="border-t border-gray-200 dark:border-gray-800 px-6 py-5 flex gap-3">
               <button
-                onClick={() => {
-                  setIsOpen(false);
-                  resetForm();
-                }}
+                onClick={onClose}
                 className="flex-1 py-3.5 rounded-2xl font-medium border border-gray-300 dark:border-gray-700 hover:bg-gray-800 dark:hover:bg-gray-800"
               >
                 Cancel

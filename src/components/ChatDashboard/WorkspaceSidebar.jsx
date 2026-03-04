@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import Image from "next/image";
-import { Plus, Compass, Download } from "lucide-react";
+import { Plus, Download } from "lucide-react";
 
 export default function WorkspaceSidebar({
   activeView,
@@ -41,7 +41,7 @@ export default function WorkspaceSidebar({
             width={28}
             height={28}
             alt="ConvoX"
-            className={activeView === "home" ? "brightness-0 invert" : ""}
+            className=""
           />
         </div>
       </div>
@@ -53,19 +53,22 @@ export default function WorkspaceSidebar({
         {workspaces.map((ws) => (
           <div
             key={ws.id}
-            onClick={() => setActiveView("workspace")}
+            onClick={() => {
+              setActiveView("workspace");
+              setSelectedWorkspaceId(ws.id);
+            }}
             className="relative group cursor-pointer"
           >
             <div
               className={`absolute -left-2 top-1/2 -translate-y-1/2 w-1 bg-white rounded-r-full transition-all duration-200 ${
-                activeView === "workspace" && ws.id === "1"
+                activeView === "workspace" && selectedWorkspaceId === ws.id
                   ? "h-8"
                   : "h-0 group-hover:h-5"
               }`}
             ></div>
             <div
               className={`w-12 h-12 flex items-center justify-center text-lg font-bold transition-all duration-200 shadow-md ${
-                activeView === "workspace" && ws.id === "1"
+                activeView === "workspace" && selectedWorkspaceId === ws.id
                   ? "bg-teal-normal text-white rounded-2xl"
                   : "bg-surface-dark/50 text-slate-400 hover:bg-teal-normal hover:text-white rounded-3xl hover:rounded-2xl border border-white/5"
               }`}

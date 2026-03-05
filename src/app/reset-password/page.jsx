@@ -1,16 +1,22 @@
 "use client";
 
-import { useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import Footer from "@/components/Footer";
 import NavBar from "@/components/NavBar";
 
 export default function ResetPasswordPage() {
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const token = searchParams.get("token");
+  const [token, setToken] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlToken = new URLSearchParams(window.location.search).get("token");
+      setToken(urlToken || "");
+    }
+  }, []);
 
   const [newPassword, setNewPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -90,7 +96,7 @@ export default function ResetPasswordPage() {
 
   if (!token) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 px-4">
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-brrom-indigo-50 via-purple-50 to-pink-50 px-4">
         <div className="bg-white/80 backdrop-blur-lg shadow-2xl rounded-3xl p-10 w-full max-w-md text-center border border-purple-100">
           <h2 className="text-3xl font-bold text-gray-800 mb-4">
             Invalid Link
@@ -156,21 +162,21 @@ export default function ResetPasswordPage() {
             {/* ✅ Error message under input */}
             {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
 
-            <button
-              type="submit"
-              disabled={loading || !newPassword.trim()}
-              className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-cyan-400 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  Updating...
-                </>
-              ) : (
-                "Reset Password"
-              )}
-            </button>
-          </form>
+          <button
+            type="submit"
+            disabled={loading || !newPassword.trim()}
+            className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Updating...
+              </>
+            ) : (
+              "Reset Password"
+            )}
+          </button>
+        </form>
 
           <div className="mt-6 text-center text-sm text-gray-500">
             <a

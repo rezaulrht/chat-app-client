@@ -1,0 +1,117 @@
+/**
+ * Group chat helper utilities
+ *
+ * Pure functions for computing role checks, member counts, and online
+ * status aggregation for group conversations.  Kept free of side-effects
+ * so they can be used in any component without hooks.
+ */
+
+/**
+ * Returns true if the given userId has admin rights in the conversation.
+ *
+ * @param {object} conv     - Conversation object (must have `admins` array)
+ * @param {string} userId   - The authenticated user's _id
+ * @returns {boolean}
+ */
+export function isAdmin(conv, userId) {
+  if (!conv?.admins || !userId) return false;
+  return conv.admins.some((a) => {
+    // admins can be populated objects { _id, name } or raw ObjectId strings
+    const id = typeof a === "object" ? a._id?.toString() : a?.toString();
+    return id === userId;
+  });
+}
+
+/**
+ * Returns true if the given userId is the original creator (owner) of the group.
+ *
+ * @param {object} conv     - Conversation object (must have `createdBy`)
+ * @param {string} userId   - The authenticated user's _id
+ * @returns {boolean}
+ */
+export function isCreator(conv, userId) {
+  if (!conv?.createdBy || !userId) return false;
+  const creatorId =
+    typeof conv.createdBy === "object"
+      ? conv.createdBy._id?.toString()
+      : conv.createdBy?.toString();
+  return creatorId === userId;
+}
+
+/**
+ * Returns the total number of participants in the conversation.
+ *
+ * @param {object} conv - Conversation object (must have `participants` array)
+ * @returns {number}
+ */
+export function getMemberCount(conv) {
+  return conv?.participants?.length || 0;
+}
+
+/**
+ * Returns the number of participants currently showing as online.
+ *
+ * @param {object} conv          - Conversation object (must have `participants` array)
+ * @param {Map}    onlineUsers   - Map<userId, { online: boolean }> from SocketContext
+ * @returns {number}
+ */
+export function getOnlineCount(conv, onlineUsers) {
+  if (!conv?.participants || !onlineUsers) return 0;
+  return conv.participants.filter((p) => {
+    const id = typeof p === "object" ? p._id?.toString() : p?.toString();
+    return onlineUsers.get(id)?.online === true;
+  }).length;
+}
+
+/**
+ * Returns the role label for a participant in a group.
+ * Matches the precedence: creator > admin > member.
+ *
+ * @param {object} conv     - Conversation object
+ * @param {string} userId   - Participant's _id to check
+ * @returns {"creator" | "admin" | "member"}
+ */
+export function getMemberRole(conv, userId) {
+  if (isCreator(conv, userId)) return "creator";
+  if (isAdmin(conv, userId)) return "admin";
+  return "member";
+}
+
+/**
+ * Returns the display name for a group conversation's last message,
+ * prefixed with the sender's first name when available.
+ *
+ * Examples:
+ *   "Rakib: Hey everyone"
+ *   "You: Hey everyone"          ← when currentUserId matches sender
+ *   "Hey everyone"               ← when senderName is unavailable
+ *
+ * @param {object} lastMessage   - { text, gifUrl, sender: { _id, name } | string }
+ * @param {string} currentUserId - The viewing user's _id
+ * @returns {string}
+ */
+export function getGroupLastMessagePreview(lastMessage, currentUserId) {
+  if (!lastMessage) return "No messages yet";
+
+  const content = lastMessage.gifUrl ? "GIF" : lastMessage.text || "";
+
+  // Resolve sender identity
+  const senderId =
+    typeof lastMessage.sender === "object"
+      ? lastMessage.sender?._id?.toString()
+      : lastMessage.sender?.toString();
+
+  const senderName =
+    typeof lastMessage.sender === "object" ? lastMessage.sender?.name : null;
+
+  if (!senderId) return content || "No messages yet";
+
+  const prefix =
+    senderId === currentUserId
+      ? "You"
+      : senderName
+        ? senderName.split(" ")[0] // first name only
+        : null;
+
+  return prefix ? `${prefix}: ${content}` : content || "No messages yet";
+}

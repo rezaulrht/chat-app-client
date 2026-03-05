@@ -1,13 +1,35 @@
 "use client";
+
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import dynamic from "next/dynamic";
-import { Phone, Video, Info, Plus, Smile, Send, X, Reply } from "lucide-react";
+import {
+  Phone,
+  Video,
+  Info,
+  Plus,
+  Smile,
+  Send,
+  X,
+  Reply,
+  Pencil,
+  Trash2,
+  Check,
+  Menu,
+} from "lucide-react";
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
 import { EMOJI_MAP } from "@/utils/emojis";
 import { formatLastSeen } from "@/utils/formatLastSeen";
+import { getGroupInitials, getGroupAvatarColor } from "@/utils/groupAvatar";
+import toast from "react-hot-toast";
+
+import {
+  createScheduledMessage,
+  listScheduledMessages,
+  cancelScheduledMessage,
+} from "@/utils/scheduleApi";
 
 const EmojiPicker = dynamic(() => import("emoji-picker-react"), { ssr: false });
 const GifPicker = dynamic(
@@ -21,10 +43,12 @@ const getDateLabel = (dateStr) => {
   const today = new Date();
   const yesterday = new Date();
   yesterday.setDate(today.getDate() - 1);
+
   const isSameDay = (a, b) =>
     a.getFullYear() === b.getFullYear() &&
     a.getMonth() === b.getMonth() &&
     a.getDate() === b.getDate();
+
   if (isSameDay(date, today)) return "Today";
   if (isSameDay(date, yesterday)) return "Yesterday";
   return date.toLocaleDateString([], {
@@ -39,40 +63,73 @@ const toDateKey = (dateStr) => {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 };
 
-export default function ChatWindow({ conversation, onMessageSent }) {
+export default function ChatWindow({
+  conversation,
+  onMessageSent,
+  onMessagesSeen,
+  showGroupInfo,
+  onToggleGroupInfo,
+  onConversationUpdate,
+  toggleSidebar,
+  toggleWorkspace,
+}) {
   const { socket, onlineUsers, typingUsers } = useSocket() || {};
   const { user } = useAuth();
+
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [loadingMessages, setLoadingMessages] = useState(false);
+
   const [replyTo, setReplyTo] = useState(null);
+
   const [reactions, setReactions] = useState({});
   const [reactionPickerMsgId, setReactionPickerMsgId] = useState(null);
+
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showGifPicker, setShowGifPicker] = useState(false);
+
   const [suggestions, setSuggestions] = useState([]);
   const [suggestionIndex, setSuggestionIndex] = useState(0);
+
+  // Scheduled messages UI
+  const [scheduleMode, setScheduleMode] = useState(false);
+  const [sendAt, setSendAt] = useState("");
+  const [scheduling, setScheduling] = useState(false);
+
+  const [scheduledItems, setScheduledItems] = useState([]);
+  const [showScheduledPanel, setShowScheduledPanel] = useState(false);
+  const [loadingScheduled, setLoadingScheduled] = useState(false);
+
+  // Edit/Delete UI
+  const [editingMessageId, setEditingMessageId] = useState(null);
+  const [editedText, setEditedText] = useState("");
 
   const bottomRef = useRef(null);
   const reactionPickerRef = useRef(null);
   const inputEmojiPickerRef = useRef(null);
   const gifPickerRef = useRef(null);
+  const seenInitializedConversationRef = useRef(null);
 
+  // Close pickers on outside click
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (
         reactionPickerRef.current &&
         !reactionPickerRef.current.contains(e.target)
-      )
+      ) {
         setReactionPickerMsgId(null);
+      }
       if (
         inputEmojiPickerRef.current &&
         !inputEmojiPickerRef.current.contains(e.target)
-      )
+      ) {
         setShowEmojiPicker(false);
-      if (gifPickerRef.current && !gifPickerRef.current.contains(e.target))
+      }
+      if (gifPickerRef.current && !gifPickerRef.current.contains(e.target)) {
         setShowGifPicker(false);
+      }
     };
+
     if (reactionPickerMsgId || showEmojiPicker || showGifPicker) {
       document.addEventListener("mousedown", handleClickOutside);
     }
@@ -93,46 +150,44 @@ export default function ChatWindow({ conversation, onMessageSent }) {
 
   const handleTextChange = (e) => {
     let val = e.target.value;
+
+    // replace :code: with emoji if exact lastWord
     const lastWord = val.split(" ").pop();
     if (EMOJI_MAP[lastWord]) val = val.replace(lastWord, EMOJI_MAP[lastWord]);
+
     setText(val);
+
+    // typing indicator
     if (socket && conversation) {
+      const isGrp = conversation.type === "group";
       if (val.trim()) {
         socket.emit("typing:start", {
           conversationId: conversation._id,
-          receiverId: conversation.participant._id,
+          ...(isGrp ? {} : { receiverId: conversation.participant?._id }),
         });
       } else {
         socket.emit("typing:stop", {
           conversationId: conversation._id,
-          receiverId: conversation.participant._id,
+          ...(isGrp ? {} : { receiverId: conversation.participant?._id }),
         });
       }
     }
+
+    // suggestions for :xxx
     const match = val.match(/:([a-zA-Z0-9_]*)$/);
     if (match) {
       const query = match[1].toLowerCase();
       const filtered = Object.entries(EMOJI_MAP)
         .filter(([code]) => {
-          // code looks like ":cat:" — strip colons to get "cat"
           const name = code.slice(1, -1);
-          // Match only if query is at the start of the whole name OR a word segment
           return (
             name.startsWith(query) ||
             name.split("_").some((w) => w.startsWith(query))
           );
         })
-        .sort(([a], [b]) => {
-          const an = a.slice(1, -1);
-          const bn = b.slice(1, -1);
-          // Exact-prefix matches first (e.g. "cat", "cat2")
-          const aFirst = an.startsWith(query);
-          const bFirst = bn.startsWith(query);
-          if (aFirst && !bFirst) return -1;
-          if (!aFirst && bFirst) return 1;
-          return an.localeCompare(bn);
-        })
+        .sort(([a], [b]) => a.localeCompare(b))
         .slice(0, 8);
+
       setSuggestions(filtered);
       setSuggestionIndex(0);
     } else {
@@ -159,29 +214,6 @@ export default function ChatWindow({ conversation, onMessageSent }) {
     }
   };
 
-  const handleGifClick = (gif) => {
-    if (!socket || !conversation) return;
-    const tempId = `temp-${Date.now()}`;
-    const gifUrl = gif.url || gif.previewUrl;
-    const optimistic = {
-      _id: tempId,
-      conversationId: conversation._id,
-      sender: { _id: user._id, name: user.name },
-      gifUrl,
-      createdAt: new Date().toISOString(),
-      isOptimistic: true,
-    };
-    setMessages((prev) => [...prev, optimistic]);
-    setShowGifPicker(false);
-    socket.emit("message:send", {
-      conversationId: conversation._id,
-      receiverId: conversation.participant._id,
-      gifUrl,
-      tempId,
-    });
-    onMessageSent?.(conversation._id, "GIF");
-  };
-
   const toggleReaction = useCallback(
     (msgId, emoji) => {
       if (!socket || !conversation?._id) return;
@@ -194,17 +226,83 @@ export default function ChatWindow({ conversation, onMessageSent }) {
     [socket, conversation?._id],
   );
 
+  const handleGifClick = (gif) => {
+    if (!socket || !conversation) return;
+
+    const tempId = `temp-${Date.now()}`;
+    const gifUrl = gif.url || gif.previewUrl;
+
+    const optimistic = {
+      _id: tempId,
+      conversationId: conversation._id,
+      sender: { _id: user?._id, name: user?.name },
+      gifUrl,
+      createdAt: new Date().toISOString(),
+      status: "sent",
+      isOptimistic: true,
+    };
+
+    setMessages((prev) => [...prev, optimistic]);
+    setShowGifPicker(false);
+
+    socket.emit("message:send", {
+      conversationId: conversation._id,
+      ...(conversation.type !== "group"
+        ? { receiverId: conversation.participant?._id }
+        : {}),
+      gifUrl,
+      tempId,
+    });
+
+    onMessageSent?.(conversation._id, null, gifUrl);
+  };
+
+  // Edit/Delete handlers
+  const handleEdit = (messageId, currentText) => {
+    setEditingMessageId(messageId);
+    setEditedText(typeof currentText === "string" ? currentText : "");
+  };
+
+  const handleEditSave = () => {
+    if (!editedText.trim() || !socket || !conversation) return;
+    socket.emit("message:edit", {
+      messageId: editingMessageId,
+      conversationId: conversation._id,
+      newText: editedText.trim(),
+    });
+    setEditingMessageId(null);
+    setEditedText("");
+  };
+
+  const handleDelete = (messageId) => {
+    if (!socket || !conversation) return;
+    socket.emit("message:delete", {
+      messageId,
+      conversationId: conversation._id,
+    });
+  };
+
+  // Fetch messages when conversation changes
   useEffect(() => {
     if (!conversation?._id) return;
+
     const fetchMessages = async () => {
       setLoadingMessages(true);
       setMessages([]);
       setReactions({});
+      setEditingMessageId(null);
+      setEditedText("");
+      setReplyTo(null);
+      setScheduleMode(false);
+      setShowScheduledPanel(false);
+
       try {
         const res = await api.get(`/api/chat/messages/${conversation._id}`);
-        setMessages(res.data);
+        setMessages(res.data || []);
+
+        // load reactions map
         const rxns = {};
-        for (const msg of res.data) {
+        for (const msg of res.data || []) {
           if (msg.reactions && typeof msg.reactions === "object") {
             const entries =
               msg.reactions instanceof Map
@@ -214,26 +312,60 @@ export default function ChatWindow({ conversation, onMessageSent }) {
           }
         }
         setReactions(rxns);
+
+        // reset seen-init marker for new conversation
+        seenInitializedConversationRef.current = null;
       } catch (err) {
         console.error("Failed to fetch messages:", err);
       } finally {
         setLoadingMessages(false);
       }
     };
+
     fetchMessages();
   }, [conversation?._id]);
 
-  // Join the conversation room so we receive real-time reactions
+  // Join/leave conversation room (for reactions + other events)
   useEffect(() => {
     if (!socket || !conversation?._id) return;
     socket.emit("conversation:join", conversation._id);
     return () => socket.emit("conversation:leave", conversation._id);
   }, [socket, conversation?._id]);
 
+  // Mark initial loaded messages as seen once per active conversation
+  useEffect(() => {
+    if (!socket || !user || !conversation?._id || loadingMessages) return;
+    if (seenInitializedConversationRef.current === conversation._id) return;
+
+    const lastUnreadMsg = [...messages]
+      .reverse()
+      .find((msg) => msg.sender?._id !== user._id && msg.status !== "read");
+
+    if (lastUnreadMsg) {
+      socket.emit("conversation:seen", {
+        conversationId: conversation._id,
+        lastSeenMessageId: lastUnreadMsg._id,
+      });
+      onMessagesSeen?.(conversation._id);
+    }
+
+    seenInitializedConversationRef.current = conversation._id;
+  }, [
+    socket,
+    user,
+    conversation?._id,
+    loadingMessages,
+    messages,
+    onMessagesSeen,
+  ]);
+
+  // Socket listeners
   useEffect(() => {
     if (!socket) return;
+
     const handleReceive = (msg) => {
       if (msg.conversationId !== conversation?._id) return;
+
       setMessages((prev) => {
         const optimisticIndex = prev.findIndex((m) => m._id === msg.tempId);
         if (optimisticIndex !== -1) {
@@ -243,13 +375,16 @@ export default function ChatWindow({ conversation, onMessageSent }) {
         }
         return [...prev, msg];
       });
+
       if (msg.sender?._id !== user?._id) {
         socket.emit("conversation:seen", {
           conversationId: conversation._id,
           lastSeenMessageId: msg._id,
         });
+        onMessagesSeen?.(conversation._id);
       }
     };
+
     const handleDelivered = (update) => {
       if (update.conversationId !== conversation?._id) return;
       setMessages((prev) =>
@@ -259,14 +394,16 @@ export default function ChatWindow({ conversation, onMessageSent }) {
           if (
             update.status === "read" &&
             m.sender?._id === user?._id &&
-            m.status !== "read"
+            m.status !== "read" &&
+            m._id <= update.upToMessageId
           ) {
-            if (m._id <= update.upToMessageId) return { ...m, status: "read" };
+            return { ...m, status: "read" };
           }
           return m;
         }),
       );
     };
+
     const handleReacted = ({
       messageId,
       conversationId: cId,
@@ -275,138 +412,359 @@ export default function ChatWindow({ conversation, onMessageSent }) {
       if (cId !== conversation?._id) return;
       setReactions((prev) => ({ ...prev, [messageId]: rxns }));
     };
+
+    const handleEdited = (updatedMsg) => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m._id === updatedMsg._id ? { ...m, ...updatedMsg } : m,
+        ),
+      );
+    };
+
+    const handleDeleted = ({ messageId }) => {
+      if (!messageId) return;
+      setMessages((prev) =>
+        prev.map((m) =>
+          m._id === messageId ? { ...m, isDeleted: true, text: m.text } : m,
+        ),
+      );
+    };
+
     socket.on("message:new", handleReceive);
     socket.on("message:status", handleDelivered);
     socket.on("message:reacted", handleReacted);
+    socket.on("message:edited", handleEdited);
+    socket.on("message:deleted", handleDeleted);
+
     return () => {
       socket.off("message:new", handleReceive);
       socket.off("message:status", handleDelivered);
       socket.off("message:reacted", handleReacted);
+      socket.off("message:edited", handleEdited);
+      socket.off("message:deleted", handleDeleted);
     };
-  }, [socket, conversation?._id, user?._id]);
+  }, [socket, conversation?._id, user?._id, onMessagesSeen]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSend = (e) => {
+  // Scheduled: refresh list
+  const refreshScheduled = useCallback(async () => {
+    if (!conversation?._id) return;
+    setLoadingScheduled(true);
+    try {
+      const data = await listScheduledMessages({
+        conversationId: conversation._id,
+      });
+      setScheduledItems(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error(err);
+      toast.error(
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        "Failed to load scheduled messages",
+      );
+    } finally {
+      setLoadingScheduled(false);
+    }
+  }, [conversation?._id]);
+
+  useEffect(() => {
+    if (!conversation?._id) return;
+    refreshScheduled();
+  }, [conversation?._id, refreshScheduled]);
+
+  const onCancelScheduled = async (id) => {
+    try {
+      await cancelScheduledMessage({ scheduledId: id });
+      toast.success("Scheduled message cancelled");
+      refreshScheduled();
+    } catch (err) {
+      console.error(err);
+      toast.error(
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        "Failed to cancel scheduled message",
+      );
+    }
+  };
+
+  // Scheduled: create
+  const scheduleMessage = async () => {
+    if (!text.trim() || !conversation?._id) return;
+
+    if (!sendAt) {
+      toast.error("Select schedule date & time");
+      return;
+    }
+
+    const dt = new Date(sendAt);
+    if (isNaN(dt.getTime())) {
+      toast.error("Invalid schedule date/time");
+      return;
+    }
+
+    if (dt.getTime() <= Date.now()) {
+      toast.error("Scheduled time must be in the future");
+      return;
+    }
+
+    try {
+      setScheduling(true);
+
+      await createScheduledMessage({
+        conversationId: conversation._id,
+        content: text.trim(),
+        sendAt: dt.toISOString(),
+      });
+
+      setText("");
+      setSendAt("");
+      setScheduleMode(false);
+      setSuggestions([]);
+      setReplyTo(null);
+
+      onMessageSent?.(conversation._id, "SCHEDULED");
+      toast.success("✅ Message scheduled!");
+
+      setShowScheduledPanel(true);
+      refreshScheduled();
+    } catch (err) {
+      console.error(err);
+      toast.error(
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        "Failed to schedule",
+      );
+    } finally {
+      setScheduling(false);
+    }
+  };
+
+  const handleSend = async (e) => {
     e.preventDefault();
-    if (!text.trim() || !socket || !conversation) return;
+    if (!text.trim() || !conversation) return;
+
+    // Scheduled send
+    if (scheduleMode) return scheduleMessage();
+
+    // Normal send (socket)
+    if (!socket) return;
+
     const tempId = `temp-${Date.now()}`;
     const optimistic = {
       _id: tempId,
       conversationId: conversation._id,
-      sender: { _id: user._id, name: user.name },
+      sender: { _id: user?._id, name: user?.name },
       text: text.trim(),
       createdAt: new Date().toISOString(),
       status: "sent",
       isOptimistic: true,
       replyTo,
     };
+
     setMessages((prev) => [...prev, optimistic]);
     setText("");
+    const isGrp = conversation.type === "group";
     socket.emit("typing:stop", {
       conversationId: conversation._id,
-      receiverId: conversation.participant._id,
+      ...(isGrp ? {} : { receiverId: conversation.participant?._id }),
     });
     socket.emit("message:send", {
       conversationId: conversation._id,
-      receiverId: conversation.participant._id,
+      ...(isGrp ? {} : { receiverId: conversation.participant?._id }),
       text: optimistic.text,
       tempId,
       replyTo: replyTo?._id || null,
     });
+
     setSuggestions([]);
     setReplyTo(null);
   };
 
   if (!conversation) {
     return (
-      <div className="flex-1 bg-[#080b0f] flex flex-col items-center justify-center gap-4">
-        <div className="w-16 h-16 rounded-3xl bg-teal-normal/10 border border-teal-normal/20 flex items-center justify-center">
-          <Send size={24} className="text-teal-dark" />
+      <div className="flex-1 bg-[#080b0f] flex flex-col items-center justify-center gap-6 p-6">
+        <div className="relative">
+          <div className="absolute inset-0 bg-teal-normal/20 blur-3xl rounded-full" />
+          <div className="relative w-24 h-24 rounded-4xl bg-teal-normal/10 border border-teal-normal/20 flex items-center justify-center shadow-2xl backdrop-blur-sm">
+            <img
+              src="https://i.ibb.co/PG0X3Tbf/Convo-X-logo.png"
+              alt="ConvoX"
+              className="w-12 h-auto opacity-80"
+            />
+          </div>
         </div>
-        <div className="text-center">
-          <p className="text-slate-400 text-sm font-medium">
-            No conversation selected
+        <div className="text-center space-y-2">
+          <h2 className="text-slate-100 text-xl font-bold tracking-tight">
+            Welcome to ConvoX
+          </h2>
+          <p className="text-slate-400 text-sm max-w-70 mx-auto leading-relaxed">
+            Select a conversation from the sidebar or jump into a workspace to
+            start collaborating.
           </p>
-          <p className="text-slate-700 text-xs mt-1">
-            Choose one from the sidebar to start chatting
-          </p>
+        </div>
+        <div className="flex flex-col md:hidden gap-3 w-full max-w-60 pt-4">
+          <button
+            onClick={toggleSidebar}
+            className="w-full py-3 px-4 bg-teal-normal/10 hover:bg-teal-normal/20 border border-teal-normal/20 rounded-xl text-teal-normal text-sm font-bold transition-all"
+          >
+            Open Chats
+          </button>
+          <button
+            onClick={toggleWorkspace}
+            className="w-full py-3 px-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-slate-300 text-sm font-bold transition-all"
+          >
+            Switch Workspace
+          </button>
         </div>
       </div>
     );
   }
 
+  const isGroup = conversation.type === "group";
   const participant = conversation.participant;
   const isParticipantOnline = onlineUsers?.get(participant?._id)?.online;
+  const groupMemberCount = isGroup
+    ? (conversation.participants?.length ?? 0)
+    : 0;
+  const groupOnlineCount = isGroup
+    ? (conversation.participants || []).filter(
+      (p) => onlineUsers?.get(p._id)?.online,
+    ).length
+    : 0;
+  const groupAvatarColors = isGroup
+    ? getGroupAvatarColor(conversation.name)
+    : null;
 
   return (
-    <main className="flex-1 flex flex-col bg-[#080b0f] relative h-full">
+    <main className="flex-1 min-w-0 flex flex-col bg-[#080b0f] relative h-full">
       <header className="h-17 border-b border-white/5 flex justify-between items-center px-5 bg-[#0a0e13]/80 backdrop-blur-sm shrink-0">
         <div className="flex items-center gap-3">
-          <div className="relative">
-            <div
-              className={`rounded-2xl overflow-hidden ${isParticipantOnline ? "ring-2 ring-teal-normal/60 ring-offset-1 ring-offset-[#0a0e13]" : ""}`}
-            >
-              <Image
-                src={
-                  participant?.avatar ||
-                  `https://api.dicebear.com/7.x/avataaars/svg?seed=${participant?.name}`
-                }
-                width={40}
-                height={40}
-                className="rounded-2xl"
-                alt={participant?.name || "avatar"}
-                unoptimized
-              />
-            </div>
-            <div
-              className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#0a0e13] ${isParticipantOnline ? "bg-green-400" : "bg-slate-600"}`}
-            ></div>
-          </div>
-          <div>
-            <h2 className="font-bold text-slate-100 text-sm leading-tight">
-              {participant?.name}
-            </h2>
-            <p className="text-[10px] mt-0.5">
-              {isParticipantOnline ? (
-                <span className="text-green-400 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block"></span>
-                  Online
-                </span>
-              ) : (
-                <span className="text-slate-600">
-                  Last seen{" "}
-                  {formatLastSeen(
-                    onlineUsers?.get(participant?._id)?.lastSeen,
-                  ) || "recently"}
-                </span>
-              )}
-            </p>
-          </div>
-        </div>
-        <div className="flex gap-1">
-          {[{ icon: Phone }, { icon: Video }, { icon: Info }].map(
-            ({ icon: Icon }, i) => (
-              <button
-                key={i}
-                className="w-8 h-8 rounded-xl bg-white/4 hover:bg-teal-normal/10 hover:text-teal-normal flex items-center justify-center text-slate-500 transition-all"
-              >
-                <Icon size={16} />
-              </button>
-            ),
+          <button
+            onClick={toggleSidebar}
+            className="md:hidden w-8 h-8 rounded-xl bg-white/4 flex items-center justify-center text-slate-500 hover:text-white transition-colors"
+          >
+            <Menu size={18} />
+          </button>
+          {isGroup ? (
+            <>
+              <div className="w-10 h-10 rounded-2xl shrink-0 overflow-hidden">
+                {conversation.avatar ? (
+                  <Image
+                    src={conversation.avatar}
+                    width={40}
+                    height={40}
+                    className="rounded-2xl object-cover"
+                    alt={conversation.name || "group"}
+                    unoptimized
+                  />
+                ) : (
+                  <div
+                    className="w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-sm"
+                    style={{
+                      background: groupAvatarColors?.bg,
+                      color: groupAvatarColors?.text,
+                    }}
+                  >
+                    {getGroupInitials(conversation.name)}
+                  </div>
+                )}
+              </div>
+              <div>
+                <h2 className="font-bold text-slate-100 text-sm leading-tight">
+                  {conversation.name}
+                </h2>
+                <p className="text-[10px] mt-0.5 text-slate-500">
+                  {groupMemberCount} member{groupMemberCount !== 1 ? "s" : ""}
+                  {groupOnlineCount > 0 && (
+                    <span className="text-green-400 ml-1">
+                      · {groupOnlineCount} online
+                    </span>
+                  )}
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="relative">
+                <div
+                  className={`rounded-2xl overflow-hidden ${isParticipantOnline
+                      ? "ring-2 ring-teal-normal/60 ring-offset-1 ring-offset-[#0a0e13]"
+                      : ""
+                    }`}
+                >
+                  <Image
+                    src={
+                      participant?.avatar ||
+                      `https://api.dicebear.com/7.x/avataaars/svg?seed=${participant?.name}`
+                    }
+                    width={40}
+                    height={40}
+                    className="rounded-2xl"
+                    alt={participant?.name || "avatar"}
+                    unoptimized
+                  />
+                </div>
+                <div
+                  className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#0a0e13] ${isParticipantOnline ? "bg-green-400" : "bg-slate-600"
+                    }`}
+                />
+              </div>
+
+              <div>
+                <h2 className="font-bold text-slate-100 text-sm leading-tight">
+                  {participant?.name}
+                </h2>
+                <p className="text-[10px] mt-0.5">
+                  {isParticipantOnline ? (
+                    <span className="text-green-400 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
+                      Online
+                    </span>
+                  ) : (
+                    <span className="text-slate-600">
+                      Last seen{" "}
+                      {formatLastSeen(
+                        onlineUsers?.get(participant?._id)?.lastSeen,
+                      ) || "recently"}
+                    </span>
+                  )}
+                </p>
+              </div>
+            </>
           )}
+        </div>
+
+        <div className="flex gap-1">
+          <button className="w-8 h-8 rounded-xl bg-white/4 hover:bg-teal-normal/10 hover:text-teal-normal flex items-center justify-center text-slate-500 transition-all">
+            <Phone size={16} />
+          </button>
+          <button className="w-8 h-8 rounded-xl bg-white/4 hover:bg-teal-normal/10 hover:text-teal-normal flex items-center justify-center text-slate-500 transition-all">
+            <Video size={16} />
+          </button>
+          <button
+            type="button"
+            onClick={isGroup ? onToggleGroupInfo : undefined}
+            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${isGroup && showGroupInfo
+                ? "bg-teal-normal/20 text-teal-normal border border-teal-normal/30"
+                : "bg-white/4 hover:bg-teal-normal/10 hover:text-teal-normal text-slate-500"
+              }`}
+          >
+            <Info size={16} />
+          </button>
         </div>
       </header>
 
       <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-3 scrollbar-hide">
         {loadingMessages && (
           <div className="flex items-center justify-center gap-2 mt-8">
-            <div className="w-4 h-4 rounded-full border-2 border-teal-normal border-t-transparent animate-spin"></div>
+            <div className="w-4 h-4 rounded-full border-2 border-teal-normal border-t-transparent animate-spin" />
             <p className="text-slate-600 text-xs">Loading messages...</p>
           </div>
         )}
+
         {!loadingMessages && messages.length === 0 && (
           <div className="flex flex-col items-center justify-center flex-1 gap-3">
             <div className="w-12 h-12 rounded-3xl bg-teal-normal/10 border border-teal-normal/15 flex items-center justify-center">
@@ -418,242 +776,420 @@ export default function ChatWindow({ conversation, onMessageSent }) {
           </div>
         )}
 
-        {messages.map((msg, index) => {
-          const isMe =
-            msg.sender?._id === user?._id || msg.sender === user?._id;
-          const isGif = !!msg.gifUrl;
-          const currentDateKey = toDateKey(msg.createdAt);
-          const prevDateKey =
-            index > 0 ? toDateKey(messages[index - 1].createdAt) : null;
-          const showDateSeparator = currentDateKey !== prevDateKey;
+        {(() => {
+          // Robust calculation of last message indices for each status
+          let lastReadIndex = -1;
+          let lastDeliveredIndex = -1;
+          let lastSentIndex = -1;
+          let lastAnyMeIndex = -1;
 
-          return (
-            <React.Fragment key={msg._id}>
-              {showDateSeparator && (
-                <div className="flex items-center gap-3 my-2">
-                  <div className="flex-1 h-px bg-white/5"></div>
-                  <span className="text-[10px] font-medium text-slate-600 px-3 py-1 rounded-full bg-white/4 border border-white/6 shrink-0">
-                    {getDateLabel(msg.createdAt)}
-                  </span>
-                  <div className="flex-1 h-px bg-white/5"></div>
-                </div>
-              )}
-              <div
-                className={`flex items-end gap-2 group ${isMe ? "justify-end" : "justify-start"}`}
-              >
+          for (let i = messages.length - 1; i >= 0; i--) {
+            const m = messages[i];
+            const isMsgMe =
+              m.sender?._id === user?._id || m.sender === user?._id;
+            if (isMsgMe) {
+              if (lastAnyMeIndex === -1) lastAnyMeIndex = i;
+              if (m.status === "read" && lastReadIndex === -1)
+                lastReadIndex = i;
+              if (m.status === "delivered" && lastDeliveredIndex === -1)
+                lastDeliveredIndex = i;
+              if (m.status === "sent" && lastSentIndex === -1)
+                lastSentIndex = i;
+            }
+          }
+
+          return messages.map((msg, index) => {
+            const isMe =
+              msg.sender?._id === user?._id || msg.sender === user?._id;
+            const isGif = !!msg.gifUrl;
+
+            const currentDateKey = toDateKey(msg.createdAt);
+            const prevDateKey =
+              index > 0 ? toDateKey(messages[index - 1].createdAt) : null;
+            const showDateSeparator = currentDateKey !== prevDateKey;
+
+            return (
+              <React.Fragment key={msg._id}>
+                {showDateSeparator && (
+                  <div className="flex items-center gap-3 my-2">
+                    <div className="flex-1 h-px bg-white/5" />
+                    <span className="text-[10px] font-medium text-slate-600 px-3 py-1 rounded-full bg-white/4 border border-white/6 shrink-0">
+                      {getDateLabel(msg.createdAt)}
+                    </span>
+                    <div className="flex-1 h-px bg-white/5" />
+                  </div>
+                )}
+
                 <div
-                  className={`flex flex-col ${isMe ? "items-end" : "items-start"} max-w-[85%]`}
+                  className={`flex items-end gap-2 group ${isMe ? "justify-end" : "justify-start"}`}
                 >
-                  <div className="relative group w-fit">
-                    {!msg.isOptimistic && (
-                      <div
-                        className={`absolute -top-6 ${isMe ? "right-0" : "left-0"} hidden group-hover:flex items-center gap-0.5 bg-[#15191C] border border-slate-700/60 rounded-lg p-0.5 shadow-xl shadow-black/40 z-30`}
-                      >
-                        {["👍", "❤️", "😂", "😮", "😢"].map((emoji) => (
-                          <button
-                            key={emoji}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleReaction(msg._id, emoji);
-                            }}
-                            className={`p-1.5 rounded-md transition-all duration-150 hover:bg-slate-700/60 hover:scale-125 ${reactions[msg._id]?.[emoji]?.includes(user?._id) ? "bg-teal-900/40" : ""}`}
-                          >
-                            {emoji}
-                          </button>
-                        ))}
-                        <div className="w-px h-5 bg-slate-700/60 mx-0.5" />
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setReactionPickerMsgId(
-                              reactionPickerMsgId === msg._id ? null : msg._id,
-                            );
-                          }}
-                          className="p-1 text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 rounded-md transition-all duration-150"
-                        >
-                          <Smile size={14} />
-                        </button>
-                        <button
-                          onClick={() => setReplyTo(msg)}
-                          className="p-1 text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 rounded-md transition-all duration-150"
-                        >
-                          <Reply size={14} />
-                        </button>
-                      </div>
-                    )}
-                    <div
-                      className={`${isGif ? "p-1" : "p-3.5"} rounded-2xl text-[13px] leading-relaxed relative z-10 ${isMe ? (isGif ? "bg-transparent" : "bg-teal-normal text-white rounded-br-none shadow-lg shadow-teal-normal/10") : isGif ? "bg-transparent" : "bg-surface-dark text-slate-200 rounded-bl-none shadow-sm shadow-black/5"} ${msg.isOptimistic ? "opacity-60" : ""}`}
-                    >
-                      {msg.replyTo && (
-                        <div className="mb-2 p-2 bg-black/20 rounded-lg border-l-2 border-teal-normal text-[11px] opacity-80 line-clamp-2">
-                          <p className="font-bold mb-0.5">
-                            {msg.replyTo.sender?.name === user.name
-                              ? "You"
-                              : msg.replyTo.sender?.name || "Participant"}
-                          </p>
-                          {msg.replyTo.text}
-                        </div>
-                      )}
-                      {isGif ? (
-                        <img
-                          src={msg.gifUrl}
-                          alt="GIF"
-                          className="max-w-70 rounded-xl"
-                          loading="lazy"
+                  {isGroup && !isMe && (
+                    <div className="w-6 h-6 rounded-lg shrink-0 overflow-hidden self-end mb-0.5">
+                      {msg.sender?.avatar ? (
+                        <Image
+                          src={msg.sender.avatar}
+                          width={24}
+                          height={24}
+                          className="rounded-lg object-cover"
+                          alt={msg.sender?.name || ""}
+                          unoptimized
                         />
                       ) : (
-                        msg.text
-                      )}
-                      <div
-                        className={`text-[9px] mt-1.5 opacity-40 text-right ${isGif ? "px-2" : ""} flex items-center justify-end gap-1`}
-                      >
-                        {new Date(msg.createdAt).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </div>
-                    </div>
-                    {reactionPickerMsgId === msg._id && (
-                      <div
-                        ref={reactionPickerRef}
-                        className={`absolute top-0 z-50 ${isMe ? "right-full mr-2" : "left-full ml-2"}`}
-                      >
-                        <EmojiPicker
-                          onEmojiClick={(emojiData) =>
-                            toggleReaction(msg._id, emojiData.emoji)
-                          }
-                          theme="dark"
-                          emojiStyle="native"
-                          width={320}
-                          height={400}
-                          searchPlaceholder="Search emoji..."
-                          previewConfig={{ showPreview: false }}
-                          lazyLoadEmojis
-                        />
-                      </div>
-                    )}
-                  </div>
-                  {reactions[msg._id] &&
-                    Object.keys(reactions[msg._id]).length > 0 && (
-                      <div
-                        className={`flex flex-wrap gap-1 mt-1 ${isMe ? "flex-row-reverse" : "flex-row"} max-w-65`}
-                      >
-                        {Object.entries(reactions[msg._id])
-                          .slice(0, 10)
-                          .map(([emoji, users]) => (
-                            <button
-                              key={emoji}
-                              onClick={() => toggleReaction(msg._id, emoji)}
-                              className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded-full border transition-all duration-150 ${users.includes(user?._id) ? "bg-teal-400/10 border-teal-400/30" : "bg-[#1C2227] border-slate-800"}`}
-                            >
-                              <span className="text-[12px]">{emoji}</span>
-                              <span className="text-[9px] font-bold text-slate-400">
-                                {users.length}
-                              </span>
-                            </button>
-                          ))}
-                      </div>
-                    )}
-                  {isMe && !msg.isOptimistic && (
-                    <div className="flex items-center gap-0.5 px-0.5 mt-0.5">
-                      {msg.status === "sent" && (
-                        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/6 text-slate-500 text-[8px] font-medium">
-                          <svg
-                            width="8"
-                            height="8"
-                            viewBox="0 0 12 12"
-                            fill="none"
-                          >
-                            <path
-                              d="M2 6l3 3 5-5"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                          Sent
-                        </span>
-                      )}
-                      {msg.status === "delivered" && (
-                        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/6 text-slate-400 text-[8px] font-medium">
-                          <svg
-                            width="10"
-                            height="8"
-                            viewBox="0 0 16 12"
-                            fill="none"
-                          >
-                            <path
-                              d="M1 6l3 3 5-5"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                            <path
-                              d="M5 6l3 3 5-5"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                          Delivered
-                        </span>
-                      )}
-                      {msg.status === "read" && (
-                        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-teal-normal/15 text-teal-normal text-[8px] font-semibold">
-                          <svg
-                            width="10"
-                            height="8"
-                            viewBox="0 0 16 12"
-                            fill="none"
-                          >
-                            <path
-                              d="M1 6l3 3 5-5"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                            <path
-                              d="M5 6l3 3 5-5"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                          Seen
-                        </span>
+                        <div
+                          className="w-6 h-6 rounded-lg flex items-center justify-center text-[8px] font-bold"
+                          style={{
+                            background: getGroupAvatarColor(
+                              msg.sender?.name || "",
+                            ).bg,
+                            color: getGroupAvatarColor(msg.sender?.name || "")
+                              .text,
+                          }}
+                        >
+                          {getGroupInitials(msg.sender?.name || "?")}
+                        </div>
                       )}
                     </div>
                   )}
+
+                  <div
+                    className={`flex flex-col ${isMe ? "items-end" : "items-start"} max-w-[85%]`}
+                  >
+                    {isGroup && !isMe && (
+                      <span className="text-[10px] font-semibold text-teal-400/80 mb-0.5 px-1">
+                        {msg.sender?.name || "Member"}
+                      </span>
+                    )}
+
+                    <div className="relative group w-fit">
+                      {!msg.isOptimistic && (
+                        <div
+                          className={`absolute -top-7 ${isMe ? "right-0" : "left-0"} hidden group-hover:flex items-center gap-0.5 bg-[#15191C] border border-slate-700/60 rounded-lg p-0.5 shadow-xl shadow-black/40 z-30`}
+                        >
+                          {["👍", "❤️", "😂", "😮", "😢"].map((emoji) => (
+                            <button
+                              key={emoji}
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleReaction(msg._id, emoji);
+                              }}
+                              className={`p-1.5 rounded-md transition-all duration-150 hover:bg-slate-700/60 hover:scale-125 ${reactions[msg._id]?.[emoji]?.includes(user?._id) ? "bg-teal-900/40" : ""}`}
+                              title={`React ${emoji}`}
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                          <div className="w-px h-5 bg-slate-700/60 mx-0.5" />
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setReactionPickerMsgId(
+                                reactionPickerMsgId === msg._id
+                                  ? null
+                                  : msg._id,
+                              );
+                            }}
+                            className="p-1.5 rounded-md text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 transition-all duration-150"
+                            title="More reactions"
+                          >
+                            <Smile size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setReplyTo(msg)}
+                            className="p-1.5 rounded-md text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 transition-all duration-150"
+                            title="Reply"
+                          >
+                            <Reply size={14} />
+                          </button>
+                          {isMe && !msg.isOptimistic && !msg.isDeleted && (
+                            <>
+                              <div className="w-px h-5 bg-slate-700/60 mx-0.5" />
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEdit(msg._id, msg.text);
+                                }}
+                                className="p-1.5 rounded-md text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 transition-all duration-150"
+                                title="Edit message"
+                              >
+                                <Pencil size={16} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDelete(msg._id);
+                                }}
+                                className="p-1.5 rounded-md text-red-400 hover:text-red-300 hover:bg-red-500/20 transition-all duration-150"
+                                title="Delete message"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      )}
+
+                      <div
+                        className={`${isGif ? "p-1" : "p-3.5"} rounded-2xl text-[13px] leading-relaxed relative z-10 
+                        ${editingMessageId === msg._id
+                            ? "bg-[#1a1f26] text-slate-100 border border-teal-normal/50 shadow-2xl shadow-teal-normal/10 rounded-br-none"
+                            : isMe
+                              ? isGif
+                                ? "bg-transparent"
+                                : "bg-teal-normal text-white rounded-br-none shadow-lg shadow-teal-normal/10"
+                              : isGif
+                                ? "bg-transparent"
+                                : "bg-surface-dark text-slate-200 rounded-bl-none shadow-sm shadow-black/5"
+                          } 
+                        ${msg.isOptimistic ? "opacity-60" : ""}`}
+                      >
+                        {msg.replyTo && (
+                          <div className="mb-2 p-2 bg-black/20 rounded-lg border-l-2 border-teal-normal text-[11px] opacity-80 line-clamp-2">
+                            <p className="font-bold mb-0.5">
+                              {msg.replyTo.sender?.name === user?.name
+                                ? "You"
+                                : msg.replyTo.sender?.name || "Participant"}
+                            </p>
+                            {msg.replyTo.text}
+                          </div>
+                        )}
+                        {msg.isDeleted ? (
+                          <p className="italic text-gray-600 text-xs">
+                            This message was deleted
+                          </p>
+                        ) : editingMessageId === msg._id ? (
+                          <div className="flex flex-col gap-3 w-full min-w-70">
+                            <div className="flex items-center gap-2 text-teal-normal text-[10px] font-bold uppercase tracking-wider">
+                              <span className="w-1 h-3 bg-teal-normal rounded-full" />
+                              Editing Message
+                            </div>
+                            <textarea
+                              className="w-full min-h-20 max-h-60 bg-[#0d1117] text-slate-100 text-[13px] px-4 py-3 rounded-xl border border-white/10 focus:outline-none focus:border-teal-normal focus:ring-1 focus:ring-teal-normal/20 resize-none leading-relaxed transition-all scrollbar-hide shadow-inner"
+                              value={editedText}
+                              onChange={(e) => setEditedText(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" && !e.shiftKey) {
+                                  e.preventDefault();
+                                  handleEditSave();
+                                }
+                                if (e.key === "Escape") {
+                                  setEditingMessageId(null);
+                                  setEditedText("");
+                                }
+                              }}
+                              autoFocus
+                              placeholder="Edit your message..."
+                            />
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-600 text-[9px] font-medium">
+                                Escape to{" "}
+                                <span className="text-slate-400">cancel</span> •
+                                Enter to{" "}
+                                <span className="text-slate-400">save</span>
+                              </span>
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingMessageId(null);
+                                    setEditedText("");
+                                  }}
+                                  className="px-3 py-1.5 rounded-lg text-[11px] font-medium text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-all"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={handleEditSave}
+                                  className="px-4 py-1.5 rounded-lg text-[11px] font-bold bg-teal-normal text-black hover:bg-teal-light transition-all shadow-lg shadow-teal-normal/20 active:scale-95"
+                                >
+                                  Save Changes
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ) : isGif ? (
+                          <img
+                            src={msg.gifUrl}
+                            alt="GIF"
+                            className="max-w-70 rounded-xl"
+                            loading="lazy"
+                          />
+                        ) : (
+                          msg.text
+                        )}
+                        <div
+                          className={`text-[9px] mt-1.5 opacity-40 text-right ${isGif ? "px-2" : ""} flex items-center justify-end gap-1`}
+                        >
+                          {new Date(msg.createdAt).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </div>
+                      </div>
+
+                      {reactionPickerMsgId === msg._id && (
+                        <div
+                          ref={reactionPickerRef}
+                          className={`absolute top-0 z-50 ${isMe ? "right-full mr-2" : "left-full ml-2"}`}
+                        >
+                          <EmojiPicker
+                            onEmojiClick={(emojiData) =>
+                              toggleReaction(msg._id, emojiData.emoji)
+                            }
+                            theme="dark"
+                            emojiStyle="native"
+                            width={320}
+                            height={400}
+                            searchPlaceholder="Search emoji..."
+                            previewConfig={{ showPreview: false }}
+                            lazyLoadEmojis
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {reactions[msg._id] &&
+                      Object.keys(reactions[msg._id]).length > 0 && (
+                        <div
+                          className={`flex flex-wrap gap-1 mt-1 ${isMe ? "flex-row-reverse" : "flex-row"} max-w-65`}
+                        >
+                          {Object.entries(reactions[msg._id])
+                            .slice(0, 10)
+                            .map(([emoji, users]) => (
+                              <button
+                                key={emoji}
+                                type="button"
+                                onClick={() => toggleReaction(msg._id, emoji)}
+                                className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded-full border transition-all duration-150 ${users.includes(user?._id) ? "bg-teal-400/10 border-teal-400/30" : "bg-[#1C2227] border-slate-800"}`}
+                              >
+                                <span className="text-[12px]">{emoji}</span>
+                                <span className="text-[9px] font-bold text-slate-400">
+                                  {users.length}
+                                </span>
+                              </button>
+                            ))}
+                        </div>
+                      )}
+
+                    {isMe && !msg.isOptimistic && (
+                      <div className="flex items-center gap-0.5 px-0.5 mt-0.5">
+                        {isGroup ? (
+                          index === lastAnyMeIndex && (
+                            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/6 text-slate-500 text-[8px] font-medium">
+                              Sent
+                            </span>
+                          )
+                        ) : (
+                          <>
+                            {index === lastReadIndex && (
+                              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-teal-normal/15 text-teal-normal text-[8px] font-semibold">
+                                Seen
+                              </span>
+                            )}
+                            {index === lastDeliveredIndex &&
+                              index > lastReadIndex && (
+                                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/6 text-slate-400 text-[8px] font-medium">
+                                  Delivered
+                                </span>
+                              )}
+                            {index === lastSentIndex &&
+                              index > lastDeliveredIndex &&
+                              index > lastReadIndex && (
+                                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/6 text-slate-500 text-[8px] font-medium">
+                                  Sent
+                                </span>
+                              )}
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </React.Fragment>
+            );
+          });
+        })()}
+        {typingUsers?.get(conversation._id) &&
+          (() => {
+            const typingSet = typingUsers.get(conversation._id);
+            if (!typingSet || typingSet.size === 0) return null;
+
+            // For groups resolve names; for DMs use the participant name
+            let typerNames = [];
+            if (isGroup) {
+              const members = conversation.participants || [];
+              typerNames = [...typingSet]
+                .map((uid) => members.find((p) => p._id === uid)?.name)
+                .filter(Boolean);
+            } else {
+              // Direct message - only one possible typer other than self
+              if (typingSet.has(conversation.participant?._id)) {
+                typerNames = [conversation.participant?.name];
+              }
+            }
+
+            let label = null;
+            if (typerNames.length > 0) {
+              if (isGroup) {
+                if (typerNames.length === 1)
+                  label = `${typerNames[0]} is typing`;
+                else if (typerNames.length === 2)
+                  label = `${typerNames[0]} and ${typerNames[1]} are typing`;
+                else
+                  label = `${typerNames[0]}, ${typerNames[1]} and ${typerNames.length - 2} more are typing`;
+              } else {
+                label = `${typerNames[0]} is typing`;
+              }
+            }
+
+            const firstTyperName = typerNames[0];
+
+            return (
+              <div className="flex items-end gap-2 justify-start">
+                {isGroup && firstTyperName && (
+                  <div className="w-6 h-6 rounded-lg shrink-0 overflow-hidden self-end mb-0.5">
+                    <div
+                      className="w-6 h-6 rounded-lg flex items-center justify-center text-[8px] font-bold"
+                      style={{
+                        background: getGroupAvatarColor(firstTyperName).bg,
+                        color: getGroupAvatarColor(firstTyperName).text,
+                      }}
+                    >
+                      {getGroupInitials(firstTyperName)}
+                    </div>
+                  </div>
+                )}
+                <div>
+                  {label && (
+                    <span className="text-[9px] font-semibold text-teal-400/80 mb-0.5 px-1 block">
+                      {label}
+                    </span>
+                  )}
+                  <div className="flex items-center gap-1 px-4 py-3 bg-surface-dark rounded-2xl rounded-bl-none shadow-sm">
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:0ms]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:150ms]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:300ms]" />
+                  </div>
                 </div>
               </div>
-            </React.Fragment>
-          );
-        })}
-        {typingUsers?.get(conversation._id) && (
-          <div className="flex items-end gap-2 justify-start">
-            <div className="flex items-center gap-1 px-4 py-3 bg-surface-dark rounded-2xl rounded-bl-none shadow-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:0ms]" />
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:150ms]" />
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:300ms]" />
-            </div>
-          </div>
-        )}
+            );
+          })()}
         <div ref={bottomRef} />
       </div>
 
       <form
         onSubmit={handleSend}
-        className="p-4 relative bg-[#0a0e13]/80 backdrop-blur-sm border-t border-white/5 z-50"
+        className="p-4 relative bg-[#0a0e13]/80 backdrop-blur-sm border-t border-white/5"
       >
         {replyTo && (
-          <div className="absolute bottom-full left-0 right-0 p-3 bg-surface-dark border-t border-teal-normal/30 flex items-center justify-between animate-in slide-in-from-bottom-2 fade-in">
+          <div className="absolute bottom-full left-0 right-0 p-3 bg-surface-dark border-t border-teal-normal/30 flex items-center justify-between">
             <div className="flex items-center gap-3 overflow-hidden">
-              <div className="w-1 bg-teal-normal h-8 rounded-full"></div>
+              <div className="w-1 bg-teal-normal h-8 rounded-full" />
               <div className="overflow-hidden">
                 <p className="text-[11px] font-bold text-teal-normal">
                   Replying to {replyTo.sender?.name}
@@ -664,11 +1200,66 @@ export default function ChatWindow({ conversation, onMessageSent }) {
               </div>
             </div>
             <button
+              type="button"
               onClick={() => setReplyTo(null)}
               className="p-1.5 hover:bg-white/5 rounded-full text-slate-500"
+              aria-label="Cancel reply"
+              title="Cancel reply"
             >
               <X size={16} />
             </button>
+          </div>
+        )}
+
+        {showScheduledPanel && (
+          <div className="mb-3 p-3 rounded-2xl bg-[#12181f] border border-white/5">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-bold text-slate-200">
+                Scheduled messages
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowScheduledPanel(false)}
+                className="text-slate-500 hover:text-slate-300"
+                aria-label="Close scheduled messages"
+                title="Close"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {loadingScheduled ? (
+              <p className="text-xs text-slate-500">Loading...</p>
+            ) : scheduledItems.length === 0 ? (
+              <p className="text-xs text-slate-600">No scheduled messages</p>
+            ) : (
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {scheduledItems.map((s) => (
+                  <div
+                    key={s._id}
+                    className="flex items-center justify-between gap-3 p-2 rounded-xl bg-black/20 border border-white/5"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-xs text-slate-200 truncate">
+                        {s.content}
+                      </p>
+                      <p className="text-[10px] text-slate-500">
+                        {new Date(s.sendAt).toLocaleString()} • {s.status}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onCancelScheduled(s._id)}
+                      className="px-2 py-1 text-[10px] font-bold rounded-md border border-red-500/30 text-red-400 hover:bg-red-500/10"
+                      aria-label="Cancel scheduled message"
+                      title="Cancel"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -688,6 +1279,7 @@ export default function ChatWindow({ conversation, onMessageSent }) {
             />
           </div>
         )}
+
         {showEmojiPicker && (
           <div
             ref={inputEmojiPickerRef}
@@ -710,9 +1302,12 @@ export default function ChatWindow({ conversation, onMessageSent }) {
           <button
             type="button"
             className="w-9 h-9 flex items-center justify-center text-slate-500 hover:text-teal-normal transition-colors"
+            title="More"
+            aria-label="More"
           >
             <Plus size={20} />
           </button>
+
           <input
             className="flex-1 bg-transparent outline-none text-sm text-slate-200 px-3 placeholder:text-slate-600"
             placeholder="Type a message..."
@@ -720,13 +1315,17 @@ export default function ChatWindow({ conversation, onMessageSent }) {
             onChange={handleTextChange}
             onKeyDown={handleKeyDown}
           />
+
           {suggestions.length > 0 && (
             <div className="absolute bottom-20 left-10 bg-[#15191C]/95 backdrop-blur-md border border-slate-800 rounded-xl p-1 shadow-2xl z-50 min-w-37.5">
               {suggestions.map(([code, emoji], i) => (
                 <div
                   key={code}
                   onClick={() => insertEmoji(emoji)}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${i === suggestionIndex ? "bg-teal-500/20 text-teal-400" : "hover:bg-slate-800 text-slate-400"}`}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${i === suggestionIndex
+                      ? "bg-teal-500/20 text-teal-400"
+                      : "hover:bg-slate-800 text-slate-400"
+                    }`}
                 >
                   <span className="text-lg">{emoji}</span>
                   <span className="text-xs font-mono">{code}</span>
@@ -734,29 +1333,91 @@ export default function ChatWindow({ conversation, onMessageSent }) {
               ))}
             </div>
           )}
+
           <button
             type="button"
             onClick={() => {
               setShowGifPicker(!showGifPicker);
               setShowEmojiPicker(false);
+              setScheduleMode(false);
             }}
-            className={`px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${showGifPicker ? "bg-teal-normal/20 border-teal-normal/40 text-teal-normal" : "bg-white/4 border-white/10 text-slate-500 hover:text-slate-300"}`}
+            className={`px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${showGifPicker
+                ? "bg-teal-normal/20 border-teal-normal/40 text-teal-normal"
+                : "bg-white/4 border-white/10 text-slate-500 hover:text-slate-300"
+              }`}
           >
             GIF
           </button>
+
+          {!isGroup && (
+            <button
+              type="button"
+              title="View scheduled messages"
+              aria-label="View scheduled messages"
+              onClick={() => {
+                setShowScheduledPanel((v) => !v);
+                refreshScheduled();
+              }}
+              className="px-2 py-1 mx-1 text-[10px] font-black rounded-md border bg-white/4 border-white/10 text-slate-500 hover:text-slate-300"
+            >
+              PENDING
+            </button>
+          )}
+
+          {!isGroup && (
+            <button
+              type="button"
+              title="Schedule message"
+              aria-label="Schedule message"
+              onClick={() => {
+                setScheduleMode((v) => !v);
+                setShowScheduledPanel(true);
+              }}
+              className={`px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${scheduleMode
+                  ? "bg-teal-normal/20 border-teal-normal/40 text-teal-normal"
+                  : "bg-white/4 border-white/10 text-slate-500 hover:text-slate-300"
+                }`}
+            >
+              SCHEDULE
+            </button>
+          )}
+
+          {!isGroup && scheduleMode && (
+            <input
+              type="datetime-local"
+              value={sendAt}
+              min={new Date().toISOString().slice(0, 16)}
+              onChange={(e) => setSendAt(e.target.value)}
+              className="mx-1 px-2 py-1 rounded-md bg-teal-normal border border-white/10 text-slate-200 text-[11px]"
+            />
+          )}
+
           <button
             type="button"
             onClick={() => {
               setShowEmojiPicker(!showEmojiPicker);
               setShowGifPicker(false);
+              setScheduleMode(false);
             }}
-            className={`w-9 h-9 flex items-center justify-center transition-all ${showEmojiPicker ? "text-teal-normal" : "text-slate-500 hover:text-slate-300"}`}
+            className={`w-9 h-9 flex items-center justify-center transition-all ${showEmojiPicker
+                ? "text-teal-normal"
+                : "text-slate-500 hover:text-slate-300"
+              }`}
+            title="Emoji"
+            aria-label="Emoji"
           >
             <Smile size={20} />
           </button>
+
           <button
             type="submit"
-            className="w-9 h-9 flex items-center justify-center bg-teal-normal hover:bg-teal-light text-black rounded-xl ml-2 transition-all active:scale-95 shadow-lg shadow-teal-normal/20"
+            disabled={scheduling}
+            className={`w-9 h-9 flex items-center justify-center rounded-xl ml-2 transition-all active:scale-95 shadow-lg ${scheduling
+                ? "bg-slate-700 text-slate-400 cursor-not-allowed"
+                : "bg-teal-normal hover:bg-teal-light text-black shadow-teal-normal/20"
+              }`}
+            title={scheduleMode ? "Schedule send" : "Send"}
+            aria-label={scheduleMode ? "Schedule send" : "Send"}
           >
             <Send size={18} />
           </button>

@@ -463,57 +463,94 @@ export default function Sidebar({
                 ? getGroupLastMessagePreview(conv.lastMessage, currentUser?._id)
                 : null;
 
-            return (
-              <div
-                key={conv._id}
-                className="relative group"
-              >
-                <div
-                  onClick={() => setActiveConversationId(conv._id)}
-                  className={`flex items-center gap-3 px-3 py-3 rounded-2xl cursor-pointer transition-all duration-150 ${isActive
-                    ? "bg-teal-normal/10 border border-teal-normal/20"
-                    : conv.isPinned
-                      ? "bg-teal-normal/2 hover:bg-teal-normal/8 border border-teal-normal/2"
-                      : "hover:bg-white/4 border border-transparent"
+              return (
+                <div key={conv._id} className="relative group px-1">
+                  <div
+                    onClick={() => setActiveConversationId(conv._id)}
+                    className={`flex items-center gap-3 px-2 py-2 rounded-md cursor-pointer transition-all duration-150 relative ${
+                      isActive
+                        ? "bg-[#35373c]/50 text-white"
+                        : "text-slate-400 hover:bg-[#35373c]/30 hover:text-slate-200"
                     }`}
-                >
-                  <div className="relative shrink-0">
-                    <div
-                      className={`rounded-full overflow-hidden ${isActive ? "ring-2 ring-teal-normal/50 ring-offset-1 ring-offset-[#0f1318]" : ""}`}
-                    >
-                      <Image
-                        src={
-                          conv.participant?.avatar ||
-                          `https://api.dicebear.com/7.x/avataaars/svg?seed=${conv.participant?.name}`
-                        }
-                        width={44}
-                        height={44}
-                        className="rounded-full"
-                        alt={conv.participant?.name || "avatar"}
-                        unoptimized
-                      />
+                  >
+                    {/* Active Indicator Pill */}
+                    {isActive && (
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-r-full -ml-3" />
+                    )}
+
+                    {/* Avatar */}
+                    <div className="relative shrink-0">
+                      {isGroup ? (
+                        <div
+                          className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-[11px] overflow-hidden shadow-inner"
+                          style={{
+                            backgroundColor: conv.avatar
+                              ? "transparent"
+                              : groupColor.bg,
+                            color: groupColor.text,
+                          }}
+                        >
+                          {conv.avatar ? (
+                            <Image
+                              src={conv.avatar}
+                              width={32}
+                              height={32}
+                              className="w-full h-full object-cover"
+                              alt={conv.name}
+                              unoptimized
+                            />
+                          ) : (
+                            groupInitials
+                          )}
+                        </div>
+                      ) : (
+                        <>
+                          <div className="w-8 h-8 rounded-full overflow-hidden shadow-inner">
+                            <Image
+                              src={
+                                conv.participant?.avatar ||
+                                `https://api.dicebear.com/7.x/avataaars/svg?seed=${conv.participant?.name}`
+                              }
+                              width={32}
+                              height={32}
+                              alt={conv.participant?.name || "avatar"}
+                              unoptimized
+                            />
+                          </div>
+                          <div
+                            className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-[3px] border-[#0f1318] ${isUserOnline ? "bg-teal-normal" : "bg-slate-600"}`}
+                          />
+                        </>
+                      )}
                     </div>
-                    <div
-                      className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#0f1318] ${isUserOnline ? "bg-green-400" : "bg-slate-600"}`}
-                    ></div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-center gap-2">
-                      <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                        {conv.isPinned && (
-                          <Pin size={12} className="text-teal-normal shrink-0" />
-                        )}
-                        <span className="font-semibold text-sm truncate text-white">
-                          {highlightMatch(conv.participant?.name || "", filterTerm)}
-                        </span>
-                        {conv.isMuted && (
-                          <BellOff size={12} className="text-slate-600 shrink-0" />
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="text-[9px] text-slate-600">
-                          {formatConvTimestamp(conv.lastMessage?.timestamp)}
-                        </span>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-center mb-0.5">
+                        <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                          {conv.isPinned && (
+                            <Pin
+                              size={10}
+                              className="text-teal-normal shrink-0"
+                            />
+                          )}
+                          <span
+                            className={`text-[13.5px] font-medium truncate ${isActive || hasUnread ? "text-white" : "text-slate-400"}`}
+                          >
+                            {isGroup
+                              ? highlightMatch(conv.name || "", filterTerm)
+                              : highlightMatch(
+                                  conv.participant?.name || "",
+                                  filterTerm,
+                                )}
+                          </span>
+                          {conv.isMuted && (
+                            <BellOff
+                              size={10}
+                              className="text-slate-600 shrink-0"
+                            />
+                          )}
+                        </div>
                         {hasUnread && !conv.isMuted && (
                           <div className="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center shadow-lg shadow-red-500/20">
                             <span className="text-[9px] font-black text-white">
@@ -530,61 +567,72 @@ export default function Sidebar({
                           : conv.lastMessage?.text || "No messages yet"}
                       </p>
                     </div>
-                    <p className={`text-xs ${hasUnread && !conv.isMuted ? "text-white font-medium" : "text-slate-500"} truncate`}>
-                      {hasUnread && !conv.isMuted
-                        ? conv.unreadCount === 1
-                          ? "1 new message"
-                          : `${conv.unreadCount} new messages`
-                        : conv.lastMessage?.gifUrl
-                          ? "GIF"
-                          : conv.lastMessage?.text
-                            ? highlightMatch(conv.lastMessage.text, filterTerm)
-                            : "No messages yet"}
-                    </p>
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setContextMenu(contextMenu === conv._id ? null : conv._id);
-                    }}
-                    className="cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity shrink-0 w-6 h-6 rounded-lg hover:bg-white/10 flex items-center justify-center"
-                  >
-                    <MoreVertical size={14} className="text-slate-400" />
-                  </button>
-                </div>
 
-                {/* Context Menu */}
-                {contextMenu === conv._id && (
-                  <div
-                    ref={contextMenuRef}
-                    className="absolute right-3 top-14 bg-[#1a1f26] border border-white/10 rounded-xl shadow-2xl z-10 py-1 min-w-40"
-                  >
+                    {/* More Menu */}
                     <button
-                      onClick={(e) => handleTogglePin(e, conv._id)}
-                      className="w-full px-4 py-2 text-left text-xs text-slate-300 hover:bg-white/5 flex items-center gap-2"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Position relative to click
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        setMenuPos({ x: rect.left - 160, y: rect.bottom + 5 });
+                        setContextMenu(
+                          contextMenu === conv._id ? null : conv._id,
+                        );
+                      }}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-white/10"
                     >
-                      <Pin size={14} />
-                      {conv.isPinned ? "Unpin" : "Pin"}
-                    </button>
-                    <button
-                      onClick={(e) => handleToggleMute(e, conv._id)}
-                      className="w-full px-4 py-2 text-left text-xs text-slate-300 hover:bg-white/5 flex items-center gap-2"
-                    >
-                      {conv.isMuted ? <Bell size={14} /> : <BellOff size={14} />}
-                      {conv.isMuted ? "Unmute" : "Mute"}
-                    </button>
-                    <button
-                      onClick={(e) => handleToggleArchive(e, conv._id)}
-                      className="w-full px-4 py-2 text-left text-xs text-slate-300 hover:bg-white/5 flex items-center gap-2"
-                    >
-                      <Archive size={14} />
-                      {conv.isArchived ? "Unarchive" : "Archive"}
+                      <MoreVertical size={14} className="text-slate-400" />
                     </button>
                   </div>
-                )}
-              </div>
-            );
-          })}
+
+                  {/* Context Menu Hook - Portaled to avoid clipping */}
+                  {contextMenu === conv._id &&
+                    typeof document !== "undefined" &&
+                    createPortal(
+                      <div
+                        ref={contextMenuRef}
+                        className="fixed bg-[#1a1f26] border border-white/10 rounded-lg shadow-2xl z-50 py-1 min-w-40 animate-in fade-in zoom-in duration-150"
+                        style={{ top: menuPos.y, left: menuPos.x }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          onClick={(e) => handleTogglePin(e, conv._id)}
+                          className="w-full px-3 py-2 text-left text-[11px] text-slate-300 hover:bg-teal-normal hover:text-white flex items-center gap-2 transition-colors"
+                        >
+                          <Pin size={12} /> {conv.isPinned ? "Unpin" : "Pin"}
+                        </button>
+                        <button
+                          onClick={(e) => handleToggleMute(e, conv._id)}
+                          className="w-full px-3 py-2 text-left text-[11px] text-slate-300 hover:bg-teal-normal hover:text-white flex items-center gap-2 transition-colors"
+                        >
+                          {conv.isMuted ? (
+                            <Bell size={12} />
+                          ) : (
+                            <BellOff size={12} />
+                          )}{" "}
+                          {conv.isMuted ? "Unmute" : "Mute"}
+                        </button>
+                        <button
+                          onClick={(e) => handleToggleArchive(e, conv._id)}
+                          className="w-full px-3 py-2 text-left text-[11px] text-slate-300 hover:bg-teal-normal hover:text-white flex items-center gap-2 transition-colors"
+                        >
+                          <Archive size={12} />{" "}
+                          {conv.isArchived ? "Unarchive" : "Archive"}
+                        </button>
+                        {conv.type === "group" && (
+                          <button
+                            onClick={(e) => handleLeaveGroup(e, conv._id)}
+                            className="w-full px-3 py-2 text-left text-[11px] text-red-400 hover:bg-red-500 hover:text-white flex items-center gap-2 transition-colors border-t border-white/5 mt-1"
+                          >
+                            <LogOut size={12} /> Leave Group
+                          </button>
+                        )}
+                      </div>,
+                      document.body,
+                    )}
+                </div>
+              );
+            })}
 
             {sortedConversations.length === 0 && (
               <div className="flex flex-col items-center justify-center py-10 px-4 text-center">

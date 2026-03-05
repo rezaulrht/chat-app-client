@@ -462,8 +462,8 @@ export default function ChatWindow({
       console.error(err);
       toast.error(
         err?.response?.data?.error ||
-          err?.response?.data?.message ||
-          "Failed to load scheduled messages",
+        err?.response?.data?.message ||
+        "Failed to load scheduled messages",
       );
     } finally {
       setLoadingScheduled(false);
@@ -484,8 +484,8 @@ export default function ChatWindow({
       console.error(err);
       toast.error(
         err?.response?.data?.error ||
-          err?.response?.data?.message ||
-          "Failed to cancel scheduled message",
+        err?.response?.data?.message ||
+        "Failed to cancel scheduled message",
       );
     }
   };
@@ -534,8 +534,8 @@ export default function ChatWindow({
       console.error(err);
       toast.error(
         err?.response?.data?.error ||
-          err?.response?.data?.message ||
-          "Failed to schedule",
+        err?.response?.data?.message ||
+        "Failed to schedule",
       );
     } finally {
       setScheduling(false);
@@ -588,7 +588,7 @@ export default function ChatWindow({
       <div className="flex-1 bg-[#080b0f] flex flex-col items-center justify-center gap-6 p-6">
         <div className="relative">
           <div className="absolute inset-0 bg-teal-normal/20 blur-3xl rounded-full" />
-          <div className="relative w-24 h-24 rounded-[2rem] bg-teal-normal/10 border border-teal-normal/20 flex items-center justify-center shadow-2xl backdrop-blur-sm">
+          <div className="relative w-24 h-24 rounded-4xl bg-teal-normal/10 border border-teal-normal/20 flex items-center justify-center shadow-2xl backdrop-blur-sm">
             <img
               src="https://i.ibb.co/PG0X3Tbf/Convo-X-logo.png"
               alt="ConvoX"
@@ -600,12 +600,12 @@ export default function ChatWindow({
           <h2 className="text-slate-100 text-xl font-bold tracking-tight">
             Welcome to ConvoX
           </h2>
-          <p className="text-slate-400 text-sm max-w-[280px] mx-auto leading-relaxed">
+          <p className="text-slate-400 text-sm max-w-70 mx-auto leading-relaxed">
             Select a conversation from the sidebar or jump into a workspace to
             start collaborating.
           </p>
         </div>
-        <div className="flex flex-col md:hidden gap-3 w-full max-w-[240px] pt-4">
+        <div className="flex flex-col md:hidden gap-3 w-full max-w-60 pt-4">
           <button
             onClick={toggleSidebar}
             className="w-full py-3 px-4 bg-teal-normal/10 hover:bg-teal-normal/20 border border-teal-normal/20 rounded-xl text-teal-normal text-sm font-bold transition-all"
@@ -631,8 +631,8 @@ export default function ChatWindow({
     : 0;
   const groupOnlineCount = isGroup
     ? (conversation.participants || []).filter(
-        (p) => onlineUsers?.get(p._id)?.online,
-      ).length
+      (p) => onlineUsers?.get(p._id)?.online,
+    ).length
     : 0;
   const groupAvatarColors = isGroup
     ? getGroupAvatarColor(conversation.name)
@@ -690,11 +690,10 @@ export default function ChatWindow({
             <>
               <div className="relative">
                 <div
-                  className={`rounded-2xl overflow-hidden ${
-                    isParticipantOnline
+                  className={`rounded-2xl overflow-hidden ${isParticipantOnline
                       ? "ring-2 ring-teal-normal/60 ring-offset-1 ring-offset-[#0a0e13]"
                       : ""
-                  }`}
+                    }`}
                 >
                   <Image
                     src={
@@ -709,9 +708,8 @@ export default function ChatWindow({
                   />
                 </div>
                 <div
-                  className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#0a0e13] ${
-                    isParticipantOnline ? "bg-green-400" : "bg-slate-600"
-                  }`}
+                  className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#0a0e13] ${isParticipantOnline ? "bg-green-400" : "bg-slate-600"
+                    }`}
                 />
               </div>
 
@@ -749,11 +747,10 @@ export default function ChatWindow({
           <button
             type="button"
             onClick={isGroup ? onToggleGroupInfo : undefined}
-            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
-              isGroup && showGroupInfo
+            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${isGroup && showGroupInfo
                 ? "bg-teal-normal/20 text-teal-normal border border-teal-normal/30"
                 : "bg-white/4 hover:bg-teal-normal/10 hover:text-teal-normal text-slate-500"
-            }`}
+              }`}
           >
             <Info size={16} />
           </button>
@@ -938,8 +935,7 @@ export default function ChatWindow({
 
                       <div
                         className={`${isGif ? "p-1" : "p-3.5"} rounded-2xl text-[13px] leading-relaxed relative z-10 
-                        ${
-                          editingMessageId === msg._id
+                        ${editingMessageId === msg._id
                             ? "bg-[#1a1f26] text-slate-100 border border-teal-normal/50 shadow-2xl shadow-teal-normal/10 rounded-br-none"
                             : isMe
                               ? isGif
@@ -948,7 +944,7 @@ export default function ChatWindow({
                               : isGif
                                 ? "bg-transparent"
                                 : "bg-surface-dark text-slate-200 rounded-bl-none shadow-sm shadow-black/5"
-                        } 
+                          } 
                         ${msg.isOptimistic ? "opacity-60" : ""}`}
                       >
                         {msg.replyTo && (
@@ -966,13 +962,13 @@ export default function ChatWindow({
                             This message was deleted
                           </p>
                         ) : editingMessageId === msg._id ? (
-                          <div className="flex flex-col gap-3 w-full min-w-[280px]">
+                          <div className="flex flex-col gap-3 w-full min-w-70">
                             <div className="flex items-center gap-2 text-teal-normal text-[10px] font-bold uppercase tracking-wider">
                               <span className="w-1 h-3 bg-teal-normal rounded-full" />
                               Editing Message
                             </div>
                             <textarea
-                              className="w-full min-h-[80px] max-h-60 bg-[#0d1117] text-slate-100 text-[13px] px-4 py-3 rounded-xl border border-white/10 focus:outline-none focus:border-teal-normal focus:ring-1 focus:ring-teal-normal/20 resize-none leading-relaxed transition-all scrollbar-hide shadow-inner"
+                              className="w-full min-h-20 max-h-60 bg-[#0d1117] text-slate-100 text-[13px] px-4 py-3 rounded-xl border border-white/10 focus:outline-none focus:border-teal-normal focus:ring-1 focus:ring-teal-normal/20 resize-none leading-relaxed transition-all scrollbar-hide shadow-inner"
                               value={editedText}
                               onChange={(e) => setEditedText(e.target.value)}
                               onKeyDown={(e) => {
@@ -1326,11 +1322,10 @@ export default function ChatWindow({
                 <div
                   key={code}
                   onClick={() => insertEmoji(emoji)}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-                    i === suggestionIndex
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${i === suggestionIndex
                       ? "bg-teal-500/20 text-teal-400"
                       : "hover:bg-slate-800 text-slate-400"
-                  }`}
+                    }`}
                 >
                   <span className="text-lg">{emoji}</span>
                   <span className="text-xs font-mono">{code}</span>
@@ -1346,11 +1341,10 @@ export default function ChatWindow({
               setShowEmojiPicker(false);
               setScheduleMode(false);
             }}
-            className={`px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${
-              showGifPicker
+            className={`px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${showGifPicker
                 ? "bg-teal-normal/20 border-teal-normal/40 text-teal-normal"
                 : "bg-white/4 border-white/10 text-slate-500 hover:text-slate-300"
-            }`}
+              }`}
           >
             GIF
           </button>
@@ -1379,11 +1373,10 @@ export default function ChatWindow({
                 setScheduleMode((v) => !v);
                 setShowScheduledPanel(true);
               }}
-              className={`px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${
-                scheduleMode
+              className={`px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${scheduleMode
                   ? "bg-teal-normal/20 border-teal-normal/40 text-teal-normal"
                   : "bg-white/4 border-white/10 text-slate-500 hover:text-slate-300"
-              }`}
+                }`}
             >
               SCHEDULE
             </button>
@@ -1406,11 +1399,10 @@ export default function ChatWindow({
               setShowGifPicker(false);
               setScheduleMode(false);
             }}
-            className={`w-9 h-9 flex items-center justify-center transition-all ${
-              showEmojiPicker
+            className={`w-9 h-9 flex items-center justify-center transition-all ${showEmojiPicker
                 ? "text-teal-normal"
                 : "text-slate-500 hover:text-slate-300"
-            }`}
+              }`}
             title="Emoji"
             aria-label="Emoji"
           >
@@ -1420,11 +1412,10 @@ export default function ChatWindow({
           <button
             type="submit"
             disabled={scheduling}
-            className={`w-9 h-9 flex items-center justify-center rounded-xl ml-2 transition-all active:scale-95 shadow-lg ${
-              scheduling
+            className={`w-9 h-9 flex items-center justify-center rounded-xl ml-2 transition-all active:scale-95 shadow-lg ${scheduling
                 ? "bg-slate-700 text-slate-400 cursor-not-allowed"
                 : "bg-teal-normal hover:bg-teal-light text-black shadow-teal-normal/20"
-            }`}
+              }`}
             title={scheduleMode ? "Schedule send" : "Send"}
             aria-label={scheduleMode ? "Schedule send" : "Send"}
           >

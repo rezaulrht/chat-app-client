@@ -1,14 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 export default function ResetPasswordPage() {
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const token = searchParams.get("token");
+  const token = new URLSearchParams(window.location.search).get("token");
 
   const [newPassword, setNewPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -61,7 +60,7 @@ export default function ResetPasswordPage() {
 
   if (!token) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 px-4">
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-brrom-indigo-50 via-purple-50 to-pink-50 px-4">
         <div className="bg-white/80 backdrop-blur-lg shadow-2xl rounded-3xl p-10 w-full max-w-md text-center border border-purple-100">
           <h2 className="text-3xl font-bold text-gray-800 mb-4">
             Invalid Link
@@ -81,7 +80,7 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 px-4 py-12">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-indigo-50 via-purple-50 to-pink-50 px-4 py-12">
       <div className="bg-white/70 backdrop-blur-xl shadow-2xl rounded-3xl p-8 md:p-10 w-full max-w-md border border-purple-100/50">
         <h2 className="text-3xl font-bold text-center text-gray-800 mb-2">
           Reset Your Password
@@ -113,7 +112,7 @@ export default function ResetPasswordPage() {
           <button
             type="submit"
             disabled={loading || !newPassword.trim()}
-            className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full py-4 bg-linear-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {loading ? (
               <>

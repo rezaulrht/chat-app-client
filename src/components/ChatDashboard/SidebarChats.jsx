@@ -2,7 +2,16 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { Search, Edit3, X, Pin, Archive, Bell, BellOff, MoreVertical } from "lucide-react";
+import {
+  Search,
+  Edit3,
+  X,
+  Pin,
+  Archive,
+  Bell,
+  BellOff,
+  MoreVertical,
+} from "lucide-react";
 import Link from "next/link";
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
@@ -62,7 +71,7 @@ export default function Sidebar({
   onNewConversation,
   onConversationUpdate,
 }) {
-  const { onlineUsers } = useSocket() || {};
+  const { onlineUsers, socket } = useSocket() || {};
   const { user: currentUser } = useAuth();
 
   // --- Conversation filter (local, client-side) ---
@@ -84,7 +93,10 @@ export default function Sidebar({
   // Close context menu on outside click
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target)) {
+      if (
+        contextMenuRef.current &&
+        !contextMenuRef.current.contains(e.target)
+      ) {
         setContextMenu(null);
       }
     };
@@ -152,9 +164,9 @@ export default function Sidebar({
 
   const activeNowUsers = currentUser
     ? [
-      currentUser,
-      ...onlineParticipants.filter((u) => u._id !== currentUser._id),
-    ]
+        currentUser,
+        ...onlineParticipants.filter((u) => u._id !== currentUser._id),
+      ]
     : onlineParticipants;
 
   useEffect(() => {
@@ -192,6 +204,39 @@ export default function Sidebar({
     }
   }, [conversations]); // only syncs when not actively filtering
 
+  //
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleMessageDeleted = (payload) => {
+      console.log("Sidebar: message:deleted event RECEIVED!", payload);
+
+      const { conversationId } = payload;
+
+      setSearchedConversations((prev) =>
+        prev.map((conv) =>
+          conv._id === conversationId
+            ? {
+                ...conv,
+                lastMessage: {
+                  ...conv.lastMessage,
+                  text: "This message was deleted",
+                  isDeleted: true,
+                },
+                unreadCount: 0,
+              }
+            : conv,
+        ),
+      );
+    };
+
+    socket.on("message:deleted", handleMessageDeleted);
+
+    return () => {
+      socket.off("message:deleted", handleMessageDeleted);
+    };
+  }, [socket]);
+
   // Handle pin/unpin
   const handleTogglePin = async (e, conversationId) => {
     e.stopPropagation();
@@ -201,8 +246,8 @@ export default function Sidebar({
       if (onConversationUpdate) {
         onConversationUpdate(
           conversations.map((c) =>
-            c._id === conversationId ? { ...c, isPinned: !c.isPinned } : c
-          )
+            c._id === conversationId ? { ...c, isPinned: !c.isPinned } : c,
+          ),
         );
       }
     } catch (err) {
@@ -220,8 +265,8 @@ export default function Sidebar({
       if (onConversationUpdate) {
         onConversationUpdate(
           conversations.map((c) =>
-            c._id === conversationId ? { ...c, isArchived: !c.isArchived } : c
-          )
+            c._id === conversationId ? { ...c, isArchived: !c.isArchived } : c,
+          ),
         );
       }
     } catch (err) {
@@ -239,8 +284,8 @@ export default function Sidebar({
       if (onConversationUpdate) {
         onConversationUpdate(
           conversations.map((c) =>
-            c._id === conversationId ? { ...c, isMuted: !c.isMuted } : c
-          )
+            c._id === conversationId ? { ...c, isMuted: !c.isMuted } : c,
+          ),
         );
       }
     } catch (err) {
@@ -382,18 +427,16 @@ export default function Sidebar({
             const hasUnread = conv.unreadCount > 0;
 
             return (
-              <div
-                key={conv._id}
-                className="relative group"
-              >
+              <div key={conv._id} className="relative group">
                 <div
                   onClick={() => setActiveConversationId(conv._id)}
-                  className={`flex items-center gap-3 px-3 py-3 rounded-2xl cursor-pointer transition-all duration-150 ${isActive
-                    ? "bg-teal-normal/10 border border-teal-normal/20"
-                    : conv.isPinned
-                      ? "bg-teal-normal/2 hover:bg-teal-normal/8 border border-teal-normal/2"
-                      : "hover:bg-white/4 border border-transparent"
-                    }`}
+                  className={`flex items-center gap-3 px-3 py-3 rounded-2xl cursor-pointer transition-all duration-150 ${
+                    isActive
+                      ? "bg-teal-normal/10 border border-teal-normal/20"
+                      : conv.isPinned
+                        ? "bg-teal-normal/2 hover:bg-teal-normal/8 border border-teal-normal/2"
+                        : "hover:bg-white/4 border border-transparent"
+                  }`}
                 >
                   <div className="relative shrink-0">
                     <div
@@ -419,13 +462,22 @@ export default function Sidebar({
                     <div className="flex justify-between items-center gap-2">
                       <div className="flex items-center gap-1.5 flex-1 min-w-0">
                         {conv.isPinned && (
-                          <Pin size={12} className="text-teal-normal shrink-0" />
+                          <Pin
+                            size={12}
+                            className="text-teal-normal shrink-0"
+                          />
                         )}
                         <span className="font-semibold text-sm truncate text-white">
-                          {highlightMatch(conv.participant?.name || "", filterTerm)}
+                          {highlightMatch(
+                            conv.participant?.name || "",
+                            filterTerm,
+                          )}
                         </span>
                         {conv.isMuted && (
-                          <BellOff size={12} className="text-slate-600 shrink-0" />
+                          <BellOff
+                            size={12}
+                            className="text-slate-600 shrink-0"
+                          />
                         )}
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
@@ -441,22 +493,38 @@ export default function Sidebar({
                         )}
                       </div>
                     </div>
-                    <p className={`text-xs ${hasUnread && !conv.isMuted ? "text-white font-medium" : "text-slate-500"} truncate`}>
-                      {hasUnread && !conv.isMuted
-                        ? conv.unreadCount === 1
-                          ? "1 new message"
-                          : `${conv.unreadCount} new messages`
-                        : conv.lastMessage?.gifUrl
-                          ? "GIF"
-                          : conv.lastMessage?.text
-                            ? highlightMatch(conv.lastMessage.text, filterTerm)
-                            : "No messages yet"}
+                    <p
+                      className={`text-xs ${
+                        hasUnread && !conv.isMuted
+                          ? "text-white font-medium"
+                          : "text-slate-500"
+                      } truncate`}
+                    >
+                      {conv.lastMessage?.isDeleted ? (
+                        <span className="italic text-gray-500">
+                          This message was deleted
+                        </span>
+                      ) : hasUnread && !conv.isMuted ? (
+                        conv.unreadCount === 1 ? (
+                          "1 new message"
+                        ) : (
+                          `${conv.unreadCount} new messages`
+                        )
+                      ) : conv.lastMessage?.gifUrl ? (
+                        "GIF"
+                      ) : conv.lastMessage?.text ? (
+                        highlightMatch(conv.lastMessage.text, filterTerm)
+                      ) : (
+                        "No messages yet"
+                      )}
                     </p>
                   </div>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setContextMenu(contextMenu === conv._id ? null : conv._id);
+                      setContextMenu(
+                        contextMenu === conv._id ? null : conv._id,
+                      );
                     }}
                     className="cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity shrink-0 w-6 h-6 rounded-lg hover:bg-white/10 flex items-center justify-center"
                   >
@@ -481,7 +549,11 @@ export default function Sidebar({
                       onClick={(e) => handleToggleMute(e, conv._id)}
                       className="w-full px-4 py-2 text-left text-xs text-slate-300 hover:bg-white/5 flex items-center gap-2"
                     >
-                      {conv.isMuted ? <Bell size={14} /> : <BellOff size={14} />}
+                      {conv.isMuted ? (
+                        <Bell size={14} />
+                      ) : (
+                        <BellOff size={14} />
+                      )}
                       {conv.isMuted ? "Unmute" : "Mute"}
                     </button>
                     <button

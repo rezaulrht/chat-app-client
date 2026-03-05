@@ -937,7 +937,19 @@ export default function ChatWindow({
                       )}
 
                       <div
-                        className={`${isGif ? "p-1" : "p-3.5"} rounded-2xl text-[13px] leading-relaxed relative z-10 ${isMe ? (isGif ? "bg-transparent" : "bg-teal-normal text-white rounded-br-none shadow-lg shadow-teal-normal/10") : isGif ? "bg-transparent" : "bg-surface-dark text-slate-200 rounded-bl-none shadow-sm shadow-black/5"} ${msg.isOptimistic ? "opacity-60" : ""}`}
+                        className={`${isGif ? "p-1" : "p-3.5"} rounded-2xl text-[13px] leading-relaxed relative z-10 
+                        ${
+                          editingMessageId === msg._id
+                            ? "bg-[#1a1f26] text-slate-100 border border-teal-normal/50 shadow-2xl shadow-teal-normal/10 rounded-br-none"
+                            : isMe
+                              ? isGif
+                                ? "bg-transparent"
+                                : "bg-teal-normal text-white rounded-br-none shadow-lg shadow-teal-normal/10"
+                              : isGif
+                                ? "bg-transparent"
+                                : "bg-surface-dark text-slate-200 rounded-bl-none shadow-sm shadow-black/5"
+                        } 
+                        ${msg.isOptimistic ? "opacity-60" : ""}`}
                       >
                         {msg.replyTo && (
                           <div className="mb-2 p-2 bg-black/20 rounded-lg border-l-2 border-teal-normal text-[11px] opacity-80 line-clamp-2">
@@ -954,16 +966,13 @@ export default function ChatWindow({
                             This message was deleted
                           </p>
                         ) : editingMessageId === msg._id ? (
-                          <div className="flex flex-col gap-2 w-full min-w-[220px]">
-                            <div className="flex items-center gap-1.5 text-teal-normal/80 text-[10px] font-semibold">
-                              <Pencil size={10} />
-                              <span>Editing message</span>
-                              <span className="ml-auto text-slate-600 text-[9px] font-normal tracking-wide">
-                                Shift+Enter for new line
-                              </span>
+                          <div className="flex flex-col gap-3 w-full min-w-[280px]">
+                            <div className="flex items-center gap-2 text-teal-normal text-[10px] font-bold uppercase tracking-wider">
+                              <span className="w-1 h-3 bg-teal-normal rounded-full" />
+                              Editing Message
                             </div>
                             <textarea
-                              className="w-full min-h-[52px] max-h-40 bg-[#0d1117] text-slate-100 text-sm px-3 py-2.5 rounded-xl border border-teal-normal/40 focus:outline-none focus:border-teal-normal focus:ring-1 focus:ring-teal-normal/25 resize-none leading-relaxed transition-all scrollbar-hide"
+                              className="w-full min-h-[80px] max-h-60 bg-[#0d1117] text-slate-100 text-[13px] px-4 py-3 rounded-xl border border-white/10 focus:outline-none focus:border-teal-normal focus:ring-1 focus:ring-teal-normal/20 resize-none leading-relaxed transition-all scrollbar-hide shadow-inner"
                               value={editedText}
                               onChange={(e) => setEditedText(e.target.value)}
                               onKeyDown={(e) => {
@@ -977,27 +986,34 @@ export default function ChatWindow({
                                 }
                               }}
                               autoFocus
-                              rows={2}
+                              placeholder="Edit your message..."
                             />
-                            <div className="flex gap-2">
-                              <button
-                                type="button"
-                                onClick={handleEditSave}
-                                className="text-xs bg-teal-normal text-black px-3 py-1 rounded hover:bg-teal-light"
-                              >
-                                Save
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setEditingMessageId(null);
-                                  setEditedText("");
-                                }}
-                                className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-slate-300 px-2.5 py-1 rounded-lg hover:bg-white/5 transition-all"
-                              >
-                                <X size={11} />
-                                Cancel
-                              </button>
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-600 text-[9px] font-medium">
+                                Escape to{" "}
+                                <span className="text-slate-400">cancel</span> •
+                                Enter to{" "}
+                                <span className="text-slate-400">save</span>
+                              </span>
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingMessageId(null);
+                                    setEditedText("");
+                                  }}
+                                  className="px-3 py-1.5 rounded-lg text-[11px] font-medium text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-all"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={handleEditSave}
+                                  className="px-4 py-1.5 rounded-lg text-[11px] font-bold bg-teal-normal text-black hover:bg-teal-light transition-all shadow-lg shadow-teal-normal/20 active:scale-95"
+                                >
+                                  Save Changes
+                                </button>
+                              </div>
                             </div>
                           </div>
                         ) : isGif ? (

@@ -436,7 +436,7 @@ export default function ChatDashboard() {
       </div>
 
       {showGroupInfo && activeConversation?.type === "group" && (
-        <div className="absolute top-0 right-0 h-full md:relative z-40 bg-[#080b0f] shadow-2xl md:shadow-none w-80 shrink-0">
+        <div className="absolute top-0 right-0 h-full md:relative z-40 shrink-0">
           <GroupInfoPanel
             conversation={activeConversation}
             currentUser={currentUser}

@@ -203,7 +203,7 @@ export default function GroupInfoPanel({
   };
 
   return (
-    <aside className="w-72 shrink-0 flex flex-col h-full bg-[#0f1318] border-l border-white/5 overflow-hidden">
+    <aside className="w-80 shrink-0 flex flex-col h-full bg-[#0f1318] border-l border-white/5 overflow-hidden">
       {/* ── Panel header ── */}
       <div className="h-[68px] flex items-center justify-between px-4 border-b border-white/5 shrink-0">
         <div className="flex items-center gap-2">

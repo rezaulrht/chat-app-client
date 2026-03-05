@@ -52,6 +52,7 @@
 
   --font-sans: var(--font-inter), "Inter", "sans-serif";
   --font-display: var(--font-inter), "Inter", "sans-serif";
+  --spacing-4_5: 1.125rem;
 }
 
 @layer base {

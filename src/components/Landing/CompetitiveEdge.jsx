@@ -1,7 +1,29 @@
 "use client";
 
 import React from "react";
+import { motion } from "framer-motion";
 import { Zap, ShieldCheck, TrendingUp, Check, X } from "lucide-react";
+
+const slideLeft = (delay = 0) => ({
+  initial: { opacity: 0, x: -40 },
+  whileInView: { opacity: 1, x: 0 },
+  viewport: { once: true, margin: "-60px" },
+  transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1], delay },
+});
+
+const slideRight = (delay = 0) => ({
+  initial: { opacity: 0, x: 40 },
+  whileInView: { opacity: 1, x: 0 },
+  viewport: { once: true, margin: "-60px" },
+  transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1], delay },
+});
+
+const fadeUp = (delay = 0) => ({
+  initial: { opacity: 0, y: 30 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, margin: "-60px" },
+  transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1], delay },
+});
 
 const comparison = [
   { feature: "One-to-One & Group Chat", convoX: true, traditional: true },
@@ -23,24 +45,30 @@ export default function CompetitiveEdge() {
 
       <div className="relative z-10 max-w-7xl mx-auto px-6">
         {/* Section Header */}
-        <div className="text-center mb-20">
+        <motion.div {...fadeUp(0)} className="text-center mb-20">
           <h2 className="text-4xl md:text-6xl font-extrabold tracking-tighter mb-6">
             Better Than <span className="text-blue-500">Traditional Chat.</span>
           </h2>
           <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-            Traditional platforms are bloated and slow. We’ve refined the
+            Traditional platforms are bloated and slow. We've refined the
             essential messaging experience for the speed of modern teams.
           </p>
-        </div>
+        </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Left Side: Why We're Different */}
           <div className="space-y-8">
-            <h3 className="text-2xl font-bold text-slate-100 mb-4">
-              Why We’re Different
-            </h3>
+            <motion.h3
+              {...slideLeft(0.1)}
+              className="text-2xl font-bold text-slate-100 mb-4"
+            >
+              Why We're Different
+            </motion.h3>
 
-            <div className="flex gap-5 p-6 bg-[#0F1117] border border-white/5 rounded-2xl hover:border-blue-500/30 transition-colors group">
+            <motion.div
+              {...slideLeft(0.2)}
+              className="flex gap-5 p-6 bg-[#0F1117] border border-white/5 rounded-2xl hover:border-blue-500/30 transition-colors group"
+            >
               <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-500/20 transition-colors">
                 <Zap className="w-6 h-6 text-blue-400" />
               </div>
@@ -51,9 +79,12 @@ export default function CompetitiveEdge() {
                   indicators without the lag.
                 </p>
               </div>
-            </div>
+            </motion.div>
 
-            <div className="flex gap-5 p-6 bg-[#0F1117] border border-white/5 rounded-2xl hover:border-indigo-500/30 transition-colors group">
+            <motion.div
+              {...slideLeft(0.3)}
+              className="flex gap-5 p-6 bg-[#0F1117] border border-white/5 rounded-2xl hover:border-indigo-500/30 transition-colors group"
+            >
               <div className="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-500/20 transition-colors">
                 <ShieldCheck className="w-6 h-6 text-indigo-400" />
               </div>
@@ -66,9 +97,12 @@ export default function CompetitiveEdge() {
                   restrictions on history.
                 </p>
               </div>
-            </div>
+            </motion.div>
 
-            <div className="flex gap-5 p-6 bg-[#0F1117] border border-white/5 rounded-2xl hover:border-purple-500/30 transition-colors group">
+            <motion.div
+              {...slideLeft(0.4)}
+              className="flex gap-5 p-6 bg-[#0F1117] border border-white/5 rounded-2xl hover:border-purple-500/30 transition-colors group"
+            >
               <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center flex-shrink-0 group-hover:bg-purple-500/20 transition-colors">
                 <TrendingUp className="w-6 h-6 text-purple-400" />
               </div>
@@ -81,11 +115,14 @@ export default function CompetitiveEdge() {
                   and easy search.
                 </p>
               </div>
-            </div>
+            </motion.div>
           </div>
 
           {/* Right Side: Comparison Table */}
-          <div className="bg-[#0F1117] border border-white/10 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+          <motion.div
+            {...slideRight(0.2)}
+            className="bg-[#0F1117] border border-white/10 rounded-3xl p-8 shadow-2xl relative overflow-hidden"
+          >
             {/* Subtle background decoration icon */}
             <div className="absolute -top-10 -right-10 p-4 opacity-5 pointer-events-none">
               <Zap className="w-48 h-48 text-blue-500" />
@@ -137,7 +174,7 @@ export default function CompetitiveEdge() {
                 </div>
               ))}
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
     </section>

@@ -1,5 +1,14 @@
+"use client";
 import React from "react";
+import { motion } from "framer-motion";
 import { MessageSquare, Layers, Rss } from "lucide-react";
+
+const fadeUp = (delay = 0) => ({
+  initial: { opacity: 0, y: 36 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, margin: "-60px" },
+  transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1], delay },
+});
 
 const features = [
   {
@@ -39,7 +48,7 @@ export default function Features() {
 
       <div className="relative z-10 max-w-7xl mx-auto px-6">
         {/* Section Header */}
-        <div className="text-center mb-16">
+        <motion.div {...fadeUp(0)} className="text-center mb-16">
           <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-6 text-white">
             Everything you need to{" "}
             <span className="text-transparent bg-clip-text bg-linear-to-r from-[#13c8ec] via-[#13c8ec]/70 to-[#13c8ec]">
@@ -47,15 +56,18 @@ export default function Features() {
             </span>
           </h2>
           <p className="text-slate-400 max-w-2xl mx-auto text-lg leading-relaxed">
-            A unified platform blending deep-focus workspaces, a developer-centric social feed, and instant messaging into one seamless experience.
+            A unified platform blending deep-focus workspaces, a
+            developer-centric social feed, and instant messaging into one
+            seamless experience.
           </p>
-        </div>
+        </motion.div>
 
         {/* Feature Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((feature, index) => (
-            <div
+            <motion.div
               key={index}
+              {...fadeUp(index * 0.12)}
               className={`group p-8 bg-[#0F1117]/80 backdrop-blur-sm border border-white/5 hover:border-[#13c8ec]/30 rounded-3xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-[#13c8ec]/10 flex flex-col h-full ${feature.colSpan}`}
             >
               {/* Icon Box */}
@@ -70,7 +82,7 @@ export default function Features() {
               <p className="text-slate-400 text-base leading-relaxed flex-1">
                 {feature.description}
               </p>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>

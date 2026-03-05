@@ -1,6 +1,7 @@
 import React from "react";
 
 import HeroSection from "@/components/Landing/HeroSection";
+import DemoSection from "@/components/Landing/DemoSection";
 import Features from "@/components/Landing/Features";
 import UseCases from "@/components/Landing/UseCases";
 import Integrations from "@/components/Landing/Integrations";
@@ -13,6 +14,7 @@ export default function HomePage() {
   return (
     <div>
       <HeroSection />
+      <DemoSection />
       <Features />
       <UseCases />
       <Integrations />

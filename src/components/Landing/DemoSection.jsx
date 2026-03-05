@@ -1,0 +1,1106 @@
+"use client";
+import React, { useEffect, useRef, useState, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import {
+  Phone,
+  Video,
+  Info,
+  Search,
+  Edit3,
+  Compass,
+  CheckCheck,
+  Plus,
+  Smile,
+  Paperclip,
+} from "lucide-react";
+
+gsap.registerPlugin(ScrollTrigger);
+
+// ─── Teal = #13c8ec ────────────────────────────────────────────────────────
+
+const TEAL = "#13c8ec";
+
+// ─── Static chat data ───────────────────────────────────────────────────────
+
+const SIDEBAR_CONVERSATIONS = [
+  {
+    id: "c1",
+    name: "Alex Chen",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Alex",
+    lastMsg: "Right?? And the scheduled…",
+    time: "09:42",
+    online: true,
+    unread: 0,
+    active: true,
+    isGroup: false,
+  },
+  {
+    id: "c2",
+    name: "dev-team 🛠️",
+    initials: "DT",
+    groupColor: "#5865f2",
+    lastMsg: "Alex: merged the PR! 🎉",
+    time: "09:38",
+    online: false,
+    unread: 2,
+    active: false,
+    isGroup: true,
+  },
+  {
+    id: "c3",
+    name: "Sarah Kim",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
+    lastMsg: "Can you review my PR?",
+    time: "Yesterday",
+    online: true,
+    unread: 0,
+    active: false,
+    isGroup: false,
+  },
+  {
+    id: "c4",
+    name: "Jordan Lee",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Jordan",
+    lastMsg: "Let's sync tomorrow 📅",
+    time: "Mon",
+    online: false,
+    unread: 0,
+    active: false,
+    isGroup: false,
+  },
+];
+
+// ─── Animation script ────────────────────────────────────────────────────────
+
+/*
+  Steps:
+  0  → clear
+  1  → incoming msg 1 appears
+  2  → outgoing msg 2 appears
+  3  → typing indicator appears
+  4  → typing gone, incoming msg 3 appears + reaction on msg 2
+  5  → "Seen" badge on msg 2
+  6  → (pause) → reset to 0
+*/
+
+const SCRIPT_TIMINGS = [
+  { step: 1, delay: 700 },
+  { step: 2, delay: 1600 },
+  { step: 3, delay: 2700 },
+  { step: 4, delay: 3900 },
+  { step: 5, delay: 4700 },
+  { step: 0, delay: 7800 }, // loop
+];
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function WorkspaceSidebarMock() {
+  return (
+    <aside
+      className="shrink-0 flex flex-col items-center gap-2 py-3"
+      style={{
+        width: 56,
+        background: "#0a0b0d",
+        borderRight: "1px solid rgba(255,255,255,0.05)",
+      }}
+    >
+      {/* Home */}
+      <div className="relative mb-1">
+        <div
+          className="absolute left-0 top-1/2 -translate-y-1/2 rounded-r-full"
+          style={{ width: 3, height: 32, background: "white" }}
+        />
+        <div
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 12,
+            background: "rgba(255,255,255,0.08)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <img
+            src="https://i.ibb.co/PG0X3Tbf/Convo-X-logo.png"
+            alt="ConvoX"
+            style={{ width: 22, height: "auto" }}
+          />
+        </div>
+      </div>
+
+      {/* Feed */}
+      <div
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 14,
+          background: "rgba(255,255,255,0.04)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: TEAL,
+        }}
+      >
+        <Compass size={18} />
+      </div>
+
+      <div
+        style={{
+          width: 28,
+          height: 1.5,
+          background: "rgba(255,255,255,0.05)",
+          borderRadius: 99,
+          margin: "4px 0",
+        }}
+      />
+
+      {/* Workspaces */}
+      {["M", "D"].map((letter, i) => (
+        <div
+          key={i}
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 14,
+            background: i === 0 ? "#5865f2" : "#3ba55c",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontWeight: 700,
+            fontSize: 14,
+            color: "white",
+          }}
+        >
+          {letter}
+        </div>
+      ))}
+
+      {/* Add */}
+      <div
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 14,
+          background: "rgba(255,255,255,0.03)",
+          border: "1px solid rgba(255,255,255,0.06)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: `${TEAL}88`,
+        }}
+      >
+        <Plus size={18} />
+      </div>
+    </aside>
+  );
+}
+
+function SidebarMock() {
+  return (
+    <aside
+      className="shrink-0 flex flex-col"
+      style={{
+        width: 220,
+        background: "#0f1318",
+        borderRight: "1px solid rgba(255,255,255,0.05)",
+      }}
+    >
+      {/* Search bar */}
+      <div
+        style={{
+          height: 52,
+          borderBottom: "1px solid rgba(255,255,255,0.05)",
+          display: "flex",
+          alignItems: "center",
+          padding: "0 10px",
+          gap: 6,
+        }}
+      >
+        <div
+          style={{
+            flex: 1,
+            background: "#080b0f",
+            borderRadius: 6,
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "5px 8px",
+          }}
+        >
+          <Search size={11} style={{ color: "#64748b" }} />
+          <span style={{ fontSize: 11, color: "#475569" }}>
+            Find conversation
+          </span>
+        </div>
+        <Edit3 size={13} style={{ color: "#64748b" }} />
+      </div>
+
+      {/* Active Now */}
+      <div style={{ padding: "10px 10px 6px" }}>
+        <p
+          style={{
+            fontSize: 9,
+            fontWeight: 700,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            color: "#475569",
+            marginBottom: 8,
+          }}
+        >
+          Active Now
+        </p>
+        <div style={{ display: "flex", gap: 8, overflowX: "hidden" }}>
+          {["Alex", "Sarah"].map((name) => (
+            <div
+              key={name}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 3,
+              }}
+            >
+              <div style={{ position: "relative" }}>
+                <img
+                  src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`}
+                  alt={name}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: "50%",
+                    outline: `1.5px solid ${TEAL}80`,
+                    outlineOffset: 1,
+                  }}
+                />
+                <span
+                  style={{
+                    position: "absolute",
+                    bottom: 0,
+                    right: 0,
+                    width: 9,
+                    height: 9,
+                    borderRadius: "50%",
+                    background: "#22c55e",
+                    border: "2px solid #0f1318",
+                  }}
+                />
+              </div>
+              <span style={{ fontSize: 9, color: "#64748b" }}>{name}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Section label */}
+      <p
+        style={{
+          fontSize: 9,
+          fontWeight: 700,
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          color: "#475569",
+          padding: "8px 14px 4px",
+        }}
+      >
+        Direct Messages
+      </p>
+
+      {/* Conversations */}
+      <div
+        style={{
+          flex: 1,
+          padding: "0 6px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 1,
+        }}
+      >
+        {SIDEBAR_CONVERSATIONS.map((conv) => (
+          <div
+            key={conv.id}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "6px 8px",
+              borderRadius: 6,
+              background: conv.active ? "rgba(53,55,60,0.5)" : "transparent",
+              position: "relative",
+              cursor: "default",
+            }}
+          >
+            {conv.active && (
+              <div
+                style={{
+                  position: "absolute",
+                  left: -6,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  width: 3,
+                  height: 24,
+                  background: "white",
+                  borderRadius: "0 3px 3px 0",
+                }}
+              />
+            )}
+            {/* Avatar */}
+            <div style={{ position: "relative", flexShrink: 0 }}>
+              {conv.isGroup ? (
+                <div
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: "50%",
+                    background: conv.groupColor,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: "white",
+                  }}
+                >
+                  {conv.initials}
+                </div>
+              ) : (
+                <>
+                  <img
+                    src={conv.avatar}
+                    alt={conv.name}
+                    style={{ width: 28, height: 28, borderRadius: "50%" }}
+                  />
+                  <span
+                    style={{
+                      position: "absolute",
+                      bottom: -1,
+                      right: -1,
+                      width: 9,
+                      height: 9,
+                      borderRadius: "50%",
+                      background: conv.online ? "#13c8ec" : "#475569",
+                      border: "2px solid #0f1318",
+                    }}
+                  />
+                </>
+              )}
+            </div>
+            {/* Text */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 1,
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color:
+                      conv.active || conv.unread > 0 ? "#f1f5f9" : "#94a3b8",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    maxWidth: 100,
+                  }}
+                >
+                  {conv.name}
+                </span>
+                {conv.unread > 0 && (
+                  <div
+                    style={{
+                      width: 16,
+                      height: 16,
+                      borderRadius: "50%",
+                      background: "#ef4444",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 8,
+                      fontWeight: 900,
+                      color: "white",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {conv.unread}
+                  </div>
+                )}
+              </div>
+              <p
+                style={{
+                  fontSize: 10,
+                  color: conv.unread > 0 ? "#cbd5e1" : "#475569",
+                  fontWeight: conv.unread > 0 ? 600 : 400,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {conv.lastMsg}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </aside>
+  );
+}
+
+// Incoming message bubble
+function IncomingBubble({ text }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -16, scale: 0.93 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      transition={{ duration: 0.32, ease: [0.34, 1.56, 0.64, 1] }}
+      style={{ display: "flex", alignItems: "flex-end", gap: 6 }}
+    >
+      <img
+        src="https://api.dicebear.com/7.x/avataaars/svg?seed=Alex"
+        alt="Alex"
+        style={{ width: 24, height: 24, borderRadius: 8, flexShrink: 0 }}
+      />
+      <div
+        style={{
+          background: "#161b22",
+          color: "#e2e8f0",
+          padding: "9px 13px",
+          borderRadius: "14px 14px 14px 3px",
+          fontSize: 12,
+          lineHeight: 1.5,
+          maxWidth: 220,
+          boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
+        }}
+      >
+        {text}
+      </div>
+    </motion.div>
+  );
+}
+
+// Outgoing message bubble (with optional reaction + seen)
+function OutgoingBubble({ text, showReaction, showSeen }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-end",
+        gap: 0,
+      }}
+    >
+      {/* Bubble */}
+      <motion.div
+        initial={{ opacity: 0, x: 16, scale: 0.93 }}
+        animate={{ opacity: 1, x: 0, scale: 1 }}
+        transition={{ duration: 0.32, ease: [0.34, 1.56, 0.64, 1] }}
+        style={{
+          background: TEAL,
+          color: "#fff",
+          padding: "9px 13px",
+          borderRadius: "14px 14px 3px 14px",
+          fontSize: 12,
+          lineHeight: 1.5,
+          maxWidth: 220,
+          boxShadow: `0 4px 14px ${TEAL}33`,
+        }}
+      >
+        {text}
+        <span style={{ fontSize: 9, opacity: 0.5, marginLeft: 8 }}>09:41</span>
+      </motion.div>
+
+      {/* Reaction — in flow, peeks under the bubble with negative margin */}
+      <AnimatePresence>
+        {showReaction && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0, y: -4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0 }}
+            transition={{ type: "spring", stiffness: 400, damping: 18 }}
+            style={{
+              marginTop: -8,
+              marginRight: 6,
+              marginBottom: 4,
+              background: "#1C2227",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: 99,
+              padding: "2px 7px",
+              fontSize: 12,
+              display: "flex",
+              alignItems: "center",
+              gap: 3,
+              zIndex: 1,
+              position: "relative",
+            }}
+          >
+            ❤️{" "}
+            <span style={{ fontSize: 9, color: "#94a3b8", fontWeight: 700 }}>
+              1
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Seen badge */}
+      <AnimatePresence>
+        {showSeen && (
+          <motion.span
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25 }}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              padding: "1px 8px",
+              borderRadius: 99,
+              background: `${TEAL}22`,
+              color: TEAL,
+              fontSize: 8,
+              fontWeight: 700,
+            }}
+          >
+            <CheckCheck size={9} />
+            Seen
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// Typing indicator
+function TypingIndicator() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -12 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -12 }}
+      transition={{ duration: 0.22 }}
+      style={{ display: "flex", alignItems: "flex-end", gap: 6 }}
+    >
+      <img
+        src="https://api.dicebear.com/7.x/avataaars/svg?seed=Alex"
+        alt="Alex"
+        style={{ width: 24, height: 24, borderRadius: 8, flexShrink: 0 }}
+      />
+      <div
+        style={{
+          background: "#161b22",
+          padding: "10px 14px",
+          borderRadius: "14px 14px 14px 3px",
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+        }}
+      >
+        {[0, 1, 2].map((i) => (
+          <motion.span
+            key={i}
+            style={{
+              display: "block",
+              width: 6,
+              height: 6,
+              borderRadius: "50%",
+              background: "#64748b",
+            }}
+            animate={{ y: [0, -5, 0] }}
+            transition={{
+              repeat: Infinity,
+              duration: 0.9,
+              delay: i * 0.18,
+              ease: "easeInOut",
+            }}
+          />
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Main DemoSection ─────────────────────────────────────────────────────────
+
+export default function DemoSection() {
+  const sectionRef = useRef(null);
+  const frameRef = useRef(null);
+  const [step, setStep] = useState(0);
+  const timersRef = useRef([]);
+
+  const runSequence = useCallback(() => {
+    // Clear any existing timers
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+
+    SCRIPT_TIMINGS.forEach(({ step: s, delay }) => {
+      const id = setTimeout(() => {
+        setStep(s);
+        if (s === 0) runSequence(); // loop
+      }, delay);
+      timersRef.current.push(id);
+    });
+  }, []);
+
+  // GSAP ScrollTrigger — entrance animation
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        frameRef.current,
+        { y: 80, opacity: 0, scale: 0.97 },
+        {
+          y: 0,
+          opacity: 1,
+          scale: 1,
+          duration: 1,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: sectionRef.current,
+            start: "top 80%",
+            toggleActions: "play none none none",
+            onEnter: () => runSequence(),
+          },
+        },
+      );
+    });
+
+    return () => {
+      ctx.revert();
+      timersRef.current.forEach(clearTimeout);
+    };
+  }, [runSequence]);
+
+  // Derived state
+  const showMsg1 = step >= 1;
+  const showMsg2 = step >= 2;
+  const showTyping = step === 3;
+  const showMsg3 = step >= 4;
+  const showReaction = step >= 4;
+  const showSeen = step >= 5;
+
+  return (
+    <section
+      id="demo"
+      ref={sectionRef}
+      style={{ background: "#05050A", padding: "100px 24px" }}
+    >
+      {/* Heading */}
+      <div style={{ textAlign: "center", marginBottom: 56 }}>
+        <h2
+          style={{
+            fontSize: "clamp(28px, 5vw, 48px)",
+            fontWeight: 800,
+            color: "#f1f5f9",
+            lineHeight: 1.1,
+            marginBottom: 16,
+          }}
+        >
+          See ConvoX in Action
+        </h2>
+        <p
+          style={{
+            fontSize: 16,
+            color: "#64748b",
+            maxWidth: 480,
+            margin: "0 auto",
+            lineHeight: 1.6,
+          }}
+        >
+          Real-time messaging, reactions, read receipts and more — all in one
+          seamless interface.
+        </p>
+      </div>
+
+      {/* ── Browser Chrome Frame ── */}
+      <div
+        style={{
+          maxWidth: 860,
+          margin: "0 auto",
+          opacity: 0, // GSAP will override this
+        }}
+        ref={frameRef}
+      >
+        {/* Top bar (browser chrome) */}
+        <div
+          style={{
+            background: "#13171d",
+            border: "1px solid rgba(255,255,255,0.07)",
+            borderBottom: "none",
+            borderRadius: "16px 16px 0 0",
+            padding: "12px 16px",
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+          }}
+        >
+          {/* Traffic lights */}
+          <div style={{ display: "flex", gap: 6 }}>
+            {["#ff5f57", "#febc2e", "#28c840"].map((c) => (
+              <div
+                key={c}
+                style={{
+                  width: 11,
+                  height: 11,
+                  borderRadius: "50%",
+                  background: c,
+                  opacity: 0.8,
+                }}
+              />
+            ))}
+          </div>
+          {/* Fake URL bar */}
+          <div
+            style={{
+              flex: 1,
+              maxWidth: 320,
+              background: "#0a0b0d",
+              border: "1px solid rgba(255,255,255,0.06)",
+              borderRadius: 6,
+              padding: "4px 12px",
+              fontSize: 11,
+              color: "#475569",
+              textAlign: "center",
+            }}
+          >
+            app.convox.dev/chat
+          </div>
+        </div>
+
+        {/* ── App Shell ── */}
+        <div
+          style={{
+            display: "flex",
+            height: 460,
+            border: "1px solid rgba(255,255,255,0.07)",
+            borderRadius: "0 0 16px 16px",
+            overflow: "hidden",
+            boxShadow: `0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04), 0 0 80px ${TEAL}18`,
+          }}
+        >
+          {/* Left — WorkspaceSidebar */}
+          <WorkspaceSidebarMock />
+
+          {/* Middle — SidebarChats */}
+          <SidebarMock />
+
+          {/* Right — ChatWindow */}
+          <main
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              background: "#080b0f",
+              minWidth: 0,
+            }}
+          >
+            {/* Chat Header */}
+            <header
+              style={{
+                height: 56,
+                borderBottom: "1px solid rgba(255,255,255,0.05)",
+                background: "rgba(10,14,19,0.85)",
+                backdropFilter: "blur(12px)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "0 18px",
+                flexShrink: 0,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ position: "relative" }}>
+                  <img
+                    src="https://api.dicebear.com/7.x/avataaars/svg?seed=Alex"
+                    alt="Alex"
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: 10,
+                      outline: `2px solid ${TEAL}66`,
+                      outlineOffset: 1,
+                    }}
+                  />
+                  <span
+                    style={{
+                      position: "absolute",
+                      bottom: -1,
+                      right: -1,
+                      width: 10,
+                      height: 10,
+                      borderRadius: "50%",
+                      background: "#22c55e",
+                      border: "2px solid #0a0e13",
+                    }}
+                  />
+                </div>
+                <div>
+                  <p
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: "#f1f5f9",
+                      lineHeight: 1,
+                    }}
+                  >
+                    Alex Chen
+                  </p>
+                  <p
+                    style={{
+                      fontSize: 10,
+                      color: "#22c55e",
+                      marginTop: 3,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 5,
+                        height: 5,
+                        borderRadius: "50%",
+                        background: "#22c55e",
+                        display: "inline-block",
+                      }}
+                    />
+                    Online
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: 4 }}>
+                {[Phone, Video, Info].map((Icon, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      width: 30,
+                      height: 30,
+                      borderRadius: 9,
+                      background: "rgba(255,255,255,0.04)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#64748b",
+                    }}
+                  >
+                    <Icon size={14} />
+                  </div>
+                ))}
+              </div>
+            </header>
+
+            {/* Messages area */}
+            <div
+              style={{
+                flex: 1,
+                padding: "18px 18px 12px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+                overflowY: "hidden",
+                justifyContent: "flex-end",
+              }}
+            >
+              {/* Date separator */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  marginBottom: 4,
+                }}
+              >
+                <div
+                  style={{
+                    flex: 1,
+                    height: 1,
+                    background: "rgba(255,255,255,0.05)",
+                  }}
+                />
+                <span
+                  style={{
+                    fontSize: 9,
+                    color: "#475569",
+                    padding: "3px 10px",
+                    borderRadius: 99,
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.06)",
+                    fontWeight: 500,
+                  }}
+                >
+                  Today
+                </span>
+                <div
+                  style={{
+                    flex: 1,
+                    height: 1,
+                    background: "rgba(255,255,255,0.05)",
+                  }}
+                />
+              </div>
+
+              <AnimatePresence>
+                {showMsg1 && (
+                  <IncomingBubble
+                    key="msg1"
+                    text="Hey! Have you tried the new ConvoX update? 🚀"
+                  />
+                )}
+              </AnimatePresence>
+
+              <AnimatePresence>
+                {showMsg2 && (
+                  <div
+                    key="msg2"
+                    style={{ display: "flex", justifyContent: "flex-end" }}
+                  >
+                    <OutgoingBubble
+                      text="Just did — the response time is insane ⚡"
+                      showReaction={showReaction}
+                      showSeen={showSeen}
+                    />
+                  </div>
+                )}
+              </AnimatePresence>
+
+              <AnimatePresence>
+                {showTyping && <TypingIndicator key="typing" />}
+              </AnimatePresence>
+
+              <AnimatePresence>
+                {showMsg3 && (
+                  <IncomingBubble
+                    key="msg3"
+                    text="Right?? And the scheduled messages feature is 🔥"
+                  />
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Input bar */}
+            <div
+              style={{
+                padding: "8px 14px 12px",
+                flexShrink: 0,
+              }}
+            >
+              <div
+                style={{
+                  background: "#12181f",
+                  border: "1px solid rgba(255,255,255,0.05)",
+                  borderRadius: 12,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "6px 10px",
+                }}
+              >
+                <Paperclip
+                  size={16}
+                  style={{ color: "#475569", flexShrink: 0 }}
+                />
+                <div
+                  style={{
+                    flex: 1,
+                    fontSize: 12,
+                    color: "#475569",
+                    padding: "2px 4px",
+                  }}
+                >
+                  Type a message...
+                </div>
+                <Smile size={16} style={{ color: "#475569", flexShrink: 0 }} />
+                <motion.div
+                  animate={{
+                    background: [`${TEAL}33`, `${TEAL}88`, `${TEAL}33`],
+                  }}
+                  transition={{
+                    repeat: Infinity,
+                    duration: 2.5,
+                    ease: "easeInOut",
+                  }}
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 8,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke={TEAL}
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M22 2L11 13" />
+                    <path d="M22 2L15 22l-4-9-9-4 20-7z" />
+                  </svg>
+                </motion.div>
+              </div>
+            </div>
+          </main>
+        </div>
+
+        {/* Glow underneath */}
+        <div
+          style={{
+            height: 1,
+            background: `linear-gradient(90deg, transparent, ${TEAL}40, transparent)`,
+            borderRadius: 99,
+            marginTop: -1,
+          }}
+        />
+      </div>
+
+      {/* Feature pills below the frame */}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          justifyContent: "center",
+          gap: 10,
+          marginTop: 40,
+          maxWidth: 860,
+          marginLeft: "auto",
+          marginRight: "auto",
+        }}
+      >
+        {[
+          "Real-time Messaging",
+          "Emoji Reactions",
+          "Read Receipts",
+          "Typing Indicators",
+          "Group Chats",
+          "Scheduled Messages",
+          "Message Replies",
+          "GIF Support",
+        ].map((feat) => (
+          <span
+            key={feat}
+            style={{
+              padding: "5px 14px",
+              borderRadius: 99,
+              border: "1px solid rgba(255,255,255,0.07)",
+              background: "rgba(255,255,255,0.03)",
+              fontSize: 12,
+              color: "#64748b",
+              fontWeight: 500,
+            }}
+          >
+            {feat}
+          </span>
+        ))}
+      </div>
+    </section>
+  );
+}

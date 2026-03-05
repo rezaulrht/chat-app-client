@@ -115,11 +115,6 @@ export default function WorkspaceSidebar({
       </div>
 
       <div className="flex-1" />
-
-      {/* Bottom Download Icon (Discord-like) */}
-      <button className="w-12 h-12 rounded-3xl bg-surface-dark text-teal-normal flex items-center justify-center hover:bg-teal-normal hover:text-black hover:rounded-2xl transition-all duration-200 mb-2 border border-white/5">
-        <Download size={20} />
-      </button>
     </aside>
   );
 }

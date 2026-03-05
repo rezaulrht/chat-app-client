@@ -646,14 +646,14 @@ export default function Sidebar({
           </div>
 
           <div className="flex items-center gap-0.5 opacity-60 group-hover/user:opacity-100 transition-opacity">
-            <button className="p-1.5 rounded-md hover:bg-white/10 text-slate-400 hover:text-white transition-all">
-              <Mic size={16} />
-            </button>
-            <button className="p-1.5 rounded-md hover:bg-white/10 text-slate-400 hover:text-white transition-all">
-              <Headphones size={16} />
-            </button>
-            <button className="p-1.5 rounded-md hover:bg-white/10 text-slate-400 hover:text-white transition-all">
-              <Settings size={16} />
+            <button
+              onClick={() => {
+                window.location.href = "/";
+              }}
+              className="p-1.5 rounded-md hover:bg-white/10 text-slate-400 hover:text-white transition-all"
+              title="Logout"
+            >
+              <LogOut size={16} />
             </button>
           </div>
         </div>

@@ -779,348 +779,360 @@ export default function ChatWindow({
           </div>
         )}
 
-        {messages.map((msg, index) => {
-          const isMe =
-            msg.sender?._id === user?._id || msg.sender === user?._id;
-          const isGif = !!msg.gifUrl;
+        {(() => {
+          // Robust calculation of last message indices for each status
+          let lastReadIndex = -1;
+          let lastDeliveredIndex = -1;
+          let lastSentIndex = -1;
+          let lastAnyMeIndex = -1;
 
-          const currentDateKey = toDateKey(msg.createdAt);
-          const prevDateKey =
-            index > 0 ? toDateKey(messages[index - 1].createdAt) : null;
-          const showDateSeparator = currentDateKey !== prevDateKey;
+          for (let i = messages.length - 1; i >= 0; i--) {
+            const m = messages[i];
+            const isMsgMe =
+              m.sender?._id === user?._id || m.sender === user?._id;
+            if (isMsgMe) {
+              if (lastAnyMeIndex === -1) lastAnyMeIndex = i;
+              if (m.status === "read" && lastReadIndex === -1)
+                lastReadIndex = i;
+              if (m.status === "delivered" && lastDeliveredIndex === -1)
+                lastDeliveredIndex = i;
+              if (m.status === "sent" && lastSentIndex === -1)
+                lastSentIndex = i;
+            }
+          }
 
-          return (
-            <React.Fragment key={msg._id}>
-              {showDateSeparator && (
-                <div className="flex items-center gap-3 my-2">
-                  <div className="flex-1 h-px bg-white/5" />
-                  <span className="text-[10px] font-medium text-slate-600 px-3 py-1 rounded-full bg-white/4 border border-white/6 shrink-0">
-                    {getDateLabel(msg.createdAt)}
-                  </span>
-                  <div className="flex-1 h-px bg-white/5" />
-                </div>
-              )}
+          return messages.map((msg, index) => {
+            const isMe =
+              msg.sender?._id === user?._id || msg.sender === user?._id;
+            const isGif = !!msg.gifUrl;
 
-              <div
-                className={`flex items-end gap-2 group ${isMe ? "justify-end" : "justify-start"}`}
-              >
-                {isGroup && !isMe && (
-                  <div className="w-6 h-6 rounded-lg shrink-0 overflow-hidden self-end mb-0.5">
-                    {msg.sender?.avatar ? (
-                      <Image
-                        src={msg.sender.avatar}
-                        width={24}
-                        height={24}
-                        className="rounded-lg object-cover"
-                        alt={msg.sender?.name || ""}
-                        unoptimized
-                      />
-                    ) : (
-                      <div
-                        className="w-6 h-6 rounded-lg flex items-center justify-center text-[8px] font-bold"
-                        style={{
-                          background: getGroupAvatarColor(
-                            msg.sender?.name || "",
-                          ).bg,
-                          color: getGroupAvatarColor(msg.sender?.name || "")
-                            .text,
-                        }}
-                      >
-                        {getGroupInitials(msg.sender?.name || "?")}
-                      </div>
-                    )}
+            const currentDateKey = toDateKey(msg.createdAt);
+            const prevDateKey =
+              index > 0 ? toDateKey(messages[index - 1].createdAt) : null;
+            const showDateSeparator = currentDateKey !== prevDateKey;
+
+            return (
+              <React.Fragment key={msg._id}>
+                {showDateSeparator && (
+                  <div className="flex items-center gap-3 my-2">
+                    <div className="flex-1 h-px bg-white/5" />
+                    <span className="text-[10px] font-medium text-slate-600 px-3 py-1 rounded-full bg-white/4 border border-white/6 shrink-0">
+                      {getDateLabel(msg.createdAt)}
+                    </span>
+                    <div className="flex-1 h-px bg-white/5" />
                   </div>
                 )}
+
                 <div
-                  className={`flex flex-col ${isMe ? "items-end" : "items-start"} max-w-[85%]`}
+                  className={`flex items-end gap-2 group ${isMe ? "justify-end" : "justify-start"}`}
                 >
                   {isGroup && !isMe && (
-                    <span className="text-[10px] font-semibold text-teal-400/80 mb-0.5 px-1">
-                      {msg.sender?.name || "Member"}
-                    </span>
+                    <div className="w-6 h-6 rounded-lg shrink-0 overflow-hidden self-end mb-0.5">
+                      {msg.sender?.avatar ? (
+                        <Image
+                          src={msg.sender.avatar}
+                          width={24}
+                          height={24}
+                          className="rounded-lg object-cover"
+                          alt={msg.sender?.name || ""}
+                          unoptimized
+                        />
+                      ) : (
+                        <div
+                          className="w-6 h-6 rounded-lg flex items-center justify-center text-[8px] font-bold"
+                          style={{
+                            background: getGroupAvatarColor(
+                              msg.sender?.name || "",
+                            ).bg,
+                            color: getGroupAvatarColor(msg.sender?.name || "")
+                              .text,
+                          }}
+                        >
+                          {getGroupInitials(msg.sender?.name || "?")}
+                        </div>
+                      )}
+                    </div>
                   )}
-                  <div className="relative group w-fit">
-                    {!msg.isOptimistic && (
-                      <div
-                        className={`absolute -top-6 ${
-                          isMe ? "right-0" : "left-0"
-                        } hidden group-hover:flex items-center gap-0.5 bg-[#15191C] border border-slate-700/60 rounded-lg p-0.5 shadow-xl shadow-black/40 z-30`}
-                      >
-                        {["👍", "❤️", "😂", "😮", "😢"].map((emoji) => (
+
+                  <div
+                    className={`flex flex-col ${isMe ? "items-end" : "items-start"} max-w-[85%]`}
+                  >
+                    {isGroup && !isMe && (
+                      <span className="text-[10px] font-semibold text-teal-400/80 mb-0.5 px-1">
+                        {msg.sender?.name || "Member"}
+                      </span>
+                    )}
+
+                    <div className="relative group w-fit">
+                      {!msg.isOptimistic && (
+                        <div
+                          className={`absolute -top-7 ${isMe ? "right-0" : "left-0"} hidden group-hover:flex items-center gap-0.5 bg-[#15191C] border border-slate-700/60 rounded-lg p-0.5 shadow-xl shadow-black/40 z-30`}
+                        >
+                          {["👍", "❤️", "😂", "😮", "😢"].map((emoji) => (
+                            <button
+                              key={emoji}
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleReaction(msg._id, emoji);
+                              }}
+                              className={`p-1.5 rounded-md transition-all duration-150 hover:bg-slate-700/60 hover:scale-125 ${reactions[msg._id]?.[emoji]?.includes(user?._id) ? "bg-teal-900/40" : ""}`}
+                              title={`React ${emoji}`}
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                          <div className="w-px h-5 bg-slate-700/60 mx-0.5" />
                           <button
-                            key={emoji}
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              toggleReaction(msg._id, emoji);
+                              setReactionPickerMsgId(
+                                reactionPickerMsgId === msg._id
+                                  ? null
+                                  : msg._id,
+                              );
                             }}
-                            className={`p-1.5 rounded-md transition-all duration-150 hover:bg-slate-700/60 hover:scale-125 ${
-                              reactions[msg._id]?.[emoji]?.includes(user?._id)
-                                ? "bg-teal-900/40"
-                                : ""
-                            }`}
-                            title={`React ${emoji}`}
+                            className="p-1.5 rounded-md text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 transition-all duration-150"
+                            title="More reactions"
                           >
-                            {emoji}
+                            <Smile size={14} />
                           </button>
-                        ))}
+                          <button
+                            type="button"
+                            onClick={() => setReplyTo(msg)}
+                            className="p-1.5 rounded-md text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 transition-all duration-150"
+                            title="Reply"
+                          >
+                            <Reply size={14} />
+                          </button>
+                          {isMe && !msg.isOptimistic && !msg.isDeleted && (
+                            <>
+                              <div className="w-px h-5 bg-slate-700/60 mx-0.5" />
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEdit(msg._id, msg.text);
+                                }}
+                                className="p-1.5 rounded-md text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 transition-all duration-150"
+                                title="Edit message"
+                              >
+                                <Pencil size={16} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDelete(msg._id);
+                                }}
+                                className="p-1.5 rounded-md text-red-400 hover:text-red-300 hover:bg-red-500/20 transition-all duration-150"
+                                title="Delete message"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      )}
 
-                        <div className="w-px h-5 bg-slate-700/60 mx-0.5" />
-
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setReactionPickerMsgId(
-                              reactionPickerMsgId === msg._id ? null : msg._id,
-                            );
-                          }}
-                          className="p-1.5 rounded-md text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 transition-all duration-150"
-                          title="More reactions"
+                      <div
+                        className={`${isGif ? "p-1" : "p-3.5"} rounded-2xl text-[13px] leading-relaxed relative z-10 ${isMe ? (isGif ? "bg-transparent" : "bg-teal-normal text-white rounded-br-none shadow-lg shadow-teal-normal/10") : isGif ? "bg-transparent" : "bg-surface-dark text-slate-200 rounded-bl-none shadow-sm shadow-black/5"} ${msg.isOptimistic ? "opacity-60" : ""}`}
+                      >
+                        {msg.replyTo && (
+                          <div className="mb-2 p-2 bg-black/20 rounded-lg border-l-2 border-teal-normal text-[11px] opacity-80 line-clamp-2">
+                            <p className="font-bold mb-0.5">
+                              {msg.replyTo.sender?.name === user?.name
+                                ? "You"
+                                : msg.replyTo.sender?.name || "Participant"}
+                            </p>
+                            {msg.replyTo.text}
+                          </div>
+                        )}
+                        {msg.isDeleted ? (
+                          <p className="italic text-gray-600 text-xs">
+                            This message was deleted
+                          </p>
+                        ) : editingMessageId === msg._id ? (
+                          <div className="flex flex-col gap-2 w-full min-w-[220px]">
+                            <div className="flex items-center gap-1.5 text-teal-normal/80 text-[10px] font-semibold">
+                              <Pencil size={10} />
+                              <span>Editing message</span>
+                              <span className="ml-auto text-slate-600 text-[9px] font-normal tracking-wide">
+                                Shift+Enter for new line
+                              </span>
+                            </div>
+                            <textarea
+                              className="w-full min-h-[52px] max-h-40 bg-[#0d1117] text-slate-100 text-sm px-3 py-2.5 rounded-xl border border-teal-normal/40 focus:outline-none focus:border-teal-normal focus:ring-1 focus:ring-teal-normal/25 resize-none leading-relaxed transition-all scrollbar-hide"
+                              value={editedText}
+                              onChange={(e) => setEditedText(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" && !e.shiftKey) {
+                                  e.preventDefault();
+                                  handleEditSave();
+                                }
+                                if (e.key === "Escape") {
+                                  setEditingMessageId(null);
+                                  setEditedText("");
+                                }
+                              }}
+                              autoFocus
+                              rows={2}
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={handleEditSave}
+                                className="text-xs bg-teal-normal text-black px-3 py-1 rounded hover:bg-teal-light"
+                              >
+                                Save
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingMessageId(null);
+                                  setEditedText("");
+                                }}
+                                className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-slate-300 px-2.5 py-1 rounded-lg hover:bg-white/5 transition-all"
+                              >
+                                <X size={11} />
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : isGif ? (
+                          <img
+                            src={msg.gifUrl}
+                            alt="GIF"
+                            className="max-w-70 rounded-xl"
+                            loading="lazy"
+                          />
+                        ) : (
+                          msg.text
+                        )}
+                        <div
+                          className={`text-[9px] mt-1.5 opacity-40 text-right ${isGif ? "px-2" : ""} flex items-center justify-end gap-1`}
                         >
-                          <Smile size={14} />
-                        </button>
+                          {new Date(msg.createdAt).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </div>
+                      </div>
 
-                        <button
-                          type="button"
-                          onClick={() => setReplyTo(msg)}
-                          className="p-1.5 rounded-md text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 transition-all duration-150"
-                          title="Reply"
+                      {reactionPickerMsgId === msg._id && (
+                        <div
+                          ref={reactionPickerRef}
+                          className={`absolute top-0 z-50 ${isMe ? "right-full mr-2" : "left-full ml-2"}`}
                         >
-                          <Reply size={14} />
-                        </button>
+                          <EmojiPicker
+                            onEmojiClick={(emojiData) =>
+                              toggleReaction(msg._id, emojiData.emoji)
+                            }
+                            theme="dark"
+                            emojiStyle="native"
+                            width={320}
+                            height={400}
+                            searchPlaceholder="Search emoji..."
+                            previewConfig={{ showPreview: false }}
+                            lazyLoadEmojis
+                          />
+                        </div>
+                      )}
+                    </div>
 
-                        {isMe && !msg.isOptimistic && !msg.isDeleted && (
+                    {reactions[msg._id] &&
+                      Object.keys(reactions[msg._id]).length > 0 && (
+                        <div
+                          className={`flex flex-wrap gap-1 mt-1 ${isMe ? "flex-row-reverse" : "flex-row"} max-w-65`}
+                        >
+                          {Object.entries(reactions[msg._id])
+                            .slice(0, 10)
+                            .map(([emoji, users]) => (
+                              <button
+                                key={emoji}
+                                type="button"
+                                onClick={() => toggleReaction(msg._id, emoji)}
+                                className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded-full border transition-all duration-150 ${users.includes(user?._id) ? "bg-teal-400/10 border-teal-400/30" : "bg-[#1C2227] border-slate-800"}`}
+                              >
+                                <span className="text-[12px]">{emoji}</span>
+                                <span className="text-[9px] font-bold text-slate-400">
+                                  {users.length}
+                                </span>
+                              </button>
+                            ))}
+                        </div>
+                      )}
+
+                    {isMe && !msg.isOptimistic && (
+                      <div className="flex items-center gap-0.5 px-0.5 mt-0.5">
+                        {isGroup ? (
+                          index === lastAnyMeIndex && (
+                            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/6 text-slate-500 text-[8px] font-medium">
+                              Sent
+                            </span>
+                          )
+                        ) : (
                           <>
-                            <div className="w-px h-5 bg-slate-700/60 mx-0.5" />
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEdit(msg._id, msg.text);
-                              }}
-                              className="p-1.5 rounded-md text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 transition-all duration-150"
-                              title="Edit message"
-                            >
-                              <Pencil size={16} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDelete(msg._id);
-                              }}
-                              className="p-1.5 rounded-md text-red-400 hover:text-red-300 hover:bg-red-500/20 transition-all duration-150"
-                              title="Delete message"
-                            >
-                              <Trash2 size={16} />
-                            </button>
+                            {index === lastReadIndex && (
+                              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-teal-normal/15 text-teal-normal text-[8px] font-semibold">
+                                Seen
+                              </span>
+                            )}
+                            {index === lastDeliveredIndex &&
+                              index > lastReadIndex && (
+                                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/6 text-slate-400 text-[8px] font-medium">
+                                  Delivered
+                                </span>
+                              )}
+                            {index === lastSentIndex &&
+                              index > lastDeliveredIndex &&
+                              index > lastReadIndex && (
+                                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/6 text-slate-500 text-[8px] font-medium">
+                                  Sent
+                                </span>
+                              )}
                           </>
                         )}
                       </div>
                     )}
-
-                    <div
-                      className={`${
-                        isGif ? "p-1" : "p-3.5"
-                      } rounded-2xl text-[13px] leading-relaxed relative z-10 ${
-                        isMe
-                          ? isGif
-                            ? "bg-transparent"
-                            : "bg-teal-normal text-white rounded-br-none shadow-lg shadow-teal-normal/10"
-                          : isGif
-                            ? "bg-transparent"
-                            : "bg-surface-dark text-slate-200 rounded-bl-none shadow-sm shadow-black/5"
-                      } ${msg.isOptimistic ? "opacity-60" : ""}`}
-                    >
-                      {msg.replyTo && (
-                        <div className="mb-2 p-2 bg-black/20 rounded-lg border-l-2 border-teal-normal text-[11px] opacity-80 line-clamp-2">
-                          <p className="font-bold mb-0.5">
-                            {msg.replyTo.sender?.name === user?.name
-                              ? "You"
-                              : msg.replyTo.sender?.name || "Participant"}
-                          </p>
-                          {msg.replyTo.text}
-                        </div>
-                      )}
-
-                      {msg.isDeleted ? (
-                        <p className="italic text-gray-600 text-xs">
-                          This message was deleted
-                        </p>
-                      ) : editingMessageId === msg._id ? (
-                        <div className="flex flex-col gap-2 w-full min-w-[220px]">
-                          {/* Edit header */}
-                          <div className="flex items-center gap-1.5 text-teal-normal/80 text-[10px] font-semibold">
-                            <Pencil size={10} />
-                            <span>Editing message</span>
-                            <span className="ml-auto text-slate-600 text-[9px] font-normal tracking-wide">
-                              Shift+Enter for new line
-                            </span>
-                          </div>
-                          {/* Textarea */}
-                          <textarea
-                            className="w-full min-h-[52px] max-h-40 bg-[#0d1117] text-slate-100 text-sm px-3 py-2.5 rounded-xl border border-teal-normal/40 focus:outline-none focus:border-teal-normal focus:ring-1 focus:ring-teal-normal/25 resize-none leading-relaxed transition-all scrollbar-hide"
-                            value={editedText}
-                            onChange={(e) => setEditedText(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" && !e.shiftKey) {
-                                e.preventDefault();
-                                handleEditSave();
-                              }
-                              if (e.key === "Escape") {
-                                setEditingMessageId(null);
-                                setEditedText("");
-                              }
-                            }}
-                            autoFocus
-                            rows={2}
-                          />
-                          <div className="flex gap-2">
-                            <button
-                              type="button"
-                              onClick={handleEditSave}
-                              className="text-xs bg-teal-normal text-black px-3 py-1 rounded hover:bg-teal-light"
-                            >
-                              Save
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setEditingMessageId(null);
-                                setEditedText("");
-                              }}
-                              className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-slate-300 px-2.5 py-1 rounded-lg hover:bg-white/5 transition-all"
-                            >
-                              <X size={11} />
-                              Cancel
-                            </button>
-                            <button
-                              onClick={handleEditSave}
-                              className="flex items-center gap-1.5 text-[11px] bg-teal-normal/90 hover:bg-teal-normal text-black font-bold px-3 py-1.5 rounded-lg transition-all active:scale-95 shadow-sm shadow-teal-normal/20"
-                            >
-                              <Check size={11} />
-                              Save
-                            </button>
-                          </div>
-                        </div>
-                      ) : isGif ? (
-                        <img
-                          src={msg.gifUrl}
-                          alt="GIF"
-                          className="max-w-70 rounded-xl"
-                          loading="lazy"
-                        />
-                      ) : (
-                        msg.text
-                      )}
-
-                      <div
-                        className={`text-[9px] mt-1.5 opacity-40 text-right ${isGif ? "px-2" : ""} flex items-center justify-end gap-1`}
-                      >
-                        {new Date(msg.createdAt).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </div>
-                    </div>
-
-                    {reactionPickerMsgId === msg._id && (
-                      <div
-                        ref={reactionPickerRef}
-                        className={`absolute top-0 z-50 ${isMe ? "right-full mr-2" : "left-full ml-2"}`}
-                      >
-                        <EmojiPicker
-                          onEmojiClick={(emojiData) =>
-                            toggleReaction(msg._id, emojiData.emoji)
-                          }
-                          theme="dark"
-                          emojiStyle="native"
-                          width={320}
-                          height={400}
-                          searchPlaceholder="Search emoji..."
-                          previewConfig={{ showPreview: false }}
-                          lazyLoadEmojis
-                        />
-                      </div>
-                    )}
                   </div>
-
-                  {reactions[msg._id] &&
-                    Object.keys(reactions[msg._id]).length > 0 && (
-                      <div
-                        className={`flex flex-wrap gap-1 mt-1 ${isMe ? "flex-row-reverse" : "flex-row"} max-w-65`}
-                      >
-                        {Object.entries(reactions[msg._id])
-                          .slice(0, 10)
-                          .map(([emoji, users]) => (
-                            <button
-                              key={emoji}
-                              type="button"
-                              onClick={() => toggleReaction(msg._id, emoji)}
-                              className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded-full border transition-all duration-150 ${
-                                users.includes(user?._id)
-                                  ? "bg-teal-400/10 border-teal-400/30"
-                                  : "bg-[#1C2227] border-slate-800"
-                              }`}
-                            >
-                              <span className="text-[12px]">{emoji}</span>
-                              <span className="text-[9px] font-bold text-slate-400">
-                                {users.length}
-                              </span>
-                            </button>
-                          ))}
-                      </div>
-                    )}
-
-                  {isMe && !msg.isOptimistic && (
-                    <div className="flex items-center gap-0.5 px-0.5 mt-0.5">
-                      {(msg.status === "sent" ||
-                        (isGroup &&
-                          (msg.status === "delivered" ||
-                            msg.status === "read"))) && (
-                        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/6 text-slate-500 text-[8px] font-medium">
-                          Sent
-                        </span>
-                      )}
-                      {!isGroup && msg.status === "delivered" && (
-                        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/6 text-slate-400 text-[8px] font-medium">
-                          Delivered
-                        </span>
-                      )}
-                      {!isGroup && msg.status === "read" && (
-                        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-teal-normal/15 text-teal-normal text-[8px] font-semibold">
-                          Seen
-                        </span>
-                      )}
-                    </div>
-                  )}
                 </div>
-              </div>
-            </React.Fragment>
-          );
-        })}
+              </React.Fragment>
+            );
+          });
+        })()}
         {typingUsers?.get(conversation._id) &&
           (() => {
             const typingSet = typingUsers.get(conversation._id);
             if (!typingSet || typingSet.size === 0) return null;
 
-            // For groups resolve names; for DMs just show dots
+            // For groups resolve names; for DMs use the participant name
             let typerNames = [];
             if (isGroup) {
               const members = conversation.participants || [];
               typerNames = [...typingSet]
                 .map((uid) => members.find((p) => p._id === uid)?.name)
                 .filter(Boolean);
+            } else {
+              // Direct message - only one possible typer other than self
+              if (typingSet.has(conversation.participant?._id)) {
+                typerNames = [conversation.participant?.name];
+              }
             }
 
             let label = null;
-            if (isGroup && typerNames.length > 0) {
-              if (typerNames.length === 1) label = `${typerNames[0]} is typing`;
-              else if (typerNames.length === 2)
-                label = `${typerNames[0]} and ${typerNames[1]} are typing`;
-              else
-                label = `${typerNames[0]}, ${typerNames[1]} and ${typerNames.length - 2} more are typing`;
+            if (typerNames.length > 0) {
+              if (isGroup) {
+                if (typerNames.length === 1)
+                  label = `${typerNames[0]} is typing`;
+                else if (typerNames.length === 2)
+                  label = `${typerNames[0]} and ${typerNames[1]} are typing`;
+                else
+                  label = `${typerNames[0]}, ${typerNames[1]} and ${typerNames.length - 2} more are typing`;
+              } else {
+                label = `${typerNames[0]} is typing`;
+              }
             }
 
             const firstTyperName = typerNames[0];
@@ -1141,7 +1153,7 @@ export default function ChatWindow({
                   </div>
                 )}
                 <div>
-                  {isGroup && label && (
+                  {label && (
                     <span className="text-[9px] font-semibold text-teal-400/80 mb-0.5 px-1 block">
                       {label}
                     </span>

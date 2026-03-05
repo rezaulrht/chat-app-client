@@ -20,7 +20,7 @@ export default function ChannelSidebar({ selectedWorkspaceId }) {
   ];
 
   return (
-    <aside className="w-60 bg-surface-dark flex flex-col shrink-0 h-full overflow-hidden border-r border-white/5">
+    <aside className="w-60 bg-[#0f1318] border-r border-white/5 flex flex-col shrink-0 h-full overflow-hidden">
       {/* Workspace Header */}
       <div className="h-12 px-4 flex items-center justify-between shadow-sm border-b border-white/5 hover:bg-white/5 cursor-pointer transition-colors group">
         <h2 className="text-white font-bold text-[15px] truncate">
@@ -85,7 +85,7 @@ export default function ChannelSidebar({ selectedWorkspaceId }) {
               unoptimized
             />
           </div>
-          <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-[3px] border-background-dark/80 bg-teal-normal"></div>
+          <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-[3px] border-[#0f1318] bg-teal-normal"></div>
         </div>
         <div className="flex-1 min-w-0 cursor-pointer group">
           <p className="text-white text-[13px] font-bold truncate leading-tight group-hover:text-teal-normal transition-colors">

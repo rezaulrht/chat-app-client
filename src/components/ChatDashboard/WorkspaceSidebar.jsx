@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import Image from "next/image";
-import { Plus, Download } from "lucide-react";
+import { Plus, Download, Compass } from "lucide-react";
 
 export default function WorkspaceSidebar({
   activeView,
@@ -34,7 +34,7 @@ export default function WorkspaceSidebar({
           className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 bg-white rounded-r-full transition-all duration-200 ${activeView === "home" ? "h-8" : "h-0 group-hover:h-5"}`}
         ></div>
         <div
-          className={`w-12 h-12 flex items-center justify-center rounded-2xl transition-all duration-200 shadow-lg ${activeView === "home" ? "bg-teal-normal text-white" : "bg-white/5 text-teal-normal hover:bg-teal-normal hover:text-white rounded-3xl hover:rounded-2xl"}`}
+          className={`w-12 h-12 flex items-center justify-center rounded-2xl transition-all duration-200 shadow-lg ${activeView === "home" ? "bg-white/10 text-white" : "bg-white/5 text-teal-normal hover:bg-teal-normal hover:text-white rounded-3xl hover:rounded-2xl"}`}
         >
           <Image
             src="/favicon.png"
@@ -43,6 +43,29 @@ export default function WorkspaceSidebar({
             alt="ConvoX"
             className=""
           />
+        </div>
+      </div>
+
+      {/* Feed Button */}
+      <div
+        onClick={() => {
+          setActiveView("feed");
+          setSelectedWorkspaceId(null);
+        }}
+        className="relative group cursor-pointer mb-2"
+      >
+        <div
+          className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 bg-white rounded-r-full transition-all duration-200 ${activeView === "feed" ? "h-8" : "h-0 group-hover:h-5"}`}
+        ></div>
+        <div
+          className={`w-12 h-12 flex items-center justify-center transition-all duration-200 shadow-sm ${activeView === "feed" ? "bg-white/10 text-white rounded-2xl" : "bg-white/5 text-teal-normal hover:bg-teal-normal hover:text-white rounded-3xl hover:rounded-2xl"}`}
+        >
+          <Compass size={24} />
+        </div>
+
+        {/* Tooltip on hover */}
+        <div className="absolute left-16 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-black text-white text-sm font-bold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 translate-x-2 group-hover:translate-x-0 z-50 whitespace-nowrap shadow-xl border border-white/10">
+          Global Feed
         </div>
       </div>
 
@@ -69,8 +92,8 @@ export default function WorkspaceSidebar({
             <div
               className={`w-12 h-12 flex items-center justify-center text-lg font-bold transition-all duration-200 shadow-md ${
                 activeView === "workspace" && selectedWorkspaceId === ws.id
-                  ? "bg-teal-normal text-white rounded-2xl"
-                  : "bg-surface-dark/50 text-slate-400 hover:bg-teal-normal hover:text-white rounded-3xl hover:rounded-2xl border border-white/5"
+                  ? "bg-white/10 text-white rounded-2xl"
+                  : "bg-surface-dark/50 text-slate-400 rounded-3xl hover:rounded-2xl border border-white/5"
               }`}
             >
               {ws.name[0]}

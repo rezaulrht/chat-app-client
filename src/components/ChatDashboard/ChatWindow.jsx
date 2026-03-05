@@ -15,6 +15,7 @@ import {
   Pencil,
   Trash2,
   Check,
+  Menu,
 } from "lucide-react";
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
@@ -69,6 +70,8 @@ export default function ChatWindow({
   showGroupInfo,
   onToggleGroupInfo,
   onConversationUpdate,
+  toggleSidebar,
+  toggleWorkspace,
 }) {
   const { socket, onlineUsers, typingUsers } = useSocket() || {};
   const { user } = useAuth();
@@ -582,17 +585,39 @@ export default function ChatWindow({
 
   if (!conversation) {
     return (
-      <div className="flex-1 bg-[#080b0f] flex flex-col items-center justify-center gap-4">
-        <div className="w-16 h-16 rounded-3xl bg-teal-normal/10 border border-teal-normal/20 flex items-center justify-center">
-          <Send size={24} className="text-teal-dark" />
+      <div className="flex-1 bg-[#080b0f] flex flex-col items-center justify-center gap-6 p-6">
+        <div className="relative">
+          <div className="absolute inset-0 bg-teal-normal/20 blur-3xl rounded-full" />
+          <div className="relative w-24 h-24 rounded-[2rem] bg-teal-normal/10 border border-teal-normal/20 flex items-center justify-center shadow-2xl backdrop-blur-sm">
+            <img
+              src="https://i.ibb.co/PG0X3Tbf/Convo-X-logo.png"
+              alt="ConvoX"
+              className="w-12 h-auto opacity-80"
+            />
+          </div>
         </div>
-        <div className="text-center">
-          <p className="text-slate-400 text-sm font-medium">
-            No conversation selected
+        <div className="text-center space-y-2">
+          <h2 className="text-slate-100 text-xl font-bold tracking-tight">
+            Welcome to ConvoX
+          </h2>
+          <p className="text-slate-400 text-sm max-w-[280px] mx-auto leading-relaxed">
+            Select a conversation from the sidebar or jump into a workspace to
+            start collaborating.
           </p>
-          <p className="text-slate-700 text-xs mt-1">
-            Choose one from the sidebar to start chatting
-          </p>
+        </div>
+        <div className="flex flex-col md:hidden gap-3 w-full max-w-[240px] pt-4">
+          <button
+            onClick={toggleSidebar}
+            className="w-full py-3 px-4 bg-teal-normal/10 hover:bg-teal-normal/20 border border-teal-normal/20 rounded-xl text-teal-normal text-sm font-bold transition-all"
+          >
+            Open Chats
+          </button>
+          <button
+            onClick={toggleWorkspace}
+            className="w-full py-3 px-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-slate-300 text-sm font-bold transition-all"
+          >
+            Switch Workspace
+          </button>
         </div>
       </div>
     );
@@ -617,6 +642,12 @@ export default function ChatWindow({
     <main className="flex-1 min-w-0 flex flex-col bg-[#080b0f] relative h-full">
       <header className="h-17 border-b border-white/5 flex justify-between items-center px-5 bg-[#0a0e13]/80 backdrop-blur-sm shrink-0">
         <div className="flex items-center gap-3">
+          <button
+            onClick={toggleSidebar}
+            className="md:hidden w-8 h-8 rounded-xl bg-white/4 flex items-center justify-center text-slate-500 hover:text-white transition-colors"
+          >
+            <Menu size={18} />
+          </button>
           {isGroup ? (
             <>
               <div className="w-10 h-10 rounded-2xl shrink-0 overflow-hidden">

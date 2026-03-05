@@ -1,13 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
-  const token = new URLSearchParams(window.location.search).get("token");
+  const [token, setToken] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlToken = new URLSearchParams(window.location.search).get("token");
+      setToken(urlToken || "");
+    }
+  }, []);
 
   const [newPassword, setNewPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);

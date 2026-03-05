@@ -3,8 +3,11 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 
 import Sidebar from "./SidebarChats";
+import ChannelSidebar from "./ChannelSidebar";
 import ChatWindow from "./ChatWindow";
 import GroupInfoPanel from "./GroupInfoPanel";
+import WorkspaceSidebar from "./WorkspaceSidebar";
+import FeedView from "./FeedView";
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
@@ -19,6 +22,14 @@ export default function ChatDashboard() {
   const [showGroupInfo, setShowGroupInfo] = useState(false);
   const { socket, fetchLastSeenTimes } = useSocket() || {};
   const { user } = useAuth(); // ← New (for self-message check)
+
+  // Workspace and Channel states
+  const [activeView, setActiveView] = useState("home"); // 'home' or 'workspace'
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState(null);
+
+  // Responsive sidebar states
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
 
   // Refs to avoid stale closures in socket handlers
   const conversationsRef = useRef([]);
@@ -92,8 +103,8 @@ export default function ChatDashboard() {
       // 🔥 TOAST ONLY WHEN NOT IN THIS CHAT AND NOT OUR OWN MESSAGE
       const isInActiveChat =
         activeConversationIdRef.current === msg.conversationId;
-        const isMyMessage =
-          user?._id && String(msg.sender?._id) === String(user._id);
+      const isMyMessage =
+        user?._id && String(msg.sender?._id) === String(user._id);
 
       if (!isInActiveChat && !isMyMessage) {
         showNewMessageToast(msg);
@@ -353,34 +364,86 @@ export default function ChatDashboard() {
   }
 
   return (
-    <div className="flex h-screen w-full bg-[#080b0f] overflow-hidden font-sans">
-      <Sidebar
-        conversations={conversations}
-        activeConversationId={activeConversationId}
-        setActiveConversationId={(id) => {
-          setActiveConversationId(id);
-          // Close info panel when switching conversations
-          setShowGroupInfo(false);
-        }}
-        onNewConversation={handleNewConversation}
-        onConversationUpdate={handleConversationUpdate}
-      />
-      <ChatWindow
-        conversation={activeConversation}
-        onMessageSent={handleMessageSent}
-        onMessagesSeen={handleMessagesSeen}
-        showGroupInfo={showGroupInfo}
-        onToggleGroupInfo={() => setShowGroupInfo((v) => !v)}
-        onConversationUpdate={handleConversationUpdate}
-        conversations={conversations}
-      />
-      {showGroupInfo && activeConversation?.type === "group" && (
-        <GroupInfoPanel
-          conversation={activeConversation}
-          currentUser={currentUser}
-          onClose={() => setShowGroupInfo(false)}
-          onConversationUpdate={handleConversationUpdate}
+    <div className="flex h-screen w-full bg-[#080b0f] overflow-hidden font-sans relative">
+      {/* Mobile Backdrops */}
+      {(isSidebarOpen ||
+        isWorkspaceOpen ||
+        (showGroupInfo && activeConversation?.type === "group")) && (
+        <div
+          className="md:hidden fixed inset-0 bg-black/60 z-30 transition-opacity"
+          onClick={() => {
+            setIsSidebarOpen(false);
+            setIsWorkspaceOpen(false);
+            setShowGroupInfo(false);
+          }}
         />
+      )}
+
+      {/* Workspace Sidebar Wrapper */}
+      <div
+        className={`absolute md:relative z-40 h-full transition-transform duration-300 md:translate-x-0 ${isWorkspaceOpen ? "translate-x-0" : "-translate-x-full"}`}
+      >
+        <WorkspaceSidebar
+          activeView={activeView}
+          setActiveView={(view) => {
+            setActiveView(view);
+            // Auto close workspace sidebar on mobile when switching views
+            if (window.innerWidth < 768) setIsWorkspaceOpen(false);
+          }}
+          selectedWorkspaceId={selectedWorkspaceId}
+          setSelectedWorkspaceId={setSelectedWorkspaceId}
+        />
+      </div>
+
+      {/* Secondary Sidebar Wrapper (SidebarChats or ChannelSidebar) */}
+      <div
+        className={`absolute md:relative z-40 h-full transition-transform duration-300 md:translate-x-0 w-80 md:w-auto flex shrink-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
+      >
+        {activeView === "home" ? (
+          <Sidebar
+            conversations={conversations}
+            activeConversationId={activeConversationId}
+            setActiveConversationId={(id) => {
+              setActiveConversationId(id);
+              setShowGroupInfo(false);
+              // On mobile, close sidebar when chat is selected
+              if (window.innerWidth < 768) setIsSidebarOpen(false);
+            }}
+            onNewConversation={handleNewConversation}
+            onConversationUpdate={handleConversationUpdate}
+          />
+        ) : activeView === "workspace" ? (
+          <ChannelSidebar selectedWorkspaceId={selectedWorkspaceId} />
+        ) : null}
+      </div>
+
+      <div className="flex-1 w-full h-full min-w-0 z-10">
+        {activeView === "feed" ? (
+          <FeedView toggleSidebar={() => setIsWorkspaceOpen((prev) => !prev)} />
+        ) : (
+          <ChatWindow
+            conversation={activeConversation}
+            onMessageSent={handleMessageSent}
+            onMessagesSeen={handleMessagesSeen}
+            showGroupInfo={showGroupInfo}
+            onToggleGroupInfo={() => setShowGroupInfo((v) => !v)}
+            onConversationUpdate={handleConversationUpdate}
+            conversations={conversations}
+            toggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
+            toggleWorkspace={() => setIsWorkspaceOpen((prev) => !prev)}
+          />
+        )}
+      </div>
+
+      {showGroupInfo && activeConversation?.type === "group" && (
+        <div className="absolute top-0 right-0 h-full md:relative z-40 shrink-0">
+          <GroupInfoPanel
+            conversation={activeConversation}
+            currentUser={currentUser}
+            onClose={() => setShowGroupInfo(false)}
+            onConversationUpdate={handleConversationUpdate}
+          />
+        </div>
       )}
     </div>
   );

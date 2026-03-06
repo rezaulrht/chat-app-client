@@ -4,17 +4,19 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 
 import Sidebar from "./SidebarChats";
 import ChatWindow from "./ChatWindow";
+import GroupInfoPanel from "./GroupInfoPanel";
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
+import useAuth from "@/hooks/useAuth";
 import { sortConversations } from "@/utils/sortConversations";
-
-import useAuth from "@/hooks/useAuth"; // ← Added
 import { toast } from "sonner";
 
 export default function ChatDashboard() {
   const [conversations, setConversations] = useState([]);
   const [activeConversationId, setActiveConversationId] = useState(null);
   const [loadingConversations, setLoadingConversations] = useState(true);
+  // Controls the slide-out GroupInfoPanel beside ChatWindow
+  const [showGroupInfo, setShowGroupInfo] = useState(false);
   const { socket, fetchLastSeenTimes } = useSocket() || {};
   const { user } = useAuth(); // ← New (for self-message check)
 
@@ -23,6 +25,7 @@ export default function ChatDashboard() {
   const activeConversationIdRef = useRef(null);
   conversationsRef.current = conversations;
   activeConversationIdRef.current = activeConversationId;
+  const { user: currentUser } = useAuth();
 
   // Fetch all conversations for the logged-in user on mount (only once)
   useEffect(() => {
@@ -32,8 +35,10 @@ export default function ChatDashboard() {
         const sorted = sortConversations(res.data);
         setConversations(sorted);
 
+        // Fetch last seen times for all conversation participants
         if (sorted.length > 0 && fetchLastSeenTimes) {
           const userIds = sorted
+            .filter((conv) => conv.type !== "group")
             .map((conv) => conv.participant?._id)
             .filter(Boolean);
 
@@ -100,6 +105,7 @@ export default function ChatDashboard() {
       );
 
       if (exists) {
+        // Update lastMessage and move to top by updating both lastMessage and updatedAt
         setConversations((prev) => {
           const updated = prev.map((c) =>
             c._id === msg.conversationId
@@ -108,7 +114,8 @@ export default function ChatDashboard() {
                   lastMessage: {
                     text: msg.text,
                     gifUrl: msg.gifUrl,
-                    sender: msg.sender?._id || msg.sender,
+                    // Keep populated sender object for group last-message preview
+                    sender: msg.sender || null,
                     timestamp: msg.createdAt,
                   },
                   updatedAt: msg.createdAt,
@@ -153,14 +160,94 @@ export default function ChatDashboard() {
       }
     };
 
+    // ── Group lifecycle events ───────────────────────────────────────
+
+    // Someone created a group and added us — add it to the list
+    const handleGroupCreated = ({ conversation }) => {
+      if (!conversation) return;
+      setConversations((prev) => {
+        if (prev.find((c) => c._id === conversation._id)) return prev;
+        return sortConversations([conversation, ...prev]);
+      });
+    };
+
+    // Group was deleted — remove it; deselect if active
+    const handleGroupDeleted = ({ conversationId }) => {
+      setConversations((prev) => prev.filter((c) => c._id !== conversationId));
+      setActiveConversationId((prev) =>
+        prev === conversationId ? null : prev,
+      );
+      setShowGroupInfo(false);
+    };
+
+    // Name or avatar updated by an admin
+    const handleGroupUpdated = ({ conversationId, name, avatar }) => {
+      setConversations((prev) =>
+        prev.map((c) =>
+          c._id === conversationId ? { ...c, name, avatar } : c,
+        ),
+      );
+    };
+
+    // We were forcibly removed from a group
+    const handleGroupRemoved = ({ conversationId }) => {
+      setConversations((prev) => prev.filter((c) => c._id !== conversationId));
+      setActiveConversationId((prev) =>
+        prev === conversationId ? null : prev,
+      );
+      setShowGroupInfo(false);
+    };
+
+    // Members added/removed, someone left, or admin list changed
+    // → re-fetch that conversation to get the updated participants/admins arrays
+    const handleGroupRefetch = async ({ conversationId }) => {
+      if (!conversationId) return;
+      try {
+        const res = await api.get(`/api/chat/conversations/${conversationId}`);
+        const updated = res.data;
+        setConversations((prev) =>
+          prev.map((c) =>
+            c._id === conversationId ? { ...c, ...updated } : c,
+          ),
+        );
+      } catch (err) {
+        // 403 means we're no longer a participant — remove from list
+        if (err.response?.status === 403) {
+          setConversations((prev) =>
+            prev.filter((c) => c._id !== conversationId),
+          );
+          setActiveConversationId((prev) =>
+            prev === conversationId ? null : prev,
+          );
+        }
+        console.warn("Group refetch failed:", err.message);
+      }
+    };
+
     socket.on("message:new", handleGlobalMessage);
     socket.on("unread:update", handleUnreadUpdate);
     socket.on("message:status", handleMessageStatus);
+    socket.on("group:created", handleGroupCreated);
+    socket.on("group:deleted", handleGroupDeleted);
+    socket.on("group:updated", handleGroupUpdated);
+    socket.on("group:removed", handleGroupRemoved);
+    socket.on("group:members-added", handleGroupRefetch);
+    socket.on("group:members-removed", handleGroupRefetch);
+    socket.on("group:member-left", handleGroupRefetch);
+    socket.on("group:admin-updated", handleGroupRefetch);
 
     return () => {
       socket.off("message:new", handleGlobalMessage);
       socket.off("unread:update", handleUnreadUpdate);
       socket.off("message:status", handleMessageStatus);
+      socket.off("group:created", handleGroupCreated);
+      socket.off("group:deleted", handleGroupDeleted);
+      socket.off("group:updated", handleGroupUpdated);
+      socket.off("group:removed", handleGroupRemoved);
+      socket.off("group:members-added", handleGroupRefetch);
+      socket.off("group:members-removed", handleGroupRefetch);
+      socket.off("group:member-left", handleGroupRefetch);
+      socket.off("group:admin-updated", handleGroupRefetch);
     };
   }, [socket, fetchLastSeenTimes, user, showNewMessageToast]);
 
@@ -168,6 +255,7 @@ export default function ChatDashboard() {
     (c) => c._id === activeConversationId,
   );
 
+  // Called by ChatWindow when a message is sent — update sidebar's lastMessage
   const handleMessageSent = useCallback(
     (conversationId, text, gifUrl = null) => {
       setConversations((prev) => {
@@ -200,9 +288,26 @@ export default function ChatDashboard() {
     setActiveConversationId(conversation._id);
   }, []);
 
-  const handleConversationUpdate = useCallback((updatedConversations) => {
-    const sorted = sortConversations(updatedConversations);
-    setConversations(sorted);
+  // Called when conversation is updated (pin/archive/mute)
+  const handleConversationUpdate = useCallback((updated) => {
+    // Array → full list refresh (from SidebarChats pin/mute/archive/leave)
+    if (Array.isArray(updated)) {
+      setConversations(sortConversations(updated));
+      return;
+    }
+    // Single object with _removed / _deleted flag → remove from list
+    if (updated._removed || updated._deleted) {
+      setConversations((prev) => prev.filter((c) => c._id !== updated._id));
+      setActiveConversationId((prev) => (prev === updated._id ? null : prev));
+      setShowGroupInfo(false);
+      return;
+    }
+    // Single updated conversation → merge into list
+    setConversations((prev) =>
+      sortConversations(
+        prev.map((c) => (c._id === updated._id ? { ...c, ...updated } : c)),
+      ),
+    );
   }, []);
 
   const handleMessagesSeen = useCallback((conversationId) => {
@@ -251,7 +356,11 @@ export default function ChatDashboard() {
       <Sidebar
         conversations={conversations}
         activeConversationId={activeConversationId}
-        setActiveConversationId={setActiveConversationId}
+        setActiveConversationId={(id) => {
+          setActiveConversationId(id);
+          // Close info panel when switching conversations
+          setShowGroupInfo(false);
+        }}
         onNewConversation={handleNewConversation}
         onConversationUpdate={handleConversationUpdate}
       />
@@ -259,7 +368,19 @@ export default function ChatDashboard() {
         conversation={activeConversation}
         onMessageSent={handleMessageSent}
         onMessagesSeen={handleMessagesSeen}
+        showGroupInfo={showGroupInfo}
+        onToggleGroupInfo={() => setShowGroupInfo((v) => !v)}
+        onConversationUpdate={handleConversationUpdate}
+        conversations={conversations}
       />
+      {showGroupInfo && activeConversation?.type === "group" && (
+        <GroupInfoPanel
+          conversation={activeConversation}
+          currentUser={currentUser}
+          onClose={() => setShowGroupInfo(false)}
+          onConversationUpdate={handleConversationUpdate}
+        />
+      )}
     </div>
   );
 }

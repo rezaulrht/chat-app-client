@@ -121,11 +121,23 @@ export const SocketProvider = ({ children }) => {
     });
 
     // --- Handle typing indicator updates ---
+    // typingUsers: Map<conversationId, Set<userId>>
+    // Supports multiple simultaneous typers in group conversations.
     newSocket.on("typing:update", ({ conversationId, userId, isTyping }) => {
+      if (!conversationId || !userId) return;
       setTypingUsers((prev) => {
         const updated = new Map(prev);
-        if (isTyping) updated.set(conversationId, { userId });
-        else updated.delete(conversationId);
+        const current = new Set(updated.get(conversationId) || []);
+        if (isTyping) {
+          current.add(userId);
+        } else {
+          current.delete(userId);
+        }
+        if (current.size === 0) {
+          updated.delete(conversationId);
+        } else {
+          updated.set(conversationId, current);
+        }
         return updated;
       });
     });

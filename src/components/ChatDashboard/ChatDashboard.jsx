@@ -289,7 +289,6 @@ export default function ChatDashboard() {
     },
     [],
   );
-
   const handleNewConversation = useCallback((conversation) => {
     setConversations((prev) => {
       const exists = prev.find((c) => c._id === conversation._id);

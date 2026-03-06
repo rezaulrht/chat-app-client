@@ -82,7 +82,7 @@ export default function Sidebar({
   onNewConversation,
   onConversationUpdate,
 }) {
-  const { onlineUsers } = useSocket() || {};
+  const { onlineUsers, socket } = useSocket() || {};
   const { user: currentUser } = useAuth();
 
   // --- Sidebar UI state ---
@@ -218,6 +218,39 @@ export default function Sidebar({
       setSearchedConversations(conversations);
     }
   }, [conversations]); // only syncs when not actively filtering
+
+  //
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleMessageDeleted = (payload) => {
+      console.log("Sidebar: message:deleted event RECEIVED!", payload);
+
+      const { conversationId } = payload;
+
+      setSearchedConversations((prev) =>
+        prev.map((conv) =>
+          conv._id === conversationId
+            ? {
+                ...conv,
+                lastMessage: {
+                  ...conv.lastMessage,
+                  text: "This message was deleted",
+                  isDeleted: true,
+                },
+                unreadCount: 0,
+              }
+            : conv,
+        ),
+      );
+    };
+
+    socket.on("message:deleted", handleMessageDeleted);
+
+    return () => {
+      socket.off("message:deleted", handleMessageDeleted);
+    };
+  }, [socket]);
 
   // Handle pin/unpin
   const handleTogglePin = async (e, conversationId) => {

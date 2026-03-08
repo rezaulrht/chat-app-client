@@ -3,9 +3,29 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
+import {
+  Eye,
+  EyeOff,
+  Loader2,
+  Lock,
+  AlertTriangle,
+  KeyRound,
+} from "lucide-react";
 import Footer from "@/components/Footer";
 import NavBar from "@/components/NavBar";
+import AuthBackground from "@/components/auth/AuthBackground";
+import AuthCard from "@/components/auth/AuthCard";
+
+const stagger = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
+};
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 16 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
+};
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -26,7 +46,6 @@ export default function ResetPasswordPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Password Validation
     const password = newPassword.trim();
     const errors = [];
     if (password.length < 8) {
@@ -46,11 +65,11 @@ export default function ResetPasswordPage() {
     }
 
     if (errors.length > 0) {
-      setError(errors.join(" ")); // show error under input
+      setError(errors.join(" "));
       return;
     }
 
-    setError(""); // clear error if valid
+    setError("");
     setLoading(true);
 
     try {
@@ -70,7 +89,7 @@ export default function ResetPasswordPage() {
           title: "Success!",
           text: "Your password has been updated successfully.",
           icon: "success",
-          confirmButtonColor: "#4F46E5",
+          confirmButtonColor: "#00d3bb",
           confirmButtonText: "Go to Login",
         });
         router.push("/login");
@@ -94,101 +113,185 @@ export default function ResetPasswordPage() {
     }
   };
 
+  // Invalid / expired token state
   if (!token) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-linear-to-brrom-indigo-50 via-purple-50 to-pink-50 px-4">
-        <div className="bg-white/80 backdrop-blur-lg shadow-2xl rounded-3xl p-10 w-full max-w-md text-center border border-purple-100">
-          <h2 className="text-3xl font-bold text-gray-800 mb-4">
-            Invalid Link
-          </h2>
-          <p className="text-gray-600 mb-6">
-            The password reset link is invalid or has expired.
-          </p>
-          <button
-            onClick={() => router.push("/forgot-password")}
-            className="px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-lg hover:shadow-xl"
-          >
-            Request New Reset Link
-          </button>
+      <div className="min-h-screen bg-obsidian font-sans text-white flex items-center justify-center relative overflow-hidden px-4">
+        <AuthBackground variant="error" />
+
+        <div className="relative z-10 w-full max-w-md">
+          <AuthCard>
+            <motion.div
+              variants={stagger}
+              initial="hidden"
+              animate="visible"
+              className="text-center"
+            >
+              <motion.div
+                variants={fadeUp}
+                className="flex justify-center mb-6"
+              >
+                <motion.div
+                  initial={{ scale: 0.5, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                  className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center border border-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.15)]"
+                >
+                  <AlertTriangle className="w-8 h-8 text-red-400" />
+                </motion.div>
+              </motion.div>
+
+              <motion.h2
+                variants={fadeUp}
+                className="text-2xl font-display font-bold text-ivory mb-3"
+              >
+                Invalid Link
+              </motion.h2>
+
+              <motion.p
+                variants={fadeUp}
+                className="text-slate-400 text-sm mb-8"
+              >
+                The password reset link is invalid or has expired.
+              </motion.p>
+
+              <motion.div variants={fadeUp}>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => router.push("/forgot-password")}
+                  className="w-full py-3 rounded-lg text-sm font-bold text-background-dark bg-primary hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
+                >
+                  Request New Reset Link
+                </motion.button>
+              </motion.div>
+            </motion.div>
+          </AuthCard>
         </div>
       </div>
     );
   }
 
+  // Valid token — show reset form
   return (
-    <>
+    <div className="min-h-screen bg-obsidian font-sans text-white flex flex-col relative overflow-hidden">
+      <AuthBackground />
+
       <NavBar />
-      {/* Background Effects */}
-      <div className="absolute inset-0 z-0">
-        <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-175 h-125 bg-teal-normal/20 rounded-full blur-[120px] opacity-40 pointer-events-none" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-size-[64px_64px] mask-[radial-gradient(ellipse_at_center,black_50%,transparent_100%)] pointer-events-none" />
-      </div>
-      <div className="min-h-screen flex items-center justify-center px-4 py-12">
-        <div className="backdrop-blur-xl shadow-2xl rounded-3xl p-8 md:p-10 w-full max-w-md border border-purple-100/50">
-          <h1 className="text-3xl font-bold tracking-tight text-white mb-3 flex justify-center">
-            <img
-              src="https://i.ibb.co/PG0X3Tbf/Convo-X-logo.png"
-              alt="ConvoX Logo"
-              className="h-10 w-auto"
-            />
-          </h1>
-          <h2 className="text-3xl font-bold text-center text-[#3BCCED] mb-2">
-            Reset Your Password
-          </h2>
-          <p className="text-center text-gray-500 mb-8 text-sm">
-            Enter your new password below
-          </p>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                placeholder="New Password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                required
-                minLength={6}
-                className="w-full px-5 py-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all placeholder-gray-400 text-cyan-400 shadow-inner"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-cyan-400 transition"
+      <main className="relative z-10 flex-1 flex items-center justify-center w-full px-6 py-12 mt-16 md:mt-20">
+        <div className="w-full max-w-md">
+          <AuthCard>
+            <motion.div variants={stagger} initial="hidden" animate="visible">
+              {/* Icon */}
+              <motion.div
+                variants={fadeUp}
+                className="flex justify-center mb-6"
               >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
+                <motion.div
+                  initial={{ scale: 0.5, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 200,
+                    damping: 15,
+                    delay: 0.1,
+                  }}
+                  className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center border border-primary/20 shadow-[0_0_20px_rgba(0,211,187,0.15)]"
+                >
+                  <KeyRound className="w-8 h-8 text-primary" />
+                </motion.div>
+              </motion.div>
 
-            {/* ✅ Error message under input */}
-            {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+              {/* Header */}
+              <motion.div variants={fadeUp} className="text-center mb-8">
+                <h1 className="text-2xl font-display font-bold tracking-tight text-white mb-2">
+                  Set New Password
+                </h1>
+                <p className="font-serif italic text-slate-400">
+                  Choose a strong key for your account.
+                </p>
+              </motion.div>
 
-          <button
-            type="submit"
-            disabled={loading || !newPassword.trim()}
-            className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Updating...
-              </>
-            ) : (
-              "Reset Password"
-            )}
-          </button>
-        </form>
+              {/* Form */}
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <motion.div variants={fadeUp} className="space-y-2">
+                  <label className="text-[10px] uppercase tracking-wider font-bold text-slate-500 ml-1">
+                    New Password
+                  </label>
+                  <div className="relative">
+                    <Lock
+                      size={16}
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500"
+                    />
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="New Password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      required
+                      minLength={6}
+                      className={`block w-full pl-10 pr-10 py-3 bg-white/5 border ${error ? "border-red-500/50" : "border-white/10"} rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 text-white text-sm transition-all duration-300`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-primary transition-colors"
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </motion.div>
 
-          <div className="mt-6 text-center text-sm text-gray-500">
-            <a
-              href="/login"
-              className="text-indigo-600 hover:text-indigo-800 hover:underline transition"
-            >
-              Back to Login
-            </a>
-          </div>
+                {error && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-red-400 text-xs font-medium"
+                  >
+                    {error}
+                  </motion.p>
+                )}
+
+                <motion.div variants={fadeUp}>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    type="submit"
+                    disabled={loading || !newPassword.trim()}
+                    className="w-full py-3.5 rounded-lg text-sm font-bold text-background-dark bg-primary hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Updating...
+                      </>
+                    ) : (
+                      "Reset Password"
+                    )}
+                  </motion.button>
+                </motion.div>
+              </form>
+
+              {/* Back to login */}
+              <motion.p
+                variants={fadeUp}
+                className="text-center text-xs text-slate-500 mt-8"
+              >
+                Remember your password?{" "}
+                <a
+                  href="/login"
+                  className="font-bold text-primary hover:text-primary/80 transition-colors"
+                >
+                  Back to Login
+                </a>
+              </motion.p>
+            </motion.div>
+          </AuthCard>
         </div>
-      </div>
+      </main>
+
       <Footer />
-    </>
+    </div>
   );
 }

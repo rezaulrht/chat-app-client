@@ -1,4 +1,3 @@
-// src/components/ChatDashboard/SidebarChats.jsx
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
@@ -46,28 +45,23 @@ const formatConvTimestamp = (timestamp) => {
   yesterday.setDate(now.getDate() - 1);
 
   if (isSameDay(date, now)) {
-    // Today → time
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   }
 
   if (isSameDay(date, yesterday)) {
-    // Yesterday
     return "Yesterday";
   }
 
   const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
 
   if (diffDays < 7) {
-    // Within past 7 days → day name abbreviated
     return date.toLocaleDateString([], { weekday: "short" });
   }
 
   if (date.getFullYear() === now.getFullYear()) {
-    // Same year, older than 7 days → day + month
     return date.toLocaleDateString([], { day: "numeric", month: "short" });
   }
 
-  // Different year → day + month + year
   return date.toLocaleDateString([], {
     day: "numeric",
     month: "short",
@@ -85,7 +79,6 @@ export default function Sidebar({
   const { onlineUsers, socket } = useSocket() || {};
   const { user: currentUser } = useAuth();
 
-  // --- Sidebar UI state ---
   const [filterTerm, setFilterTerm] = useState("");
   const [searchedConversations, setSearchedConversations] =
     useState(conversations);
@@ -127,7 +120,7 @@ export default function Sidebar({
     }
   }, [modalOpen]);
 
-  // Debounced user search — fires 400ms after user stops typing
+  // Debounced user search
   useEffect(() => {
     if (!searchQuery.trim()) {
       setSearchResults([]);
@@ -167,7 +160,7 @@ export default function Sidebar({
     }
   };
 
-  // Derive currently-online contacts from DM conversations only (groups excluded from Active Now)
+  // Derive currently-online contacts from DM conversations only
   const onlineParticipants = conversations
     .filter(
       (c) =>
@@ -190,13 +183,13 @@ export default function Sidebar({
       return;
     }
 
-    const controller = new AbortController(); // ✅ create abort controller
+    const controller = new AbortController();
 
     const timer = setTimeout(async () => {
       try {
         const res = await api.get(
           `/api/chat/search-conversations?q=${encodeURIComponent(filterTerm)}`,
-          { signal: controller.signal }, // ✅ pass signal to axios
+          { signal: controller.signal },
         );
         setSearchedConversations(res.data);
       } catch (err) {
@@ -217,9 +210,8 @@ export default function Sidebar({
     if (!filterTerm.trim()) {
       setSearchedConversations(conversations);
     }
-  }, [conversations]); // only syncs when not actively filtering
+  }, [conversations]);
 
-  //
   useEffect(() => {
     if (!socket) return;
 
@@ -257,7 +249,6 @@ export default function Sidebar({
     e.stopPropagation();
     try {
       await api.patch(`/api/chat/conversations/${conversationId}/pin`);
-      // Optimistic update: toggle isPinned locally
       if (onConversationUpdate) {
         onConversationUpdate(
           conversations.map((c) =>
@@ -276,7 +267,6 @@ export default function Sidebar({
     e.stopPropagation();
     try {
       await api.patch(`/api/chat/conversations/${conversationId}/archive`);
-      // Optimistic update: toggle isArchived locally
       if (onConversationUpdate) {
         onConversationUpdate(
           conversations.map((c) =>
@@ -314,7 +304,6 @@ export default function Sidebar({
     setContextMenu(null);
     try {
       await api.post(`/api/chat/conversations/${conversationId}/leave`);
-      // Remove from local list; parent will handle socket cleanup too
       if (onConversationUpdate) {
         onConversationUpdate(
           conversations.filter((c) => c._id !== conversationId),
@@ -327,8 +316,6 @@ export default function Sidebar({
     }
   };
 
-  // Filter conversations based on archived status
-  // (Conversations are already sorted in parent ChatDashboard component)
   const sortedConversations = showArchived
     ? searchedConversations.filter((c) => c.isArchived)
     : searchedConversations.filter((c) => !c.isArchived);
@@ -343,7 +330,7 @@ export default function Sidebar({
       regex.test(part) ? (
         <span
           key={index}
-          className="bg-teal-600/40 text-teal-200 rounded px-0.5 font-medium"
+          className="bg-accent/30 text-accent rounded px-0.5 font-medium"
         >
           {part}
         </span>
@@ -355,32 +342,37 @@ export default function Sidebar({
 
   return (
     <>
-      <aside className="w-80 bg-[#0f1318] border-r border-white/5 flex flex-col shrink-0 h-full overflow-hidden">
-        {/* Search Header */}
-        <div className="h-14 px-3 flex items-center justify-between border-b border-white/5 bg-[#0f1318]/50 backdrop-blur-sm sticky top-0 z-20">
+      <aside className="w-full md:w-full sm:w-80 glass-panel flex flex-col shrink-0 flex-1 min-h-0 overflow-hidden">
+        {/* ── Search Header ── */}
+        <div className="h-14 px-3 flex items-center justify-between border-b border-white/[0.06] shrink-0 relative">
           <div className="relative flex-1 group">
             <Search
               size={13}
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-teal-normal transition-colors"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-ivory/20 group-focus-within:text-accent transition-colors duration-200"
             />
             <input
               type="text"
               placeholder="Find or start a conversation"
-              className="w-full bg-[#080b0f] text-[12px] py-1.5 pl-8 pr-2 rounded-md outline-none border border-transparent focus:border-teal-normal/30 transition-all placeholder:text-slate-600 text-slate-200"
+              className="w-full glass-card rounded-xl text-[12px] py-2 pl-9 pr-3 outline-none focus:ring-1 focus:ring-accent/30 transition-all placeholder:text-ivory/15 text-ivory/80"
               value={filterTerm}
               onChange={(e) => setFilterTerm(e.target.value)}
             />
           </div>
+          {/* Gradient bottom line */}
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent/8 to-transparent" />
         </div>
 
-        {/* Scrollable Content */}
+        {/* ── Scrollable Content ── */}
         <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide flex flex-col pt-3">
           {/* Active Now section */}
           {activeNowUsers.length > 0 && (
             <div className="px-4 mb-5">
-              <p className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mb-3 px-1">
-                Active Now
-              </p>
+              <div className="flex items-center gap-2 mb-3 px-1">
+                <div className="w-0.5 h-3 rounded-full bg-accent/30" />
+                <p className="text-[10px] font-mono font-bold tracking-[0.15em] text-ivory/25 uppercase">
+                  Active Now
+                </p>
+              </div>
               <div className="flex gap-3 overflow-x-auto py-1 px-1 scrollbar-hide">
                 {activeNowUsers.map((user) => (
                   <div
@@ -388,7 +380,7 @@ export default function Sidebar({
                     className="flex flex-col items-center gap-1.5 shrink-0"
                   >
                     <div className="relative">
-                      <div className="w-10 h-10 rounded-full ring-1 ring-teal-normal/50 ring-offset-2 ring-offset-[#0f1318] overflow-hidden">
+                      <div className="w-10 h-10 rounded-full ring-2 ring-accent/25 ring-offset-2 ring-offset-obsidian overflow-hidden shadow-[0_0_12px_rgba(0,211,187,0.1)]">
                         <Image
                           src={
                             user.avatar ||
@@ -401,9 +393,9 @@ export default function Sidebar({
                           unoptimized
                         />
                       </div>
-                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#0f1318]"></span>
+                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 rounded-full border-2 border-obsidian shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
                     </div>
-                    <span className="text-[10px] text-slate-500 truncate max-w-10 text-center leading-tight">
+                    <span className="text-[10px] text-ivory/25 truncate max-w-10 text-center leading-tight font-mono">
                       {user._id === currentUser?._id
                         ? "You"
                         : user.name?.split(" ")[0]}
@@ -414,19 +406,23 @@ export default function Sidebar({
             </div>
           )}
 
-          {/* Section label */}
-          <div className="px-5 mb-1.5 flex justify-between items-center group/section">
-            <p className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
-              Direct Messages
-            </p>
+          {/* ── Section label ── */}
+          <div className="px-5 mb-1.5 flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <div className="w-0.5 h-3 rounded-full bg-accent/30" />
+              <p className="text-[10px] font-mono font-bold tracking-[0.15em] text-ivory/25 uppercase">
+                Direct Messages
+              </p>
+            </div>
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => setShowArchived(!showArchived)}
-                className={`w-6 h-6 rounded-md flex items-center justify-center transition-all ${
-                  showArchived
-                    ? "bg-teal-normal/20 text-teal-normal"
-                    : "text-slate-500 hover:bg-white/5 hover:text-slate-300"
-                }`}
+                className={
+                  "w-6 h-6 rounded-lg flex items-center justify-center transition-all duration-200 " +
+                  (showArchived
+                    ? "bg-accent/15 text-accent shadow-[0_0_8px_rgba(0,211,187,0.15)]"
+                    : "text-ivory/20 hover:bg-white/[0.06] hover:text-ivory/40")
+                }
                 title={showArchived ? "Show All DMs" : "Show Archived DMs"}
               >
                 <Archive size={12} />
@@ -434,7 +430,7 @@ export default function Sidebar({
               <CreateGroupModal onGroupCreated={onNewConversation} />
               <button
                 onClick={() => setModalOpen(true)}
-                className="w-6 h-6 rounded-md text-slate-500 hover:bg-white/5 hover:text-slate-300 flex items-center justify-center transition-all"
+                className="w-6 h-6 rounded-lg text-ivory/20 hover:bg-white/[0.06] hover:text-ivory/40 flex items-center justify-center transition-all duration-200"
                 title="New Chat"
               >
                 <Edit3 size={12} />
@@ -442,7 +438,7 @@ export default function Sidebar({
             </div>
           </div>
 
-          {/* Conversation list */}
+          {/* ── Conversation list ── */}
           <div className="px-2 space-y-0.5 pb-4">
             {sortedConversations.map((conv) => {
               const isActive = activeConversationId === conv._id;
@@ -467,22 +463,23 @@ export default function Sidebar({
                 <div key={conv._id} className="relative group px-1">
                   <div
                     onClick={() => setActiveConversationId(conv._id)}
-                    className={`flex items-center gap-3 px-2 py-2 rounded-md cursor-pointer transition-all duration-150 relative ${
-                      isActive
-                        ? "bg-[#35373c]/50 text-white"
-                        : "text-slate-400 hover:bg-[#35373c]/30 hover:text-slate-200"
-                    }`}
+                    className={
+                      "flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] relative " +
+                      (isActive
+                        ? "bg-white/[0.06] text-ivory ring-1 ring-white/[0.06]"
+                        : "text-ivory/40 hover:bg-white/[0.03] hover:text-ivory/70")
+                    }
                   >
-                    {/* Active Indicator Pill */}
+                    {/* Active Indicator Pip */}
                     {isActive && (
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-r-full -ml-3" />
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-accent rounded-r-full -ml-1 shadow-[0_0_8px_rgba(0,211,187,0.4)]" />
                     )}
 
                     {/* Avatar */}
                     <div className="relative shrink-0">
                       {isGroup ? (
                         <div
-                          className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-[11px] overflow-hidden shadow-inner"
+                          className="w-9 h-9 rounded-xl flex items-center justify-center font-display font-bold text-[11px] overflow-hidden"
                           style={{
                             backgroundColor: conv.avatar
                               ? "transparent"
@@ -493,8 +490,8 @@ export default function Sidebar({
                           {conv.avatar ? (
                             <Image
                               src={conv.avatar}
-                              width={32}
-                              height={32}
+                              width={36}
+                              height={36}
                               className="w-full h-full object-cover"
                               alt={conv.name}
                               unoptimized
@@ -505,20 +502,25 @@ export default function Sidebar({
                         </div>
                       ) : (
                         <>
-                          <div className="w-8 h-8 rounded-full overflow-hidden shadow-inner">
+                          <div className="w-9 h-9 rounded-xl overflow-hidden">
                             <Image
                               src={
                                 conv.participant?.avatar ||
                                 `https://api.dicebear.com/7.x/avataaars/svg?seed=${conv.participant?.name}`
                               }
-                              width={32}
-                              height={32}
+                              width={36}
+                              height={36}
                               alt={conv.participant?.name || "avatar"}
                               unoptimized
                             />
                           </div>
                           <div
-                            className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-[3px] border-[#0f1318] ${isUserOnline ? "bg-teal-normal" : "bg-slate-600"}`}
+                            className={
+                              "absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-deep " +
+                              (isUserOnline
+                                ? "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]"
+                                : "bg-ivory/10")
+                            }
                           />
                         </>
                       )}
@@ -531,11 +533,16 @@ export default function Sidebar({
                           {conv.isPinned && (
                             <Pin
                               size={10}
-                              className="text-teal-normal shrink-0"
+                              className="text-accent/60 shrink-0"
                             />
                           )}
                           <span
-                            className={`text-[13.5px] font-medium truncate ${isActive || hasUnread ? "text-white" : "text-slate-400"}`}
+                            className={
+                              "text-[13px] font-display font-semibold truncate " +
+                              (isActive || hasUnread
+                                ? "text-ivory"
+                                : "text-ivory/40")
+                            }
                           >
                             {isGroup
                               ? highlightMatch(conv.name || "", filterTerm)
@@ -547,63 +554,72 @@ export default function Sidebar({
                           {conv.isMuted && (
                             <BellOff
                               size={10}
-                              className="text-slate-600 shrink-0"
+                              className="text-ivory/15 shrink-0"
                             />
                           )}
                         </div>
+                        <span className="text-[10px] font-mono text-ivory/15 ml-2 shrink-0">
+                          {formatConvTimestamp(conv.lastMessage?.createdAt)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <p
+                          className={
+                            "text-[11px] truncate leading-tight flex-1 " +
+                            (hasUnread
+                              ? "text-ivory/70 font-semibold"
+                              : "text-ivory/25")
+                          }
+                        >
+                          {isGroup
+                            ? groupPreview
+                            : conv.lastMessage?.text || "No messages yet"}
+                        </p>
                         {hasUnread && !conv.isMuted && (
-                          <div className="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center shadow-lg shadow-red-500/20">
-                            <span className="text-[9px] font-black text-white">
+                          <div className="w-[18px] h-[18px] rounded-full bg-accent flex items-center justify-center shadow-[0_0_8px_rgba(0,211,187,0.3)] shrink-0">
+                            <span className="text-[9px] font-mono font-black text-obsidian">
                               {conv.unreadCount > 99 ? "99+" : conv.unreadCount}
                             </span>
                           </div>
                         )}
                       </div>
-                      <p
-                        className={`text-[11px] truncate leading-tight ${hasUnread ? "text-slate-200 font-semibold" : "text-slate-500"}`}
-                      >
-                        {isGroup
-                          ? groupPreview
-                          : conv.lastMessage?.text || "No messages yet"}
-                      </p>
                     </div>
 
                     {/* More Menu */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        // Position relative to click
                         const rect = e.currentTarget.getBoundingClientRect();
                         setMenuPos({ x: rect.left - 160, y: rect.bottom + 5 });
                         setContextMenu(
                           contextMenu === conv._id ? null : conv._id,
                         );
                       }}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-white/10"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-white/[0.06]"
                     >
-                      <MoreVertical size={14} className="text-slate-400" />
+                      <MoreVertical size={14} className="text-ivory/30" />
                     </button>
                   </div>
 
-                  {/* Context Menu Hook - Portaled to avoid clipping */}
+                  {/* Context Menu - Portaled */}
                   {contextMenu === conv._id &&
                     typeof document !== "undefined" &&
                     createPortal(
                       <div
                         ref={contextMenuRef}
-                        className="fixed bg-[#1a1f26] border border-white/10 rounded-lg shadow-2xl z-50 py-1 min-w-40 animate-in fade-in zoom-in duration-150"
+                        className="fixed glass-card ring-1 ring-white/[0.08] rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.4)] z-50 py-1.5 min-w-[180px] animate-in fade-in zoom-in duration-150"
                         style={{ top: menuPos.y, left: menuPos.x }}
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button
                           onClick={(e) => handleTogglePin(e, conv._id)}
-                          className="w-full px-3 py-2 text-left text-[11px] text-slate-300 hover:bg-teal-normal hover:text-white flex items-center gap-2 transition-colors"
+                          className="w-full px-4 py-2 text-left text-[11px] text-ivory/50 hover:bg-accent/10 hover:text-accent flex items-center gap-2.5 transition-colors font-display font-medium"
                         >
                           <Pin size={12} /> {conv.isPinned ? "Unpin" : "Pin"}
                         </button>
                         <button
                           onClick={(e) => handleToggleMute(e, conv._id)}
-                          className="w-full px-3 py-2 text-left text-[11px] text-slate-300 hover:bg-teal-normal hover:text-white flex items-center gap-2 transition-colors"
+                          className="w-full px-4 py-2 text-left text-[11px] text-ivory/50 hover:bg-accent/10 hover:text-accent flex items-center gap-2.5 transition-colors font-display font-medium"
                         >
                           {conv.isMuted ? (
                             <Bell size={12} />
@@ -614,18 +630,21 @@ export default function Sidebar({
                         </button>
                         <button
                           onClick={(e) => handleToggleArchive(e, conv._id)}
-                          className="w-full px-3 py-2 text-left text-[11px] text-slate-300 hover:bg-teal-normal hover:text-white flex items-center gap-2 transition-colors"
+                          className="w-full px-4 py-2 text-left text-[11px] text-ivory/50 hover:bg-accent/10 hover:text-accent flex items-center gap-2.5 transition-colors font-display font-medium"
                         >
                           <Archive size={12} />{" "}
                           {conv.isArchived ? "Unarchive" : "Archive"}
                         </button>
                         {conv.type === "group" && (
-                          <button
-                            onClick={(e) => handleLeaveGroup(e, conv._id)}
-                            className="w-full px-3 py-2 text-left text-[11px] text-red-400 hover:bg-red-500 hover:text-white flex items-center gap-2 transition-colors border-t border-white/5 mt-1"
-                          >
-                            <LogOut size={12} /> Leave Group
-                          </button>
+                          <>
+                            <div className="mx-3 my-1 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+                            <button
+                              onClick={(e) => handleLeaveGroup(e, conv._id)}
+                              className="w-full px-4 py-2 text-left text-[11px] text-red-400/70 hover:bg-red-500/10 hover:text-red-400 flex items-center gap-2.5 transition-colors font-display font-medium"
+                            >
+                              <LogOut size={12} /> Leave Group
+                            </button>
+                          </>
                         )}
                       </div>,
                       document.body,
@@ -635,24 +654,32 @@ export default function Sidebar({
             })}
 
             {sortedConversations.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
-                <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mb-3">
-                  <Search size={20} className="text-slate-700" />
+              <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                <div className="relative mb-4">
+                  <div className="absolute inset-0 bg-accent/5 blur-[40px] rounded-full" />
+                  <div className="relative w-14 h-14 glass-card rounded-2xl flex items-center justify-center">
+                    <Search size={22} className="text-ivory/10" />
+                  </div>
                 </div>
-                <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                <p className="text-sm text-ivory/15 font-serif italic leading-relaxed">
                   {filterTerm
                     ? "No matching conversations"
-                    : "Find someone by clicking the edit icon to start chatting!"}
+                    : "Start a new conversation"}
+                </p>
+                <p className="text-[10px] text-ivory/8 font-mono mt-1">
+                  {filterTerm
+                    ? "Try a different search query"
+                    : "Click the edit icon above"}
                 </p>
               </div>
             )}
           </div>
         </div>
 
-        {/* User Status Bar (Discord Style) */}
-        <div className="h-14 bg-[#080b0f] px-2.5 flex items-center gap-2 group/user border-t border-white/2 shrink-0">
+        {/* ── User Status Bar ── */}
+        <div className="h-14 glass-card mx-2 mb-2 rounded-xl px-3 flex items-center gap-2.5 group/user shrink-0 ring-1 ring-white/[0.04]">
           <div className="relative shrink-0 cursor-pointer group/avatar">
-            <div className="w-8 h-8 rounded-full overflow-hidden border border-white/5 group-hover/avatar:border-teal-normal/50 transition-colors shadow-lg">
+            <div className="w-8 h-8 rounded-xl overflow-hidden ring-1 ring-white/[0.06] group-hover/avatar:ring-accent/30 transition-all duration-200 shadow-[0_0_12px_rgba(0,211,187,0.05)]">
               <Image
                 src={
                   currentUser?.avatar ||
@@ -660,138 +687,148 @@ export default function Sidebar({
                 }
                 width={32}
                 height={32}
-                className="rounded-full"
+                className="rounded-xl"
                 alt="avatar"
                 unoptimized
               />
             </div>
-            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-[3px] border-[#080b0f] bg-teal-normal shadow-sm"></div>
+            <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-deep bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
           </div>
 
           <div className="flex-1 min-w-0 cursor-pointer overflow-hidden">
-            <p className="text-white text-[13px] font-bold truncate leading-tight group-hover/user:text-teal-normal transition-colors">
+            <p className="text-ivory text-[13px] font-display font-bold truncate leading-tight group-hover/user:text-accent transition-colors duration-200">
               {currentUser?.name?.split(" ")[0]}
             </p>
-            <p className="text-slate-500 text-[10px] truncate leading-tight flex items-center gap-1 font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-teal-normal animate-pulse"></span>
+            <p className="text-ivory/20 text-[10px] truncate leading-tight flex items-center gap-1 font-mono">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_4px_rgba(52,211,153,0.4)]" />
               Online
             </p>
           </div>
 
-          <div className="flex items-center gap-0.5 opacity-60 group-hover/user:opacity-100 transition-opacity">
+          <div className="flex items-center gap-0.5 opacity-40 group-hover/user:opacity-80 transition-opacity">
             <button
               onClick={() => {
                 window.location.href = "/";
               }}
-              className="p-1.5 rounded-md hover:bg-white/10 text-slate-400 hover:text-white transition-all"
+              className="p-1.5 rounded-lg hover:bg-white/[0.06] text-ivory/40 hover:text-ivory/60 transition-all duration-200"
               title="Logout"
             >
-              <LogOut size={16} />
+              <LogOut size={15} />
             </button>
           </div>
         </div>
       </aside>
 
-      {/* New Chat Modal - Portaled to escape stacking context */}
+      {/* ── New Chat Modal ── */}
       {modalOpen &&
         typeof document !== "undefined" &&
         createPortal(
           <div
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4"
             onClick={() => setModalOpen(false)}
           >
             <div
-              className="bg-[#0f1318] rounded-3xl w-full max-w-sm p-5 border border-white/8 shadow-2xl shadow-black/50 animate-in fade-in zoom-in duration-200"
+              className="glass-card rounded-3xl w-full max-w-sm overflow-hidden shadow-[0_24px_80px_rgba(0,0,0,0.5)] ring-1 ring-white/[0.08] animate-in fade-in zoom-in duration-200"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Modal header */}
-              <div className="flex justify-between items-center mb-4">
+              <div className="flex justify-between items-center px-5 py-4 border-b border-white/[0.06] relative">
                 <div>
-                  <h2 className="text-white font-bold text-sm">
+                  <h2 className="text-ivory font-display font-bold text-sm">
                     New Conversation
                   </h2>
-                  <p className="text-slate-600 text-xs mt-0.5">
+                  <p className="text-ivory/15 text-[10px] mt-0.5 font-mono">
                     Find someone to chat with
                   </p>
                 </div>
                 <button
                   onClick={() => setModalOpen(false)}
-                  className="w-7 h-7 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all"
+                  className="w-7 h-7 rounded-xl bg-white/[0.04] flex items-center justify-center hover:bg-white/[0.08] transition-all"
                 >
-                  <X size={14} className="text-slate-400" />
+                  <X size={14} className="text-ivory/30" />
                 </button>
+                <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent/10 to-transparent" />
               </div>
 
-              {/* User search input */}
-              <div className="relative mb-3">
-                <Search
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600"
-                  size={15}
-                />
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-white/5 rounded-2xl py-3 pl-10 pr-4 text-sm outline-none border border-white/5 focus:border-teal-normal/40 text-slate-200 placeholder:text-slate-600 transition-all"
-                  placeholder="Search by name or email..."
-                />
-              </div>
+              <div className="p-5">
+                {/* User search input */}
+                <div className="relative mb-3">
+                  <Search
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ivory/15"
+                    size={14}
+                  />
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full glass-card rounded-2xl py-3 pl-10 pr-4 text-sm outline-none focus:ring-1 focus:ring-accent/30 text-ivory/80 placeholder:text-ivory/15 transition-all"
+                    placeholder="Search by name or email..."
+                  />
+                </div>
 
-              {/* Results */}
-              <div className="space-y-1 max-h-60 overflow-y-auto scrollbar-hide">
-                {searching && (
-                  <div className="flex items-center justify-center gap-2 py-6">
-                    <div className="w-4 h-4 rounded-full border-2 border-teal-normal border-t-transparent animate-spin"></div>
-                    <p className="text-slate-500 text-xs">Searching...</p>
-                  </div>
-                )}
+                {/* Results */}
+                <div className="space-y-0.5 max-h-60 overflow-y-auto scrollbar-hide">
+                  {searching && (
+                    <div className="flex items-center justify-center gap-2 py-6">
+                      <div className="w-4 h-4 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+                      <p className="text-ivory/25 text-xs font-mono">
+                        Searching...
+                      </p>
+                    </div>
+                  )}
 
-                {!searching && searchQuery && searchResults.length === 0 && (
-                  <p className="text-center text-slate-600 text-xs py-6">
-                    No users found
-                  </p>
-                )}
+                  {!searching && searchQuery && searchResults.length === 0 && (
+                    <p className="text-center text-ivory/15 text-xs py-6 font-mono">
+                      No users found
+                    </p>
+                  )}
 
-                {searchResults.map((user) => (
-                  <div
-                    key={user._id}
-                    onClick={() => !startingChat && handleSelectUser(user)}
-                    className="flex items-center gap-3 p-3 rounded-2xl cursor-pointer hover:bg-teal-normal/8 border border-transparent hover:border-teal-normal/15 transition-all"
-                  >
-                    <div className="relative shrink-0">
-                      <Image
-                        src={
-                          user.avatar ||
-                          `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`
-                        }
-                        width={38}
-                        height={38}
-                        className="rounded-full"
-                        alt={user.name || "avatar"}
-                        unoptimized
-                      />
-                      {onlineUsers?.get(user._id)?.online && (
-                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-[#0f1318]"></div>
+                  {searchResults.map((user) => (
+                    <div
+                      key={user._id}
+                      onClick={() => !startingChat && handleSelectUser(user)}
+                      className="flex items-center gap-3 p-3 rounded-2xl cursor-pointer hover:bg-white/[0.04] hover:ring-1 hover:ring-accent/10 transition-all duration-200"
+                    >
+                      <div className="relative shrink-0">
+                        <Image
+                          src={
+                            user.avatar ||
+                            `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`
+                          }
+                          width={38}
+                          height={38}
+                          className="rounded-xl"
+                          alt={user.name || "avatar"}
+                          unoptimized
+                        />
+                        {onlineUsers?.get(user._id)?.online && (
+                          <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-deep shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-ivory/80 text-sm font-display font-semibold truncate">
+                          {user.name}
+                        </p>
+                        <p
+                          className={
+                            "text-xs font-mono " +
+                            (onlineUsers?.get(user._id)?.online
+                              ? "text-emerald-400"
+                              : "text-ivory/15")
+                          }
+                        >
+                          {onlineUsers?.get(user._id)?.online
+                            ? "Online"
+                            : `Last seen ${formatLastSeen(onlineUsers?.get(user._id)?.lastSeen)}`}
+                        </p>
+                      </div>
+                      {startingChat && (
+                        <div className="w-4 h-4 rounded-full border-2 border-accent border-t-transparent animate-spin shrink-0" />
                       )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-slate-200 text-sm font-semibold truncate">
-                        {user.name}
-                      </p>
-                      <p
-                        className={`text-xs ${onlineUsers?.get(user._id)?.online ? "text-green-400" : "text-slate-600"}`}
-                      >
-                        {onlineUsers?.get(user._id)?.online
-                          ? "● Online"
-                          : `Last seen ${formatLastSeen(onlineUsers?.get(user._id)?.lastSeen)}`}
-                      </p>
-                    </div>
-                    {startingChat && (
-                      <div className="w-4 h-4 rounded-full border-2 border-teal-normal border-t-transparent animate-spin shrink-0"></div>
-                    )}
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           </div>,

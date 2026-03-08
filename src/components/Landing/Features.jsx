@@ -1,330 +1,245 @@
 "use client";
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { MessageSquare, Check, Send, Hash, Plus } from "lucide-react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import {
+  MessageSquare,
+  CheckCheck,
+  Hash,
+  ChevronRight,
+  Calendar,
+  Clock,
+  Send,
+} from "lucide-react";
 
-const fadeUp = (delay = 0) => ({
-  initial: { opacity: 0, y: 36 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, margin: "-60px" },
-  transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1], delay },
-});
+gsap.registerPlugin(ScrollTrigger);
 
-/* ── Mini Chat Mockup ─────────────────────────────────────────────────── */
-function ChatMockup() {
-  return (
-    <div className="w-full rounded-2xl overflow-hidden border border-white/8 bg-[#0d1117] shadow-xl flex h-52">
-      {/* Sidebar */}
-      <div className="w-44 bg-[#0a0d12] border-r border-white/5 flex flex-col">
-        {/* Search */}
-        <div className="px-3 pt-3 pb-2">
-          <div className="flex items-center gap-1.5 bg-[#161b22] rounded-lg px-2.5 py-1.5">
-            <svg
-              className="w-3 h-3 text-slate-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <circle cx="11" cy="11" r="8" strokeWidth="2" />
-              <path d="m21 21-4.35-4.35" strokeWidth="2" />
-            </svg>
-            <span className="text-slate-500 text-[10px]">Search</span>
-          </div>
-        </div>
-        {/* Conversations */}
-        <div className="flex-1 overflow-hidden">
-          {/* Alex Rivera – active */}
-          <div className="flex items-center gap-2 px-3 py-2 bg-[#13c8ec]/10 border-l-2 border-[#13c8ec]">
-            <div className="relative shrink-0">
-              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-[9px] font-bold text-white">
-                AR
-              </div>
-              <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-emerald-400 rounded-full border border-[#0a0d12]" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-white text-[10px] font-semibold truncate">
-                Alex Rivera
-              </p>
-              <p className="text-[#13c8ec] text-[9px] truncate">
-                The teal looks great…
-              </p>
-            </div>
-          </div>
-          {/* Jordan Smith */}
-          <div className="flex items-center gap-2 px-3 py-2">
-            <div className="w-7 h-7 rounded-full bg-slate-600 shrink-0 flex items-center justify-center text-[9px] font-bold text-slate-300">
-              JS
-            </div>
-            <p className="text-slate-400 text-[10px] truncate">Jordan Smith</p>
-          </div>
-        </div>
-      </div>
+const ACCENT = "#00d3bb";
+const DEEP = "#12121a";
+const SURFACE = "#1a1a2e";
 
-      {/* Chat window */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/5 bg-[#0d1117]">
-          <span className="w-2 h-2 rounded-full bg-emerald-400" />
-          <span className="text-white text-xs font-semibold">Alex Rivera</span>
-          <span className="ml-auto text-slate-500">
-            <svg
-              className="w-3.5 h-3.5"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <circle cx="12" cy="5" r="1.5" />
-              <circle cx="12" cy="12" r="1.5" />
-              <circle cx="12" cy="19" r="1.5" />
-            </svg>
-          </span>
-        </div>
-
-        {/* Messages */}
-        <div className="flex-1 flex flex-col justify-end gap-2 px-4 py-3">
-          {/* Incoming */}
-          <div className="flex items-end gap-1.5 max-w-[80%]">
-            <div className="bg-[#161b22] rounded-2xl rounded-bl-sm px-3 py-1.5">
-              <p className="text-slate-200 text-[11px]">
-                Hey! Love the new components.
-              </p>
-            </div>
-          </div>
-          {/* Outgoing */}
-          <div className="flex items-end justify-end gap-1.5 max-w-[80%] self-end">
-            <div className="bg-[#13c8ec] rounded-2xl rounded-br-sm px-3 py-1.5">
-              <p className="text-[#05050A] text-[11px] font-medium">
-                Thanks! Let&apos;s ship it by EOD. 🚀
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Input */}
-        <div className="px-4 pb-3">
-          <div className="flex items-center gap-2 bg-[#161b22] rounded-xl px-3 py-2 border border-white/5">
-            <span className="text-slate-500 text-[10px] flex-1">
-              Type a message...
-            </span>
-            <div className="w-5 h-5 rounded-lg bg-[#13c8ec] flex items-center justify-center">
-              <Send className="w-2.5 h-2.5 text-[#05050A]" />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ── Workspace / Channel Mockup ───────────────────────────────────────── */
-function WorkspaceMockup() {
-  const channels = [
-    { name: "frontend-dev", active: true },
-    { name: "api-design", active: false },
-    { name: "deployments", active: false },
+/* ── Card 1: Message Pulse ────────────────────────────────────────────── */
+function MessagePulseCard() {
+  const msgs = [
+    { from: "Alex", text: "Ready for launch? ", incoming: true },
+    { from: "You", text: "Let's ship it!", incoming: false },
   ];
+  const [visibleCount, setVisibleCount] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setVisibleCount((c) => {
+        if (c >= msgs.length) {
+          setTimeout(() => setVisibleCount(0), 1800);
+          return c;
+        }
+        return c + 1;
+      });
+    }, 1200);
+    return () => clearInterval(interval);
+  }, [msgs.length]);
+
   return (
-    <div className="w-full rounded-2xl overflow-hidden border border-white/8 bg-[#0d1117] shadow-xl mt-5">
-      {/* Workspace header */}
-      <div className="flex items-center gap-3 px-5 py-4 border-b border-white/5">
-        <div className="w-9 h-9 rounded-xl bg-[#13c8ec]/20 border border-[#13c8ec]/30 flex items-center justify-center">
-          <svg
-            className="w-4 h-4 text-[#13c8ec]"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <rect x="3" y="3" width="7" height="7" rx="1" strokeWidth="2" />
-            <rect x="14" y="3" width="7" height="7" rx="1" strokeWidth="2" />
-            <rect x="3" y="14" width="7" height="7" rx="1" strokeWidth="2" />
-            <rect x="14" y="14" width="7" height="7" rx="1" strokeWidth="2" />
-          </svg>
-        </div>
-        <span className="text-slate-300 text-xs font-semibold tracking-widest uppercase">
-          Project Phoenix
-        </span>
-      </div>
-
-      {/* Channels */}
-      <div className="px-4 py-3 flex flex-col gap-1">
-        {channels.map((ch) => (
-          <div
-            key={ch.name}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
-              ch.active
-                ? "bg-[#13c8ec]/15 text-[#13c8ec]"
-                : "text-slate-500 hover:text-slate-300"
-            }`}
-          >
-            <Hash className="w-3.5 h-3.5 shrink-0" />
-            <span className="text-sm">{ch.name}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Add button */}
-      <div className="px-4 pb-4">
-        <div className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-white/10 text-slate-500 hover:text-white hover:border-white/25 cursor-pointer transition-colors">
-          <Plus className="w-4 h-4" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ── Social Feed Mockup ───────────────────────────────────────────────── */
-function FeedMockup() {
-  return (
-    <div className="w-full rounded-2xl border border-white/8 bg-[#0d1117] shadow-xl mt-5 p-4">
-      {/* Post header */}
-      <div className="flex items-center gap-3 mb-3">
-        <div className="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-300 shrink-0">
-          sc
+    <div className="rounded-3xl border border-white/[0.05] p-8 flex flex-col h-full" style={{ background: DEEP }}>
+      <div className="flex items-center gap-3 mb-2">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: ACCENT + "18", border: "1px solid " + ACCENT + "30" }}>
+          <MessageSquare size={18} style={{ color: ACCENT }} />
         </div>
         <div>
-          <p className="text-white text-sm font-semibold">sarah_codes</p>
-          <p className="text-slate-500 text-xs">2 hours ago</p>
+          <h3 className="font-display text-lg font-bold text-ivory">Message Pulse</h3>
+          <p className="text-ivory/30 text-xs font-mono">Real-time delivery</p>
         </div>
       </div>
-
-      {/* Code snippet */}
-      <div className="bg-[#161b22] rounded-xl p-3 font-mono text-xs mb-3 border border-white/5">
-        <p>
-          <span className="text-blue-400">const</span>{" "}
-          <span className="text-yellow-300">hub</span>{" "}
-          <span className="text-white">= () =&gt; {"{"}</span>
-        </p>
-        <p className="pl-4">
-          <span className="text-blue-400">return</span>{" "}
-          <span className="text-green-400">&apos;Ready to build!&apos;</span>
-          <span className="text-white">;</span>
-        </p>
-        <p>
-          <span className="text-white">{"}"}</span>
-        </p>
-      </div>
-
-      {/* Reactions */}
-      <div className="flex items-center gap-4 text-slate-400 text-xs">
-        <span className="flex items-center gap-1.5 text-[#13c8ec]">
-          <svg
-            className="w-3.5 h-3.5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+      <p className="text-ivory/40 text-sm leading-relaxed mb-6">
+        Sub-50ms message delivery with instant typing indicators and read receipts.
+      </p>
+      <div className="flex-1 rounded-2xl p-4 flex flex-col justify-end gap-3" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)" }}>
+        {msgs.slice(0, visibleCount).map((msg, i) => (
+          <motion.div
+            key={i + "-" + visibleCount}
+            initial={{ opacity: 0, y: 12, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.35, ease: [0.34, 1.56, 0.64, 1] }}
+            className={msg.incoming ? "self-start" : "self-end"}
           >
-            <path
-              d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-              strokeWidth="2"
-            />
-          </svg>
-          <span>124</span>
-        </span>
-        <span className="flex items-center gap-1.5">
-          <svg
-            className="w-3.5 h-3.5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
-              strokeWidth="2"
-            />
-          </svg>
-          <span>18</span>
-        </span>
+            <div
+              className="px-3.5 py-2 rounded-2xl text-xs font-medium max-w-[180px]"
+              style={{
+                background: msg.incoming ? SURFACE : ACCENT,
+                color: msg.incoming ? "#FAF8F5" : "#fff",
+                borderRadius: msg.incoming ? "14px 14px 14px 4px" : "14px 14px 4px 14px",
+                boxShadow: msg.incoming ? "none" : "0 4px 14px " + ACCENT + "33",
+              }}
+            >
+              {msg.text}
+            </div>
+            {!msg.incoming && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4 }}
+                className="flex items-center gap-1 mt-1 justify-end"
+              >
+                <CheckCheck size={10} style={{ color: ACCENT }} />
+                <span className="text-[9px] font-mono" style={{ color: ACCENT + "88" }}>Delivered</span>
+              </motion.div>
+            )}
+          </motion.div>
+        ))}
       </div>
     </div>
   );
 }
 
-/* ── Main Features Section ────────────────────────────────────────────── */
-export default function Features() {
+/* ── Card 2: Workspace Navigator ──────────────────────────────────────── */
+function WorkspaceCard() {
+  const channels = [
+    { name: "frontend-dev", active: true, unread: 3 },
+    { name: "api-design", active: false, unread: 0 },
+    { name: "deployments", active: false, unread: 1 },
+  ];
+  const [expanded, setExpanded] = useState(true);
+
+  useEffect(() => {
+    const interval = setInterval(() => setExpanded((e) => !e), 2800);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
-    <section
-      id="features"
-      className="relative w-full py-20 bg-[#05050A] text-white overflow-hidden font-sans selection:bg-[#13c8ec]/30"
-    >
-      {/* Background glow */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        <div className="absolute top-[30%] left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-[#13c8ec]/8 rounded-full blur-[120px]" />
+    <div className="rounded-3xl border border-white/[0.05] p-8 flex flex-col h-full" style={{ background: DEEP }}>
+      <div className="flex items-center gap-3 mb-2">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#5865f2" + "18", border: "1px solid #5865f2" + "30" }}>
+          <Hash size={18} style={{ color: "#5865f2" }} />
+        </div>
+        <div>
+          <h3 className="font-display text-lg font-bold text-ivory">Workspace Navigator</h3>
+          <p className="text-ivory/30 text-xs font-mono">Organized channels</p>
+        </div>
       </div>
-
-      <div className="relative z-10 max-w-6xl mx-auto px-6 flex flex-col gap-6">
-        {/* ── Row 1: Unified Chat (text left, mockup right) ── */}
-        <motion.div
-          {...fadeUp(0)}
-          className="grid md:grid-cols-2 gap-0 bg-[#0d1117] border border-white/7 rounded-3xl overflow-hidden"
-        >
-          {/* Left – text */}
-          <div className="flex flex-col justify-center px-10 py-10">
-            <div className="w-12 h-12 rounded-2xl bg-[#13c8ec]/15 border border-[#13c8ec]/25 flex items-center justify-center mb-6">
-              <MessageSquare className="w-5 h-5 text-[#13c8ec]" />
-            </div>
-            <h3 className="text-2xl md:text-3xl font-bold text-white mb-3">
-              Never lose a conversation
-            </h3>
-            <p className="text-slate-400 text-sm leading-relaxed mb-6 max-w-xs">
-              Sleek real-time messaging integrated directly with your
-              development workflow. DM mentors or chat with teammates instantly.
-            </p>
-            <ul className="flex flex-col gap-2.5">
-              {["Real-time code snippet sharing", "Voice & Video huddles"].map(
-                (item) => (
-                  <li
-                    key={item}
-                    className="flex items-center gap-2.5 text-slate-300 text-sm"
-                  >
-                    <span className="w-5 h-5 rounded-full border border-[#13c8ec]/50 bg-[#13c8ec]/10 flex items-center justify-center shrink-0">
-                      <Check
-                        className="w-3 h-3 text-[#13c8ec]"
-                        strokeWidth={2.5}
-                      />
-                    </span>
-                    {item}
-                  </li>
-                ),
-              )}
-            </ul>
-          </div>
-
-          {/* Right – chat mockup */}
-          <div className="flex items-center justify-center px-6 py-8 bg-[#090c11]">
-            <div className="w-full max-w-sm">
-              <ChatMockup />
-            </div>
+      <p className="text-ivory/40 text-sm leading-relaxed mb-6">
+        Deep-focus collaboration in specialized workspaces with organized channel trees.
+      </p>
+      <div className="flex-1 rounded-2xl p-4" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)" }}>
+        <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-2 mb-3 text-xs font-mono text-ivory/50 hover:text-ivory/70 transition-colors">
+          <ChevronRight size={12} className={"transition-transform duration-300 " + (expanded ? "rotate-90" : "")} />
+          <span className="uppercase tracking-widest text-[9px] font-bold">Project Phoenix</span>
+        </button>
+        <motion.div animate={{ height: expanded ? "auto" : 0, opacity: expanded ? 1 : 0 }} transition={{ duration: 0.35, ease: "easeInOut" }} className="overflow-hidden">
+          <div className="flex flex-col gap-1 pl-3">
+            {channels.map((ch) => (
+              <div key={ch.name} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs" style={{ background: ch.active ? ACCENT + "15" : "transparent", color: ch.active ? ACCENT : "rgba(250,248,245,0.4)" }}>
+                <Hash size={12} />
+                <span className="flex-1">{ch.name}</span>
+                {ch.unread > 0 && (
+                  <span className="w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center" style={{ background: ch.active ? ACCENT : "rgba(255,255,255,0.1)", color: ch.active ? "#fff" : "#FAF8F5" }}>
+                    {ch.unread}
+                  </span>
+                )}
+              </div>
+            ))}
           </div>
         </motion.div>
+      </div>
+    </div>
+  );
+}
 
-        {/* ── Row 2: Two cards side by side ── */}
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Workspaces card */}
-          <motion.div
-            {...fadeUp(0.12)}
-            className="bg-[#0d1117] border border-white/7 rounded-3xl px-8 py-8 flex flex-col"
-          >
-            <h3 className="text-2xl font-bold text-white mb-2">
-              Deep-focus collaboration
-            </h3>
-            <p className="text-slate-400 text-sm leading-relaxed">
-              Everything your team needs, organized in specialized workspaces.
-            </p>
-            <WorkspaceMockup />
-          </motion.div>
+/* ── Card 3: Schedule Protocol ────────────────────────────────────────── */
+function ScheduleCard() {
+  const days = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+  const [activeDay, setActiveDay] = useState(2);
 
-          {/* Feed card */}
-          <motion.div
-            {...fadeUp(0.22)}
-            className="bg-[#0d1117] border border-white/7 rounded-3xl px-8 py-8 flex flex-col"
-          >
-            <h3 className="text-2xl font-bold text-white mb-2">
-              Share your mind
-            </h3>
-            <p className="text-slate-400 text-sm leading-relaxed">
-              Your journey, your code, your growth.
-            </p>
-            <FeedMockup />
-          </motion.div>
+  useEffect(() => {
+    const interval = setInterval(() => setActiveDay((d) => (d + 1) % days.length), 2000);
+    return () => clearInterval(interval);
+  }, [days.length]);
+
+  return (
+    <div className="rounded-3xl border border-white/[0.05] p-8 flex flex-col h-full" style={{ background: DEEP }}>
+      <div className="flex items-center gap-3 mb-2">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#22c55e" + "18", border: "1px solid #22c55e" + "30" }}>
+          <Calendar size={18} style={{ color: "#22c55e" }} />
+        </div>
+        <div>
+          <h3 className="font-display text-lg font-bold text-ivory">Schedule Protocol</h3>
+          <p className="text-ivory/30 text-xs font-mono">Timed delivery</p>
+        </div>
+      </div>
+      <p className="text-ivory/40 text-sm leading-relaxed mb-6">
+        Schedule messages for the perfect moment. Never miss a timezone again.
+      </p>
+      <div className="flex-1 rounded-2xl p-4" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)" }}>
+        <div className="flex gap-1 mb-4">
+          {days.map((day, i) => (
+            <motion.div
+              key={day}
+              animate={{ background: i === activeDay ? ACCENT + "22" : "rgba(255,255,255,0.03)", borderColor: i === activeDay ? ACCENT + "44" : "rgba(255,255,255,0.05)" }}
+              className="flex-1 py-2 rounded-lg border text-center"
+            >
+              <span className="text-[9px] font-mono font-bold uppercase" style={{ color: i === activeDay ? ACCENT : "rgba(250,248,245,0.3)" }}>{day}</span>
+            </motion.div>
+          ))}
+        </div>
+        <div className="space-y-2">
+          {[{ time: "09:00", msg: "Stand-up reminder", icon: Clock }, { time: "14:30", msg: "Deploy notification", icon: Send }].map((item, i) => (
+            <motion.div
+              key={i}
+              animate={{ opacity: i === 0 || activeDay > 1 ? 1 : 0.3 }}
+              className="flex items-center gap-3 px-3 py-2 rounded-xl"
+              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}
+            >
+              <item.icon size={12} style={{ color: "#22c55e", flexShrink: 0 }} />
+              <span className="text-xs text-ivory/50 font-mono">{item.time}</span>
+              <span className="text-xs text-ivory/70 flex-1">{item.msg}</span>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Main Section ─────────────────────────────────────────────────────── */
+export default function Features() {
+  const sectionRef = useRef(null);
+  const cardsRef = useRef(null);
+
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      const cards = cardsRef.current?.children;
+      if (!cards) return;
+      gsap.fromTo(
+        cards,
+        { y: 60, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.8,
+          stagger: 0.15,
+          ease: "power3.out",
+          scrollTrigger: { trigger: sectionRef.current, start: "top 75%" },
+        }
+      );
+    });
+    return () => ctx.revert();
+  }, []);
+
+  return (
+    <section id="features" ref={sectionRef} className="bg-obsidian py-24 md:py-32 px-6">
+      <div className="max-w-6xl mx-auto">
+        <div className="text-center mb-16">
+          <h2 className="font-display text-3xl md:text-5xl font-bold tracking-[-0.02em] text-ivory mb-4">
+            Everything your team <span className="font-serif italic text-accent">needs</span>
+          </h2>
+          <p className="text-ivory/40 text-base md:text-lg font-light leading-relaxed max-w-2xl mx-auto">
+            Three pillars of modern communication — real-time messaging, organized workspaces, and intelligent scheduling.
+          </p>
+        </div>
+        <div ref={cardsRef} className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <MessagePulseCard />
+          <WorkspaceCard />
+          <ScheduleCard />
         </div>
       </div>
     </section>

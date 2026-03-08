@@ -10,7 +10,7 @@
 // Each colour is a Tailwind-compatible CSS value (used inline via style=).
 // ---------------------------------------------------------------------------
 const AVATAR_PALETTE = [
-  { bg: "#0e4e5c", text: "#13c8ec" }, // deep teal
+  { bg: "#0e4e5c", text: "#00d3bb" }, // deep teal
   { bg: "#0e3d52", text: "#38bdf8" }, // ocean blue
   { bg: "#0f3347", text: "#7dd3fc" }, // steel blue
   { bg: "#162e40", text: "#93c5fd" }, // slate blue

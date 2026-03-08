@@ -3,8 +3,22 @@
 import React, { useRef, useState } from "react";
 import Swal from "sweetalert2";
 import toast from "react-hot-toast";
+import { motion } from "framer-motion";
+import { Mail, Loader2, KeyRound } from "lucide-react";
 import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
+import AuthBackground from "@/components/auth/AuthBackground";
+import AuthCard from "@/components/auth/AuthCard";
+
+const stagger = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
+};
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 16 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
+};
 
 export default function ForgotPasswordPage() {
   const emailRef = useRef(null);
@@ -43,7 +57,6 @@ export default function ForgotPasswordPage() {
       );
 
       const data = await res.json();
-      console.log(data);
 
       if (!res.ok) throw new Error(data.error || "Failed to send reset email");
 
@@ -51,7 +64,7 @@ export default function ForgotPasswordPage() {
         title: "Success!",
         text: "Password reset email sent! Please check your inbox (and spam folder).",
         icon: "success",
-        confirmButtonColor: "#F7A703",
+        confirmButtonColor: "#00d3bb",
         confirmButtonText: "Got it",
         allowOutsideClick: false,
       });
@@ -84,81 +97,118 @@ export default function ForgotPasswordPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <span className="loading loading-spinner loading-lg text-primary"></span>
-      </div>
-    );
-  }
-
   return (
-    <>
+    <div className="min-h-screen bg-obsidian font-sans text-white flex flex-col relative overflow-hidden">
+      <AuthBackground />
+
       <NavBar />
-      {/* Background Effects */}
-      <div className="absolute inset-0 z-0">
-        <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-175 h-125 bg-teal-normal/20 rounded-full blur-[120px] opacity-40 pointer-events-none" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-size-[64px_64px] mask-[radial-gradient(ellipse_at_center,black_50%,transparent_100%)] pointer-events-none" />
-      </div>
 
-      <div className="flex min-h-screen items-center justify-center bg-base-200 px-4 sm:px-6 lg:px-8">
-        <div className="card w-full max-w-md bg-base-100 shadow-xl">
-          <div className="card-body p-8">
-            <h1 className="text-3xl font-bold tracking-tight text-white mb-3 flex justify-center">
-              <img
-                src="https://i.ibb.co/PG0X3Tbf/Convo-X-logo.png"
-                alt="ConvoX Logo"
-                className="h-10 w-auto"
-              />
-            </h1>
-            <h2 className="mb-8 text-center text-3xl font-bold text-[#3BCCED]">
-              Reset Your Password
-            </h2>
-
-            <form onSubmit={handleReset} className="space-y-6">
-              <div>
-                <input
-                  type="email"
-                  placeholder="Enter your registered email"
-                  className="input input-bordered w-full focus:input-primary"
-                  ref={emailRef}
-                  required
-                  autoFocus
-                  autoComplete="email"
-                />
-              </div>
-
-              {error && (
-                <div className="alert alert-error shadow-lg text-sm">
-                  <span>{error}</span>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                className="btn w-full bg-[#303082] text-white hover:bg-[#3BCCED] disabled:bg-gray-400"
-                disabled={loading}
+      <main className="relative z-10 flex-1 flex items-center justify-center w-full px-6 py-12 mt-16 md:mt-20">
+        <div className="w-full max-w-md">
+          <AuthCard>
+            <motion.div variants={stagger} initial="hidden" animate="visible">
+              {/* Icon */}
+              <motion.div
+                variants={fadeUp}
+                className="flex justify-center mb-6"
               >
-                {loading ? (
-                  <>
-                    <span className="loading loading-spinner loading-sm"></span>
-                    Sending...
-                  </>
-                ) : (
-                  "Send Reset Link"
-                )}
-              </button>
-            </form>
+                <motion.div
+                  initial={{ scale: 0.5, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 200,
+                    damping: 15,
+                    delay: 0.1,
+                  }}
+                  className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center border border-primary/20 shadow-[0_0_20px_rgba(0,211,187,0.15)]"
+                >
+                  <KeyRound className="w-8 h-8 text-primary" />
+                </motion.div>
+              </motion.div>
 
-            <div className="text-center mt-6 text-sm">
-              <a href="/login" className="link link-primary">
-                Back to Login
-              </a>
-            </div>
-          </div>
+              {/* Header */}
+              <motion.div variants={fadeUp} className="text-center mb-8">
+                <h1 className="text-2xl font-display font-bold tracking-tight text-white mb-2">
+                  Recovery Protocol
+                </h1>
+                <p className="font-serif italic text-slate-400">
+                  We&apos;ll send you a key to get back in.
+                </p>
+              </motion.div>
+
+              {/* Form */}
+              <form onSubmit={handleReset} className="space-y-5">
+                <motion.div variants={fadeUp} className="space-y-2">
+                  <label className="text-[10px] uppercase tracking-wider font-bold text-slate-500 ml-1">
+                    Email Address
+                  </label>
+                  <div className="relative">
+                    <Mail
+                      size={16}
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500"
+                    />
+                    <input
+                      type="email"
+                      placeholder="Enter your registered email"
+                      ref={emailRef}
+                      required
+                      autoFocus
+                      autoComplete="email"
+                      className={`block w-full pl-10 pr-4 py-3 bg-white/5 border ${error ? "border-red-500/50" : "border-white/10"} rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 text-white text-sm transition-all duration-300`}
+                    />
+                  </div>
+                </motion.div>
+
+                {error && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-red-400 text-xs font-medium"
+                  >
+                    {error}
+                  </motion.p>
+                )}
+
+                <motion.div variants={fadeUp}>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-3.5 rounded-lg text-sm font-bold text-background-dark bg-primary hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      "Send Reset Link"
+                    )}
+                  </motion.button>
+                </motion.div>
+              </form>
+
+              {/* Back to login */}
+              <motion.p
+                variants={fadeUp}
+                className="text-center text-xs text-slate-500 mt-8"
+              >
+                Remember your password?{" "}
+                <a
+                  href="/login"
+                  className="font-bold text-primary hover:text-primary/80 transition-colors"
+                >
+                  Back to Login
+                </a>
+              </motion.p>
+            </motion.div>
+          </AuthCard>
         </div>
-      </div>
+      </main>
+
       <Footer />
-    </>
+    </div>
   );
 }

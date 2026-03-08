@@ -2,56 +2,82 @@
 
 @plugin "daisyui" {
   themes:
-    light --default,
-    dark --prefersdark;
+    midnight-luxe-mint --default,
+    midnight-luxe-cyan;
 }
 
+/* ─── Shared palette variables (referenced by both themes) ──────────────── */
+
+/* ─── Midnight Luxe Mint (Default) ─────────────────────────────────────── */
 @plugin "daisyui/theme" {
-  name: "light";
+  name: "midnight-luxe-mint";
   default: true;
-  --color-primary: #13c8ec;
-  /* Updated to match your UI primary */
-  --color-secondary: teal;
+  --color-primary: #00d3bb;
+  --color-secondary: #009e8c;
 
-  /* Teal color palette */
-  --color-teal-light: #cef3fc;
-  --color-teal-light-hover: #b2ecf9;
-  --color-teal-light-active: #83e1f6;
-  --color-teal-normal: #13c8ec;
-  --color-teal-normal-hover: #0fb3d4;
-  --color-teal-normal-active: #0b9fbc;
-  --color-teal-dark: #088ba3;
-  --color-teal-dark-hover: #06758a;
-  --color-teal-dark-active: #045f70;
-  --color-teal-darker: #034858;
+  /* Mint palette only */
+  --color-light: #e6fbf8;
+  --color-light-hover: #d9f8f5;
+  --color-light-active: #b0f1ea;
+  --color-normal: #00d3bb;
+  --color-normal-hover: #00bea8;
+  --color-normal-active: #00a996;
+  --color-dark: #009e8c;
+  --color-dark-hover: #007f70;
+  --color-dark-active: #005f54;
+  --color-darker: #004a41;
 }
 
-@custom-variant dark (&:where([data-theme=night], [data-theme=night] *));
+/* ─── Midnight Luxe Cyan ────────────────────────────────────────────────── */
+@plugin "daisyui/theme" {
+  name: "midnight-luxe-cyan";
+  --color-primary: #13c8ec;
+  --color-secondary: #088ba3;
 
-/* --- Custom Styles for the Premium Login --- */
+  /* Cyan/Teal palette only */
+  --color-light: #cef3fc;
+  --color-light-hover: #b2ecf9;
+  --color-light-active: #83e1f6;
+  --color-normal: #13c8ec;
+  --color-normal-hover: #0fb3d4;
+  --color-normal-active: #0b9fbc;
+  --color-dark: #088ba3;
+  --color-dark-hover: #06758a;
+  --color-dark-active: #045f70;
+  --color-darker: #034858;
+}
+
+@custom-variant dark (&:where([data-theme=midnight-luxe-dark], [data-theme=midnight-luxe-dark] *));
+
+/* --- Midnight Luxe Theme Tokens (global — applies to all themes) --- */
 
 @theme {
-  /* Defining your custom colors in the Tailwind 4 theme block */
+  /* ── Base palette ── */
+  --color-obsidian: #0d0d12;
+  --color-ivory: #faf8f5;
+  --color-slate-surface: #1a1a2e;
+  --color-deep: #12121a;
+
+  /* ── Named color aliases (static, theme-independent) ── */
+  --color-accent: #00d3bb;
+  --color-accent-glow: rgba(0, 211, 187, 0.3);
+  --color-accent-dim: rgba(0, 211, 187, 0.08);
+  --color-cyan: #13c8ec;
+  --color-cyan-glow: rgba(19, 200, 236, 0.3);
+  --color-cyan-dim: rgba(19, 200, 236, 0.08);
+
+  /* ── Legacy tokens (backwards compat) ── */
   --color-background-light: #f6f8f8;
-  --color-background-dark: #0a0b0d;
+  --color-background-dark: #0d0d12;
+  --color-surface-dark: #1a1a2e;
+  --color-primary-glow: rgba(0, 211, 187, 0.3);
 
-  /* Teal palette – mirrors the light theme tokens for Tailwind utility use */
-  --color-teal-light: #e7fafd;
-  --color-teal-light-hover: #dcf7fc;
-  --color-teal-light-active: #b6eef9;
-  --color-teal-normal: #13c8ec;
-  --color-teal-normal-hover: #11b4d4;
-  --color-teal-normal-active: #0fa0bd;
-  --color-teal-dark: #0e96b1;
-  --color-teal-dark-hover: #0b788e;
-  --color-teal-dark-active: #095a6a;
-  --color-teal-darker: #074653;
-  /* Standardized with Landing Page */
-  --color-surface-dark: #161b22;
-  --color-primary-glow: rgba(19, 200, 236, 0.3);
+  /* ── Font stacks (global, theme-independent) ── */
+  --font-sans: var(--font-inter), "Inter", sans-serif;
+  --font-display: var(--font-jakarta), "Plus Jakarta Sans", sans-serif;
+  --font-serif: var(--font-cormorant), "Cormorant Garamond", serif;
+  --font-mono: var(--font-ibm-mono), "IBM Plex Mono", monospace;
 
-  --font-sans: var(--font-inter), "Inter", "sans-serif";
-  --font-display: var(--font-inter), "Inter", "sans-serif";
   --spacing-4_5: 1.125rem;
 }
 
@@ -63,11 +89,24 @@
   body {
     @apply bg-background-dark text-slate-200 font-sans antialiased;
   }
+
+  /* Noise texture overlay — eliminates flat digital feel */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 256px 256px;
+  }
 }
 
 @layer components {
   .glass-card {
-    background: rgba(22, 27, 34, 0.6);
+    background: rgba(18, 18, 26, 0.6);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -75,10 +114,68 @@
   }
 
   .glass-panel {
-    background: rgba(10, 15, 18, 0.7);
+    background: rgba(13, 13, 18, 0.7);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 1);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  /* Magnetic button base */
+  .btn-magnetic {
+    @apply relative overflow-hidden;
+    transition: all 300ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  .btn-magnetic:hover {
+    transform: scale(1.03);
+  }
+  .btn-magnetic:active {
+    transform: scale(0.98);
+  }
+
+  /* CTA with sliding background */
+  .btn-cta-primary {
+    @apply relative overflow-hidden;
+    transition: all 300ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    background: var(--color-primary);
+    color: #0d0d12;
+  }
+  .btn-cta-primary:hover {
+    transform: scale(1.03);
+  }
+  .btn-cta-primary:active {
+    transform: scale(0.98);
+  }
+  .btn-cta-primary .btn-bg {
+    @apply absolute inset-0;
+    background: linear-gradient(
+      135deg,
+      var(--color-secondary),
+      var(--color-primary)
+    );
+    transform: translateX(-101%);
+    transition: transform 400ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  .btn-cta-primary:hover .btn-bg {
+    transform: translateX(0);
+  }
+
+  .btn-cta-glass {
+    @apply relative overflow-hidden;
+    transition: all 300ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    background: rgba(26, 26, 46, 0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #faf8f5;
+  }
+  .btn-cta-glass:hover {
+    transform: scale(1.03);
+  }
+  .btn-cta-glass:active {
+    transform: scale(0.98);
+  }
+  .btn-cta-glass:hover {
+    border-color: color-mix(in srgb, var(--color-primary) 30%, transparent);
+    background: rgba(26, 26, 46, 0.8);
   }
 
   /* Hide scrollbar utility */
@@ -96,14 +193,13 @@
     @apply relative;
   }
 
-  /* When placeholder is shown (input is empty and not focused) */
-  .floating-group input:placeholder-shown+label {
+  .floating-group input:placeholder-shown + label {
     @apply top-3 text-base text-gray-500 scale-100;
   }
 
-  /* When focused or text is entered */
-  .floating-group input:not(:placeholder-shown)+label,
-  .floating-group input:focus+label {
-    @apply -top-3 scale-90 text-[#13c8ec] bg-transparent;
+  .floating-group input:not(:placeholder-shown) + label,
+  .floating-group input:focus + label {
+    @apply -top-3 scale-90 bg-transparent;
+    color: var(--color-primary);
   }
 }

@@ -18,11 +18,10 @@ import {
 
 gsap.registerPlugin(ScrollTrigger);
 
-// ─── Teal = #13c8ec ────────────────────────────────────────────────────────
-
-const TEAL = "#13c8ec";
-
-// ─── Static chat data ───────────────────────────────────────────────────────
+const ACCENT = "#00d3bb";
+const OBSIDIAN = "#0D0D12";
+const DEEP = "#12121a";
+const SURFACE = "#1a1a2e";
 
 const SIDEBAR_CONVERSATIONS = [
   {
@@ -38,10 +37,10 @@ const SIDEBAR_CONVERSATIONS = [
   },
   {
     id: "c2",
-    name: "dev-team 🛠️",
+    name: "dev-team ️",
     initials: "DT",
     groupColor: "#5865f2",
-    lastMsg: "Alex: merged the PR! 🎉",
+    lastMsg: "Alex: merged the PR! ",
     time: "09:38",
     online: false,
     unread: 2,
@@ -63,7 +62,7 @@ const SIDEBAR_CONVERSATIONS = [
     id: "c4",
     name: "Jordan Lee",
     avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Jordan",
-    lastMsg: "Let's sync tomorrow 📅",
+    lastMsg: "Let's sync tomorrow ",
     time: "Mon",
     online: false,
     unread: 0,
@@ -72,41 +71,25 @@ const SIDEBAR_CONVERSATIONS = [
   },
 ];
 
-// ─── Animation script ────────────────────────────────────────────────────────
-
-/*
-  Steps:
-  0  → clear
-  1  → incoming msg 1 appears
-  2  → outgoing msg 2 appears
-  3  → typing indicator appears
-  4  → typing gone, incoming msg 3 appears + reaction on msg 2
-  5  → "Seen" badge on msg 2
-  6  → (pause) → reset to 0
-*/
-
 const SCRIPT_TIMINGS = [
   { step: 1, delay: 700 },
   { step: 2, delay: 1600 },
   { step: 3, delay: 2700 },
   { step: 4, delay: 3900 },
   { step: 5, delay: 4700 },
-  { step: 0, delay: 7800 }, // loop
+  { step: 0, delay: 7800 },
 ];
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
 
 function WorkspaceSidebarMock() {
   return (
     <aside
-      className="shrink-0 flex flex-col items-center gap-2 py-3"
+      className="shrink-0 flex-col items-center gap-2 py-3 hidden md:flex"
       style={{
         width: 56,
-        background: "#0a0b0d",
+        background: OBSIDIAN,
         borderRight: "1px solid rgba(255,255,255,0.05)",
       }}
     >
-      {/* Home */}
       <div className="relative mb-1">
         <div
           className="absolute left-0 top-1/2 -translate-y-1/2 rounded-r-full"
@@ -130,8 +113,6 @@ function WorkspaceSidebarMock() {
           />
         </div>
       </div>
-
-      {/* Feed */}
       <div
         style={{
           width: 40,
@@ -141,12 +122,11 @@ function WorkspaceSidebarMock() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          color: TEAL,
+          color: ACCENT,
         }}
       >
         <Compass size={18} />
       </div>
-
       <div
         style={{
           width: 28,
@@ -156,8 +136,6 @@ function WorkspaceSidebarMock() {
           margin: "4px 0",
         }}
       />
-
-      {/* Workspaces */}
       {["M", "D"].map((letter, i) => (
         <div
           key={i}
@@ -177,8 +155,6 @@ function WorkspaceSidebarMock() {
           {letter}
         </div>
       ))}
-
-      {/* Add */}
       <div
         style={{
           width: 40,
@@ -189,7 +165,7 @@ function WorkspaceSidebarMock() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          color: `${TEAL}88`,
+          color: ACCENT + "88",
         }}
       >
         <Plus size={18} />
@@ -201,14 +177,13 @@ function WorkspaceSidebarMock() {
 function SidebarMock() {
   return (
     <aside
-      className="shrink-0 flex flex-col"
+      className="shrink-0 flex-col hidden sm:flex"
       style={{
         width: 220,
-        background: "#0f1318",
+        background: DEEP,
         borderRight: "1px solid rgba(255,255,255,0.05)",
       }}
     >
-      {/* Search bar */}
       <div
         style={{
           height: 52,
@@ -222,7 +197,7 @@ function SidebarMock() {
         <div
           style={{
             flex: 1,
-            background: "#080b0f",
+            background: OBSIDIAN,
             borderRadius: 6,
             display: "flex",
             alignItems: "center",
@@ -237,8 +212,6 @@ function SidebarMock() {
         </div>
         <Edit3 size={13} style={{ color: "#64748b" }} />
       </div>
-
-      {/* Active Now */}
       <div style={{ padding: "10px 10px 6px" }}>
         <p
           style={{
@@ -265,13 +238,15 @@ function SidebarMock() {
             >
               <div style={{ position: "relative" }}>
                 <img
-                  src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`}
+                  src={
+                    "https://api.dicebear.com/7.x/avataaars/svg?seed=" + name
+                  }
                   alt={name}
                   style={{
                     width: 32,
                     height: 32,
                     borderRadius: "50%",
-                    outline: `1.5px solid ${TEAL}80`,
+                    outline: "1.5px solid " + ACCENT + "80",
                     outlineOffset: 1,
                   }}
                 />
@@ -284,7 +259,7 @@ function SidebarMock() {
                     height: 9,
                     borderRadius: "50%",
                     background: "#22c55e",
-                    border: "2px solid #0f1318",
+                    border: "2px solid " + DEEP,
                   }}
                 />
               </div>
@@ -293,8 +268,6 @@ function SidebarMock() {
           ))}
         </div>
       </div>
-
-      {/* Section label */}
       <p
         style={{
           fontSize: 9,
@@ -307,8 +280,6 @@ function SidebarMock() {
       >
         Direct Messages
       </p>
-
-      {/* Conversations */}
       <div
         style={{
           flex: 1,
@@ -327,7 +298,7 @@ function SidebarMock() {
               gap: 8,
               padding: "6px 8px",
               borderRadius: 6,
-              background: conv.active ? "rgba(53,55,60,0.5)" : "transparent",
+              background: conv.active ? "rgba(26,26,46,0.7)" : "transparent",
               position: "relative",
               cursor: "default",
             }}
@@ -346,7 +317,6 @@ function SidebarMock() {
                 }}
               />
             )}
-            {/* Avatar */}
             <div style={{ position: "relative", flexShrink: 0 }}>
               {conv.isGroup ? (
                 <div
@@ -380,14 +350,13 @@ function SidebarMock() {
                       width: 9,
                       height: 9,
                       borderRadius: "50%",
-                      background: conv.online ? "#13c8ec" : "#475569",
-                      border: "2px solid #0f1318",
+                      background: conv.online ? ACCENT : "#475569",
+                      border: "2px solid " + DEEP,
                     }}
                   />
                 </>
               )}
             </div>
-            {/* Text */}
             <div style={{ flex: 1, minWidth: 0 }}>
               <div
                 style={{
@@ -402,7 +371,7 @@ function SidebarMock() {
                     fontSize: 12,
                     fontWeight: 500,
                     color:
-                      conv.active || conv.unread > 0 ? "#f1f5f9" : "#94a3b8",
+                      conv.active || conv.unread > 0 ? "#FAF8F5" : "#94a3b8",
                     whiteSpace: "nowrap",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
@@ -451,7 +420,6 @@ function SidebarMock() {
   );
 }
 
-// Incoming message bubble
 function IncomingBubble({ text }) {
   return (
     <motion.div
@@ -467,8 +435,8 @@ function IncomingBubble({ text }) {
       />
       <div
         style={{
-          background: "#161b22",
-          color: "#e2e8f0",
+          background: SURFACE,
+          color: "#FAF8F5",
           padding: "9px 13px",
           borderRadius: "14px 14px 14px 3px",
           fontSize: 12,
@@ -483,7 +451,6 @@ function IncomingBubble({ text }) {
   );
 }
 
-// Outgoing message bubble (with optional reaction + seen)
 function OutgoingBubble({ text, showReaction, showSeen }) {
   return (
     <div
@@ -494,27 +461,24 @@ function OutgoingBubble({ text, showReaction, showSeen }) {
         gap: 0,
       }}
     >
-      {/* Bubble */}
       <motion.div
         initial={{ opacity: 0, x: 16, scale: 0.93 }}
         animate={{ opacity: 1, x: 0, scale: 1 }}
         transition={{ duration: 0.32, ease: [0.34, 1.56, 0.64, 1] }}
         style={{
-          background: TEAL,
+          background: ACCENT,
           color: "#fff",
           padding: "9px 13px",
           borderRadius: "14px 14px 3px 14px",
           fontSize: 12,
           lineHeight: 1.5,
           maxWidth: 220,
-          boxShadow: `0 4px 14px ${TEAL}33`,
+          boxShadow: "0 4px 14px " + ACCENT + "33",
         }}
       >
         {text}
         <span style={{ fontSize: 9, opacity: 0.5, marginLeft: 8 }}>09:41</span>
       </motion.div>
-
-      {/* Reaction — in flow, peeks under the bubble with negative margin */}
       <AnimatePresence>
         {showReaction && (
           <motion.div
@@ -526,7 +490,7 @@ function OutgoingBubble({ text, showReaction, showSeen }) {
               marginTop: -8,
               marginRight: 6,
               marginBottom: 4,
-              background: "#1C2227",
+              background: DEEP,
               border: "1px solid rgba(255,255,255,0.1)",
               borderRadius: 99,
               padding: "2px 7px",
@@ -545,8 +509,6 @@ function OutgoingBubble({ text, showReaction, showSeen }) {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Seen badge */}
       <AnimatePresence>
         {showSeen && (
           <motion.span
@@ -559,14 +521,13 @@ function OutgoingBubble({ text, showReaction, showSeen }) {
               gap: 4,
               padding: "1px 8px",
               borderRadius: 99,
-              background: `${TEAL}22`,
-              color: TEAL,
+              background: ACCENT + "22",
+              color: ACCENT,
               fontSize: 8,
               fontWeight: 700,
             }}
           >
-            <CheckCheck size={9} />
-            Seen
+            <CheckCheck size={9} /> Seen
           </motion.span>
         )}
       </AnimatePresence>
@@ -574,7 +535,6 @@ function OutgoingBubble({ text, showReaction, showSeen }) {
   );
 }
 
-// Typing indicator
 function TypingIndicator() {
   return (
     <motion.div
@@ -591,7 +551,7 @@ function TypingIndicator() {
       />
       <div
         style={{
-          background: "#161b22",
+          background: SURFACE,
           padding: "10px 14px",
           borderRadius: "14px 14px 14px 3px",
           display: "flex",
@@ -623,8 +583,6 @@ function TypingIndicator() {
   );
 }
 
-// ─── Main DemoSection ─────────────────────────────────────────────────────────
-
 export default function DemoSection() {
   const sectionRef = useRef(null);
   const frameRef = useRef(null);
@@ -632,30 +590,27 @@ export default function DemoSection() {
   const timersRef = useRef([]);
 
   const runSequence = useCallback(() => {
-    // Clear any existing timers
     timersRef.current.forEach(clearTimeout);
     timersRef.current = [];
-
     SCRIPT_TIMINGS.forEach(({ step: s, delay }) => {
       const id = setTimeout(() => {
         setStep(s);
-        if (s === 0) runSequence(); // loop
+        if (s === 0) runSequence();
       }, delay);
       timersRef.current.push(id);
     });
   }, []);
 
-  // GSAP ScrollTrigger — entrance animation
   useEffect(() => {
     const ctx = gsap.context(() => {
       gsap.fromTo(
         frameRef.current,
-        { y: 80, opacity: 0, scale: 0.97 },
+        { y: 80, opacity: 0, scale: 0.9 },
         {
           y: 0,
           opacity: 1,
           scale: 1,
-          duration: 1,
+          duration: 1.2,
           ease: "power3.out",
           scrollTrigger: {
             trigger: sectionRef.current,
@@ -666,14 +621,12 @@ export default function DemoSection() {
         },
       );
     });
-
     return () => {
       ctx.revert();
       timersRef.current.forEach(clearTimeout);
     };
   }, [runSequence]);
 
-  // Derived state
   const showMsg1 = step >= 1;
   const showMsg2 = step >= 2;
   const showTyping = step === 3;
@@ -685,58 +638,36 @@ export default function DemoSection() {
     <section
       id="demo"
       ref={sectionRef}
-      style={{ background: "#05050A", padding: "100px 24px" }}
+      className="bg-obsidian py-24 md:py-32 px-6"
     >
-      {/* Heading */}
-      <div style={{ textAlign: "center", marginBottom: 56 }}>
-        <h2
-          style={{
-            fontSize: "clamp(28px, 5vw, 48px)",
-            fontWeight: 800,
-            color: "#f1f5f9",
-            lineHeight: 1.1,
-            marginBottom: 16,
-          }}
-        >
-          See ConvoX in Action
+      <div className="text-center mb-14 max-w-2xl mx-auto">
+        <h2 className="font-display text-3xl md:text-5xl font-bold tracking-[-0.02em] text-ivory mb-4">
+          See ConvoX{" "}
+          <span className="font-serif italic text-accent">in Action</span>
         </h2>
-        <p
-          style={{
-            fontSize: 16,
-            color: "#64748b",
-            maxWidth: 480,
-            margin: "0 auto",
-            lineHeight: 1.6,
-          }}
-        >
+        <p className="text-ivory/40 text-base md:text-lg font-light leading-relaxed">
           Real-time messaging, reactions, read receipts and more — all in one
           seamless interface.
         </p>
       </div>
 
-      {/* ── Browser Chrome Frame ── */}
       <div
-        style={{
-          maxWidth: 860,
-          margin: "0 auto",
-          opacity: 0, // GSAP will override this
-        }}
+        style={{ maxWidth: 860, margin: "0 auto", opacity: 0 }}
         ref={frameRef}
+        className="overflow-hidden"
       >
-        {/* Top bar (browser chrome) */}
         <div
+          className="rounded-t-3xl overflow-hidden"
           style={{
-            background: "#13171d",
+            background: DEEP,
             border: "1px solid rgba(255,255,255,0.07)",
             borderBottom: "none",
-            borderRadius: "16px 16px 0 0",
             padding: "12px 16px",
             display: "flex",
             alignItems: "center",
             gap: 12,
           }}
         >
-          {/* Traffic lights */}
           <div style={{ display: "flex", gap: 6 }}>
             {["#ff5f57", "#febc2e", "#28c840"].map((c) => (
               <div
@@ -751,15 +682,15 @@ export default function DemoSection() {
               />
             ))}
           </div>
-          {/* Fake URL bar */}
           <div
+            className="font-mono"
             style={{
               flex: 1,
               maxWidth: 320,
-              background: "#0a0b0d",
+              background: OBSIDIAN,
               border: "1px solid rgba(255,255,255,0.06)",
-              borderRadius: 6,
-              padding: "4px 12px",
+              borderRadius: 8,
+              padding: "5px 14px",
               fontSize: 11,
               color: "#475569",
               textAlign: "center",
@@ -769,39 +700,35 @@ export default function DemoSection() {
           </div>
         </div>
 
-        {/* ── App Shell ── */}
         <div
+          className="rounded-b-3xl overflow-hidden"
           style={{
             display: "flex",
-            height: 460,
+            height: "clamp(320px, 60vw, 460px)",
             border: "1px solid rgba(255,255,255,0.07)",
-            borderRadius: "0 0 16px 16px",
-            overflow: "hidden",
-            boxShadow: `0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04), 0 0 80px ${TEAL}18`,
+            boxShadow:
+              "0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04), 0 0 80px " +
+              ACCENT +
+              "12",
           }}
         >
-          {/* Left — WorkspaceSidebar */}
           <WorkspaceSidebarMock />
-
-          {/* Middle — SidebarChats */}
           <SidebarMock />
 
-          {/* Right — ChatWindow */}
           <main
             style={{
               flex: 1,
               display: "flex",
               flexDirection: "column",
-              background: "#080b0f",
+              background: OBSIDIAN,
               minWidth: 0,
             }}
           >
-            {/* Chat Header */}
             <header
               style={{
                 height: 56,
                 borderBottom: "1px solid rgba(255,255,255,0.05)",
-                background: "rgba(10,14,19,0.85)",
+                background: "rgba(13,13,18,0.85)",
                 backdropFilter: "blur(12px)",
                 display: "flex",
                 alignItems: "center",
@@ -819,7 +746,7 @@ export default function DemoSection() {
                       width: 34,
                       height: 34,
                       borderRadius: 10,
-                      outline: `2px solid ${TEAL}66`,
+                      outline: "2px solid " + ACCENT + "66",
                       outlineOffset: 1,
                     }}
                   />
@@ -832,7 +759,7 @@ export default function DemoSection() {
                       height: 10,
                       borderRadius: "50%",
                       background: "#22c55e",
-                      border: "2px solid #0a0e13",
+                      border: "2px solid " + OBSIDIAN,
                     }}
                   />
                 </div>
@@ -841,7 +768,7 @@ export default function DemoSection() {
                     style={{
                       fontSize: 13,
                       fontWeight: 700,
-                      color: "#f1f5f9",
+                      color: "#FAF8F5",
                       lineHeight: 1,
                     }}
                   >
@@ -865,12 +792,11 @@ export default function DemoSection() {
                         background: "#22c55e",
                         display: "inline-block",
                       }}
-                    />
+                    />{" "}
                     Online
                   </p>
                 </div>
               </div>
-
               <div style={{ display: "flex", gap: 4 }}>
                 {[Phone, Video, Info].map((Icon, i) => (
                   <div
@@ -892,7 +818,6 @@ export default function DemoSection() {
               </div>
             </header>
 
-            {/* Messages area */}
             <div
               style={{
                 flex: 1,
@@ -904,7 +829,6 @@ export default function DemoSection() {
                 justifyContent: "flex-end",
               }}
             >
-              {/* Date separator */}
               <div
                 style={{
                   display: "flex",
@@ -921,6 +845,7 @@ export default function DemoSection() {
                   }}
                 />
                 <span
+                  className="font-mono"
                   style={{
                     fontSize: 9,
                     color: "#475569",
@@ -941,16 +866,14 @@ export default function DemoSection() {
                   }}
                 />
               </div>
-
               <AnimatePresence>
                 {showMsg1 && (
                   <IncomingBubble
                     key="msg1"
-                    text="Hey! Have you tried the new ConvoX update? 🚀"
+                    text="Hey! Have you tried the new ConvoX update? "
                   />
                 )}
               </AnimatePresence>
-
               <AnimatePresence>
                 {showMsg2 && (
                   <div
@@ -965,33 +888,25 @@ export default function DemoSection() {
                   </div>
                 )}
               </AnimatePresence>
-
               <AnimatePresence>
                 {showTyping && <TypingIndicator key="typing" />}
               </AnimatePresence>
-
               <AnimatePresence>
                 {showMsg3 && (
                   <IncomingBubble
                     key="msg3"
-                    text="Right?? And the scheduled messages feature is 🔥"
+                    text="Right?? And the scheduled messages feature is "
                   />
                 )}
               </AnimatePresence>
             </div>
 
-            {/* Input bar */}
-            <div
-              style={{
-                padding: "8px 14px 12px",
-                flexShrink: 0,
-              }}
-            >
+            <div style={{ padding: "8px 14px 12px", flexShrink: 0 }}>
               <div
                 style={{
-                  background: "#12181f",
+                  background: DEEP,
                   border: "1px solid rgba(255,255,255,0.05)",
-                  borderRadius: 12,
+                  borderRadius: 14,
                   display: "flex",
                   alignItems: "center",
                   gap: 6,
@@ -1015,7 +930,7 @@ export default function DemoSection() {
                 <Smile size={16} style={{ color: "#475569", flexShrink: 0 }} />
                 <motion.div
                   animate={{
-                    background: [`${TEAL}33`, `${TEAL}88`, `${TEAL}33`],
+                    background: [ACCENT + "33", ACCENT + "88", ACCENT + "33"],
                   }}
                   transition={{
                     repeat: Infinity,
@@ -1037,7 +952,7 @@ export default function DemoSection() {
                     height="14"
                     viewBox="0 0 24 24"
                     fill="none"
-                    stroke={TEAL}
+                    stroke={ACCENT}
                     strokeWidth="2.2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -1051,30 +966,20 @@ export default function DemoSection() {
           </main>
         </div>
 
-        {/* Glow underneath */}
         <div
           style={{
             height: 1,
-            background: `linear-gradient(90deg, transparent, ${TEAL}40, transparent)`,
+            background:
+              "linear-gradient(90deg, transparent, " +
+              ACCENT +
+              "40, transparent)",
             borderRadius: 99,
             marginTop: -1,
           }}
         />
       </div>
 
-      {/* Feature pills below the frame */}
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          justifyContent: "center",
-          gap: 10,
-          marginTop: 40,
-          maxWidth: 860,
-          marginLeft: "auto",
-          marginRight: "auto",
-        }}
-      >
+      <div className="flex flex-wrap justify-center gap-2.5 mt-10 max-w-[860px] mx-auto">
         {[
           "Real-time Messaging",
           "Emoji Reactions",
@@ -1087,15 +992,7 @@ export default function DemoSection() {
         ].map((feat) => (
           <span
             key={feat}
-            style={{
-              padding: "5px 14px",
-              borderRadius: 99,
-              border: "1px solid rgba(255,255,255,0.07)",
-              background: "rgba(255,255,255,0.03)",
-              fontSize: 12,
-              color: "#64748b",
-              fontWeight: 500,
-            }}
+            className="px-3.5 py-1.5 rounded-full border border-white/[0.07] bg-white/[0.03] text-xs text-ivory/40 font-medium font-mono tracking-wide"
           >
             {feat}
           </span>

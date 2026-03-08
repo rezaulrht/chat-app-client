@@ -1,6 +1,16 @@
 // src/components/ChatDashboard/ChatDashboard.jsx
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import {
+  MessageCircle,
+  Compass,
+  Layers,
+  Plus,
+  ChevronUp,
+  Home,
+} from "lucide-react";
 
 import Sidebar from "./SidebarChats";
 import ChannelSidebar from "./ChannelSidebar";
@@ -30,6 +40,34 @@ export default function ChatDashboard() {
   // Responsive sidebar states
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
+
+  // Mobile bottom nav workspace picker
+  const [showMobileWsPicker, setShowMobileWsPicker] = useState(false);
+  const mobileWsPickerRef = useRef(null);
+
+  // Close mobile workspace picker on outside click
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (
+        mobileWsPickerRef.current &&
+        !mobileWsPickerRef.current.contains(e.target)
+      ) {
+        setShowMobileWsPicker(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("touchstart", handleClick);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("touchstart", handleClick);
+    };
+  }, []);
+
+  const workspaces = [
+    { id: "ws1", name: "Modernize", color: "#5865f2" },
+    { id: "ws2", name: "Dev Team", color: "#3ba55c" },
+    { id: "ws3", name: "Startup Hub", color: "#f59e0b" },
+  ];
 
   // Refs to avoid stale closures in socket handlers
   const conversationsRef = useRef([]);
@@ -87,26 +125,28 @@ export default function ChatDashboard() {
       toast.custom(
         (t) => (
           <div
-            className={`flex flex-col gap-1 px-4 py-3 rounded-xl shadow-xl border border-teal-normal/20 bg-[#15191C] text-slate-200 text-sm min-w-[260px] max-w-[340px] transition-all ${
+            className={`flex flex-col gap-1.5 px-4 py-3.5 rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.3)] glass-card ring-1 ring-accent/15 text-sm min-w-[280px] max-w-[360px] transition-all duration-300 ${
               t.visible
                 ? "opacity-100 translate-y-0"
-                : "opacity-0 -translate-y-2"
+                : "opacity-0 -translate-y-3"
             }`}
           >
-            <p className="font-semibold text-slate-100">
-              💬 New message from {msg.sender.name}
+            <p className="font-display font-bold text-ivory text-[13px]">
+              New message from {msg.sender.name}
             </p>
             {description && (
-              <p className="text-xs text-slate-400 truncate">{description}</p>
+              <p className="text-[11px] text-ivory/35 truncate font-mono">
+                {description}
+              </p>
             )}
             <button
               onClick={() => {
                 setActiveConversationId(msg.conversationId);
                 toast.dismiss(t.id);
               }}
-              className="mt-1 self-start text-xs font-bold text-teal-400 hover:text-teal-300 transition-colors"
+              className="mt-0.5 self-start text-[11px] font-bold text-accent hover:text-accent/80 transition-colors font-mono uppercase tracking-wider"
             >
-              Open Chat →
+              Open Chat &rarr;
             </button>
           </div>
         ),
@@ -374,97 +414,338 @@ export default function ChatDashboard() {
 
   if (loadingConversations) {
     return (
-      <div className="flex h-screen w-full bg-[#080b0f] items-center justify-center flex-col gap-4">
-        <div className="w-12 h-12 rounded-2xl bg-teal-normal/10 border border-teal-normal/20 flex items-center justify-center">
-          <div className="w-5 h-5 rounded-full border-2 border-teal-normal border-t-transparent animate-spin"></div>
+      <div className="flex h-screen w-full bg-obsidian items-center justify-center flex-col gap-6 relative overflow-hidden">
+        {/* Ambient glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-accent/5 blur-[120px] rounded-full pointer-events-none" />
+        <div className="relative z-10 flex flex-col items-center gap-5">
+          <div className="relative">
+            <div className="absolute inset-0 bg-accent/20 blur-2xl rounded-full animate-pulse" />
+            <div className="relative w-16 h-16 rounded-3xl glass-card flex items-center justify-center shadow-[0_0_40px_rgba(0,211,187,0.1)]">
+              <div className="w-6 h-6 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+            </div>
+          </div>
+          <div className="text-center space-y-1.5">
+            <p className="font-serif italic text-accent/60 text-lg">Loading</p>
+            <p className="text-ivory/20 text-[11px] font-mono tracking-wider uppercase">
+              Fetching conversations...
+            </p>
+          </div>
         </div>
-        <p className="text-slate-600 text-xs">Loading conversations...</p>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen w-full bg-[#080b0f] overflow-hidden font-sans relative">
+    <div className="flex flex-col md:flex-row h-screen w-full bg-obsidian overflow-hidden font-sans relative">
       {/* Mobile Backdrops */}
       {(isSidebarOpen ||
-        isWorkspaceOpen ||
         (showGroupInfo && activeConversation?.type === "group")) && (
         <div
           className="md:hidden fixed inset-0 bg-black/60 z-30 transition-opacity"
           onClick={() => {
             setIsSidebarOpen(false);
-            setIsWorkspaceOpen(false);
             setShowGroupInfo(false);
           }}
         />
       )}
 
-      {/* Workspace Sidebar Wrapper */}
-      <div
-        className={`absolute md:relative z-40 h-full transition-transform duration-300 md:translate-x-0 ${isWorkspaceOpen ? "translate-x-0" : "-translate-x-full"}`}
-      >
-        <WorkspaceSidebar
-          activeView={activeView}
-          setActiveView={(view) => {
-            setActiveView(view);
-            // Auto close workspace sidebar on mobile when switching views
-            if (window.innerWidth < 768) setIsWorkspaceOpen(false);
-          }}
-          selectedWorkspaceId={selectedWorkspaceId}
-          setSelectedWorkspaceId={setSelectedWorkspaceId}
-        />
-      </div>
-
-      {/* Secondary Sidebar Wrapper (SidebarChats or ChannelSidebar) */}
-      <div
-        className={`absolute md:relative z-40 h-full transition-transform duration-300 md:translate-x-0 w-80 md:w-auto flex shrink-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
-      >
-        {activeView === "home" ? (
-          <Sidebar
-            conversations={conversations}
-            activeConversationId={activeConversationId}
-            setActiveConversationId={(id) => {
-              setActiveConversationId(id);
-              setShowGroupInfo(false);
-              // On mobile, close sidebar when chat is selected
-              if (window.innerWidth < 768) setIsSidebarOpen(false);
-            }}
-            onNewConversation={handleNewConversation}
-            onConversationUpdate={handleConversationUpdate}
+      {/* Main row: sidebar + content (fills remaining height above bottom nav) */}
+      <div className="flex flex-1 min-h-0 w-full">
+        {/* ═══ Desktop: Unified Sidebar ═══ */}
+        <div className="hidden md:flex flex-col shrink-0 h-full w-80 overflow-hidden border-r border-white/[0.06]">
+          {/* Tab Navigation Header */}
+          <WorkspaceSidebar
+            activeView={activeView}
+            setActiveView={setActiveView}
+            selectedWorkspaceId={selectedWorkspaceId}
+            setSelectedWorkspaceId={setSelectedWorkspaceId}
           />
-        ) : activeView === "workspace" ? (
-          <ChannelSidebar selectedWorkspaceId={selectedWorkspaceId} />
-        ) : null}
-      </div>
 
-      <div className="flex-1 w-full h-full min-w-0 z-10">
-        {activeView === "feed" ? (
-          <FeedView toggleSidebar={() => setIsWorkspaceOpen((prev) => !prev)} />
-        ) : (
-          <ChatWindow
-            conversation={activeConversation}
-            onMessageSent={handleMessageSent}
-            onMessagesSeen={handleMessagesSeen}
-            showGroupInfo={showGroupInfo}
-            onToggleGroupInfo={() => setShowGroupInfo((v) => !v)}
-            onConversationUpdate={handleConversationUpdate}
-            conversations={conversations}
-            toggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
-            toggleWorkspace={() => setIsWorkspaceOpen((prev) => !prev)}
-          />
+          {/* Chats Tab → Conversation List */}
+          {activeView === "home" && (
+            <Sidebar
+              conversations={conversations}
+              activeConversationId={activeConversationId}
+              setActiveConversationId={(id) => {
+                setActiveConversationId(id);
+                setShowGroupInfo(false);
+              }}
+              onNewConversation={handleNewConversation}
+              onConversationUpdate={handleConversationUpdate}
+            />
+          )}
+
+          {/* Feed Tab → Minimal Sidebar Indicator */}
+          {activeView === "feed" && (
+            <div className="flex-1 glass-panel flex flex-col items-center justify-center p-8 text-center">
+              <div className="w-16 h-16 rounded-2xl glass-card flex items-center justify-center mb-5 shadow-[0_0_30px_rgba(0,211,187,0.06)]">
+                <Compass size={28} className="text-accent/40" />
+              </div>
+              <p className="text-ivory/50 text-[15px] font-display font-bold mb-1.5">
+                Global Feed
+              </p>
+              <p className="text-ivory/20 text-[11px] font-mono leading-relaxed max-w-[200px]">
+                Browse posts and updates from the community
+              </p>
+              <div className="w-12 h-px bg-gradient-to-r from-transparent via-accent/15 to-transparent mt-6 mb-4" />
+              <p className="text-ivory/10 text-[9px] font-mono uppercase tracking-widest">
+                Viewing feed →
+              </p>
+            </div>
+          )}
+
+          {/* Spaces Tab → Workspace Picker (no workspace selected) */}
+          {activeView === "workspace" && !selectedWorkspaceId && (
+            <div className="flex-1 glass-panel flex flex-col overflow-hidden">
+              <div className="px-4 py-3 border-b border-white/[0.06]">
+                <p className="text-[10px] font-mono font-bold uppercase tracking-widest text-ivory/25">
+                  Your Workspaces
+                </p>
+              </div>
+              <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
+                {workspaces.map((ws) => (
+                  <button
+                    key={ws.id}
+                    onClick={() => {
+                      setActiveView("workspace");
+                      setSelectedWorkspaceId(ws.id);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/[0.04] active:bg-white/[0.08] transition-all duration-150 group"
+                  >
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-display font-bold text-white/80 transition-all group-hover:shadow-lg"
+                      style={{
+                        background: ws.color + "20",
+                        border: "1px solid " + ws.color + "30",
+                      }}
+                    >
+                      {ws.name[0]}
+                    </div>
+                    <div className="flex-1 text-left min-w-0">
+                      <p className="text-ivory/70 text-sm font-display font-semibold truncate group-hover:text-ivory transition-colors">
+                        {ws.name}
+                      </p>
+                      <p className="text-ivory/15 text-[10px] font-mono mt-0.5">
+                        Workspace
+                      </p>
+                    </div>
+                  </button>
+                ))}
+                <button className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-ivory/20 hover:text-accent hover:bg-accent/5 transition-all duration-150 mt-2">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center border border-dashed border-white/10 hover:border-accent/30 transition-colors">
+                    <Plus size={18} />
+                  </div>
+                  <span className="text-sm font-display font-semibold">
+                    Create Workspace
+                  </span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Spaces Tab → Channel List (workspace selected) */}
+          {activeView === "workspace" && selectedWorkspaceId && (
+            <ChannelSidebar
+              selectedWorkspaceId={selectedWorkspaceId}
+              onBack={() => setSelectedWorkspaceId(null)}
+            />
+          )}
+        </div>
+
+        {/* ═══ Mobile: Slide-in Sidebar ═══ */}
+        <div
+          className={`md:hidden absolute z-40 h-[calc(100%-3.5rem)] transition-transform duration-300 w-[85vw] sm:w-80 flex shrink-0 ${
+            isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
+          {activeView === "home" ? (
+            <Sidebar
+              conversations={conversations}
+              activeConversationId={activeConversationId}
+              setActiveConversationId={(id) => {
+                setActiveConversationId(id);
+                setShowGroupInfo(false);
+                if (window.innerWidth < 768) setIsSidebarOpen(false);
+              }}
+              onNewConversation={handleNewConversation}
+              onConversationUpdate={handleConversationUpdate}
+            />
+          ) : activeView === "workspace" ? (
+            <ChannelSidebar selectedWorkspaceId={selectedWorkspaceId} />
+          ) : null}
+        </div>
+
+        {/* Main content */}
+        <div className="flex-1 w-full h-full min-w-0 z-10">
+          {activeView === "feed" ? (
+            <FeedView />
+          ) : (
+            <ChatWindow
+              conversation={activeConversation}
+              onMessageSent={handleMessageSent}
+              onMessagesSeen={handleMessagesSeen}
+              showGroupInfo={showGroupInfo}
+              onToggleGroupInfo={() => setShowGroupInfo((v) => !v)}
+              onConversationUpdate={handleConversationUpdate}
+              conversations={conversations}
+              toggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
+              toggleWorkspace={() => setIsWorkspaceOpen((prev) => !prev)}
+            />
+          )}
+        </div>
+
+        {showGroupInfo && activeConversation?.type === "group" && (
+          <div className="absolute top-0 right-0 h-full md:relative z-40 shrink-0">
+            <GroupInfoPanel
+              conversation={activeConversation}
+              currentUser={currentUser}
+              onClose={() => setShowGroupInfo(false)}
+              onConversationUpdate={handleConversationUpdate}
+            />
+          </div>
         )}
       </div>
 
-      {showGroupInfo && activeConversation?.type === "group" && (
-        <div className="absolute top-0 right-0 h-full md:relative z-40 shrink-0">
-          <GroupInfoPanel
-            conversation={activeConversation}
-            currentUser={currentUser}
-            onClose={() => setShowGroupInfo(false)}
-            onConversationUpdate={handleConversationUpdate}
-          />
+      {/* ═══ Mobile Bottom Navigation Bar ═══ */}
+      <nav className="md:hidden h-14 shrink-0 glass-panel border-t border-white/[0.06] flex items-center justify-around px-2 relative z-50">
+        {/* Home Tab */}
+        <Link
+          href="/"
+          className="flex flex-col items-center justify-center gap-0.5 px-3 py-1 rounded-xl transition-all duration-200 text-ivory/30 active:text-accent"
+        >
+          <Home size={20} />
+          <span className="text-[9px] font-bold font-mono uppercase tracking-wider">
+            Home
+          </span>
+        </Link>
+
+        {/* Chats Tab */}
+        <button
+          onClick={() => {
+            setActiveView("home");
+            setShowMobileWsPicker(false);
+            setIsSidebarOpen(true);
+          }}
+          className={`flex flex-col items-center justify-center gap-0.5 px-4 py-1 rounded-xl transition-all duration-200 ${
+            activeView === "home" ? "text-accent" : "text-ivory/30"
+          }`}
+        >
+          <MessageCircle size={20} />
+          <span className="text-[9px] font-bold font-mono uppercase tracking-wider">
+            Chats
+          </span>
+          {activeView === "home" && (
+            <div className="absolute -top-px left-1/2 -translate-x-[calc(50%+3.3rem)] w-8 h-0.5 bg-accent rounded-b-full shadow-[0_0_8px_rgba(0,211,187,0.5)]" />
+          )}
+        </button>
+
+        {/* Feed Tab */}
+        <button
+          onClick={() => {
+            setActiveView("feed");
+            setSelectedWorkspaceId(null);
+            setShowMobileWsPicker(false);
+            if (window.innerWidth < 768) setIsSidebarOpen(false);
+          }}
+          className={`flex flex-col items-center justify-center gap-0.5 px-4 py-1 rounded-xl transition-all duration-200 ${
+            activeView === "feed" ? "text-accent" : "text-ivory/30"
+          }`}
+        >
+          <Compass size={20} />
+          <span className="text-[9px] font-bold font-mono uppercase tracking-wider">
+            Feed
+          </span>
+          {activeView === "feed" && (
+            <div className="absolute -top-px left-1/2 -translate-x-1/2 w-8 h-0.5 bg-accent rounded-b-full shadow-[0_0_8px_rgba(0,211,187,0.5)]" />
+          )}
+        </button>
+
+        {/* Workspaces Tab */}
+        <div className="relative" ref={mobileWsPickerRef}>
+          <button
+            onClick={() => setShowMobileWsPicker((v) => !v)}
+            className={`flex flex-col items-center justify-center gap-0.5 px-4 py-1 rounded-xl transition-all duration-200 ${
+              activeView === "workspace" ? "text-accent" : "text-ivory/30"
+            }`}
+          >
+            <Layers size={20} />
+            <span className="text-[9px] font-bold font-mono uppercase tracking-wider">
+              Spaces
+            </span>
+            {activeView === "workspace" && (
+              <div className="absolute -top-px left-1/2 -translate-x-[calc(50%-3.3rem)] w-8 h-0.5 bg-accent rounded-b-full shadow-[0_0_8px_rgba(0,211,187,0.5)]" />
+            )}
+          </button>
+
+          {/* Workspace Picker Popover */}
+          {showMobileWsPicker && (
+            <div className="absolute bottom-full right-0 mb-3 w-52 glass-card rounded-2xl border border-white/[0.08] shadow-[0_-12px_40px_rgba(0,0,0,0.5)] overflow-hidden animate-in slide-in-from-bottom-2 duration-200">
+              <div className="p-2 border-b border-white/[0.06]">
+                <p className="text-[9px] font-mono font-bold uppercase tracking-widest text-ivory/25 px-2 py-1">
+                  Workspaces
+                </p>
+              </div>
+              <div className="p-1.5 flex flex-col gap-0.5">
+                {workspaces.map((ws) => {
+                  const isActive =
+                    activeView === "workspace" && selectedWorkspaceId === ws.id;
+                  return (
+                    <button
+                      key={ws.id}
+                      onClick={() => {
+                        setActiveView("workspace");
+                        setSelectedWorkspaceId(ws.id);
+                        setShowMobileWsPicker(false);
+                        setIsSidebarOpen(true);
+                      }}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 ${
+                        isActive
+                          ? "bg-accent/10 ring-1 ring-accent/20"
+                          : "hover:bg-white/[0.04] active:bg-white/[0.08]"
+                      }`}
+                    >
+                      <div
+                        className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-display font-bold text-white/80 transition-all ${
+                          isActive ? "shadow-lg" : ""
+                        }`}
+                        style={{
+                          background: isActive
+                            ? ws.color + "40"
+                            : ws.color + "25",
+                          border:
+                            "1px solid " + ws.color + (isActive ? "60" : "30"),
+                        }}
+                      >
+                        {ws.name[0]}
+                      </div>
+                      <span
+                        className={`text-sm font-display font-semibold truncate ${
+                          isActive ? "text-accent" : "text-ivory/60"
+                        }`}
+                      >
+                        {ws.name}
+                      </span>
+                      {isActive && (
+                        <div className="ml-auto w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_6px_rgba(0,211,187,0.6)]" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="p-1.5 border-t border-white/[0.06]">
+                <button className="flex items-center gap-3 px-3 py-2.5 rounded-xl w-full text-ivory/25 hover:text-accent hover:bg-accent/5 transition-all duration-150">
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center border border-dashed border-white/10 hover:border-accent/30 transition-colors">
+                    <Plus size={16} />
+                  </div>
+                  <span className="text-sm font-display font-semibold">
+                    Create Workspace
+                  </span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </nav>
     </div>
   );
 }

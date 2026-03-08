@@ -33,7 +33,7 @@ export default function CreateGroupModal({ onGroupCreated }) {
     }
   }, [isOpen]);
 
-  // Debounced user search — same API as the New Chat modal in SidebarChats
+  // Debounced user search
   useEffect(() => {
     if (!searchQuery.trim()) {
       setSearchResults([]);
@@ -48,7 +48,6 @@ export default function CreateGroupModal({ onGroupCreated }) {
           `/api/chat/users?q=${encodeURIComponent(searchQuery)}`,
           { signal: controller.signal },
         );
-        // Exclude already-selected members from results
         setSearchResults(
           res.data.filter((u) => !selectedMembers.some((m) => m._id === u._id)),
         );
@@ -82,7 +81,6 @@ export default function CreateGroupModal({ onGroupCreated }) {
     setAvatarPreview(null);
   };
 
-  // Add a user to the selection
   const addMember = (user) => {
     if (selectedMembers.length >= MAX_MEMBERS) {
       toast.error(`Groups can have at most ${MAX_MEMBERS + 1} members`);
@@ -93,12 +91,10 @@ export default function CreateGroupModal({ onGroupCreated }) {
     setSearchQuery("");
   };
 
-  // Remove a user from the selection
   const removeMember = (userId) => {
     setSelectedMembers((prev) => prev.filter((m) => m._id !== userId));
   };
 
-  // Submit
   const handleCreateGroup = async () => {
     if (!groupName.trim()) {
       toast.error("Please enter a group name");
@@ -151,10 +147,8 @@ export default function CreateGroupModal({ onGroupCreated }) {
     };
   }, [avatarPreview]);
 
-  // Live group initials for the avatar preview
   const initials = getGroupInitials(groupName);
   const avatarColor = getGroupAvatarColor(groupName);
-
   const canSubmit =
     !loading && groupName.trim().length > 0 && selectedMembers.length >= 2;
 
@@ -163,54 +157,55 @@ export default function CreateGroupModal({ onGroupCreated }) {
       {/* Trigger button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="w-6 h-6 rounded-md text-slate-500 hover:bg-white/5 hover:text-slate-300 flex items-center justify-center transition-all"
+        className="w-6 h-6 rounded-md text-ivory/30 hover:bg-white/[0.06] hover:text-ivory/60 flex items-center justify-center transition-all duration-200"
         title="New Group"
       >
         <UserPlus size={12} />
       </button>
 
-      {/* Modal backdrop - Rendered in Portal to escape sidebar stacking context */}
+      {/* Modal */}
       {isOpen &&
         typeof document !== "undefined" &&
         createPortal(
           <div
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4"
             onClick={handleClose}
           >
             <div
-              className="bg-[#0f1318] w-full max-w-lg rounded-3xl border border-white/8 shadow-2xl shadow-black/50 overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200"
+              className="glass-card w-full max-w-lg rounded-3xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[90vh] ring-1 ring-white/[0.08]"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* ── Header ─────────────────────────────────────── */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-white/6 shrink-0">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-xl bg-teal-normal/15 border border-teal-normal/25 flex items-center justify-center">
-                    <Users size={14} className="text-teal-normal" />
+              {/* ── Header ── */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06] shrink-0 relative">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center shadow-[0_0_16px_rgba(0,211,187,0.08)]">
+                    <Users size={15} className="text-accent" />
                   </div>
                   <div>
-                    <h2 className="text-white font-bold text-sm leading-tight">
+                    <h2 className="text-ivory font-display font-bold text-sm leading-tight">
                       New Group
                     </h2>
-                    <p className="text-slate-600 text-[10px]">
+                    <p className="text-ivory/20 text-[10px] font-mono">
                       Add at least 2 members
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={handleClose}
-                  className="w-7 h-7 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all"
+                  className="w-7 h-7 rounded-xl bg-white/[0.04] flex items-center justify-center hover:bg-white/[0.08] transition-all duration-200"
                 >
-                  <X size={14} className="text-slate-400" />
+                  <X size={14} className="text-ivory/30" />
                 </button>
+                <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent/10 to-transparent" />
               </div>
 
-              {/* ── Scrollable body ─────────────────────────────── */}
+              {/* ── Scrollable body ── */}
               <div className="overflow-y-auto flex-1 scrollbar-hide px-6 py-5 space-y-5">
                 {/* Avatar + Name row */}
                 <div className="flex items-center gap-4">
                   {/* Avatar upload */}
                   <label className="cursor-pointer group shrink-0">
-                    <div className="w-16 h-16 rounded-2xl overflow-hidden relative border-2 border-dashed border-teal-normal/40 hover:border-teal-normal/70 transition-colors">
+                    <div className="w-16 h-16 rounded-2xl overflow-hidden relative border-2 border-dashed border-accent/30 hover:border-accent/60 transition-all duration-300 shadow-[0_0_20px_rgba(0,211,187,0.05)] hover:shadow-[0_0_20px_rgba(0,211,187,0.12)]">
                       {avatarPreview ? (
                         <>
                           <Image
@@ -220,12 +215,11 @@ export default function CreateGroupModal({ onGroupCreated }) {
                             className="object-cover"
                             unoptimized
                           />
-                          {/* Remove overlay */}
                           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
                             <button
                               type="button"
                               onClick={removeAvatar}
-                              className="text-white"
+                              className="text-ivory"
                             >
                               <X size={18} />
                             </button>
@@ -237,12 +231,12 @@ export default function CreateGroupModal({ onGroupCreated }) {
                           style={{
                             backgroundColor: groupName
                               ? avatarColor.bg
-                              : "#1a1f26",
+                              : "rgba(26,26,46,0.6)",
                           }}
                         >
                           {groupName ? (
                             <span
-                              className="text-lg font-black leading-none"
+                              className="text-lg font-display font-black leading-none"
                               style={{ color: avatarColor.text }}
                             >
                               {initials}
@@ -250,7 +244,7 @@ export default function CreateGroupModal({ onGroupCreated }) {
                           ) : (
                             <Upload
                               size={18}
-                              className="text-teal-normal/60 group-hover:text-teal-normal transition-colors"
+                              className="text-accent/50 group-hover:text-accent transition-colors"
                             />
                           )}
                         </div>
@@ -271,11 +265,11 @@ export default function CreateGroupModal({ onGroupCreated }) {
                       value={groupName}
                       onChange={(e) => setGroupName(e.target.value)}
                       maxLength={100}
-                      placeholder="Group name…"
-                      className="w-full bg-white/5 rounded-2xl py-3 px-4 text-sm outline-none border border-white/5 focus:border-teal-normal/40 focus:bg-white/8 text-slate-200 placeholder:text-slate-600 transition-all"
+                      placeholder="Group name..."
+                      className="w-full glass-card rounded-2xl py-3 px-4 text-sm outline-none focus:ring-1 focus:ring-accent/30 text-ivory/80 placeholder:text-ivory/15 transition-all font-display"
                     />
-                    <p className="text-[10px] text-slate-700 mt-1.5 pl-1">
-                      {groupName.length}/100 characters
+                    <p className="text-[10px] text-ivory/10 mt-1.5 pl-1 font-mono">
+                      {groupName.length}/100
                     </p>
                   </div>
                 </div>
@@ -286,7 +280,7 @@ export default function CreateGroupModal({ onGroupCreated }) {
                     {selectedMembers.map((member) => (
                       <div
                         key={member._id}
-                        className="flex items-center gap-1.5 bg-teal-normal/12 border border-teal-normal/25 text-teal-300 pl-1 pr-2 py-1 rounded-full text-xs"
+                        className="flex items-center gap-1.5 bg-accent/10 border border-accent/20 text-accent/80 pl-1 pr-2 py-1 rounded-full text-xs"
                       >
                         <Image
                           src={
@@ -299,12 +293,12 @@ export default function CreateGroupModal({ onGroupCreated }) {
                           className="rounded-full"
                           unoptimized
                         />
-                        <span className="font-medium">
+                        <span className="font-display font-semibold">
                           {member.name.split(" ")[0]}
                         </span>
                         <button
                           onClick={() => removeMember(member._id)}
-                          className="text-teal-400/60 hover:text-red-400 transition-colors ml-0.5"
+                          className="text-accent/50 hover:text-red-400 transition-colors ml-0.5"
                         >
                           <X size={12} />
                         </button>
@@ -317,7 +311,7 @@ export default function CreateGroupModal({ onGroupCreated }) {
                 <div>
                   <div className="relative mb-2">
                     <Search
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-ivory/15"
                       size={14}
                     />
                     <input
@@ -325,24 +319,25 @@ export default function CreateGroupModal({ onGroupCreated }) {
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search people to add…"
-                      className="w-full bg-white/5 rounded-2xl py-2.5 pl-9 pr-4 text-sm outline-none border border-white/5 focus:border-teal-normal/40 text-slate-200 placeholder:text-slate-600 transition-all"
+                      placeholder="Search people to add..."
+                      className="w-full glass-card rounded-2xl py-2.5 pl-9 pr-4 text-sm outline-none focus:ring-1 focus:ring-accent/30 text-ivory/80 placeholder:text-ivory/15 transition-all"
                     />
                   </div>
 
-                  {/* Results list */}
                   <div className="space-y-0.5 max-h-52 overflow-y-auto scrollbar-hide">
                     {searching && (
                       <div className="flex items-center justify-center gap-2 py-5">
-                        <div className="w-4 h-4 rounded-full border-2 border-teal-normal border-t-transparent animate-spin" />
-                        <p className="text-slate-500 text-xs">Searching…</p>
+                        <div className="w-4 h-4 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+                        <p className="text-ivory/25 text-xs font-mono">
+                          Searching...
+                        </p>
                       </div>
                     )}
 
                     {!searching &&
                       searchQuery &&
                       searchResults.length === 0 && (
-                        <p className="text-center text-slate-600 text-xs py-5">
+                        <p className="text-center text-ivory/15 text-xs py-5 font-mono">
                           No users found
                         </p>
                       )}
@@ -350,7 +345,7 @@ export default function CreateGroupModal({ onGroupCreated }) {
                     {!searching &&
                       !searchQuery &&
                       selectedMembers.length === 0 && (
-                        <p className="text-center text-slate-700 text-xs py-5">
+                        <p className="text-center text-ivory/10 text-xs py-5">
                           Search for friends to add to the group
                         </p>
                       )}
@@ -363,11 +358,12 @@ export default function CreateGroupModal({ onGroupCreated }) {
                         <div
                           key={user._id}
                           onClick={() => !isSelected && addMember(user)}
-                          className={`flex items-center gap-3 p-3 rounded-2xl cursor-pointer border transition-all ${
-                            isSelected
-                              ? "bg-teal-normal/8 border-teal-normal/20 opacity-50 cursor-not-allowed"
-                              : "hover:bg-teal-normal/8 border-transparent hover:border-teal-normal/15"
-                          }`}
+                          className={
+                            "flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all duration-200 " +
+                            (isSelected
+                              ? "glass-card ring-1 ring-accent/20 opacity-50 cursor-not-allowed"
+                              : "hover:bg-white/[0.04] hover:ring-1 hover:ring-accent/10")
+                          }
                         >
                           <div className="relative shrink-0">
                             <Image
@@ -378,30 +374,32 @@ export default function CreateGroupModal({ onGroupCreated }) {
                               alt={user.name}
                               width={38}
                               height={38}
-                              className="rounded-full"
+                              className="rounded-xl"
                               unoptimized
                             />
                             {onlineUsers?.get(user._id)?.online && (
-                              <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-400 rounded-full border-2 border-[#0f1318]" />
+                              <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-deep shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-slate-200 text-sm font-semibold truncate">
+                            <p className="text-ivory/80 text-sm font-display font-semibold truncate">
                               {user.name}
                             </p>
                             <p
-                              className={`text-xs ${onlineUsers?.get(user._id)?.online ? "text-green-400" : "text-slate-600"}`}
+                              className={
+                                "text-xs font-mono " +
+                                (onlineUsers?.get(user._id)?.online
+                                  ? "text-emerald-400"
+                                  : "text-ivory/15")
+                              }
                             >
                               {onlineUsers?.get(user._id)?.online
-                                ? "● Online"
+                                ? "Online"
                                 : user.email}
                             </p>
                           </div>
                           {isSelected && (
-                            <Check
-                              size={14}
-                              className="text-teal-normal shrink-0"
-                            />
+                            <Check size={14} className="text-accent shrink-0" />
                           )}
                         </div>
                       );
@@ -410,30 +408,30 @@ export default function CreateGroupModal({ onGroupCreated }) {
                 </div>
               </div>
 
-              {/* ── Footer ─────────────────────────────────────── */}
-              <div className="px-6 py-4 border-t border-white/6 flex gap-3 shrink-0">
+              {/* ── Footer ── */}
+              <div className="px-6 py-4 border-t border-white/[0.06] flex gap-3 shrink-0">
                 <button
                   onClick={handleClose}
-                  className="flex-1 py-3 rounded-2xl text-sm font-medium border border-white/8 text-slate-400 hover:bg-white/5 hover:text-slate-200 transition-all"
+                  className="flex-1 py-3 rounded-2xl text-sm font-medium border border-white/[0.06] text-ivory/30 hover:bg-white/[0.04] hover:text-ivory/60 transition-all duration-200"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleCreateGroup}
                   disabled={!canSubmit}
-                  className="flex-1 py-3 rounded-2xl text-sm font-semibold bg-teal-normal hover:bg-teal-dark disabled:bg-white/8 disabled:text-slate-600 text-black disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 active:scale-95 shadow-lg shadow-teal-normal/15"
+                  className="flex-1 py-3 rounded-2xl text-sm font-display font-bold bg-accent hover:bg-accent/85 disabled:bg-white/[0.04] disabled:text-ivory/15 text-obsidian disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.97] shadow-[0_8px_24px_-6px_rgba(0,211,187,0.3)] disabled:shadow-none"
                 >
                   {loading ? (
                     <>
-                      <div className="w-4 h-4 rounded-full border-2 border-black/40 border-t-transparent animate-spin" />
-                      Creating…
+                      <div className="w-4 h-4 rounded-full border-2 border-obsidian/40 border-t-transparent animate-spin" />
+                      Creating...
                     </>
                   ) : (
                     <>
                       <Users size={15} />
                       Create Group
                       {selectedMembers.length >= 2 && (
-                        <span className="text-[10px] bg-black/20 rounded-full px-1.5 py-0.5 font-bold">
+                        <span className="text-[10px] bg-obsidian/20 rounded-full px-1.5 py-0.5 font-mono font-bold">
                           {selectedMembers.length + 1}
                         </span>
                       )}

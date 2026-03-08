@@ -203,39 +203,45 @@ export default function GroupInfoPanel({
   };
 
   return (
-    <aside className="w-80 shrink-0 flex flex-col h-full bg-[#0f1318] border-l border-white/5 overflow-hidden">
+    <aside className="w-full sm:w-80 shrink-0 flex flex-col h-full glass-panel overflow-hidden">
       {/* ── Panel header ── */}
-      <div className="h-[68px] flex items-center justify-between px-4 border-b border-white/5 shrink-0">
-        <div className="flex items-center gap-2">
-          <Users size={14} className="text-teal-400" />
-          <span className="text-sm font-semibold text-slate-200">
+      <div className="h-[68px] flex items-center justify-between px-5 border-b border-white/[0.06] shrink-0 relative">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center">
+            <Users size={13} className="text-accent" />
+          </div>
+          <span className="text-sm font-display font-bold text-ivory/80">
             Group Info
           </span>
         </div>
         <button
           onClick={onClose}
-          className="w-7 h-7 rounded-lg hover:bg-white/6 flex items-center justify-center text-slate-500 hover:text-slate-300 transition-all"
+          className="w-7 h-7 rounded-xl hover:bg-white/[0.06] flex items-center justify-center text-ivory/20 hover:text-ivory/50 transition-all duration-200"
         >
           <X size={14} />
         </button>
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent/10 to-transparent" />
       </div>
 
       <div className="flex-1 overflow-y-auto scrollbar-hide">
         {/* ── Group avatar + name ── */}
-        <div className="flex flex-col items-center gap-3 py-6 px-4 border-b border-white/5">
-          <div className="shrink-0">
+        <div className="flex flex-col items-center gap-4 py-8 px-5 border-b border-white/[0.06] relative">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-40 bg-accent/5 blur-[80px] rounded-full pointer-events-none" />
+          <div className="relative z-10 shrink-0">
             {conversation.avatar ? (
-              <Image
-                src={conversation.avatar}
-                width={72}
-                height={72}
-                className="rounded-2xl object-cover"
-                alt={conversation.name}
-                unoptimized
-              />
+              <div className="ring-2 ring-accent/20 ring-offset-4 ring-offset-obsidian rounded-2xl">
+                <Image
+                  src={conversation.avatar}
+                  width={80}
+                  height={80}
+                  className="rounded-2xl object-cover"
+                  alt={conversation.name}
+                  unoptimized
+                />
+              </div>
             ) : (
               <div
-                className="w-[72px] h-[72px] rounded-2xl flex items-center justify-center text-xl font-bold"
+                className="w-20 h-20 rounded-2xl flex items-center justify-center text-2xl font-display font-bold ring-2 ring-accent/20 ring-offset-4 ring-offset-obsidian shadow-lg"
                 style={{
                   background: avatarColors.bg,
                   color: avatarColors.text,
@@ -247,7 +253,7 @@ export default function GroupInfoPanel({
           </div>
 
           {editing ? (
-            <div className="flex items-center gap-1.5 w-full max-w-[210px]">
+            <div className="flex items-center gap-1.5 w-full max-w-[220px] relative z-10">
               <input
                 autoFocus
                 value={editName}
@@ -259,24 +265,24 @@ export default function GroupInfoPanel({
                     setEditName(conversation.name);
                   }
                 }}
-                className="flex-1 bg-[#12181f] text-slate-100 text-sm font-semibold text-center px-3 py-1.5 rounded-xl border border-teal-normal/40 focus:outline-none focus:border-teal-normal min-w-0"
+                className="flex-1 glass-card text-ivory font-display font-bold text-sm text-center px-3 py-2 rounded-xl border-accent/40 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 min-w-0 transition-all"
                 maxLength={50}
               />
               <button
                 onClick={handleSaveName}
                 disabled={savingName}
-                className="w-7 h-7 rounded-lg bg-teal-normal/20 border border-teal-normal/30 flex items-center justify-center text-teal-400 hover:bg-teal-normal/30 transition-all shrink-0"
+                className="w-8 h-8 rounded-xl bg-accent/15 border border-accent/25 flex items-center justify-center text-accent hover:bg-accent/25 transition-all shrink-0"
               >
                 {savingName ? (
-                  <div className="w-3 h-3 rounded-full border-2 border-teal-normal border-t-transparent animate-spin" />
+                  <div className="w-3 h-3 rounded-full border-2 border-accent border-t-transparent animate-spin" />
                 ) : (
-                  <Check size={12} />
+                  <Check size={13} />
                 )}
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-1.5">
-              <h3 className="text-base font-bold text-slate-100">
+            <div className="flex items-center gap-2 relative z-10">
+              <h3 className="text-lg font-display font-bold text-ivory">
                 {conversation.name}
               </h3>
               {amAdmin && (
@@ -285,40 +291,43 @@ export default function GroupInfoPanel({
                     setEditing(true);
                     setEditName(conversation.name);
                   }}
-                  className="w-6 h-6 rounded-lg hover:bg-white/6 flex items-center justify-center text-slate-600 hover:text-teal-400 transition-all"
+                  className="w-6 h-6 rounded-lg hover:bg-white/[0.06] flex items-center justify-center text-ivory/15 hover:text-accent transition-all duration-200"
                 >
                   <Edit2 size={11} />
                 </button>
               )}
             </div>
           )}
-          <p className="text-xs text-slate-500">
+          <p className="text-[11px] font-mono text-ivory/25 uppercase tracking-[0.15em] relative z-10">
             {members.length} member{members.length !== 1 ? "s" : ""}
           </p>
         </div>
 
         {/* ── Add members (admin only) ── */}
         {amAdmin && (
-          <div className="px-4 py-4 border-b border-white/5">
-            <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-wider mb-3">
-              Add Members
-            </p>
+          <div className="px-5 py-5 border-b border-white/[0.06]">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="w-0.5 h-3 rounded-full bg-accent/30" />
+              <p className="text-[10px] font-mono font-bold text-ivory/25 uppercase tracking-[0.15em]">
+                Add Members
+              </p>
+            </div>
             <div className="relative">
               <Search
                 size={13}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-ivory/20 pointer-events-none"
               />
               <input
                 value={searchQuery}
                 onChange={handleSearchChange}
                 placeholder="Search users..."
-                className="w-full bg-[#12181f] text-slate-200 text-sm pl-8 pr-3 py-2 rounded-xl border border-white/8 hover:border-white/12 focus:border-teal-normal/50 focus:outline-none transition-all placeholder:text-slate-600"
+                className="w-full glass-card text-ivory/80 text-sm pl-9 pr-3 py-2.5 rounded-xl focus:outline-none focus:ring-1 focus:ring-accent/30 transition-all placeholder:text-ivory/15"
               />
             </div>
 
             {searching && (
-              <div className="flex items-center gap-2 mt-2 text-slate-600 text-xs">
-                <div className="w-3 h-3 rounded-full border border-teal-normal border-t-transparent animate-spin" />
+              <div className="flex items-center gap-2 mt-3 text-ivory/20 text-xs font-mono">
+                <div className="w-3 h-3 rounded-full border border-accent border-t-transparent animate-spin" />
                 Searching...
               </div>
             )}
@@ -331,11 +340,12 @@ export default function GroupInfoPanel({
                     <button
                       key={u._id}
                       onClick={() => toggleSelect(u)}
-                      className={`flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all text-left ${
-                        selected
-                          ? "bg-teal-normal/12 border border-teal-normal/25"
-                          : "hover:bg-white/4 border border-transparent"
-                      }`}
+                      className={
+                        "flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all duration-200 text-left " +
+                        (selected
+                          ? "glass-card ring-1 ring-accent/25"
+                          : "hover:bg-white/[0.04]")
+                      }
                     >
                       <Image
                         src={
@@ -348,11 +358,11 @@ export default function GroupInfoPanel({
                         alt={u.name}
                         unoptimized
                       />
-                      <span className="text-sm text-slate-300 flex-1 truncate">
+                      <span className="text-sm text-ivory/60 flex-1 truncate font-medium">
                         {u.name}
                       </span>
                       {selected && (
-                        <Check size={13} className="text-teal-400 shrink-0" />
+                        <Check size={13} className="text-accent shrink-0" />
                       )}
                     </button>
                   );
@@ -364,10 +374,10 @@ export default function GroupInfoPanel({
               <button
                 onClick={handleAddMembers}
                 disabled={adding}
-                className="mt-3 w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-teal-normal text-black font-bold text-sm transition-all hover:bg-teal-light active:scale-95 disabled:opacity-60"
+                className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-accent text-obsidian font-display font-bold text-sm transition-all hover:bg-accent/90 active:scale-[0.97] disabled:opacity-60 shadow-[0_8px_24px_-6px_rgba(0,211,187,0.3)]"
               >
                 {adding ? (
-                  <div className="w-4 h-4 rounded-full border-2 border-black border-t-transparent animate-spin" />
+                  <div className="w-4 h-4 rounded-full border-2 border-obsidian border-t-transparent animate-spin" />
                 ) : (
                   <>
                     <UserPlus size={14} />
@@ -381,10 +391,13 @@ export default function GroupInfoPanel({
         )}
 
         {/* ── Members list ── */}
-        <div className="px-4 py-4">
-          <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-wider mb-3">
-            Members
-          </p>
+        <div className="px-5 py-5">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="w-0.5 h-3 rounded-full bg-accent/30" />
+            <p className="text-[10px] font-mono font-bold text-ivory/25 uppercase tracking-[0.15em]">
+              Members
+            </p>
+          </div>
           <div className="flex flex-col gap-0.5" ref={menuRef}>
             {members.map((member) => {
               const role = getMemberRole(conversation, member._id);
@@ -398,24 +411,26 @@ export default function GroupInfoPanel({
               return (
                 <div
                   key={member._id}
-                  className="relative flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/4 group transition-all"
+                  className="relative flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-white/[0.04] group transition-all duration-200"
                 >
-                  <Image
-                    src={
-                      member.avatar ||
-                      `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.name}`
-                    }
-                    width={32}
-                    height={32}
-                    className="rounded-xl object-cover shrink-0"
-                    alt={member.name}
-                    unoptimized
-                  />
+                  <div className="relative shrink-0">
+                    <Image
+                      src={
+                        member.avatar ||
+                        `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.name}`
+                      }
+                      width={34}
+                      height={34}
+                      className="rounded-xl object-cover"
+                      alt={member.name}
+                      unoptimized
+                    />
+                  </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-slate-200 truncate font-medium">
+                    <p className="text-sm text-ivory/80 truncate font-display font-semibold">
                       {member.name}
                       {isMe && (
-                        <span className="text-slate-500 font-normal ml-1 text-xs">
+                        <span className="text-ivory/20 font-normal ml-1 text-xs font-mono">
                           (you)
                         </span>
                       )}
@@ -424,13 +439,13 @@ export default function GroupInfoPanel({
 
                   {/* Role badge */}
                   {role === "creator" && (
-                    <span className="shrink-0 flex items-center gap-1 text-[9px] font-bold text-amber-400 bg-amber-400/10 border border-amber-400/20 px-1.5 py-0.5 rounded-full">
+                    <span className="shrink-0 flex items-center gap-1 text-[9px] font-mono font-bold text-amber-400 bg-amber-400/10 border border-amber-400/15 px-2 py-0.5 rounded-full">
                       <Crown size={8} />
                       Creator
                     </span>
                   )}
                   {role === "admin" && (
-                    <span className="shrink-0 flex items-center gap-1 text-[9px] font-bold text-teal-400 bg-teal-400/10 border border-teal-400/20 px-1.5 py-0.5 rounded-full">
+                    <span className="shrink-0 flex items-center gap-1 text-[9px] font-mono font-bold text-accent bg-accent/10 border border-accent/15 px-2 py-0.5 rounded-full">
                       <ShieldCheck size={8} />
                       Admin
                     </span>
@@ -442,7 +457,7 @@ export default function GroupInfoPanel({
                       onClick={() =>
                         setOpenMenuId(menuOpen ? null : member._id)
                       }
-                      className="shrink-0 w-6 h-6 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-white/8 flex items-center justify-center text-slate-500 hover:text-slate-300 transition-all"
+                      className="shrink-0 w-6 h-6 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-white/[0.06] flex items-center justify-center text-ivory/20 hover:text-ivory/50 transition-all duration-200"
                     >
                       <MoreVertical size={13} />
                     </button>
@@ -450,32 +465,32 @@ export default function GroupInfoPanel({
 
                   {/* Dropdown menu */}
                   {menuOpen && (
-                    <div className="absolute right-2 top-10 z-50 bg-[#1a1f26] border border-white/8 rounded-xl shadow-2xl shadow-black/50 py-1 min-w-[148px]">
+                    <div className="absolute right-2 top-11 z-50 glass-card rounded-xl shadow-[0_8px_40px_rgba(0,0,0,0.4)] py-1 min-w-[156px]">
                       {canPromote && (
                         <button
                           onClick={() => handleToggleAdmin(member._id, true)}
-                          className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-slate-300 hover:bg-teal-normal/8 hover:text-teal-300 transition-all rounded-t-lg"
+                          className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-ivory/50 hover:bg-accent/8 hover:text-accent transition-all rounded-t-lg"
                         >
-                          <ShieldCheck size={12} className="text-teal-400" />
+                          <ShieldCheck size={12} className="text-accent/60" />
                           Make Admin
                         </button>
                       )}
                       {canDemote && (
                         <button
                           onClick={() => handleToggleAdmin(member._id, false)}
-                          className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-slate-300 hover:bg-amber-500/8 hover:text-amber-300 transition-all"
+                          className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-ivory/50 hover:bg-amber-500/8 hover:text-amber-300 transition-all"
                         >
-                          <Shield size={12} className="text-amber-400" />
+                          <Shield size={12} className="text-amber-400/60" />
                           Remove Admin
                         </button>
                       )}
                       {canRemove && (canPromote || canDemote) && (
-                        <div className="mx-2 my-1 h-px bg-white/6" />
+                        <div className="mx-3 my-1 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
                       )}
                       {canRemove && (
                         <button
                           onClick={() => handleRemoveMember(member._id)}
-                          className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-red-400 hover:bg-red-500/8 hover:text-red-300 transition-all rounded-b-lg"
+                          className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-red-400/80 hover:bg-red-500/8 hover:text-red-300 transition-all rounded-b-lg"
                         >
                           <X size={12} />
                           Remove
@@ -490,14 +505,17 @@ export default function GroupInfoPanel({
         </div>
 
         {/* ── Danger zone ── */}
-        <div className="px-4 pt-0 pb-6 border-t border-white/5">
-          <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-wider mb-3 pt-4">
-            Actions
-          </p>
+        <div className="px-5 pt-0 pb-6 border-t border-white/[0.06]">
+          <div className="flex items-center gap-2 mb-3 pt-5">
+            <span className="w-0.5 h-3 rounded-full bg-red-500/30" />
+            <p className="text-[10px] font-mono font-bold text-ivory/25 uppercase tracking-[0.15em]">
+              Danger Zone
+            </p>
+          </div>
           <div className="flex flex-col gap-2">
             <button
               onClick={handleLeave}
-              className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-red-500/15 bg-red-500/5 hover:bg-red-500/10 text-red-400 hover:text-red-300 text-sm font-medium transition-all"
+              className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-red-500/10 bg-red-500/[0.04] hover:bg-red-500/[0.08] text-red-400/80 hover:text-red-300 text-sm font-medium transition-all duration-200"
             >
               <LogOut size={14} />
               Leave Group
@@ -505,7 +523,7 @@ export default function GroupInfoPanel({
             {amCreator && (
               <button
                 onClick={handleDelete}
-                className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-red-500/25 bg-red-500/10 hover:bg-red-500/18 text-red-400 hover:text-red-300 text-sm font-medium transition-all"
+                className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-red-500/20 bg-red-500/[0.08] hover:bg-red-500/[0.12] text-red-400/80 hover:text-red-300 text-sm font-medium transition-all duration-200"
               >
                 <Trash2 size={14} />
                 Delete Group

@@ -104,6 +104,21 @@ export default function ChatWindow({
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editedText, setEditedText] = useState("");
 
+  // Mobile long-press message actions
+  const [longPressedMsgId, setLongPressedMsgId] = useState(null);
+  const longPressTimerRef = useRef(null);
+
+  const handleTouchStart = useCallback((msgId) => {
+    longPressTimerRef.current = setTimeout(() => {
+      setLongPressedMsgId(msgId);
+      if (navigator.vibrate) navigator.vibrate(30);
+    }, 500);
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+  }, []);
+
   const bottomRef = useRef(null);
   const reactionPickerRef = useRef(null);
   const inputEmojiPickerRef = useRef(null);
@@ -118,6 +133,10 @@ export default function ChatWindow({
         !reactionPickerRef.current.contains(e.target)
       ) {
         setReactionPickerMsgId(null);
+      }
+      // Dismiss mobile long-press actions on outside tap
+      if (longPressedMsgId) {
+        setLongPressedMsgId(null);
       }
       if (
         inputEmojiPickerRef.current &&
@@ -293,6 +312,7 @@ export default function ChatWindow({
       setEditingMessageId(null);
       setEditedText("");
       setReplyTo(null);
+      setLongPressedMsgId(null);
       setScheduleMode(false);
       setShowScheduledPanel(false);
 
@@ -462,8 +482,8 @@ export default function ChatWindow({
       console.error(err);
       toast.error(
         err?.response?.data?.error ||
-        err?.response?.data?.message ||
-        "Failed to load scheduled messages",
+          err?.response?.data?.message ||
+          "Failed to load scheduled messages",
       );
     } finally {
       setLoadingScheduled(false);
@@ -484,8 +504,8 @@ export default function ChatWindow({
       console.error(err);
       toast.error(
         err?.response?.data?.error ||
-        err?.response?.data?.message ||
-        "Failed to cancel scheduled message",
+          err?.response?.data?.message ||
+          "Failed to cancel scheduled message",
       );
     }
   };
@@ -534,8 +554,8 @@ export default function ChatWindow({
       console.error(err);
       toast.error(
         err?.response?.data?.error ||
-        err?.response?.data?.message ||
-        "Failed to schedule",
+          err?.response?.data?.message ||
+          "Failed to schedule",
       );
     } finally {
       setScheduling(false);
@@ -585,10 +605,10 @@ export default function ChatWindow({
 
   if (!conversation) {
     return (
-      <div className="flex-1 bg-[#080b0f] flex flex-col items-center justify-center gap-6 p-6">
+      <div className="flex-1 bg-obsidian flex flex-col items-center justify-center gap-6 p-6">
         <div className="relative">
-          <div className="absolute inset-0 bg-teal-normal/20 blur-3xl rounded-full" />
-          <div className="relative w-24 h-24 rounded-4xl bg-teal-normal/10 border border-teal-normal/20 flex items-center justify-center shadow-2xl backdrop-blur-sm">
+          <div className="absolute inset-0 bg-accent/20 blur-3xl rounded-full" />
+          <div className="relative w-24 h-24 rounded-4xl bg-accent/10 border border-accent/20 flex items-center justify-center shadow-2xl backdrop-blur-sm">
             <img
               src="https://i.ibb.co/PG0X3Tbf/Convo-X-logo.png"
               alt="ConvoX"
@@ -597,10 +617,10 @@ export default function ChatWindow({
           </div>
         </div>
         <div className="text-center space-y-2">
-          <h2 className="text-slate-100 text-xl font-bold tracking-tight">
+          <h2 className="text-ivory text-xl font-bold tracking-tight">
             Welcome to ConvoX
           </h2>
-          <p className="text-slate-400 text-sm max-w-70 mx-auto leading-relaxed">
+          <p className="text-ivory/40 text-sm max-w-70 mx-auto leading-relaxed">
             Select a conversation from the sidebar or jump into a workspace to
             start collaborating.
           </p>
@@ -608,15 +628,9 @@ export default function ChatWindow({
         <div className="flex flex-col md:hidden gap-3 w-full max-w-60 pt-4">
           <button
             onClick={toggleSidebar}
-            className="w-full py-3 px-4 bg-teal-normal/10 hover:bg-teal-normal/20 border border-teal-normal/20 rounded-xl text-teal-normal text-sm font-bold transition-all"
+            className="w-full py-3 px-4 bg-accent/10 hover:bg-accent/20 border border-accent/20 rounded-xl text-accent text-sm font-bold transition-all"
           >
             Open Chats
-          </button>
-          <button
-            onClick={toggleWorkspace}
-            className="w-full py-3 px-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-slate-300 text-sm font-bold transition-all"
-          >
-            Switch Workspace
           </button>
         </div>
       </div>
@@ -631,20 +645,20 @@ export default function ChatWindow({
     : 0;
   const groupOnlineCount = isGroup
     ? (conversation.participants || []).filter(
-      (p) => onlineUsers?.get(p._id)?.online,
-    ).length
+        (p) => onlineUsers?.get(p._id)?.online,
+      ).length
     : 0;
   const groupAvatarColors = isGroup
     ? getGroupAvatarColor(conversation.name)
     : null;
 
   return (
-    <main className="flex-1 min-w-0 flex flex-col bg-[#080b0f] relative h-full">
-      <header className="h-17 border-b border-white/5 flex justify-between items-center px-5 bg-[#0a0e13]/80 backdrop-blur-sm shrink-0">
+    <main className="flex-1 min-w-0 flex flex-col bg-obsidian relative h-full">
+      <header className="h-17 border-b border-white/5 flex justify-between items-center px-3 sm:px-5 bg-obsidian/80 backdrop-blur-sm shrink-0">
         <div className="flex items-center gap-3">
           <button
             onClick={toggleSidebar}
-            className="md:hidden w-8 h-8 rounded-xl bg-white/4 flex items-center justify-center text-slate-500 hover:text-white transition-colors"
+            className="md:hidden w-8 h-8 rounded-xl bg-white/4 flex items-center justify-center text-ivory/30 hover:text-ivory transition-colors"
           >
             <Menu size={18} />
           </button>
@@ -673,13 +687,13 @@ export default function ChatWindow({
                 )}
               </div>
               <div>
-                <h2 className="font-bold text-slate-100 text-sm leading-tight">
+                <h2 className="font-bold text-ivory text-sm leading-tight">
                   {conversation.name}
                 </h2>
-                <p className="text-[10px] mt-0.5 text-slate-500">
+                <p className="text-[10px] mt-0.5 text-ivory/30">
                   {groupMemberCount} member{groupMemberCount !== 1 ? "s" : ""}
                   {groupOnlineCount > 0 && (
-                    <span className="text-green-400 ml-1">
+                    <span className="text-emerald-400 ml-1">
                       · {groupOnlineCount} online
                     </span>
                   )}
@@ -690,10 +704,11 @@ export default function ChatWindow({
             <>
               <div className="relative">
                 <div
-                  className={`rounded-2xl overflow-hidden ${isParticipantOnline
-                      ? "ring-2 ring-teal-normal/60 ring-offset-1 ring-offset-[#0a0e13]"
+                  className={`rounded-2xl overflow-hidden ${
+                    isParticipantOnline
+                      ? "ring-2 ring-accent/60 ring-offset-1 ring-offset-[#0a0e13]"
                       : ""
-                    }`}
+                  }`}
                 >
                   <Image
                     src={
@@ -708,23 +723,24 @@ export default function ChatWindow({
                   />
                 </div>
                 <div
-                  className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#0a0e13] ${isParticipantOnline ? "bg-green-400" : "bg-slate-600"
-                    }`}
+                  className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-obsidian ${
+                    isParticipantOnline ? "bg-emerald-400" : "bg-slate-600"
+                  }`}
                 />
               </div>
 
               <div>
-                <h2 className="font-bold text-slate-100 text-sm leading-tight">
+                <h2 className="font-bold text-ivory text-sm leading-tight">
                   {participant?.name}
                 </h2>
                 <p className="text-[10px] mt-0.5">
                   {isParticipantOnline ? (
-                    <span className="text-green-400 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
+                    <span className="text-emerald-400 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
                       Online
                     </span>
                   ) : (
-                    <span className="text-slate-600">
+                    <span className="text-ivory/20">
                       Last seen{" "}
                       {formatLastSeen(
                         onlineUsers?.get(participant?._id)?.lastSeen,
@@ -738,41 +754,40 @@ export default function ChatWindow({
         </div>
 
         <div className="flex gap-1">
-          <button className="w-8 h-8 rounded-xl bg-white/4 hover:bg-teal-normal/10 hover:text-teal-normal flex items-center justify-center text-slate-500 transition-all">
+          <button className="w-8 h-8 rounded-xl bg-white/4 hover:bg-accent/10 hover:text-accent flex items-center justify-center text-ivory/30 transition-all">
             <Phone size={16} />
           </button>
-          <button className="w-8 h-8 rounded-xl bg-white/4 hover:bg-teal-normal/10 hover:text-teal-normal flex items-center justify-center text-slate-500 transition-all">
+          <button className="w-8 h-8 rounded-xl bg-white/4 hover:bg-accent/10 hover:text-accent flex items-center justify-center text-ivory/30 transition-all">
             <Video size={16} />
           </button>
           <button
             type="button"
             onClick={isGroup ? onToggleGroupInfo : undefined}
-            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${isGroup && showGroupInfo
-                ? "bg-teal-normal/20 text-teal-normal border border-teal-normal/30"
-                : "bg-white/4 hover:bg-teal-normal/10 hover:text-teal-normal text-slate-500"
-              }`}
+            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
+              isGroup && showGroupInfo
+                ? "bg-accent/20 text-accent border border-accent/30"
+                : "bg-white/4 hover:bg-accent/10 hover:text-accent text-ivory/30"
+            }`}
           >
             <Info size={16} />
           </button>
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-3 scrollbar-hide">
+      <div className="flex-1 overflow-y-auto px-3 sm:px-5 py-5 flex flex-col gap-3 scrollbar-hide">
         {loadingMessages && (
           <div className="flex items-center justify-center gap-2 mt-8">
-            <div className="w-4 h-4 rounded-full border-2 border-teal-normal border-t-transparent animate-spin" />
-            <p className="text-slate-600 text-xs">Loading messages...</p>
+            <div className="w-4 h-4 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+            <p className="text-ivory/20 text-xs">Loading messages...</p>
           </div>
         )}
 
         {!loadingMessages && messages.length === 0 && (
           <div className="flex flex-col items-center justify-center flex-1 gap-3">
-            <div className="w-12 h-12 rounded-3xl bg-teal-normal/10 border border-teal-normal/15 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-3xl bg-accent/10 border border-accent/15 flex items-center justify-center">
               <span className="text-xl">👋</span>
             </div>
-            <p className="text-slate-600 text-xs">
-              No messages yet. Say hello!
-            </p>
+            <p className="text-ivory/20 text-xs">No messages yet. Say hello!</p>
           </div>
         )}
 
@@ -813,7 +828,7 @@ export default function ChatWindow({
                 {showDateSeparator && (
                   <div className="flex items-center gap-3 my-2">
                     <div className="flex-1 h-px bg-white/5" />
-                    <span className="text-[10px] font-medium text-slate-600 px-3 py-1 rounded-full bg-white/4 border border-white/6 shrink-0">
+                    <span className="text-[10px] font-medium text-ivory/20 px-3 py-1 rounded-full bg-white/4 border border-white/6 shrink-0">
                       {getDateLabel(msg.createdAt)}
                     </span>
                     <div className="flex-1 h-px bg-white/5" />
@@ -822,6 +837,9 @@ export default function ChatWindow({
 
                 <div
                   className={`flex items-end gap-2 group ${isMe ? "justify-end" : "justify-start"}`}
+                  onTouchStart={() => handleTouchStart(msg._id)}
+                  onTouchEnd={handleTouchEnd}
+                  onTouchMove={handleTouchEnd}
                 >
                   {isGroup && !isMe && (
                     <div className="w-6 h-6 rounded-lg shrink-0 overflow-hidden self-end mb-0.5">
@@ -855,7 +873,7 @@ export default function ChatWindow({
                     className={`flex flex-col ${isMe ? "items-end" : "items-start"} max-w-[85%]`}
                   >
                     {isGroup && !isMe && (
-                      <span className="text-[10px] font-semibold text-teal-400/80 mb-0.5 px-1">
+                      <span className="text-[10px] font-semibold text-accent/80 mb-0.5 px-1">
                         {msg.sender?.name || "Member"}
                       </span>
                     )}
@@ -863,7 +881,7 @@ export default function ChatWindow({
                     <div className="relative group w-fit">
                       {!msg.isOptimistic && (
                         <div
-                          className={`absolute -top-7 ${isMe ? "right-0" : "left-0"} hidden group-hover:flex items-center gap-0.5 bg-[#15191C] border border-slate-700/60 rounded-lg p-0.5 shadow-xl shadow-black/40 z-30`}
+                          className={`absolute -top-7 ${isMe ? "right-0" : "left-0"} items-center gap-0.5 bg-deep border border-white/[0.06] rounded-lg p-0.5 shadow-xl shadow-black/40 z-30 ${longPressedMsgId === msg._id ? "flex" : "hidden group-hover:flex"}`}
                         >
                           {["👍", "❤️", "😂", "😮", "😢"].map((emoji) => (
                             <button
@@ -872,14 +890,15 @@ export default function ChatWindow({
                               onClick={(e) => {
                                 e.stopPropagation();
                                 toggleReaction(msg._id, emoji);
+                                setLongPressedMsgId(null);
                               }}
-                              className={`p-1.5 rounded-md transition-all duration-150 hover:bg-slate-700/60 hover:scale-125 ${reactions[msg._id]?.[emoji]?.includes(user?._id) ? "bg-teal-900/40" : ""}`}
+                              className={`p-1.5 rounded-md transition-all duration-150 hover:bg-white/[0.06] hover:scale-125 ${reactions[msg._id]?.[emoji]?.includes(user?._id) ? "bg-accent/20" : ""}`}
                               title={`React ${emoji}`}
                             >
                               {emoji}
                             </button>
                           ))}
-                          <div className="w-px h-5 bg-slate-700/60 mx-0.5" />
+                          <div className="w-px h-5 bg-white/[0.06] mx-0.5" />
                           <button
                             type="button"
                             onClick={(e) => {
@@ -889,28 +908,33 @@ export default function ChatWindow({
                                   ? null
                                   : msg._id,
                               );
+                              setLongPressedMsgId(null);
                             }}
-                            className="p-1.5 rounded-md text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 transition-all duration-150"
+                            className="p-1.5 rounded-md text-ivory/40 hover:text-accent hover:bg-white/[0.06] transition-all duration-150"
                             title="More reactions"
                           >
                             <Smile size={14} />
                           </button>
                           <button
                             type="button"
-                            onClick={() => setReplyTo(msg)}
-                            className="p-1.5 rounded-md text-slate-400 hover:text-teal-400 hover:bg-slate-700/60 transition-all duration-150"
+                            onClick={() => {
+                              setReplyTo(msg);
+                              setLongPressedMsgId(null);
+                            }}
+                            className="p-1.5 rounded-md text-ivory/40 hover:text-accent hover:bg-white/[0.06] transition-all duration-150"
                             title="Reply"
                           >
                             <Reply size={14} />
                           </button>
                           {isMe && !msg.isOptimistic && !msg.isDeleted && (
                             <>
-                              <div className="w-px h-5 bg-slate-700/60 mx-0.5" />
+                              <div className="w-px h-5 bg-white/[0.06] mx-0.5" />
                               <button
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleEdit(msg._id, msg.text);
+                                  setLongPressedMsgId(null);
                                 }}
                                 className="p-1.5 rounded-md text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 transition-all duration-150"
                                 title="Edit message"
@@ -922,6 +946,7 @@ export default function ChatWindow({
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleDelete(msg._id);
+                                  setLongPressedMsgId(null);
                                 }}
                                 className="p-1.5 rounded-md text-red-400 hover:text-red-300 hover:bg-red-500/20 transition-all duration-150"
                                 title="Delete message"
@@ -935,20 +960,21 @@ export default function ChatWindow({
 
                       <div
                         className={`${isGif ? "p-1" : "p-3.5"} rounded-2xl text-[13px] leading-relaxed relative z-10 
-                        ${editingMessageId === msg._id
-                            ? "bg-[#1a1f26] text-slate-100 border border-teal-normal/50 shadow-2xl shadow-teal-normal/10 rounded-br-none"
+                        ${
+                          editingMessageId === msg._id
+                            ? "bg-slate-surface text-ivory border border-accent/50 shadow-2xl shadow-accent/10 rounded-br-none"
                             : isMe
                               ? isGif
                                 ? "bg-transparent"
-                                : "bg-teal-normal text-white rounded-br-none shadow-lg shadow-teal-normal/10"
+                                : "bg-accent text-black rounded-br-none shadow-lg shadow-accent/10"
                               : isGif
                                 ? "bg-transparent"
-                                : "bg-surface-dark text-slate-200 rounded-bl-none shadow-sm shadow-black/5"
-                          } 
+                                : "bg-slate-surface text-ivory/80 rounded-bl-none shadow-sm shadow-black/5"
+                        } 
                         ${msg.isOptimistic ? "opacity-60" : ""}`}
                       >
                         {msg.replyTo && (
-                          <div className="mb-2 p-2 bg-black/20 rounded-lg border-l-2 border-teal-normal text-[11px] opacity-80 line-clamp-2">
+                          <div className="mb-2 p-2 bg-black/20 rounded-lg border-l-2 border-accent text-[11px] opacity-80 line-clamp-2">
                             <p className="font-bold mb-0.5">
                               {msg.replyTo.sender?.name === user?.name
                                 ? "You"
@@ -958,17 +984,17 @@ export default function ChatWindow({
                           </div>
                         )}
                         {msg.isDeleted ? (
-                          <p className="italic text-gray-600 text-xs">
+                          <p className="italic text-slate-600 text-xs">
                             This message was deleted
                           </p>
                         ) : editingMessageId === msg._id ? (
                           <div className="flex flex-col gap-3 w-full min-w-70">
-                            <div className="flex items-center gap-2 text-teal-normal text-[10px] font-bold uppercase tracking-wider">
-                              <span className="w-1 h-3 bg-teal-normal rounded-full" />
+                            <div className="flex items-center gap-2 text-accent text-[10px] font-bold uppercase tracking-wider">
+                              <span className="w-1 h-3 bg-accent rounded-full" />
                               Editing Message
                             </div>
                             <textarea
-                              className="w-full min-h-20 max-h-60 bg-[#0d1117] text-slate-100 text-[13px] px-4 py-3 rounded-xl border border-white/10 focus:outline-none focus:border-teal-normal focus:ring-1 focus:ring-teal-normal/20 resize-none leading-relaxed transition-all scrollbar-hide shadow-inner"
+                              className="w-full min-h-20 max-h-60 bg-deep text-ivory text-[13px] px-4 py-3 rounded-xl border border-white/10 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 resize-none leading-relaxed transition-all scrollbar-hide shadow-inner"
                               value={editedText}
                               onChange={(e) => setEditedText(e.target.value)}
                               onKeyDown={(e) => {
@@ -985,11 +1011,11 @@ export default function ChatWindow({
                               placeholder="Edit your message..."
                             />
                             <div className="flex items-center justify-between">
-                              <span className="text-slate-600 text-[9px] font-medium">
+                              <span className="text-ivory/20 text-[9px] font-medium">
                                 Escape to{" "}
-                                <span className="text-slate-400">cancel</span> •
+                                <span className="text-ivory/40">cancel</span> •
                                 Enter to{" "}
-                                <span className="text-slate-400">save</span>
+                                <span className="text-ivory/40">save</span>
                               </span>
                               <div className="flex gap-2">
                                 <button
@@ -998,14 +1024,14 @@ export default function ChatWindow({
                                     setEditingMessageId(null);
                                     setEditedText("");
                                   }}
-                                  className="px-3 py-1.5 rounded-lg text-[11px] font-medium text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-all"
+                                  className="px-3 py-1.5 rounded-lg text-[11px] font-medium text-ivory/40 hover:text-ivory/80 hover:bg-white/5 transition-all"
                                 >
                                   Cancel
                                 </button>
                                 <button
                                   type="button"
                                   onClick={handleEditSave}
-                                  className="px-4 py-1.5 rounded-lg text-[11px] font-bold bg-teal-normal text-black hover:bg-teal-light transition-all shadow-lg shadow-teal-normal/20 active:scale-95"
+                                  className="px-4 py-1.5 rounded-lg text-[11px] font-bold bg-accent text-black hover:bg-accent/90 transition-all shadow-lg shadow-accent/20 active:scale-95"
                                 >
                                   Save Changes
                                 </button>
@@ -1035,7 +1061,7 @@ export default function ChatWindow({
                       {reactionPickerMsgId === msg._id && (
                         <div
                           ref={reactionPickerRef}
-                          className={`absolute top-0 z-50 ${isMe ? "right-full mr-2" : "left-full ml-2"}`}
+                          className={`absolute top-0 z-50 ${isMe ? "right-0 sm:right-full sm:mr-2" : "left-0 sm:left-full sm:ml-2"}`}
                         >
                           <EmojiPicker
                             onEmojiClick={(emojiData) =>
@@ -1043,8 +1069,13 @@ export default function ChatWindow({
                             }
                             theme="dark"
                             emojiStyle="native"
-                            width={320}
-                            height={400}
+                            width={
+                              typeof window !== "undefined" &&
+                              window.innerWidth < 400
+                                ? Math.min(window.innerWidth - 32, 300)
+                                : 320
+                            }
+                            height={360}
                             searchPlaceholder="Search emoji..."
                             previewConfig={{ showPreview: false }}
                             lazyLoadEmojis
@@ -1065,10 +1096,10 @@ export default function ChatWindow({
                                 key={emoji}
                                 type="button"
                                 onClick={() => toggleReaction(msg._id, emoji)}
-                                className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded-full border transition-all duration-150 ${users.includes(user?._id) ? "bg-teal-400/10 border-teal-400/30" : "bg-[#1C2227] border-slate-800"}`}
+                                className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded-full border transition-all duration-150 ${users.includes(user?._id) ? "bg-accent/10 border-accent/30" : "bg-slate-surface border-white/[0.06]"}`}
                               >
                                 <span className="text-[12px]">{emoji}</span>
-                                <span className="text-[9px] font-bold text-slate-400">
+                                <span className="text-[9px] font-bold text-ivory/40">
                                   {users.length}
                                 </span>
                               </button>
@@ -1080,27 +1111,27 @@ export default function ChatWindow({
                       <div className="flex items-center gap-0.5 px-0.5 mt-0.5">
                         {isGroup ? (
                           index === lastAnyMeIndex && (
-                            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/6 text-slate-500 text-[8px] font-medium">
+                            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/6 text-ivory/30 text-[8px] font-medium">
                               Sent
                             </span>
                           )
                         ) : (
                           <>
                             {index === lastReadIndex && (
-                              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-teal-normal/15 text-teal-normal text-[8px] font-semibold">
+                              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/15 text-accent text-[8px] font-semibold">
                                 Seen
                               </span>
                             )}
                             {index === lastDeliveredIndex &&
                               index > lastReadIndex && (
-                                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/6 text-slate-400 text-[8px] font-medium">
+                                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/6 text-ivory/40 text-[8px] font-medium">
                                   Delivered
                                 </span>
                               )}
                             {index === lastSentIndex &&
                               index > lastDeliveredIndex &&
                               index > lastReadIndex && (
-                                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/6 text-slate-500 text-[8px] font-medium">
+                                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/6 text-ivory/30 text-[8px] font-medium">
                                   Sent
                                 </span>
                               )}
@@ -1166,11 +1197,11 @@ export default function ChatWindow({
                 )}
                 <div>
                   {label && (
-                    <span className="text-[9px] font-semibold text-teal-400/80 mb-0.5 px-1 block">
+                    <span className="text-[9px] font-semibold text-accent/80 mb-0.5 px-1 block">
                       {label}
                     </span>
                   )}
-                  <div className="flex items-center gap-1 px-4 py-3 bg-surface-dark rounded-2xl rounded-bl-none shadow-sm">
+                  <div className="flex items-center gap-1 px-4 py-3 bg-slate-surface rounded-2xl rounded-bl-none shadow-sm">
                     <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:0ms]" />
                     <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:150ms]" />
                     <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:300ms]" />
@@ -1184,25 +1215,23 @@ export default function ChatWindow({
 
       <form
         onSubmit={handleSend}
-        className="p-4 relative bg-[#0a0e13]/80 backdrop-blur-sm border-t border-white/5"
+        className="p-4 relative bg-obsidian/80 backdrop-blur-sm border-t border-white/5"
       >
         {replyTo && (
-          <div className="absolute bottom-full left-0 right-0 p-3 bg-surface-dark border-t border-teal-normal/30 flex items-center justify-between">
+          <div className="absolute bottom-full left-0 right-0 p-3 bg-slate-surface border-t border-accent/30 flex items-center justify-between">
             <div className="flex items-center gap-3 overflow-hidden">
-              <div className="w-1 bg-teal-normal h-8 rounded-full" />
+              <div className="w-1 bg-accent h-8 rounded-full" />
               <div className="overflow-hidden">
-                <p className="text-[11px] font-bold text-teal-normal">
+                <p className="text-[11px] font-bold text-accent">
                   Replying to {replyTo.sender?.name}
                 </p>
-                <p className="text-xs text-slate-400 truncate">
-                  {replyTo.text}
-                </p>
+                <p className="text-xs text-ivory/40 truncate">{replyTo.text}</p>
               </div>
             </div>
             <button
               type="button"
               onClick={() => setReplyTo(null)}
-              className="p-1.5 hover:bg-white/5 rounded-full text-slate-500"
+              className="p-1.5 hover:bg-white/5 rounded-full text-ivory/30"
               aria-label="Cancel reply"
               title="Cancel reply"
             >
@@ -1212,15 +1241,15 @@ export default function ChatWindow({
         )}
 
         {showScheduledPanel && (
-          <div className="mb-3 p-3 rounded-2xl bg-[#12181f] border border-white/5">
+          <div className="mb-3 p-3 rounded-2xl bg-slate-surface border border-white/5">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-bold text-slate-200">
+              <p className="text-xs font-bold text-ivory/80">
                 Scheduled messages
               </p>
               <button
                 type="button"
                 onClick={() => setShowScheduledPanel(false)}
-                className="text-slate-500 hover:text-slate-300"
+                className="text-ivory/30 hover:text-ivory/60"
                 aria-label="Close scheduled messages"
                 title="Close"
               >
@@ -1229,9 +1258,9 @@ export default function ChatWindow({
             </div>
 
             {loadingScheduled ? (
-              <p className="text-xs text-slate-500">Loading...</p>
+              <p className="text-xs text-ivory/30">Loading...</p>
             ) : scheduledItems.length === 0 ? (
-              <p className="text-xs text-slate-600">No scheduled messages</p>
+              <p className="text-xs text-ivory/20">No scheduled messages</p>
             ) : (
               <div className="space-y-2 max-h-40 overflow-y-auto">
                 {scheduledItems.map((s) => (
@@ -1240,10 +1269,10 @@ export default function ChatWindow({
                     className="flex items-center justify-between gap-3 p-2 rounded-xl bg-black/20 border border-white/5"
                   >
                     <div className="min-w-0">
-                      <p className="text-xs text-slate-200 truncate">
+                      <p className="text-xs text-ivory/80 truncate">
                         {s.content}
                       </p>
-                      <p className="text-[10px] text-slate-500">
+                      <p className="text-[10px] text-ivory/30">
                         {new Date(s.sendAt).toLocaleString()} • {s.status}
                       </p>
                     </div>
@@ -1266,15 +1295,19 @@ export default function ChatWindow({
         {showGifPicker && (
           <div
             ref={gifPickerRef}
-            className="absolute bottom-20 right-4 z-50 shadow-2xl rounded-2xl overflow-hidden border border-slate-800"
+            className="absolute bottom-20 right-0 sm:right-4 left-0 sm:left-auto z-50 shadow-2xl rounded-2xl overflow-hidden border border-white/[0.06] mx-2 sm:mx-0"
           >
             <style>{`.gpr-picker { --gpr-bg-color: #15191C !important; --gpr-secondary-bg: #1C2227 !important; --gpr-text-color: #cbd5e1 !important; --gpr-text-secondary: #94a3b8 !important; --gpr-border-color: #1e293b !important; --gpr-highlight-color: #2dd4bf !important; --gpr-highlight-hover: #5eead4 !important; --gpr-input-bg: #0B0E11 !important; --gpr-hover-bg: rgba(45, 212, 191, 0.1) !important; --gpr-radius: 16px !important; border: none !important; } .gpr-trending-terms { display: none !important; }`}</style>
             <GifPicker
               klipyApiKey={process.env.NEXT_PUBLIC_KLIPY_API_KEY}
               onGifClick={handleGifClick}
               theme="dark"
-              width={380}
-              height={450}
+              width={
+                typeof window !== "undefined" && window.innerWidth < 400
+                  ? window.innerWidth - 32
+                  : 380
+              }
+              height={400}
               columns={2}
             />
           </div>
@@ -1283,14 +1316,18 @@ export default function ChatWindow({
         {showEmojiPicker && (
           <div
             ref={inputEmojiPickerRef}
-            className="absolute bottom-20 right-4 z-50 shadow-2xl"
+            className="absolute bottom-20 right-0 sm:right-4 left-0 sm:left-auto z-50 shadow-2xl mx-2 sm:mx-0"
           >
             <EmojiPicker
               onEmojiClick={handleEmojiClick}
               theme="dark"
               emojiStyle="native"
-              width={350}
-              height={420}
+              width={
+                typeof window !== "undefined" && window.innerWidth < 400
+                  ? window.innerWidth - 32
+                  : 350
+              }
+              height={380}
               searchPlaceholder="Search emoji..."
               previewConfig={{ showPreview: false }}
               lazyLoadEmojis
@@ -1298,18 +1335,19 @@ export default function ChatWindow({
           </div>
         )}
 
-        <div className="bg-[#12181f] rounded-2xl flex items-center p-2 border border-white/5 focus-within:border-teal-normal/50 transition-all shadow-inner">
+        <div className="bg-slate-surface rounded-2xl flex items-center flex-wrap p-2 gap-1 border border-white/5 focus-within:border-accent/50 transition-all shadow-inner">
           <button
             type="button"
-            className="w-9 h-9 flex items-center justify-center text-slate-500 hover:text-teal-normal transition-colors"
+            className="w-9 h-9 flex items-center justify-center text-ivory/30 hover:text-accent transition-colors"
             title="More"
             aria-label="More"
+            onClick={() => setShowExtraTools && setShowExtraTools((v) => !v)}
           >
             <Plus size={20} />
           </button>
 
           <input
-            className="flex-1 bg-transparent outline-none text-sm text-slate-200 px-3 placeholder:text-slate-600"
+            className="flex-1 min-w-0 bg-transparent outline-none text-sm text-ivory/80 px-3 placeholder:text-ivory/20"
             placeholder="Type a message..."
             value={text}
             onChange={handleTextChange}
@@ -1317,15 +1355,16 @@ export default function ChatWindow({
           />
 
           {suggestions.length > 0 && (
-            <div className="absolute bottom-20 left-10 bg-[#15191C]/95 backdrop-blur-md border border-slate-800 rounded-xl p-1 shadow-2xl z-50 min-w-37.5">
+            <div className="absolute bottom-20 left-2 sm:left-10 bg-deep/95 backdrop-blur-md border border-white/[0.06] rounded-xl p-1 shadow-2xl z-50 min-w-37.5 max-w-[calc(100vw-2rem)]">
               {suggestions.map(([code, emoji], i) => (
                 <div
                   key={code}
                   onClick={() => insertEmoji(emoji)}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${i === suggestionIndex
-                      ? "bg-teal-500/20 text-teal-400"
-                      : "hover:bg-slate-800 text-slate-400"
-                    }`}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                    i === suggestionIndex
+                      ? "bg-accent/20 text-accent"
+                      : "hover:bg-white/[0.06] text-ivory/40"
+                  }`}
                 >
                   <span className="text-lg">{emoji}</span>
                   <span className="text-xs font-mono">{code}</span>
@@ -1341,10 +1380,11 @@ export default function ChatWindow({
               setShowEmojiPicker(false);
               setScheduleMode(false);
             }}
-            className={`px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${showGifPicker
-                ? "bg-teal-normal/20 border-teal-normal/40 text-teal-normal"
-                : "bg-white/4 border-white/10 text-slate-500 hover:text-slate-300"
-              }`}
+            className={`hidden sm:inline-flex px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${
+              showGifPicker
+                ? "bg-accent/20 border-accent/40 text-accent"
+                : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+            }`}
           >
             GIF
           </button>
@@ -1358,7 +1398,7 @@ export default function ChatWindow({
                 setShowScheduledPanel((v) => !v);
                 refreshScheduled();
               }}
-              className="px-2 py-1 mx-1 text-[10px] font-black rounded-md border bg-white/4 border-white/10 text-slate-500 hover:text-slate-300"
+              className="hidden sm:inline-flex px-2 py-1 mx-1 text-[10px] font-black rounded-md border bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
             >
               PENDING
             </button>
@@ -1373,10 +1413,11 @@ export default function ChatWindow({
                 setScheduleMode((v) => !v);
                 setShowScheduledPanel(true);
               }}
-              className={`px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${scheduleMode
-                  ? "bg-teal-normal/20 border-teal-normal/40 text-teal-normal"
-                  : "bg-white/4 border-white/10 text-slate-500 hover:text-slate-300"
-                }`}
+              className={`hidden sm:inline-flex px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${
+                scheduleMode
+                  ? "bg-accent/20 border-accent/40 text-accent"
+                  : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+              }`}
             >
               SCHEDULE
             </button>
@@ -1388,7 +1429,7 @@ export default function ChatWindow({
               value={sendAt}
               min={new Date().toISOString().slice(0, 16)}
               onChange={(e) => setSendAt(e.target.value)}
-              className="mx-1 px-2 py-1 rounded-md bg-teal-normal border border-white/10 text-slate-200 text-[11px]"
+              className="hidden sm:inline-flex mx-1 px-2 py-1 rounded-md bg-accent border border-white/10 text-ivory/80 text-[11px]"
             />
           )}
 
@@ -1399,10 +1440,11 @@ export default function ChatWindow({
               setShowGifPicker(false);
               setScheduleMode(false);
             }}
-            className={`w-9 h-9 flex items-center justify-center transition-all ${showEmojiPicker
-                ? "text-teal-normal"
-                : "text-slate-500 hover:text-slate-300"
-              }`}
+            className={`w-9 h-9 flex items-center justify-center transition-all ${
+              showEmojiPicker
+                ? "text-accent"
+                : "text-ivory/30 hover:text-ivory/60"
+            }`}
             title="Emoji"
             aria-label="Emoji"
           >
@@ -1412,15 +1454,79 @@ export default function ChatWindow({
           <button
             type="submit"
             disabled={scheduling}
-            className={`w-9 h-9 flex items-center justify-center rounded-xl ml-2 transition-all active:scale-95 shadow-lg ${scheduling
-                ? "bg-slate-700 text-slate-400 cursor-not-allowed"
-                : "bg-teal-normal hover:bg-teal-light text-black shadow-teal-normal/20"
-              }`}
+            className={`w-9 h-9 flex items-center justify-center rounded-xl ml-1 transition-all active:scale-95 shadow-lg ${
+              scheduling
+                ? "bg-slate-700 text-ivory/40 cursor-not-allowed"
+                : "bg-accent hover:bg-accent/90 text-black shadow-accent/20"
+            }`}
             title={scheduleMode ? "Schedule send" : "Send"}
             aria-label={scheduleMode ? "Schedule send" : "Send"}
           >
             <Send size={18} />
           </button>
+
+          {/* Mobile-only expanded toolbar row */}
+          <div className="sm:hidden w-full flex items-center gap-1 pt-1 border-t border-white/5 mt-1">
+            <button
+              type="button"
+              onClick={() => {
+                setShowGifPicker(!showGifPicker);
+                setShowEmojiPicker(false);
+                setScheduleMode(false);
+              }}
+              className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${
+                showGifPicker
+                  ? "bg-accent/20 border-accent/40 text-accent"
+                  : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+              }`}
+            >
+              GIF
+            </button>
+
+            {!isGroup && (
+              <button
+                type="button"
+                title="View scheduled messages"
+                aria-label="View scheduled messages"
+                onClick={() => {
+                  setShowScheduledPanel((v) => !v);
+                  refreshScheduled();
+                }}
+                className="px-2 py-1 text-[10px] font-black rounded-md border bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+              >
+                PENDING
+              </button>
+            )}
+
+            {!isGroup && (
+              <button
+                type="button"
+                title="Schedule message"
+                aria-label="Schedule message"
+                onClick={() => {
+                  setScheduleMode((v) => !v);
+                  setShowScheduledPanel(true);
+                }}
+                className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${
+                  scheduleMode
+                    ? "bg-accent/20 border-accent/40 text-accent"
+                    : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+                }`}
+              >
+                SCHEDULE
+              </button>
+            )}
+
+            {!isGroup && scheduleMode && (
+              <input
+                type="datetime-local"
+                value={sendAt}
+                min={new Date().toISOString().slice(0, 16)}
+                onChange={(e) => setSendAt(e.target.value)}
+                className="flex-1 min-w-0 px-2 py-1 rounded-md bg-accent border border-white/10 text-ivory/80 text-[11px]"
+              />
+            )}
+          </div>
         </div>
       </form>
     </main>

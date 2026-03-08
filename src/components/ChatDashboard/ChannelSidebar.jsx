@@ -12,7 +12,11 @@ import {
 } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 
-export default function ChannelSidebar({ selectedWorkspaceId, onBack }) {
+export default function ChannelSidebar({
+  selectedWorkspaceId,
+  onBack,
+  activeModuleId,
+}) {
   const { user: currentUser } = useAuth();
 
   const categories = [
@@ -102,13 +106,19 @@ export default function ChannelSidebar({ selectedWorkspaceId, onBack }) {
                     key={channel.name}
                     className={
                       "flex items-center gap-2.5 px-2 py-[7px] rounded-xl cursor-pointer group/ch transition-all duration-200 relative " +
-                      (channel.active
+                      ((
+                        activeModuleId
+                          ? channel._id === activeModuleId
+                          : channel.active
+                      )
                         ? "bg-white/[0.06] text-ivory backdrop-blur-sm"
                         : "hover:bg-white/[0.03] text-ivory/30 hover:text-ivory/60")
                     }
                   >
                     {/* Active Indicator Pip */}
-                    {channel.active && (
+                    {(activeModuleId
+                      ? channel._id === activeModuleId
+                      : channel.active) && (
                       <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 bg-accent rounded-r-full shadow-[0_0_6px_rgba(0,211,187,0.4)]" />
                     )}
 
@@ -116,7 +126,11 @@ export default function ChannelSidebar({ selectedWorkspaceId, onBack }) {
                       <Volume2
                         size={16}
                         className={
-                          channel.active
+                          (
+                            activeModuleId
+                              ? channel._id === activeModuleId
+                              : channel.active
+                          )
                             ? "text-accent shrink-0"
                             : "text-ivory/15 group-hover/ch:text-accent/60 transition-colors duration-200 shrink-0"
                         }
@@ -125,7 +139,11 @@ export default function ChannelSidebar({ selectedWorkspaceId, onBack }) {
                       <Hash
                         size={16}
                         className={
-                          channel.active
+                          (
+                            activeModuleId
+                              ? channel._id === activeModuleId
+                              : channel.active
+                          )
                             ? "text-accent shrink-0"
                             : "text-ivory/15 group-hover/ch:text-accent/60 transition-colors duration-200 shrink-0"
                         }

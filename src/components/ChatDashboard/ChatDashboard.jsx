@@ -83,7 +83,7 @@ export default function ChatDashboard() {
       toast.custom(
         (t) => (
           <div
-            className={`flex flex-col gap-1.5 px-4 py-3.5 rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.3)] glass-card ring-1 ring-accent/15 text-sm min-w-[280px] max-w-[360px] transition-all duration-300 ${
+            className={`flex flex-col gap-1.5 px-4 py-3.5 rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.3)] glass-card ring-1 ring-accent/15 text-sm min-w-70 max-w-90 transition-all duration-300 ${
               t.visible
                 ? "opacity-100 translate-y-0"
                 : "opacity-0 -translate-y-3"
@@ -410,7 +410,7 @@ export default function ChatDashboard() {
       {/* Main row: sidebar + content (fills remaining height above bottom nav) */}
       <div className="flex flex-1 min-h-0 w-full">
         {/* ═══ Desktop: Unified Sidebar ═══ */}
-        <div className="hidden md:flex flex-col shrink-0 h-full w-80 overflow-hidden border-r border-white/[0.06]">
+        <div className="hidden md:flex flex-col shrink-0 h-full w-80 overflow-hidden border-r border-white/6">
           {/* Tab Navigation Header */}
           <WorkspaceSidebar />
 

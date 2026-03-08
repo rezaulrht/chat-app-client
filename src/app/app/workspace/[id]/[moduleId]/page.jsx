@@ -15,7 +15,7 @@ export default function ModulePage() {
 
         <div className="flex flex-1 min-h-0">
           {/* Module Sidebar — activeModuleId highlights current module */}
-          <div className="hidden md:flex w-64 shrink-0 border-r border-white/[0.06]">
+          <div className="hidden md:flex w-64 shrink-0 border-r border-white/6">
             <ChannelSidebar
               selectedWorkspaceId={id}
               activeModuleId={moduleId}

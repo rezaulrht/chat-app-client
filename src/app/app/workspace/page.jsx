@@ -21,8 +21,8 @@ export default function WorkspaceListPage() {
 
         <div className="flex flex-1 min-h-0">
           {/* Workspace List Panel */}
-          <div className="w-80 shrink-0 glass-panel border-r border-white/[0.06] flex flex-col">
-            <div className="px-4 py-3 border-b border-white/[0.06]">
+          <div className="w-80 shrink-0 glass-panel border-r border-white/6 flex flex-col">
+            <div className="px-4 py-3 border-b border-white/6">
               <p className="text-[10px] font-mono font-bold uppercase tracking-widest text-ivory/25">
                 Your Workspaces
               </p>
@@ -32,7 +32,7 @@ export default function WorkspaceListPage() {
                 <button
                   key={ws.id}
                   onClick={() => router.push(`/app/workspace/${ws.id}`)}
-                  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/[0.04] active:bg-white/[0.08] transition-all duration-150 group"
+                  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/4 active:bg-white/8 transition-all duration-150 group"
                 >
                   <div
                     className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-display font-bold text-white/80 transition-all group-hover:shadow-lg"

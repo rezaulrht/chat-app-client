@@ -16,7 +16,7 @@ export default function WorkspacePage() {
 
         <div className="flex flex-1 min-h-0">
           {/* Module (channel) Sidebar — Member 5 will wire real data here */}
-          <div className="hidden md:flex w-64 shrink-0 border-r border-white/[0.06]">
+          <div className="hidden md:flex w-64 shrink-0 border-r border-white/6">
             <ChannelSidebar
               selectedWorkspaceId={id}
               onBack={() => router.push("/app/workspace")}

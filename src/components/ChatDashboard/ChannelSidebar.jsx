@@ -79,7 +79,7 @@ export default function ChannelSidebar({
     <aside className="w-full glass-panel flex flex-col shrink-0 flex-1 min-h-0 overflow-hidden">
       {/* Workspace Header (click to open settings) */}
       <div
-        onClick={onSettingsOpen}
+        onClick={() => onSettingsOpen?.()}
         className="h-13 px-4 flex items-center justify-between border-b border-white/[0.06] hover:bg-white/[0.03] cursor-pointer transition-all duration-300 group relative"
       >
         <div className="flex items-center gap-2 min-w-0">
@@ -205,6 +205,7 @@ export default function ChannelSidebar({
       {/* User Status Bar (bottom) */}
       <div className="mx-2 mb-2 p-2.5 glass-card rounded-2xl flex items-center gap-2.5">
         <div className="relative shrink-0 cursor-pointer group/av">
+          {/* TODO: restore avatar overlay presence dot once socket presence is wired */}
           <div className="w-8 h-8 rounded-xl overflow-hidden ring-1 ring-white/[0.06] group-hover/av:ring-accent/40 transition-all duration-300">
             <Image
               src={
@@ -232,7 +233,7 @@ export default function ChannelSidebar({
           </div>
         </div>
         <button
-          onClick={onSettingsOpen}
+          onClick={() => onSettingsOpen?.()}
           className="w-7 h-7 rounded-lg flex items-center justify-center text-ivory/15 hover:text-ivory/40 hover:bg-white/[0.04] transition-all duration-200"
         >
           <Settings size={14} />

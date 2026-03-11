@@ -1,11 +1,5 @@
-"use client";
-import { SocketProvider } from "@/context/SocketProvider";
-import { WorkspaceProvider } from "@/context/WorkspaceProvider";
-
+// SocketProvider and WorkspaceProvider are already mounted in src/app/layout.jsx.
+// This layout exists only to define the /app route segment boundary.
 export default function AppLayout({ children }) {
-  return (
-    <SocketProvider>
-      <WorkspaceProvider>{children}</WorkspaceProvider>
-    </SocketProvider>
-  );
+  return children;
 }

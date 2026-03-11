@@ -26,12 +26,8 @@ export default function InviteMembersModal({ workspaceId, onClose }) {
 
   const [openMenuId, setOpenMenuId] = useState(null);
 
-  // Mock members — Day 6: replace with workspace.members populated from API
-  const members = workspace?.members || [
-    { user: { _id: "u1", name: "You", avatar: null }, role: "owner" },
-    { user: { _id: "u2", name: "Alex R.", avatar: null }, role: "admin" },
-    { user: { _id: "u3", name: "Jamie L.", avatar: null }, role: "member" },
-  ];
+  // TODO [Day 6]: replace with workspace.members populated from GET /api/workspaces/:id
+  const members = workspace?.members || [];
 
   const modal = (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -53,6 +49,11 @@ export default function InviteMembersModal({ workspaceId, onClose }) {
 
         {/* Member List */}
         <div className="max-h-80 overflow-y-auto scrollbar-hide p-3 space-y-px">
+          {members.length === 0 && (
+            <p className="text-ivory/20 text-[11px] font-mono text-center py-6">
+              No members loaded yet
+            </p>
+          )}
           {members.map(({ user: member, role }) => {
             const RoleIcon = ROLE_ICON[role] || User;
             const roleColor = ROLE_COLOR[role] || "text-ivory/40";

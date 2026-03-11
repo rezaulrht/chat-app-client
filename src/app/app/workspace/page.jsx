@@ -16,12 +16,12 @@ export default function WorkspaceListPage() {
   return (
     <ProtectedRoute>
       <div className="flex flex-col h-screen w-full bg-obsidian overflow-hidden">
-         <WorkspaceSidebar
-             activeView={activeView}
-                 setActiveView={setActiveView}
-                 selectedWorkspaceId={selectedWorkspaceId}
-                 setSelectedWorkspaceId={setSelectedWorkspaceId}
-               /> 
+        <WorkspaceSidebar
+          activeView={activeView}
+          setActiveView={setActiveView}
+          selectedWorkspaceId={selectedWorkspaceId}
+          setSelectedWorkspaceId={setSelectedWorkspaceId}
+        />
 
         <div className="flex flex-1 min-h-0">
           {/* Workspace List Panel */}
@@ -43,11 +43,13 @@ export default function WorkspaceListPage() {
                     onClick={() => router.push(`/app/workspace/${ws._id}`)}
                     className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/[0.04] active:bg-white/[0.08] transition-all duration-150 group"
                   >
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-display font-bold text-white/80 transition-all group-hover:shadow-lg bg-accent/10 border border-accent/20"
-                    >
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-display font-bold text-white/80 transition-all group-hover:shadow-lg bg-accent/10 border border-accent/20">
                       {ws.avatar ? (
-                        <img src={ws.avatar} alt={ws.name} className="w-full h-full rounded-xl object-cover" />
+                        <img
+                          src={ws.avatar}
+                          alt={ws.name}
+                          className="w-full h-full rounded-xl object-cover"
+                        />
                       ) : (
                         ws.name[0].toUpperCase()
                       )}

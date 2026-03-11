@@ -60,7 +60,6 @@ export default function ForgotPasswordPage() {
       if (!res.ok) throw new Error(data.error || "Failed to send reset email");
 
       toast.success("Password reset email sent! Please check your inbox (and spam folder).");
-      window.open("https://mail.google.com/", "_blank");
     } catch (err) {
       console.error("Reset Error:", err);
 

@@ -89,7 +89,7 @@ export default function ChannelSidebar({
                 e.stopPropagation();
                 onBack();
               }}
-              className="hidden md:flex w-7 h-7 rounded-lg items-center justify-center text-ivory/20 hover:text-accent hover:bg-white/[0.06] transition-all duration-200 -ml-1 shrink-0"
+              className="hidden md:flex w-7 h-7 rounded-lg items-center justify-center text-ivory/20 hover:text-accent hover:bg-white/6 transition-all duration-200 -ml-1 shrink-0"
             >
               <ChevronLeft size={16} />
             </button>
@@ -102,7 +102,7 @@ export default function ChannelSidebar({
           size={16}
           className="text-ivory/20 group-hover:text-ivory/60 transition-colors duration-300"
         />
-        <div className="absolute bottom-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-accent/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        <div className="absolute bottom-0 left-4 right-4 h-px bg-linear-to-r from-transparent via-accent/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
 
       {/* Modules List */}

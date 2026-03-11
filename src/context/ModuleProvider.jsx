@@ -84,11 +84,23 @@ export function ModuleProvider({ children, moduleId, workspaceId }) {
     fetchMessages(1);
   }, [moduleId, fetchMessages]);
 
-  // ── Socket: join/leave module room ───────────────────────────────────────
+  // ── Socket: join/leave module room (also handles reconnects) ──────────────
   useEffect(() => {
     if (!socket || !moduleId) return;
-    socket.emit("module:join", { moduleId, workspaceId });
-    return () => socket.emit("module:leave", { moduleId, workspaceId });
+
+    const joinRoom = () => {
+      socket.emit("module:join", { moduleId, workspaceId });
+    };
+
+    joinRoom();
+    // Re-join after socket reconnects (socket instance is reused, so the
+    // effect won't re-run on reconnect — we must listen for "connect" directly)
+    socket.on("connect", joinRoom);
+
+    return () => {
+      socket.off("connect", joinRoom);
+      socket.emit("module:leave", { moduleId, workspaceId });
+    };
   }, [socket, moduleId, workspaceId]);
 
   // ── Socket: mark seen on initial load ───────────────────────────────────

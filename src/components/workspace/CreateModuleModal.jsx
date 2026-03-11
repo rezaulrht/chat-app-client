@@ -202,8 +202,8 @@ export default function CreateModuleModal({
               value={category}
               onChange={(e) => setCategory(e.target.value)}
             >
-              {categories.map((cat) => (
-                <option key={cat} value={cat} className="bg-obsidian">
+              {categories.map((cat, i) => (
+                <option key={`${cat}-${i}`} value={cat} className="bg-obsidian">
                   {cat}
                 </option>
               ))}
@@ -225,7 +225,9 @@ export default function CreateModuleModal({
             </div>
             <button
               type="button"
-              aria-label={isPrivate ? "Disable private module" : "Enable private module"}
+              aria-label={
+                isPrivate ? "Disable private module" : "Enable private module"
+              }
               aria-pressed={isPrivate}
               onClick={() => setIsPrivate((v) => !v)}
               className={`relative w-10 h-5 rounded-full border transition-all ${

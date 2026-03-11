@@ -12,9 +12,13 @@ import {
   Settings,
   Megaphone,
   Loader2,
+  FolderPlus,
+  Check,
+  X,
 } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
+import toast from "react-hot-toast";
 
 export default function ChannelSidebar({
   selectedWorkspaceId,
@@ -24,9 +28,34 @@ export default function ChannelSidebar({
   onCreateModule, // () => void — opens CreateModuleModal (later by Member 6)
 }) {
   const { user: currentUser } = useAuth();
-  const { modulesCache, loadingModules, fetchModules, workspaces } =
-    useWorkspace();
+  const {
+    modulesCache,
+    loadingModules,
+    fetchModules,
+    workspaces,
+    addCategory,
+  } = useWorkspace();
   const router = useRouter();
+
+  const [showNewCategory, setShowNewCategory] = React.useState(false);
+  const [newCategoryName, setNewCategoryName] = React.useState("");
+  const [savingCategory, setSavingCategory] = React.useState(false);
+
+  const handleCreateCategory = async (e) => {
+    e?.preventDefault();
+    if (!newCategoryName.trim() || savingCategory) return;
+    setSavingCategory(true);
+    try {
+      await addCategory(selectedWorkspaceId, newCategoryName.trim());
+      setNewCategoryName("");
+      setShowNewCategory(false);
+    } catch (err) {
+      const msg = err?.response?.data?.message || "Failed to create category";
+      toast.error(msg);
+    } finally {
+      setSavingCategory(false);
+    }
+  };
 
   // Auto-fetch modules when a workspace is selected
   useEffect(() => {
@@ -100,16 +129,29 @@ export default function ChannelSidebar({
         </div>
         <div className="flex items-center gap-1.5">
           {(workspace?.myRole === "owner" || workspace?.myRole === "admin") && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onCreateModule?.("General");
-              }}
-              title="New module"
-              className="w-6 h-6 rounded-lg flex items-center justify-center text-ivory/25 hover:text-accent hover:bg-white/6 transition-all duration-200 shrink-0"
-            >
-              <Plus size={14} />
-            </button>
+            <div className="flex items-center gap-0.5">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowNewCategory((v) => !v);
+                  setNewCategoryName("");
+                }}
+                title="New category"
+                className="w-6 h-6 rounded-lg flex items-center justify-center text-ivory/25 hover:text-accent hover:bg-white/6 transition-all duration-200 shrink-0"
+              >
+                <FolderPlus size={13} />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCreateModule?.("General");
+                }}
+                title="New module"
+                className="w-6 h-6 rounded-lg flex items-center justify-center text-ivory/25 hover:text-accent hover:bg-white/6 transition-all duration-200 shrink-0"
+              >
+                <Plus size={14} />
+              </button>
+            </div>
           )}
           <ChevronDown
             size={16}
@@ -204,6 +246,44 @@ export default function ChannelSidebar({
                 </div>
               </div>
             ))}
+
+            {/* Inline new-category input */}
+            {showNewCategory && (
+              <form
+                onSubmit={handleCreateCategory}
+                className="flex items-center gap-1.5 px-2 py-1"
+              >
+                <span className="w-0.5 h-3 rounded-full bg-accent/30 shrink-0" />
+                <input
+                  autoFocus
+                  type="text"
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  placeholder="Category name…"
+                  maxLength={50}
+                  className="flex-1 bg-white/[0.05] border border-accent/30 rounded-lg px-2 py-1 text-[11px] font-mono text-ivory/80 placeholder:text-ivory/20 focus:outline-none focus:border-accent/60 min-w-0"
+                />
+                <button
+                  type="submit"
+                  disabled={!newCategoryName.trim() || savingCategory}
+                  className="w-6 h-6 rounded-md flex items-center justify-center text-accent/60 hover:text-accent hover:bg-white/6 disabled:opacity-30 transition-all"
+                  title="Create"
+                >
+                  <Check size={12} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowNewCategory(false);
+                    setNewCategoryName("");
+                  }}
+                  className="w-6 h-6 rounded-md flex items-center justify-center text-ivory/20 hover:text-ivory/50 hover:bg-white/6 transition-all"
+                  title="Cancel"
+                >
+                  <X size={12} />
+                </button>
+              </form>
+            )}
 
             {groupedModules.length === 0 && !loadingModules && (
               <div className="text-center py-8 px-4">

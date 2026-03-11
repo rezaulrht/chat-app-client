@@ -170,6 +170,20 @@ export function WorkspaceProvider({ children }) {
     }));
   }, []);
 
+  const addCategory = useCallback(async (workspaceId, name) => {
+    const category = await api
+      .post(`/api/workspaces/${workspaceId}/categories`, { name })
+      .then((r) => r.data);
+    setWorkspaces((prev) =>
+      prev.map((w) =>
+        w._id === workspaceId
+          ? { ...w, categories: [...(w.categories || []), category] }
+          : w,
+      ),
+    );
+    return category;
+  }, []);
+
   // ── Socket: workspace + module live events ───────────────────────────────
   useEffect(() => {
     if (!socket) return;
@@ -215,11 +229,22 @@ export function WorkspaceProvider({ children }) {
       }));
     };
 
+    const onCategoryAdded = ({ workspaceId, category }) => {
+      setWorkspaces((prev) =>
+        prev.map((w) =>
+          w._id === workspaceId
+            ? { ...w, categories: [...(w.categories || []), category] }
+            : w,
+        ),
+      );
+    };
+
     socket.on("workspace:updated", onWorkspaceUpdated);
     socket.on("workspace:deleted", onWorkspaceDeleted);
     socket.on("module:created", onModuleCreated);
     socket.on("module:updated", onModuleUpdated);
     socket.on("module:deleted", onModuleDeleted);
+    socket.on("workspace:category-added", onCategoryAdded);
 
     return () => {
       socket.off("workspace:updated", onWorkspaceUpdated);
@@ -227,6 +252,7 @@ export function WorkspaceProvider({ children }) {
       socket.off("module:created", onModuleCreated);
       socket.off("module:updated", onModuleUpdated);
       socket.off("module:deleted", onModuleDeleted);
+      socket.off("workspace:category-added", onCategoryAdded);
     };
   }, [socket]);
 
@@ -246,6 +272,7 @@ export function WorkspaceProvider({ children }) {
     createModule,
     updateModule,
     deleteModule,
+    addCategory,
   };
 
   return (

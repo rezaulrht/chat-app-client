@@ -98,10 +98,24 @@ export default function ChannelSidebar({
             {workspace?.name || "Workspace"}
           </h2>
         </div>
-        <ChevronDown
-          size={16}
-          className="text-ivory/20 group-hover:text-ivory/60 transition-colors duration-300"
-        />
+        <div className="flex items-center gap-1.5">
+          {(workspace?.myRole === "owner" || workspace?.myRole === "admin") && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onCreateModule?.("General");
+              }}
+              title="New module"
+              className="w-6 h-6 rounded-lg flex items-center justify-center text-ivory/25 hover:text-accent hover:bg-white/6 transition-all duration-200 shrink-0"
+            >
+              <Plus size={14} />
+            </button>
+          )}
+          <ChevronDown
+            size={16}
+            className="text-ivory/20 group-hover:text-ivory/60 transition-colors duration-300"
+          />
+        </div>
         <div className="absolute bottom-0 left-4 right-4 h-px bg-linear-to-r from-transparent via-accent/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
 
@@ -130,8 +144,9 @@ export default function ChannelSidebar({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onCreateModule?.(); // Will be wired later
+                        onCreateModule?.(group.name);
                       }}
+                      title="Add module"
                       className="text-ivory/15 hover:text-accent opacity-0 group-hover/cat:opacity-100 transition-all duration-200"
                     >
                       <Plus size={13} />
@@ -193,9 +208,19 @@ export default function ChannelSidebar({
             {groupedModules.length === 0 && !loadingModules && (
               <div className="text-center py-8 px-4">
                 <Hash size={24} className="mx-auto text-ivory/10 mb-2" />
-                <p className="text-ivory/20 text-[11px] font-mono">
+                <p className="text-ivory/20 text-[11px] font-mono mb-3">
                   No modules yet
                 </p>
+                {(workspace?.myRole === "owner" ||
+                  workspace?.myRole === "admin") && (
+                  <button
+                    onClick={() => onCreateModule?.("General")}
+                    className="flex items-center gap-1.5 mx-auto text-[11px] font-mono text-accent/60 hover:text-accent transition-colors duration-200"
+                  >
+                    <Plus size={12} />
+                    Add a module
+                  </button>
+                )}
               </div>
             )}
           </div>

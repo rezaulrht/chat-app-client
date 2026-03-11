@@ -5,17 +5,20 @@ import { ModuleContext } from "./ModuleContext";
 import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
 
-// ── Days 1-3: mock service ────────────────────────────────────────────────
-// Day 4 swap: delete this import, uncomment the real service below
-import { getModuleMessages, sendModuleMessage } from "@/utils/mockModuleApi";
-
-// ── Day 4: real service (uncomment) ──────────────────────────────────────
-// import api from "@/app/api/Axios";
-// const getModuleMessages = ({ workspaceId, moduleId, page }) =>
-//   api.get(`/api/workspaces/${workspaceId}/modules/${moduleId}/messages?page=${page}`).then(r => r.data);
-// const sendModuleMessage = (payload) =>
-//   api.post(`/api/workspaces/${payload.workspaceId}/modules/${payload.moduleId}/messages`, payload).then(r => r.data);
-// ─────────────────────────────────────────────────────────────────────────
+import api from "@/app/api/Axios";
+const getModuleMessages = ({ workspaceId, moduleId, page }) =>
+  api
+    .get(
+      `/api/workspaces/${workspaceId}/modules/${moduleId}/messages?page=${page}`,
+    )
+    .then((r) => r.data);
+const sendModuleMessage = (payload) =>
+  api
+    .post(
+      `/api/workspaces/${payload.workspaceId}/modules/${payload.moduleId}/messages`,
+      payload,
+    )
+    .then((r) => r.data);
 
 export function ModuleProvider({ children, moduleId, workspaceId }) {
   const { socket } = useSocket() || {};

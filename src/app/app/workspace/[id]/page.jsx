@@ -6,11 +6,14 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import WorkspaceSidebar from "@/components/ChatDashboard/WorkspaceSidebar";
 import ChannelSidebar from "@/components/ChatDashboard/ChannelSidebar";
 import WorkspaceSettingsPanel from "@/components/workspace/WorkspaceSettingsPanel";
+import CreateModuleModal from "@/components/workspace/CreateModuleModal";
 
 export default function WorkspacePage() {
   const { id } = useParams();
   const router = useRouter();
   const [showSettings, setShowSettings] = useState(false);
+  const [showCreateModule, setShowCreateModule] = useState(false);
+  const [createModuleCategory, setCreateModuleCategory] = useState("General");
 
   return (
     <ProtectedRoute>
@@ -24,11 +27,14 @@ export default function WorkspacePage() {
               selectedWorkspaceId={id}
               onBack={() => router.push("/app/workspace")}
               onSettingsOpen={() => setShowSettings(true)}
-              // onCreateModule wired by Member 6
+              onCreateModule={(cat) => {
+                setCreateModuleCategory(cat || "General");
+                setShowCreateModule(true);
+              }}
             />
           </div>
 
-          {/* Main Content — TODO [Member 6]: Replace with <ModuleChatWindow workspaceId={id} /> */}
+          {/* Main Content — no module selected */}
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center space-y-3">
               <Hash size={40} className="mx-auto text-ivory/10" />
@@ -47,6 +53,15 @@ export default function WorkspacePage() {
           )}
         </div>
       </div>
+
+      {/* Create Module Modal */}
+      {showCreateModule && (
+        <CreateModuleModal
+          workspaceId={id}
+          defaultCategory={createModuleCategory}
+          onClose={() => setShowCreateModule(false)}
+        />
+      )}
     </ProtectedRoute>
   );
 }

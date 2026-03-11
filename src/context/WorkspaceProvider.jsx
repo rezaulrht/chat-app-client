@@ -174,14 +174,19 @@ export function WorkspaceProvider({ children }) {
     const category = await api
       .post(`/api/workspaces/${workspaceId}/categories`, { name })
       .then((r) => r.data);
-    setWorkspaces((prev) =>
-      prev.map((w) =>
-        w._id === workspaceId
-          ? { ...w, categories: [...(w.categories || []), category] }
-          : w,
-      ),
-    );
     return category;
+  }, []);
+
+  const updateCategory = useCallback(async (workspaceId, categoryId, name) => {
+    await api.patch(`/api/workspaces/${workspaceId}/categories/${categoryId}`, {
+      name,
+    });
+    // socket event workspace:category-updated handles state update
+  }, []);
+
+  const deleteCategory = useCallback(async (workspaceId, categoryId) => {
+    await api.delete(`/api/workspaces/${workspaceId}/categories/${categoryId}`);
+    // socket event workspace:category-deleted handles state update
   }, []);
 
   // ── Socket: workspace + module live events ───────────────────────────────
@@ -231,11 +236,42 @@ export function WorkspaceProvider({ children }) {
 
     const onCategoryAdded = ({ workspaceId, category }) => {
       setWorkspaces((prev) =>
-        prev.map((w) =>
-          w._id === workspaceId
-            ? { ...w, categories: [...(w.categories || []), category] }
-            : w,
-        ),
+        prev.map((w) => {
+          if (w._id !== workspaceId) return w;
+          const already = (w.categories || []).some(
+            (c) => c._id?.toString() === category._id?.toString(),
+          );
+          if (already) return w;
+          return { ...w, categories: [...(w.categories || []), category] };
+        }),
+      );
+    };
+
+    const onCategoryUpdated = ({ workspaceId, category }) => {
+      setWorkspaces((prev) =>
+        prev.map((w) => {
+          if (w._id !== workspaceId) return w;
+          return {
+            ...w,
+            categories: (w.categories || []).map((c) =>
+              c._id?.toString() === category._id?.toString() ? category : c,
+            ),
+          };
+        }),
+      );
+    };
+
+    const onCategoryDeleted = ({ workspaceId, categoryId }) => {
+      setWorkspaces((prev) =>
+        prev.map((w) => {
+          if (w._id !== workspaceId) return w;
+          return {
+            ...w,
+            categories: (w.categories || []).filter(
+              (c) => c._id?.toString() !== categoryId?.toString(),
+            ),
+          };
+        }),
       );
     };
 
@@ -245,6 +281,8 @@ export function WorkspaceProvider({ children }) {
     socket.on("module:updated", onModuleUpdated);
     socket.on("module:deleted", onModuleDeleted);
     socket.on("workspace:category-added", onCategoryAdded);
+    socket.on("workspace:category-updated", onCategoryUpdated);
+    socket.on("workspace:category-deleted", onCategoryDeleted);
 
     return () => {
       socket.off("workspace:updated", onWorkspaceUpdated);
@@ -253,6 +291,8 @@ export function WorkspaceProvider({ children }) {
       socket.off("module:updated", onModuleUpdated);
       socket.off("module:deleted", onModuleDeleted);
       socket.off("workspace:category-added", onCategoryAdded);
+      socket.off("workspace:category-updated", onCategoryUpdated);
+      socket.off("workspace:category-deleted", onCategoryDeleted);
     };
   }, [socket]);
 
@@ -273,6 +313,8 @@ export function WorkspaceProvider({ children }) {
     updateModule,
     deleteModule,
     addCategory,
+    updateCategory,
+    deleteCategory,
   };
 
   return (

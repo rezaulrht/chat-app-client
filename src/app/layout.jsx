@@ -7,6 +7,8 @@ import {
 import "./globals.css";
 import Providers from "@/components/Providers";
 import { Toaster } from "react-hot-toast";
+import { SocketProvider } from "@/context/SocketProvider";
+import { WorkspaceProvider } from "@/context/WorkspaceProvider";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -44,7 +46,14 @@ export default function RootLayout({ children }) {
       <body
         className={`${inter.className} ${jakarta.variable} ${cormorant.variable} ${ibmMono.variable}`}
       >
-        <Providers>{children}</Providers>
+        <Providers>
+          {" "}
+          {/* Auth, other global stuff */}
+          {/* Socket first, then Workspace (because Workspace uses useSocket) */}
+          <SocketProvider>
+            <WorkspaceProvider>{children}</WorkspaceProvider>
+          </SocketProvider>
+        </Providers>
         <Toaster
           position="top-right"
           toastOptions={{

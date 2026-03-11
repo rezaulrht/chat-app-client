@@ -328,7 +328,17 @@ export default function RegisterPage() {
                       <input
                         {...register("password", {
                           required: "Password is required",
-                          minLength: { value: 6, message: "Min 6 characters" },
+                          minLength: { value: 8, message: "Min 8 characters" },
+                          validate: {
+                            uppercase: (v) =>
+                              /[A-Z]/.test(v) || "One uppercase letter required",
+                            lowercase: (v) =>
+                              /[a-z]/.test(v) || "One lowercase letter required",
+                            number: (v) => /[0-9]/.test(v) || "One number required",
+                            special: (v) =>
+                              /[!@#$%^&*(),.?":{}|<>]/.test(v) ||
+                              "One special character required",
+                          },
                         })}
                         type={showPassword ? "text" : "password"}
                         className={`block w-full pl-10 pr-10 py-2.5 bg-white/5 border ${errors.password ? "border-red-500/50" : "border-white/10"} rounded-lg text-white text-sm focus:ring-2 focus:ring-primary/40 focus:border-primary/50 outline-none transition-all duration-300`}

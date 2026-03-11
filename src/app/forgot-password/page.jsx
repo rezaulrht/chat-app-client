@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import Swal from "sweetalert2";
 import toast from "react-hot-toast";
 import { motion } from "framer-motion";
 import { Mail, Loader2, KeyRound } from "lucide-react";
@@ -60,16 +59,7 @@ export default function ForgotPasswordPage() {
 
       if (!res.ok) throw new Error(data.error || "Failed to send reset email");
 
-      await Swal.fire({
-        title: "Success!",
-        text: "Password reset email sent! Please check your inbox (and spam folder).",
-        icon: "success",
-        confirmButtonColor: "#00d3bb",
-        confirmButtonText: "Got it",
-        allowOutsideClick: false,
-      });
-
-      toast.success("Reset link sent to your email");
+      toast.success("Password reset email sent! Please check your inbox (and spam folder).");
       window.open("https://mail.google.com/", "_blank");
     } catch (err) {
       console.error("Reset Error:", err);
@@ -85,13 +75,7 @@ export default function ForgotPasswordPage() {
       }
 
       setError(message);
-
-      await Swal.fire({
-        title: "Error",
-        text: message,
-        icon: "error",
-        confirmButtonColor: "#d33",
-      });
+      toast.error(message);
     } finally {
       setLoading(false);
     }

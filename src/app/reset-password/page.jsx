@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Swal from "sweetalert2";
+import toast from "react-hot-toast";
 import { motion } from "framer-motion";
 import {
   Eye,
@@ -85,29 +85,13 @@ export default function ResetPasswordPage() {
       const data = await res.json();
 
       if (data.success) {
-        await Swal.fire({
-          title: "Success!",
-          text: "Your password has been updated successfully.",
-          icon: "success",
-          confirmButtonColor: "#00d3bb",
-          confirmButtonText: "Go to Login",
-        });
+        toast.success("Your password has been updated successfully.");
         router.push("/login");
       } else {
-        await Swal.fire({
-          title: "Error",
-          text: data.message || "Failed to reset password. Please try again.",
-          icon: "error",
-          confirmButtonColor: "#EF4444",
-        });
+        toast.error(data.message || "Failed to reset password. Please try again.");
       }
     } catch (err) {
-      await Swal.fire({
-        title: "Error",
-        text: "Something went wrong. Please try again later.",
-        icon: "error",
-        confirmButtonColor: "#EF4444",
-      });
+      toast.error("Something went wrong. Please try again later.");
     } finally {
       setLoading(false);
     }

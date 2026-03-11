@@ -12,7 +12,11 @@ import {
 } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 
-export default function ChannelSidebar({ selectedWorkspaceId, onBack }) {
+export default function ChannelSidebar({
+  selectedWorkspaceId,
+  onBack,
+  activeModuleId,
+}) {
   const { user: currentUser } = useAuth();
 
   const categories = [
@@ -52,7 +56,7 @@ export default function ChannelSidebar({ selectedWorkspaceId, onBack }) {
   return (
     <aside className="w-full glass-panel flex flex-col shrink-0 flex-1 min-h-0 overflow-hidden">
       {/* Workspace Header */}
-      <div className="h-13 px-4 flex items-center justify-between border-b border-white/[0.06] hover:bg-white/[0.03] cursor-pointer transition-all duration-300 group relative">
+      <div className="h-13 px-4 flex items-center justify-between border-b border-white/6 hover:bg-white/3 cursor-pointer transition-all duration-300 group relative">
         <div className="flex items-center gap-2 min-w-0">
           {onBack && (
             <button
@@ -60,7 +64,7 @@ export default function ChannelSidebar({ selectedWorkspaceId, onBack }) {
                 e.stopPropagation();
                 onBack();
               }}
-              className="hidden md:flex w-7 h-7 rounded-lg items-center justify-center text-ivory/20 hover:text-accent hover:bg-white/[0.06] transition-all duration-200 -ml-1 shrink-0"
+              className="hidden md:flex w-7 h-7 rounded-lg items-center justify-center text-ivory/20 hover:text-accent hover:bg-white/6 transition-all duration-200 -ml-1 shrink-0"
             >
               <ChevronLeft size={16} />
             </button>
@@ -73,7 +77,7 @@ export default function ChannelSidebar({ selectedWorkspaceId, onBack }) {
           size={16}
           className="text-ivory/20 group-hover:text-ivory/60 transition-colors duration-300"
         />
-        <div className="absolute bottom-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-accent/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        <div className="absolute bottom-0 left-4 right-4 h-px bg-linear-to-r from-transparent via-accent/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
 
       {/* Channel List */}
@@ -101,22 +105,32 @@ export default function ChannelSidebar({ selectedWorkspaceId, onBack }) {
                   <div
                     key={channel.name}
                     className={
-                      "flex items-center gap-2.5 px-2 py-[7px] rounded-xl cursor-pointer group/ch transition-all duration-200 relative " +
-                      (channel.active
-                        ? "bg-white/[0.06] text-ivory backdrop-blur-sm"
-                        : "hover:bg-white/[0.03] text-ivory/30 hover:text-ivory/60")
+                      "flex items-center gap-2.5 px-2 py-1.75 rounded-xl cursor-pointer group/ch transition-all duration-200 relative " +
+                      ((
+                        activeModuleId
+                          ? channel._id === activeModuleId
+                          : channel.active
+                      )
+                        ? "bg-white/6 text-ivory backdrop-blur-sm"
+                        : "hover:bg-white/3 text-ivory/30 hover:text-ivory/60")
                     }
                   >
                     {/* Active Indicator Pip */}
-                    {channel.active && (
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 bg-accent rounded-r-full shadow-[0_0_6px_rgba(0,211,187,0.4)]" />
+                    {(activeModuleId
+                      ? channel._id === activeModuleId
+                      : channel.active) && (
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.75 h-4 bg-accent rounded-r-full shadow-[0_0_6px_rgba(0,211,187,0.4)]" />
                     )}
 
                     {channel.icon === "voice" ? (
                       <Volume2
                         size={16}
                         className={
-                          channel.active
+                          (
+                            activeModuleId
+                              ? channel._id === activeModuleId
+                              : channel.active
+                          )
                             ? "text-accent shrink-0"
                             : "text-ivory/15 group-hover/ch:text-accent/60 transition-colors duration-200 shrink-0"
                         }
@@ -125,7 +139,11 @@ export default function ChannelSidebar({ selectedWorkspaceId, onBack }) {
                       <Hash
                         size={16}
                         className={
-                          channel.active
+                          (
+                            activeModuleId
+                              ? channel._id === activeModuleId
+                              : channel.active
+                          )
                             ? "text-accent shrink-0"
                             : "text-ivory/15 group-hover/ch:text-accent/60 transition-colors duration-200 shrink-0"
                         }
@@ -148,7 +166,7 @@ export default function ChannelSidebar({ selectedWorkspaceId, onBack }) {
       {/* User Status Bar */}
       <div className="mx-2 mb-2 p-2.5 glass-card rounded-2xl flex items-center gap-2.5">
         <div className="relative shrink-0 cursor-pointer group/av">
-          <div className="w-8 h-8 rounded-xl overflow-hidden ring-1 ring-white/[0.06] group-hover/av:ring-accent/40 transition-all duration-300">
+          <div className="w-8 h-8 rounded-xl overflow-hidden ring-1 ring-white/6 group-hover/av:ring-accent/40 transition-all duration-300">
             <Image
               src={
                 currentUser?.avatar ||
@@ -175,7 +193,7 @@ export default function ChannelSidebar({ selectedWorkspaceId, onBack }) {
             </p>
           </div>
         </div>
-        <button className="w-7 h-7 rounded-lg flex items-center justify-center text-ivory/15 hover:text-ivory/40 hover:bg-white/[0.04] transition-all duration-200">
+        <button className="w-7 h-7 rounded-lg flex items-center justify-center text-ivory/15 hover:text-ivory/40 hover:bg-white/4 transition-all duration-200">
           <Settings size={14} />
         </button>
       </div>

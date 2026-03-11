@@ -706,7 +706,7 @@ export default function ModuleChatWindow({
             >
               <GifPicker
                 onGifClick={handleGifClick}
-                tenorApiKey={process.env.NEXT_PUBLIC_TENOR_API_KEY}
+                klipyApiKey={process.env.NEXT_PUBLIC_KLIPY_API_KEY}
                 theme="dark"
                 width={300}
                 height={380}

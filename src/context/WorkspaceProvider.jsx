@@ -14,8 +14,8 @@ const apiCreateWorkspace = (d) =>
 const apiUpdateWorkspace = (id, d) =>
   api.patch(`/api/workspaces/${id}`, d).then((r) => r.data);
 const apiDeleteWorkspace = (id) => api.delete(`/api/workspaces/${id}`);
-const apiGenerateInvite = (id) =>
-  api.post(`/api/workspaces/${id}/invite`).then((r) => r.data);
+const apiGenerateInvite = (id, expiresIn = "never") =>
+  api.post(`/api/workspaces/${id}/invite`, { expiresIn }).then((r) => r.data);
 const apiRevokeInvite = (id) => api.delete(`/api/workspaces/${id}/invite`);
 const apiJoinViaInvite = (code) =>
   api.post(`/api/workspaces/join/${code}`).then((r) => r.data);
@@ -101,13 +101,16 @@ export function WorkspaceProvider({ children }) {
   }, []);
 
   // ── Invite management ────────────────────────────────────────────────────
-  const generateInvite = useCallback(async (workspaceId) => {
-    const { inviteCode } = await apiGenerateInvite(workspaceId);
-    setWorkspaces((prev) =>
-      prev.map((w) => (w._id === workspaceId ? { ...w, inviteCode } : w)),
-    );
-    return inviteCode;
-  }, []);
+  const generateInvite = useCallback(
+    async (workspaceId, expiresIn = "never") => {
+      const { inviteCode } = await apiGenerateInvite(workspaceId, expiresIn);
+      setWorkspaces((prev) =>
+        prev.map((w) => (w._id === workspaceId ? { ...w, inviteCode } : w)),
+      );
+      return inviteCode;
+    },
+    [],
+  );
 
   const revokeInvite = useCallback(async (workspaceId) => {
     await apiRevokeInvite(workspaceId);
@@ -123,6 +126,17 @@ export function WorkspaceProvider({ children }) {
       return [ws, ...prev];
     });
     return ws;
+  }, []);
+
+  const leaveWorkspace = useCallback(async (workspaceId) => {
+    await api.post(`/api/workspaces/${workspaceId}/leave`);
+    setWorkspaces((prev) => prev.filter((w) => w._id !== workspaceId));
+    setModulesCache((prev) => {
+      const next = { ...prev };
+      delete next[workspaceId];
+      return next;
+    });
+    fetchedWorkspaceIds.current.delete(workspaceId);
   }, []);
 
   // ── Module CRUD ──────────────────────────────────────────────────────────
@@ -228,6 +242,7 @@ export function WorkspaceProvider({ children }) {
     generateInvite,
     revokeInvite,
     joinViaInvite,
+    leaveWorkspace,
     createModule,
     updateModule,
     deleteModule,

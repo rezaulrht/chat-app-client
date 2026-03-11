@@ -14,6 +14,12 @@ export default function InvitePage() {
             You've been invited!
           </p>
           <p className="text-ivory/30 text-sm font-mono">Invite code: {code}</p>
+          <button
+            disabled
+            className="w-full h-11 rounded-xl bg-accent/5 text-accent/30 font-display font-bold text-sm border border-accent/10 cursor-not-allowed"
+          >
+            Accept Invite (coming soon)
+          </button>
         </div>
       </div>
     </ProtectedRoute>

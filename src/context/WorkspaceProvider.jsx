@@ -5,38 +5,28 @@ import { WorkspaceContext } from "./WorkspaceContext";
 import { useSocket } from "@/hooks/useSocket";
 import toast from "react-hot-toast";
 
-// ── Days 1-5: mock service  ────────────────────────────────────────────────
-// Day 6 swap: delete this import block, uncomment the real service imports below
-import {
-  listMyWorkspaces,
-  getWorkspace,
-  createWorkspace as apiCreateWorkspace,
-  updateWorkspace as apiUpdateWorkspace,
-  deleteWorkspace as apiDeleteWorkspace,
-  generateInvite as apiGenerateInvite,
-  revokeInvite as apiRevokeInvite,
-  joinViaInvite as apiJoinViaInvite,
-  listModules,
-  createModule as apiCreateModule,
-  updateModule as apiUpdateModule,
-  deleteModule as apiDeleteModule,
-} from "@/utils/mockWorkspaceApi";
-
-// ── Day 6: real service (uncomment when backend is ready) ─────────────────
-// import api from "@/app/api/Axios";
-// const listMyWorkspaces   = () => api.get("/api/workspaces").then(r => r.data);
-// const getWorkspace       = (id) => api.get(`/api/workspaces/${id}`).then(r => r.data);
-// const apiCreateWorkspace = (d) => api.post("/api/workspaces", d).then(r => r.data);
-// const apiUpdateWorkspace = (id, d) => api.patch(`/api/workspaces/${id}`, d).then(r => r.data);
-// const apiDeleteWorkspace = (id) => api.delete(`/api/workspaces/${id}`);
-// const apiGenerateInvite  = (id) => api.post(`/api/workspaces/${id}/invite`).then(r => r.data);
-// const apiRevokeInvite    = (id) => api.delete(`/api/workspaces/${id}/invite`);
-// const apiJoinViaInvite   = (code) => api.post(`/api/workspaces/join/${code}`).then(r => r.data);
-// const listModules        = (wsId) => api.get(`/api/workspaces/${wsId}/modules`).then(r => r.data);
-// const apiCreateModule    = (wsId, d) => api.post(`/api/workspaces/${wsId}/modules`, d).then(r => r.data);
-// const apiUpdateModule    = (wsId, mid, d) => api.patch(`/api/workspaces/${wsId}/modules/${mid}`, d).then(r => r.data);
-// const apiDeleteModule    = (wsId, mid) => api.delete(`/api/workspaces/${wsId}/modules/${mid}`);
-// ─────────────────────────────────────────────────────────────────────────
+import api from "@/app/api/Axios";
+const listMyWorkspaces = () => api.get("/api/workspaces").then((r) => r.data);
+const getWorkspace = (id) =>
+  api.get(`/api/workspaces/${id}`).then((r) => r.data);
+const apiCreateWorkspace = (d) =>
+  api.post("/api/workspaces", d).then((r) => r.data);
+const apiUpdateWorkspace = (id, d) =>
+  api.patch(`/api/workspaces/${id}`, d).then((r) => r.data);
+const apiDeleteWorkspace = (id) => api.delete(`/api/workspaces/${id}`);
+const apiGenerateInvite = (id, expiresIn = "never") =>
+  api.post(`/api/workspaces/${id}/invite`, { expiresIn }).then((r) => r.data);
+const apiRevokeInvite = (id) => api.delete(`/api/workspaces/${id}/invite`);
+const apiJoinViaInvite = (code) =>
+  api.post(`/api/workspaces/join/${code}`).then((r) => r.data);
+const listModules = (wsId) =>
+  api.get(`/api/workspaces/${wsId}/modules`).then((r) => r.data);
+const apiCreateModule = (wsId, d) =>
+  api.post(`/api/workspaces/${wsId}/modules`, d).then((r) => r.data);
+const apiUpdateModule = (wsId, mid, d) =>
+  api.patch(`/api/workspaces/${wsId}/modules/${mid}`, d).then((r) => r.data);
+const apiDeleteModule = (wsId, mid) =>
+  api.delete(`/api/workspaces/${wsId}/modules/${mid}`);
 
 export function WorkspaceProvider({ children }) {
   const { socket } = useSocket() || {};
@@ -111,20 +101,21 @@ export function WorkspaceProvider({ children }) {
   }, []);
 
   // ── Invite management ────────────────────────────────────────────────────
-  const generateInvite = useCallback(async (workspaceId) => {
-    const { inviteCode } = await apiGenerateInvite(workspaceId);
-    setWorkspaces((prev) =>
-      prev.map((w) => (w._id === workspaceId ? { ...w, inviteCode } : w)),
-    );
-    return inviteCode;
-  }, []);
+  const generateInvite = useCallback(
+    async (workspaceId, expiresIn = "never") => {
+      const { inviteCode } = await apiGenerateInvite(workspaceId, expiresIn);
+      setWorkspaces((prev) =>
+        prev.map((w) => (w._id === workspaceId ? { ...w, inviteCode } : w)),
+      );
+      return inviteCode;
+    },
+    [],
+  );
 
   const revokeInvite = useCallback(async (workspaceId) => {
     await apiRevokeInvite(workspaceId);
     setWorkspaces((prev) =>
-      prev.map((w) =>
-        w._id === workspaceId ? { ...w, inviteCode: null } : w,
-      ),
+      prev.map((w) => (w._id === workspaceId ? { ...w, inviteCode: null } : w)),
     );
   }, []);
 
@@ -135,6 +126,17 @@ export function WorkspaceProvider({ children }) {
       return [ws, ...prev];
     });
     return ws;
+  }, []);
+
+  const leaveWorkspace = useCallback(async (workspaceId) => {
+    await api.post(`/api/workspaces/${workspaceId}/leave`);
+    setWorkspaces((prev) => prev.filter((w) => w._id !== workspaceId));
+    setModulesCache((prev) => {
+      const next = { ...prev };
+      delete next[workspaceId];
+      return next;
+    });
+    fetchedWorkspaceIds.current.delete(workspaceId);
   }, []);
 
   // ── Module CRUD ──────────────────────────────────────────────────────────
@@ -166,6 +168,25 @@ export function WorkspaceProvider({ children }) {
         (m) => m._id !== moduleId,
       ),
     }));
+  }, []);
+
+  const addCategory = useCallback(async (workspaceId, name) => {
+    const category = await api
+      .post(`/api/workspaces/${workspaceId}/categories`, { name })
+      .then((r) => r.data);
+    return category;
+  }, []);
+
+  const updateCategory = useCallback(async (workspaceId, categoryId, name) => {
+    await api.patch(`/api/workspaces/${workspaceId}/categories/${categoryId}`, {
+      name,
+    });
+    // socket event workspace:category-updated handles state update
+  }, []);
+
+  const deleteCategory = useCallback(async (workspaceId, categoryId) => {
+    await api.delete(`/api/workspaces/${workspaceId}/categories/${categoryId}`);
+    // socket event workspace:category-deleted handles state update
   }, []);
 
   // ── Socket: workspace + module live events ───────────────────────────────
@@ -213,18 +234,65 @@ export function WorkspaceProvider({ children }) {
       }));
     };
 
-    socket.on("workspace:updated",   onWorkspaceUpdated);
-    socket.on("workspace:deleted",   onWorkspaceDeleted);
-    socket.on("module:created",      onModuleCreated);
-    socket.on("module:updated",      onModuleUpdated);
-    socket.on("module:deleted",      onModuleDeleted);
+    const onCategoryAdded = ({ workspaceId, category }) => {
+      setWorkspaces((prev) =>
+        prev.map((w) => {
+          if (w._id !== workspaceId) return w;
+          const already = (w.categories || []).some(
+            (c) => c._id?.toString() === category._id?.toString(),
+          );
+          if (already) return w;
+          return { ...w, categories: [...(w.categories || []), category] };
+        }),
+      );
+    };
+
+    const onCategoryUpdated = ({ workspaceId, category }) => {
+      setWorkspaces((prev) =>
+        prev.map((w) => {
+          if (w._id !== workspaceId) return w;
+          return {
+            ...w,
+            categories: (w.categories || []).map((c) =>
+              c._id?.toString() === category._id?.toString() ? category : c,
+            ),
+          };
+        }),
+      );
+    };
+
+    const onCategoryDeleted = ({ workspaceId, categoryId }) => {
+      setWorkspaces((prev) =>
+        prev.map((w) => {
+          if (w._id !== workspaceId) return w;
+          return {
+            ...w,
+            categories: (w.categories || []).filter(
+              (c) => c._id?.toString() !== categoryId?.toString(),
+            ),
+          };
+        }),
+      );
+    };
+
+    socket.on("workspace:updated", onWorkspaceUpdated);
+    socket.on("workspace:deleted", onWorkspaceDeleted);
+    socket.on("module:created", onModuleCreated);
+    socket.on("module:updated", onModuleUpdated);
+    socket.on("module:deleted", onModuleDeleted);
+    socket.on("workspace:category-added", onCategoryAdded);
+    socket.on("workspace:category-updated", onCategoryUpdated);
+    socket.on("workspace:category-deleted", onCategoryDeleted);
 
     return () => {
-      socket.off("workspace:updated",   onWorkspaceUpdated);
-      socket.off("workspace:deleted",   onWorkspaceDeleted);
-      socket.off("module:created",      onModuleCreated);
-      socket.off("module:updated",      onModuleUpdated);
-      socket.off("module:deleted",      onModuleDeleted);
+      socket.off("workspace:updated", onWorkspaceUpdated);
+      socket.off("workspace:deleted", onWorkspaceDeleted);
+      socket.off("module:created", onModuleCreated);
+      socket.off("module:updated", onModuleUpdated);
+      socket.off("module:deleted", onModuleDeleted);
+      socket.off("workspace:category-added", onCategoryAdded);
+      socket.off("workspace:category-updated", onCategoryUpdated);
+      socket.off("workspace:category-deleted", onCategoryDeleted);
     };
   }, [socket]);
 
@@ -240,9 +308,13 @@ export function WorkspaceProvider({ children }) {
     generateInvite,
     revokeInvite,
     joinViaInvite,
+    leaveWorkspace,
     createModule,
     updateModule,
     deleteModule,
+    addCategory,
+    updateCategory,
+    deleteCategory,
   };
 
   return (
@@ -251,4 +323,3 @@ export function WorkspaceProvider({ children }) {
     </WorkspaceContext.Provider>
   );
 }
-

@@ -38,6 +38,7 @@ export default function WorkspaceSettingsPanel({ workspaceId, onClose }) {
   const [editDesc, setEditDesc] = useState(workspace?.description || "");
   const [savingInfo, setSavingInfo] = useState(false);
   const [generatingInvite, setGeneratingInvite] = useState(false);
+  const [inviteExpiry, setInviteExpiry] = useState("never");
   const [copied, setCopied] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -71,7 +72,7 @@ export default function WorkspaceSettingsPanel({ workspaceId, onClose }) {
   const handleGenerateInvite = async () => {
     setGeneratingInvite(true);
     try {
-      await generateInvite(workspaceId);
+      await generateInvite(workspaceId, inviteExpiry);
       toast.success("Invite link generated");
     } catch (err) {
       toast.error("Failed to generate invite");
@@ -198,17 +199,51 @@ export default function WorkspaceSettingsPanel({ workspaceId, onClose }) {
                   </div>
                 </div>
               ) : (
-                <button
-                  onClick={handleGenerateInvite}
-                  disabled={generatingInvite}
-                  className="w-full h-9 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] text-ivory/50 hover:text-ivory text-[12px] font-display font-bold border border-white/[0.06] transition-all disabled:opacity-40 flex items-center justify-center gap-1.5"
-                >
-                  <RefreshCw
-                    size={13}
-                    className={generatingInvite ? "animate-spin" : ""}
-                  />
-                  {generatingInvite ? "Generating..." : "Generate Invite Link"}
-                </button>
+                <div className="space-y-2">
+                  <select
+                    value={inviteExpiry}
+                    onChange={(e) => setInviteExpiry(e.target.value)}
+                    className="w-full bg-[#0f0f17] border border-white/[0.08] rounded-xl px-3 py-2 text-ivory/60 text-[12px] font-mono focus:outline-none focus:border-accent/40 transition-all appearance-none cursor-pointer"
+                  >
+                    <option value="30m" className="bg-[#0f0f17] text-ivory/80">
+                      Expires in 30 minutes
+                    </option>
+                    <option value="1h" className="bg-[#0f0f17] text-ivory/80">
+                      Expires in 1 hour
+                    </option>
+                    <option value="6h" className="bg-[#0f0f17] text-ivory/80">
+                      Expires in 6 hours
+                    </option>
+                    <option value="12h" className="bg-[#0f0f17] text-ivory/80">
+                      Expires in 12 hours
+                    </option>
+                    <option value="1d" className="bg-[#0f0f17] text-ivory/80">
+                      Expires in 1 day
+                    </option>
+                    <option value="7d" className="bg-[#0f0f17] text-ivory/80">
+                      Expires in 7 days
+                    </option>
+                    <option
+                      value="never"
+                      className="bg-[#0f0f17] text-ivory/80"
+                    >
+                      Never expires
+                    </option>
+                  </select>
+                  <button
+                    onClick={handleGenerateInvite}
+                    disabled={generatingInvite}
+                    className="w-full h-9 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] text-ivory/50 hover:text-ivory text-[12px] font-display font-bold border border-white/[0.06] transition-all disabled:opacity-40 flex items-center justify-center gap-1.5"
+                  >
+                    <RefreshCw
+                      size={13}
+                      className={generatingInvite ? "animate-spin" : ""}
+                    />
+                    {generatingInvite
+                      ? "Generating..."
+                      : "Generate Invite Link"}
+                  </button>
+                </div>
               )}
             </section>
           )}
@@ -236,9 +271,18 @@ export default function WorkspaceSettingsPanel({ workspaceId, onClose }) {
             </p>
             {!isOwner && (
               <button
-                onClick={() => {
-                  // TODO: call leaveWorkspace(workspaceId) then router.push("/app/workspace")
-                  toast("Leave workspace — wire in Day 6");
+                onClick={async () => {
+                  try {
+                    await leaveWorkspace(workspaceId);
+                    toast.success("Left workspace");
+                    onClose();
+                    router.push("/app/workspace");
+                  } catch (err) {
+                    toast.error(
+                      err?.response?.data?.message ||
+                        "Failed to leave workspace",
+                    );
+                  }
                 }}
                 className="w-full h-9 rounded-xl bg-red-500/8 hover:bg-red-500/15 text-red-400/70 hover:text-red-400 text-[12px] font-display font-bold border border-red-500/15 transition-all flex items-center justify-center gap-1.5"
               >

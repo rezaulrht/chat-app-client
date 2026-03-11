@@ -1215,7 +1215,7 @@ export default function ChatWindow({
 
       <form
         onSubmit={handleSend}
-        className="p-4 relative bg-obsidian/80 backdrop-blur-sm border-t border-white/5"
+        className="p-4 relative z-20 bg-obsidian/80 backdrop-blur-sm border-t border-white/5"
       >
         {replyTo && (
           <div className="absolute bottom-full left-0 right-0 p-3 bg-slate-surface border-t border-accent/30 flex items-center justify-between">

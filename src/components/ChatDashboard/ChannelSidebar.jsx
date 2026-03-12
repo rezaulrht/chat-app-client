@@ -308,7 +308,7 @@ export default function ChannelSidebar({
                                   setOpenMenuCat(null);
                                   handleDeleteCategory(catEntry);
                                 }}
-                                className="w-full flex items-center gap-2.5 px-3 py-2 text-[12px] text-red-400/80 hover:bg-red-500/[0.08] hover:text-red-400 transition-colors"
+                                className="w-full flex items-center gap-2.5 px-3 py-2 text-[12px] text-red-400/80 hover:bg-red-500/8 hover:text-red-400 transition-colors"
                               >
                                 <Trash2 size={13} />
                                 Delete category
@@ -335,14 +335,14 @@ export default function ChannelSidebar({
                               `/app/workspace/${selectedWorkspaceId}/${mod._id}`,
                             )
                           }
-                          className={`flex items-center gap-2.5 px-2 py-[7px] rounded-xl cursor-pointer group/ch transition-all duration-200 relative ${
+                          className={`flex items-center gap-2.5 px-2 py-1.75 rounded-xl cursor-pointer group/ch transition-all duration-200 relative ${
                             isActive
                               ? "bg-white/6 text-ivory backdrop-blur-sm"
                               : "hover:bg-white/3 text-ivory/30 hover:text-ivory/60"
                           }`}
                         >
                           {isActive && (
-                            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 bg-accent rounded-r-full shadow-[0_0_6px_rgba(0,211,187,0.4)]" />
+                            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.75 h-4 bg-accent rounded-r-full shadow-[0_0_6px_rgba(0,211,187,0.4)]" />
                           )}
 
                           <Icon
@@ -363,7 +363,7 @@ export default function ChannelSidebar({
                             />
                           )}
                           {mod.unreadCount > 0 && !isActive && (
-                            <span className="text-[10px] font-bold font-mono bg-accent/20 text-accent rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
+                            <span className="text-[10px] font-bold font-mono bg-accent/20 text-accent rounded-full px-1.5 py-0.5 min-w-4.5 text-center">
                               {mod.unreadCount > 99 ? "99+" : mod.unreadCount}
                             </span>
                           )}
@@ -436,9 +436,9 @@ export default function ChannelSidebar({
       </div>
 
       {/* User Status Bar (bottom) */}
-      <div className="h-14 glass-card mx-2 mb-2 rounded-xl px-3 flex items-center gap-2.5 group/user shrink-0 ring-1 ring-white/[0.04]">
+      <div className="h-14 glass-card mx-2 mb-2 rounded-xl px-3 flex items-center gap-2.5 group/user shrink-0 ring-1 ring-white/4">
         <div className="relative shrink-0 cursor-pointer group/avatar">
-          <div className="w-8 h-8 rounded-xl overflow-hidden ring-1 ring-white/[0.06] group-hover/avatar:ring-accent/30 transition-all duration-200 shadow-[0_0_12px_rgba(0,211,187,0.05)]">
+          <div className="w-8 h-8 rounded-xl overflow-hidden shrink-0 mt-0.5 ring-1 ring-white/6 group-hover/avatar:ring-accent/30 transition-all duration-200 shadow-[0_0_12px_rgba(0,211,187,0.05)]">
             <Image
               src={
                 currentUser?.avatar ||
@@ -476,7 +476,7 @@ export default function ChannelSidebar({
             onClick={() => {
               window.location.href = "/";
             }}
-            className="p-1.5 rounded-lg hover:bg-white/[0.06] text-ivory/40 hover:text-ivory/60 transition-all duration-200"
+            className="p-1.5 rounded-lg hover:bg-white/6 text-ivory/40 hover:text-ivory/60 transition-all duration-200"
             title="Logout"
           >
             <LogOut size={15} />

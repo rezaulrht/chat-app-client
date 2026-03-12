@@ -881,7 +881,7 @@ export default function ChatWindow({
                     <div className="relative group w-fit">
                       {!msg.isOptimistic && (
                         <div
-                          className={`absolute -top-7 ${isMe ? "right-0" : "left-0"} items-center gap-0.5 bg-deep border border-white/[0.06] rounded-lg p-0.5 shadow-xl shadow-black/40 z-30 ${longPressedMsgId === msg._id ? "flex" : "hidden group-hover:flex"}`}
+                          className={`absolute -top-7 ${isMe ? "right-0" : "left-0"} items-center gap-0.5 bg-deep border border-white/6 rounded-lg p-0.5 shadow-xl shadow-black/40 z-30 ${longPressedMsgId === msg._id ? "flex" : "hidden group-hover:flex"}`}
                         >
                           {["👍", "❤️", "😂", "😮", "😢"].map((emoji) => (
                             <button
@@ -892,13 +892,13 @@ export default function ChatWindow({
                                 toggleReaction(msg._id, emoji);
                                 setLongPressedMsgId(null);
                               }}
-                              className={`p-1.5 rounded-md transition-all duration-150 hover:bg-white/[0.06] hover:scale-125 ${reactions[msg._id]?.[emoji]?.includes(user?._id) ? "bg-accent/20" : ""}`}
+                              className={`p-1.5 rounded-md transition-all duration-150 hover:bg-white/6 hover:scale-125 ${reactions[msg._id]?.[emoji]?.includes(user?._id) ? "bg-accent/20" : ""}`}
                               title={`React ${emoji}`}
                             >
                               {emoji}
                             </button>
                           ))}
-                          <div className="w-px h-5 bg-white/[0.06] mx-0.5" />
+                          <div className="w-px h-5 bg-white/6 mx-0.5" />
                           <button
                             type="button"
                             onClick={(e) => {
@@ -910,7 +910,7 @@ export default function ChatWindow({
                               );
                               setLongPressedMsgId(null);
                             }}
-                            className="p-1.5 rounded-md text-ivory/40 hover:text-accent hover:bg-white/[0.06] transition-all duration-150"
+                            className="p-1.5 rounded-md text-ivory/40 hover:text-accent hover:bg-white/6 transition-all duration-150"
                             title="More reactions"
                           >
                             <Smile size={14} />
@@ -921,14 +921,14 @@ export default function ChatWindow({
                               setReplyTo(msg);
                               setLongPressedMsgId(null);
                             }}
-                            className="p-1.5 rounded-md text-ivory/40 hover:text-accent hover:bg-white/[0.06] transition-all duration-150"
+                            className="p-1.5 rounded-md text-ivory/40 hover:text-accent hover:bg-white/6 transition-all duration-150"
                             title="Reply"
                           >
                             <Reply size={14} />
                           </button>
                           {isMe && !msg.isOptimistic && !msg.isDeleted && (
                             <>
-                              <div className="w-px h-5 bg-white/[0.06] mx-0.5" />
+                              <div className="w-px h-5 bg-white/6 mx-0.5" />
                               <button
                                 type="button"
                                 onClick={(e) => {
@@ -1096,7 +1096,7 @@ export default function ChatWindow({
                                 key={emoji}
                                 type="button"
                                 onClick={() => toggleReaction(msg._id, emoji)}
-                                className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded-full border transition-all duration-150 ${users.includes(user?._id) ? "bg-accent/10 border-accent/30" : "bg-slate-surface border-white/[0.06]"}`}
+                                className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded-full border transition-all duration-150 ${users.includes(user?._id) ? "bg-accent/10 border-accent/30" : "bg-slate-surface border-white/6"}`}
                               >
                                 <span className="text-[12px]">{emoji}</span>
                                 <span className="text-[9px] font-bold text-ivory/40">
@@ -1295,7 +1295,7 @@ export default function ChatWindow({
         {showGifPicker && (
           <div
             ref={gifPickerRef}
-            className="absolute bottom-20 right-0 sm:right-4 left-0 sm:left-auto z-50 shadow-2xl rounded-2xl overflow-hidden border border-white/[0.06] mx-2 sm:mx-0"
+            className="absolute bottom-20 right-0 sm:right-4 left-0 sm:left-auto z-50 shadow-2xl rounded-2xl overflow-hidden border border-white/6 mx-2 sm:mx-0"
           >
             <style>{`.gpr-picker { --gpr-bg-color: #15191C !important; --gpr-secondary-bg: #1C2227 !important; --gpr-text-color: #cbd5e1 !important; --gpr-text-secondary: #94a3b8 !important; --gpr-border-color: #1e293b !important; --gpr-highlight-color: #2dd4bf !important; --gpr-highlight-hover: #5eead4 !important; --gpr-input-bg: #0B0E11 !important; --gpr-hover-bg: rgba(45, 212, 191, 0.1) !important; --gpr-radius: 16px !important; border: none !important; } .gpr-trending-terms { display: none !important; }`}</style>
             <GifPicker
@@ -1355,7 +1355,7 @@ export default function ChatWindow({
           />
 
           {suggestions.length > 0 && (
-            <div className="absolute bottom-20 left-2 sm:left-10 bg-deep/95 backdrop-blur-md border border-white/[0.06] rounded-xl p-1 shadow-2xl z-50 min-w-37.5 max-w-[calc(100vw-2rem)]">
+            <div className="absolute bottom-20 left-2 sm:left-10 bg-deep/95 backdrop-blur-md border border-white/6 rounded-xl p-1 shadow-2xl z-50 min-w-37.5 max-w-[calc(100vw-2rem)]">
               {suggestions.map(([code, emoji], i) => (
                 <div
                   key={code}
@@ -1363,7 +1363,7 @@ export default function ChatWindow({
                   className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
                     i === suggestionIndex
                       ? "bg-accent/20 text-accent"
-                      : "hover:bg-white/[0.06] text-ivory/40"
+                      : "hover:bg-white/6 text-ivory/40"
                   }`}
                 >
                   <span className="text-lg">{emoji}</span>

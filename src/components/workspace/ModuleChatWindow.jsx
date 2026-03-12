@@ -254,7 +254,7 @@ export default function ModuleChatWindow({
         </div>
         <div className="text-center space-y-1.5">
           <h2 className="text-ivory font-display font-bold">Select a module</h2>
-          <p className="text-ivory/30 text-sm max-w-[220px]">
+          <p className="text-ivory/30 text-sm max-w-55">
             Choose a module from the sidebar to start chatting
           </p>
         </div>
@@ -363,7 +363,7 @@ export default function ModuleChatWindow({
                 onTouchMove={handleTouchEnd}
               >
                 {/* Sender avatar — always shown in modules */}
-                <div className="w-8 h-8 rounded-xl overflow-hidden shrink-0 mt-0.5 ring-1 ring-white/[0.06]">
+                <div className="w-8 h-8 rounded-xl overflow-hidden shrink-0 mt-0.5 ring-1 ring-white/6">
                   <Image
                     src={
                       msg.sender?.avatar ||
@@ -421,7 +421,7 @@ export default function ModuleChatWindow({
                               reactToMessage(msg._id, emoji);
                               setLongPressedMsgId(null);
                             }}
-                            className={`p-1.5 rounded-md text-sm transition-all hover:bg-white/[0.06] hover:scale-125 ${
+                            className={`p-1.5 rounded-md text-sm transition-all hover:bg-white/6 hover:scale-125 ${
                               reactions[msg._id]?.[emoji]?.includes(user?._id)
                                 ? "bg-accent/20"
                                 : ""
@@ -430,7 +430,7 @@ export default function ModuleChatWindow({
                             {emoji}
                           </button>
                         ))}
-                        <div className="w-px h-5 bg-white/[0.06] mx-0.5" />
+                        <div className="w-px h-5 bg-white/6 mx-0.5" />
                         {/* Full emoji picker trigger */}
                         <button
                           type="button"
@@ -441,7 +441,7 @@ export default function ModuleChatWindow({
                             );
                             setLongPressedMsgId(null);
                           }}
-                          className="p-1.5 rounded-md text-ivory/40 hover:text-accent hover:bg-white/[0.06] transition-all"
+                          className="p-1.5 rounded-md text-ivory/40 hover:text-accent hover:bg-white/6 transition-all"
                         >
                           <Smile size={14} />
                         </button>
@@ -452,14 +452,14 @@ export default function ModuleChatWindow({
                             setReplyTo(msg);
                             setLongPressedMsgId(null);
                           }}
-                          className="p-1.5 rounded-md text-ivory/40 hover:text-accent hover:bg-white/[0.06] transition-all"
+                          className="p-1.5 rounded-md text-ivory/40 hover:text-accent hover:bg-white/6 transition-all"
                         >
                           <Reply size={14} />
                         </button>
                         {/* Edit / Delete (own messages only) */}
                         {isMe && (
                           <>
-                            <div className="w-px h-5 bg-white/[0.06] mx-0.5" />
+                            <div className="w-px h-5 bg-white/6 mx-0.5" />
                             <button
                               type="button"
                               onClick={(e) => {
@@ -554,7 +554,7 @@ export default function ModuleChatWindow({
                         </p>
                       </div>
                     ) : isGif ? (
-                      <div className="rounded-2xl overflow-hidden max-w-[260px]">
+                      <div className="rounded-2xl overflow-hidden max-w-65">
                         <img
                           src={msg.gifUrl}
                           alt="gif"
@@ -639,7 +639,7 @@ export default function ModuleChatWindow({
 
       {/* ── Reply Banner ──────────────────────────────────────────────────────── */}
       {replyTo && (
-        <div className="mx-4 mb-1 px-3 py-2 bg-white/[0.03] border border-white/6 rounded-xl flex items-center justify-between gap-2">
+        <div className="mx-4 mb-1 px-3 py-2 bg-white/3 border border-white/6 rounded-xl flex items-center justify-between gap-2">
           <div className="min-w-0">
             <p className="text-[10px] font-mono text-accent/70 font-bold mb-0.5">
               Replying to {replyTo.sender?.name || "Member"}
@@ -648,7 +648,7 @@ export default function ModuleChatWindow({
           </div>
           <button
             onClick={() => setReplyTo(null)}
-            className="w-6 h-6 rounded-lg flex items-center justify-center text-ivory/20 hover:text-ivory/50 hover:bg-white/[0.06] shrink-0 transition-all"
+            className="w-6 h-6 rounded-lg flex items-center justify-center text-ivory/20 hover:text-ivory/50 hover:bg-white/6 shrink-0 transition-all"
           >
             <X size={13} />
           </button>
@@ -671,7 +671,7 @@ export default function ModuleChatWindow({
                   className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
                     i === suggestionIndex
                       ? "bg-accent/20 text-accent"
-                      : "hover:bg-white/[0.06] text-ivory/40"
+                      : "hover:bg-white/6 text-ivory/40"
                   }`}
                 >
                   <span className="text-lg">{emoji}</span>
@@ -813,7 +813,7 @@ export default function ModuleChatWindow({
           </div>
         </form>
       ) : (
-        <div className="mx-3 mb-3 px-4 py-3 bg-white/[0.03] border border-white/[0.06] rounded-2xl text-center">
+        <div className="mx-3 mb-3 px-4 py-3 bg-white/3 border border-white/6 rounded-2xl text-center">
           <p className="text-ivory/20 text-[12px] font-mono">
             Only admins and owners can post in announcement modules
           </p>

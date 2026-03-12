@@ -22,6 +22,7 @@ import {
 import useAuth from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import toast from "react-hot-toast";
+import UserProfileModal from "@/components/profile/UserProfileModal";
 
 export default function ChannelSidebar({
   selectedWorkspaceId,
@@ -43,6 +44,7 @@ export default function ChannelSidebar({
   const router = useRouter();
 
   const [showNewCategory, setShowNewCategory] = React.useState(false);
+  const [showProfile, setShowProfile] = React.useState(false);
   const [newCategoryName, setNewCategoryName] = React.useState("");
   const [savingCategory, setSavingCategory] = React.useState(false);
 
@@ -434,9 +436,17 @@ export default function ChannelSidebar({
         )}
       </div>
 
+      {/* User Profile Modal */}
+      {showProfile && (
+        <UserProfileModal onClose={() => setShowProfile(false)} />
+      )}
+
       {/* User Status Bar (bottom) */}
       <div className="mx-2 mb-2 p-2.5 glass-card rounded-2xl flex items-center gap-2.5">
-        <div className="relative shrink-0 cursor-pointer group/av">
+        <div
+          onClick={() => setShowProfile(true)}
+          className="relative shrink-0 cursor-pointer group/av"
+        >
           {/* TODO: restore avatar overlay presence dot once socket presence is wired */}
           <div className="w-8 h-8 rounded-xl overflow-hidden ring-1 ring-white/[0.06] group-hover/av:ring-accent/40 transition-all duration-300">
             <Image
@@ -453,8 +463,11 @@ export default function ChannelSidebar({
             />
           </div>
         </div>
-        <div className="flex-1 min-w-0 cursor-pointer group/u">
-          <p className="text-ivory text-[13px] font-display font-bold truncate leading-tight group-hover/u:text-accent transition-colors duration-200">
+        <div
+          onClick={() => setShowProfile(true)}
+          className="flex-1 min-w-0 cursor-pointer group/u"
+        >
+          <p className="text-ivory text-[13px] font-display font-bold truncate leading-tight group-hover/u:text-accent transition-colors duration-200 hover:underline decoration-accent/40 underline-offset-2">
             {currentUser?.name?.split(" ")[0]}
           </p>
           <div className="flex items-center gap-1">

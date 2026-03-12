@@ -28,6 +28,7 @@ import {
   getGroupLastMessagePreview,
 } from "@/utils/groupHelpers";
 import toast from "react-hot-toast";
+import UserProfileModal from "@/components/profile/UserProfileModal";
 
 // Smart relative/absolute timestamp for sidebar conversation list
 const formatConvTimestamp = (timestamp) => {
@@ -86,6 +87,7 @@ export default function Sidebar({
   const [contextMenu, setContextMenu] = useState(null);
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
   const [modalOpen, setModalOpen] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -678,7 +680,10 @@ export default function Sidebar({
 
         {/* ── User Status Bar ── */}
         <div className="h-14 glass-card mx-2 mb-2 rounded-xl px-3 flex items-center gap-2.5 group/user shrink-0 ring-1 ring-white/[0.04]">
-          <div className="relative shrink-0 cursor-pointer group/avatar">
+          <div
+            onClick={() => setShowProfile(true)}
+            className="relative shrink-0 cursor-pointer group/avatar"
+          >
             <div className="w-8 h-8 rounded-xl overflow-hidden ring-1 ring-white/[0.06] group-hover/avatar:ring-accent/30 transition-all duration-200 shadow-[0_0_12px_rgba(0,211,187,0.05)]">
               <Image
                 src={
@@ -695,8 +700,11 @@ export default function Sidebar({
             <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-deep bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
           </div>
 
-          <div className="flex-1 min-w-0 cursor-pointer overflow-hidden">
-            <p className="text-ivory text-[13px] font-display font-bold truncate leading-tight group-hover/user:text-accent transition-colors duration-200">
+          <div
+            onClick={() => setShowProfile(true)}
+            className="flex-1 min-w-0 cursor-pointer overflow-hidden"
+          >
+            <p className="text-ivory text-[13px] font-display font-bold truncate leading-tight group-hover/user:text-accent transition-colors duration-200 hover:underline decoration-accent/40 underline-offset-2">
               {currentUser?.name?.split(" ")[0]}
             </p>
             <p className="text-ivory/20 text-[10px] truncate leading-tight flex items-center gap-1 font-mono">
@@ -834,6 +842,11 @@ export default function Sidebar({
           </div>,
           document.body,
         )}
+
+      {/* ── User Profile Modal ── */}
+      {showProfile && (
+        <UserProfileModal onClose={() => setShowProfile(false)} />
+      )}
     </>
   );
 }

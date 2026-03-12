@@ -151,6 +151,38 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  // Update current user profile
+  const updateProfile = useCallback(async (data) => {
+    try {
+      const response = await api.patch("/auth/me", data);
+      const updated = response.data;
+      setUser(updated);
+      localStorage.setItem("user", JSON.stringify(updated));
+      return { success: true, user: updated };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Failed to update profile",
+      };
+    }
+  }, []);
+
+  // Change password (local accounts only)
+  const changePassword = useCallback(async (currentPassword, newPassword) => {
+    try {
+      const response = await api.patch("/auth/change-password", {
+        currentPassword,
+        newPassword,
+      });
+      return { success: true, message: response.data.message };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Failed to change password",
+      };
+    }
+  }, []);
+
   const authInfo = {
     user,
     loading,
@@ -160,6 +192,8 @@ export const AuthProvider = ({ children }) => {
     oauthLogin,
     verifyOTP,
     resendOTP,
+    updateProfile,
+    changePassword,
   };
 
   return (

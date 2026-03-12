@@ -1,84 +1,118 @@
 "use client";
 
-import React, { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import React, { useState, useRef } from "react";
+import { ChevronDown, HelpCircle } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useEffect } from "react";
 
-const FAQAccordion = () => {
-  const [openIndex, setOpenIndex] = useState(0);
+gsap.registerPlugin(ScrollTrigger);
 
-  const faqs = [
-    {
-      question: "What are your support hours?",
-      answer:
-        "Our primary support team is available Monday through Friday, 8:00 AM to 6:00 PM Pacific Standard Time. For enterprise customers, we offer 24/7 emergency support channels.",
-    },
-    {
-      question: "Can I request a custom demo for my team?",
-      answer:
-        "Absolutely! We offer personalized walk-throughs for teams looking to scale. Please reach out via our contact form to schedule a session with our product experts.",
-    },
-    {
-      question: "Do you offer pricing for non-profits?",
-      answer:
-        "Yes! We are proud to offer discounted pricing for qualified non-profit organizations. Please contact our sales team for more details on how to apply.",
-    },
-  ];
+const ACCENT = "#00d3bb";
+const DEEP = "#12121a";
+
+const faqs = [
+  {
+    q: "What support channels are available?",
+    a: "We offer email support, live chat during business hours, and a comprehensive help center with guides and tutorials. Enterprise plans include priority support with a dedicated account manager.",
+  },
+  {
+    q: "How quickly can I expect a response?",
+    a: "Free-tier users typically receive a response within 24 hours. Pro users within 4 hours. Enterprise customers receive priority support with an average response time under 1 hour.",
+  },
+  {
+    q: "Can I request a feature or integration?",
+    a: "Absolutely! We love community feedback. You can submit feature requests through our public roadmap board or contact us directly. Many of our recent updates were inspired by user suggestions.",
+  },
+  {
+    q: "Do you offer onboarding assistance?",
+    a: "Yes — all paid plans include a guided onboarding session. For Enterprise customers, we provide a full white-glove migration and setup service tailored to your team's workflow.",
+  },
+];
+
+const FAQSection = () => {
+  const [openIndex, setOpenIndex] = useState(null);
+  const sectionRef = useRef(null);
+  const cardsRef = useRef([]);
+
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      gsap.from(cardsRef.current.filter(Boolean), {
+        y: 30,
+        opacity: 0,
+        stagger: 0.1,
+        duration: 0.7,
+        ease: "power3.out",
+        scrollTrigger: {
+          trigger: sectionRef.current,
+          start: "top 80%",
+        },
+      });
+    }, sectionRef);
+    return () => ctx.revert();
+  }, []);
 
   return (
-    /* Background: Set to a very dark navy/black base */
-    <div className="bg-[#050505] text-white py-24 px-6 font-sans relative overflow-hidden min-h-screen">
-      {/* The Glow Effect: Large blurred radial gradient */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-blue-600/10 blur-[150px] -z-0" />
-
-      <div className="max-w-4xl mx-auto relative z-10">
-        {/* Header Section */}
+    <section ref={sectionRef} className="bg-obsidian py-24 px-6 border-t border-white/[0.04]">
+      <div className="max-w-3xl mx-auto">
         <div className="text-center mb-16">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6 tracking-tight">
-            Common Questions
-          </h1>
-          <p className="text-gray-400 text-lg">
-            Quick answers to questions you might have.
+          <div className="inline-flex items-center gap-2 bg-white/[0.04] border border-white/[0.06] rounded-full px-4 py-1.5 mb-6">
+            <HelpCircle className="w-3.5 h-3.5" style={{ color: ACCENT }} />
+            <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-ivory/40">Support FAQ</span>
+          </div>
+          <h2 className="font-display text-4xl md:text-5xl font-bold text-ivory tracking-[-0.02em]">
+            Before you <span className="font-serif italic text-accent">reach out</span>
+          </h2>
+          <p className="text-ivory/30 mt-4 text-base max-w-lg mx-auto leading-relaxed">
+            Quick answers to the most common support questions.
           </p>
         </div>
 
-        {/* Accordion List */}
-        <div className="space-y-4">
-          {faqs.map((faq, index) => (
-            <div
-              key={index}
-              className="border border-white/10 bg-[#0f0f0f]/80 backdrop-blur-sm rounded-2xl overflow-hidden transition-all duration-300 hover:border-white/20"
-            >
-              <button
-                onClick={() => setOpenIndex(openIndex === index ? -1 : index)}
-                className="w-full flex items-center justify-between p-6 md:p-8 text-left outline-none"
-              >
-                <span className="text-lg font-semibold tracking-tight">
-                  {faq.question}
-                </span>
-                <ChevronDown
-                  className={`w-5 h-5 text-gray-500 transition-transform duration-300 ${
-                    openIndex === index ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-
+        <div className="space-y-3">
+          {faqs.map((faq, i) => {
+            const isOpen = openIndex === i;
+            return (
               <div
-                className={`transition-all duration-300 ease-in-out overflow-hidden ${
-                  openIndex === index
-                    ? "max-h-96 opacity-100"
-                    : "max-h-0 opacity-0"
-                }`}
+                key={i}
+                ref={(el) => (cardsRef.current[i] = el)}
+                className="border border-white/[0.06] rounded-2xl overflow-hidden transition-colors"
+                style={{ background: isOpen ? DEEP : "transparent" }}
               >
-                <div className="px-6 md:px-8 pb-8 text-gray-400 leading-relaxed border-t border-white/5 pt-4">
-                  {faq.answer}
-                </div>
+                <button
+                  onClick={() => setOpenIndex(isOpen ? null : i)}
+                  className="w-full flex items-center justify-between px-6 py-5 text-left"
+                >
+                  <span className="font-display font-bold text-ivory/80 text-sm">{faq.q}</span>
+                  <motion.div
+                    animate={{ rotate: isOpen ? 180 : 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <ChevronDown className="w-4 h-4 text-ivory/30" />
+                  </motion.div>
+                </button>
+
+                <AnimatePresence>
+                  {isOpen && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <div className="px-6 pb-6 text-ivory/40 text-sm leading-relaxed">
+                        {faq.a}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
-    </div>
+    </section>
   );
 };
 
-export default FAQAccordion;
+export default FAQSection;

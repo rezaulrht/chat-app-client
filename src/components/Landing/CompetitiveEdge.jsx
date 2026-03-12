@@ -1,7 +1,38 @@
 "use client";
-
-import React from "react";
+import React, { useEffect, useRef } from "react";
+import { motion } from "framer-motion";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Zap, ShieldCheck, TrendingUp, Check, X } from "lucide-react";
+
+gsap.registerPlugin(ScrollTrigger);
+
+const ACCENT = "#00d3bb";
+const DEEP = "#12121a";
+
+const differentiators = [
+  {
+    icon: Zap,
+    color: ACCENT,
+    title: "Built for Speed",
+    description:
+      "Experience sub-50ms message delivery and instant typing indicators without the lag.",
+  },
+  {
+    icon: ShieldCheck,
+    color: "#a78bfa",
+    title: "Complete Message Control",
+    description:
+      "Schedule messages for later or edit/delete with zero restrictions on history.",
+  },
+  {
+    icon: TrendingUp,
+    color: "#34d399",
+    title: "Threaded Productivity",
+    description:
+      "Keep noisy group chats organized with deep threaded context and easy search.",
+  },
+];
 
 const comparison = [
   { feature: "One-to-One & Group Chat", convoX: true, traditional: true },
@@ -16,107 +47,146 @@ const comparison = [
 ];
 
 export default function CompetitiveEdge() {
-  return (
-    <section className="relative w-full py-24 bg-[#05050A] text-white font-sans selection:bg-blue-500/30">
-      {/* Top Divider Line */}
-      <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-500/50 to-transparent" />
+  const sectionRef = useRef(null);
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6">
-        {/* Section Header */}
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        ".edge-card",
+        { x: -40, opacity: 0 },
+        {
+          x: 0,
+          opacity: 1,
+          duration: 0.7,
+          stagger: 0.12,
+          ease: "power3.out",
+          scrollTrigger: { trigger: sectionRef.current, start: "top 70%" },
+        },
+      );
+      gsap.fromTo(
+        ".edge-table",
+        { x: 40, opacity: 0, scale: 0.96 },
+        {
+          x: 0,
+          opacity: 1,
+          scale: 1,
+          duration: 0.8,
+          ease: "power3.out",
+          scrollTrigger: { trigger: sectionRef.current, start: "top 70%" },
+        },
+      );
+    });
+    return () => ctx.revert();
+  }, []);
+
+  return (
+    <section
+      ref={sectionRef}
+      className="relative bg-obsidian py-24 md:py-32 px-6 overflow-hidden"
+    >
+      {/* Top gradient line */}
+      <div
+        className="absolute top-0 left-0 w-full h-px"
+        style={{
+          background:
+            "linear-gradient(90deg, transparent, " +
+            ACCENT +
+            "40, transparent)",
+        }}
+      />
+
+      <div className="relative z-10 max-w-6xl mx-auto">
         <div className="text-center mb-20">
-          <h2 className="text-4xl md:text-6xl font-extrabold tracking-tighter mb-6">
-            Better Than <span className="text-blue-500">Traditional Chat.</span>
+          <h2 className="font-display text-3xl sm:text-4xl md:text-6xl font-bold tracking-[-0.02em] text-ivory mb-6">
+            Better than{" "}
+            <span className="font-serif italic text-accent">
+              traditional chat
+            </span>
           </h2>
-          <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-            Traditional platforms are bloated and slow. We’ve refined the
+          <p className="text-ivory/40 text-lg max-w-2xl mx-auto font-light leading-relaxed">
+            Traditional platforms are bloated and slow. We've refined the
             essential messaging experience for the speed of modern teams.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          {/* Left Side: Why We're Different */}
-          <div className="space-y-8">
-            <h3 className="text-2xl font-bold text-slate-100 mb-4">
-              Why We’re Different
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+          {/* Left: Differentiators */}
+          <div className="space-y-5">
+            <h3 className="font-display text-xl font-bold text-ivory mb-2">
+              Why We&apos;re Different
             </h3>
-
-            <div className="flex gap-5 p-6 bg-[#0F1117] border border-white/5 rounded-2xl hover:border-blue-500/30 transition-colors group">
-              <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-500/20 transition-colors">
-                <Zap className="w-6 h-6 text-blue-400" />
-              </div>
-              <div>
-                <h4 className="font-bold text-lg mb-1">Built for Speed</h4>
-                <p className="text-slate-400 text-sm">
-                  Experience sub-50ms message delivery and instant typing
-                  indicators without the lag.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-5 p-6 bg-[#0F1117] border border-white/5 rounded-2xl hover:border-indigo-500/30 transition-colors group">
-              <div className="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-500/20 transition-colors">
-                <ShieldCheck className="w-6 h-6 text-indigo-400" />
-              </div>
-              <div>
-                <h4 className="font-bold text-lg mb-1">
-                  Complete Message Control
-                </h4>
-                <p className="text-slate-400 text-sm">
-                  Schedule messages for later or edit/delete with zero
-                  restrictions on history.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-5 p-6 bg-[#0F1117] border border-white/5 rounded-2xl hover:border-purple-500/30 transition-colors group">
-              <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center flex-shrink-0 group-hover:bg-purple-500/20 transition-colors">
-                <TrendingUp className="w-6 h-6 text-purple-400" />
-              </div>
-              <div>
-                <h4 className="font-bold text-lg mb-1">
-                  Threaded Productivity
-                </h4>
-                <p className="text-slate-400 text-sm">
-                  Keep noisy group chats organized with deep threaded context
-                  and easy search.
-                </p>
-              </div>
-            </div>
+            {differentiators.map((item, i) => {
+              const Icon = item.icon;
+              return (
+                <motion.div
+                  key={i}
+                  whileHover={{ borderColor: item.color + "40" }}
+                  className="edge-card flex gap-5 p-6 rounded-2xl border border-white/[0.05] group transition-colors"
+                  style={{ background: DEEP }}
+                >
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300 group-hover:scale-110"
+                    style={{
+                      background: item.color + "15",
+                      border: "1px solid " + item.color + "25",
+                    }}
+                  >
+                    <Icon size={20} style={{ color: item.color }} />
+                  </div>
+                  <div>
+                    <h4 className="font-display font-bold text-lg text-ivory mb-1">
+                      {item.title}
+                    </h4>
+                    <p className="text-ivory/40 text-sm leading-relaxed">
+                      {item.description}
+                    </p>
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
 
-          {/* Right Side: Comparison Table */}
-          <div className="bg-[#0F1117] border border-white/10 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
-            {/* Subtle background decoration icon */}
-            <div className="absolute -top-10 -right-10 p-4 opacity-5 pointer-events-none">
-              <Zap className="w-48 h-48 text-blue-500" />
+          {/* Right: Comparison Table */}
+          <div
+            className="edge-table rounded-3xl p-4 sm:p-8 border border-white/[0.07] relative overflow-hidden"
+            style={{
+              background: DEEP,
+              boxShadow: "0 32px 64px rgba(0,0,0,0.4)",
+            }}
+          >
+            <div className="absolute -top-10 -right-10 opacity-[0.03] pointer-events-none">
+              <Zap size={192} />
             </div>
 
-            <h3 className="text-xl font-bold mb-8 relative z-10">
+            <h3 className="font-display text-xl font-bold text-ivory mb-8">
               Compare Experience
             </h3>
 
-            <div className="space-y-6 relative z-10">
-              {/* Table Head */}
-              <div className="grid grid-cols-3 pb-4 border-b border-white/5 text-[10px] uppercase tracking-widest font-bold text-slate-500">
-                <div>Feature</div>
-                <div className="text-blue-500 text-center">ConvoX</div>
-                <div className="text-center">Others</div>
+            <div className="space-y-0 relative z-10 overflow-x-auto -mx-2 px-2">
+              <div className="grid grid-cols-3 pb-4 border-b border-white/[0.05] font-mono text-[10px] uppercase tracking-widest font-bold min-w-[320px]">
+                <div className="text-ivory/30">Feature</div>
+                <div className="text-center" style={{ color: ACCENT }}>
+                  ConvoX
+                </div>
+                <div className="text-center text-ivory/30">Others</div>
               </div>
 
-              {/* Table Rows based on your 11 features */}
               {comparison.map((row, i) => (
                 <div
                   key={i}
-                  className="grid grid-cols-3 py-3 items-center border-b border-white/[0.02] last:border-0"
+                  className="grid grid-cols-3 py-4 items-center border-b border-white/[0.03] last:border-0 min-w-[320px]"
                 >
-                  <div className="text-sm font-medium text-slate-300">
+                  <div className="text-xs sm:text-sm font-medium text-ivory/60">
                     {row.feature}
                   </div>
                   <div className="text-center flex justify-center">
                     {typeof row.convoX === "boolean" ? (
-                      <Check className="w-5 h-5 text-blue-500" />
+                      <Check size={18} style={{ color: ACCENT }} />
                     ) : (
-                      <span className="text-sm text-blue-400 font-bold">
+                      <span
+                        className="text-sm font-bold font-mono"
+                        style={{ color: ACCENT }}
+                      >
                         {row.convoX}
                       </span>
                     )}
@@ -124,12 +194,12 @@ export default function CompetitiveEdge() {
                   <div className="text-center flex justify-center">
                     {typeof row.traditional === "boolean" ? (
                       row.traditional ? (
-                        <Check className="w-5 h-5 text-slate-600" />
+                        <Check size={18} className="text-ivory/20" />
                       ) : (
-                        <X className="w-5 h-5 text-slate-700" />
+                        <X size={18} className="text-ivory/10" />
                       )
                     ) : (
-                      <span className="text-sm text-slate-500">
+                      <span className="text-sm text-ivory/30">
                         {row.traditional}
                       </span>
                     )}

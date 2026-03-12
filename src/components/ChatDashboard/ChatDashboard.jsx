@@ -1,18 +1,19 @@
 // src/components/ChatDashboard/ChatDashboard.jsx
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { MessageCircle, Home } from "lucide-react";
 
 import Sidebar from "./SidebarChats";
-import ChannelSidebar from "./ChannelSidebar";
 import ChatWindow from "./ChatWindow";
 import GroupInfoPanel from "./GroupInfoPanel";
 import WorkspaceSidebar from "./WorkspaceSidebar";
-import FeedView from "./FeedView";
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
 import { sortConversations } from "@/utils/sortConversations";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 
 export default function ChatDashboard() {
   const [conversations, setConversations] = useState([]);
@@ -23,13 +24,8 @@ export default function ChatDashboard() {
   const { socket, fetchLastSeenTimes } = useSocket() || {};
   const { user } = useAuth(); // ← New (for self-message check)
 
-  // Workspace and Channel states
-  const [activeView, setActiveView] = useState("home"); // 'home' or 'workspace'
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState(null);
-
   // Responsive sidebar states
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
 
   // Refs to avoid stale closures in socket handlers
   const conversationsRef = useRef([]);
@@ -76,21 +72,44 @@ export default function ChatDashboard() {
     (msg) => {
       if (!msg.sender?.name) return;
 
-      toast(`💬 New message from ${msg.sender.name}`, {
-        description: msg.gifUrl
-          ? "Sent a GIF"
-          : msg.text
-            ? msg.text.length > 65
-              ? msg.text.slice(0, 62) + "..."
-              : msg.text
-            : "",
-        action: {
-          label: "Open Chat",
-          onClick: () => setActiveConversationId(msg.conversationId),
-        },
-        duration: 4000,
-        richColors: true,
-      });
+      const description = msg.gifUrl
+        ? "Sent a GIF"
+        : msg.text
+          ? msg.text.length > 65
+            ? msg.text.slice(0, 62) + "..."
+            : msg.text
+          : "";
+
+      toast.custom(
+        (t) => (
+          <div
+            className={`flex flex-col gap-1.5 px-4 py-3.5 rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.3)] glass-card ring-1 ring-accent/15 text-sm min-w-70 max-w-90 transition-all duration-300 ${
+              t.visible
+                ? "opacity-100 translate-y-0"
+                : "opacity-0 -translate-y-3"
+            }`}
+          >
+            <p className="font-display font-bold text-ivory text-[13px]">
+              New message from {msg.sender.name}
+            </p>
+            {description && (
+              <p className="text-[11px] text-ivory/35 truncate font-mono">
+                {description}
+              </p>
+            )}
+            <button
+              onClick={() => {
+                setActiveConversationId(msg.conversationId);
+                toast.dismiss(t.id);
+              }}
+              className="mt-0.5 self-start text-[11px] font-bold text-accent hover:text-accent/80 transition-colors font-mono uppercase tracking-wider"
+            >
+              Open Chat &rarr;
+            </button>
+          </div>
+        ),
+        { duration: 4000 },
+      );
     },
     [setActiveConversationId],
   );
@@ -289,7 +308,6 @@ export default function ChatDashboard() {
     },
     [],
   );
-
   const handleNewConversation = useCallback((conversation) => {
     setConversations((prev) => {
       const exists = prev.find((c) => c._id === conversation._id);
@@ -354,73 +372,82 @@ export default function ChatDashboard() {
 
   if (loadingConversations) {
     return (
-      <div className="flex h-screen w-full bg-[#080b0f] items-center justify-center flex-col gap-4">
-        <div className="w-12 h-12 rounded-2xl bg-teal-normal/10 border border-teal-normal/20 flex items-center justify-center">
-          <div className="w-5 h-5 rounded-full border-2 border-teal-normal border-t-transparent animate-spin"></div>
+      <div className="flex h-screen w-full bg-obsidian items-center justify-center flex-col gap-6 relative overflow-hidden">
+        {/* Ambient glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-accent/5 blur-[120px] rounded-full pointer-events-none" />
+        <div className="relative z-10 flex flex-col items-center gap-5">
+          <div className="relative">
+            <div className="absolute inset-0 bg-accent/20 blur-2xl rounded-full animate-pulse" />
+            <div className="relative w-16 h-16 rounded-3xl glass-card flex items-center justify-center shadow-[0_0_40px_rgba(0,211,187,0.1)]">
+              <div className="w-6 h-6 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+            </div>
+          </div>
+          <div className="text-center space-y-1.5">
+            <p className="font-serif italic text-accent/60 text-lg">Loading</p>
+            <p className="text-ivory/20 text-[11px] font-mono tracking-wider uppercase">
+              Fetching conversations...
+            </p>
+          </div>
         </div>
-        <p className="text-slate-600 text-xs">Loading conversations...</p>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen w-full bg-[#080b0f] overflow-hidden font-sans relative">
+    <div className="flex flex-col md:flex-row h-screen w-full bg-obsidian overflow-hidden font-sans relative">
       {/* Mobile Backdrops */}
       {(isSidebarOpen ||
-        isWorkspaceOpen ||
         (showGroupInfo && activeConversation?.type === "group")) && (
         <div
           className="md:hidden fixed inset-0 bg-black/60 z-30 transition-opacity"
           onClick={() => {
             setIsSidebarOpen(false);
-            setIsWorkspaceOpen(false);
             setShowGroupInfo(false);
           }}
         />
       )}
 
-      {/* Workspace Sidebar Wrapper */}
-      <div
-        className={`absolute md:relative z-40 h-full transition-transform duration-300 md:translate-x-0 ${isWorkspaceOpen ? "translate-x-0" : "-translate-x-full"}`}
-      >
-        <WorkspaceSidebar
-          activeView={activeView}
-          setActiveView={(view) => {
-            setActiveView(view);
-            // Auto close workspace sidebar on mobile when switching views
-            if (window.innerWidth < 768) setIsWorkspaceOpen(false);
-          }}
-          selectedWorkspaceId={selectedWorkspaceId}
-          setSelectedWorkspaceId={setSelectedWorkspaceId}
-        />
-      </div>
+      {/* Main row: sidebar + content (fills remaining height above bottom nav) */}
+      <div className="flex flex-1 min-h-0 w-full">
+        {/* ═══ Desktop: Unified Sidebar ═══ */}
+        <div className="hidden md:flex flex-col shrink-0 h-full w-80 overflow-hidden border-r border-white/6">
+          {/* Tab Navigation Header */}
+          <WorkspaceSidebar />
 
-      {/* Secondary Sidebar Wrapper (SidebarChats or ChannelSidebar) */}
-      <div
-        className={`absolute md:relative z-40 h-full transition-transform duration-300 md:translate-x-0 w-80 md:w-auto flex shrink-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
-      >
-        {activeView === "home" ? (
+          {/* Chats Tab → Conversation List */}
           <Sidebar
             conversations={conversations}
             activeConversationId={activeConversationId}
             setActiveConversationId={(id) => {
               setActiveConversationId(id);
               setShowGroupInfo(false);
-              // On mobile, close sidebar when chat is selected
+            }}
+            onNewConversation={handleNewConversation}
+            onConversationUpdate={handleConversationUpdate}
+          />
+        </div>
+
+        {/* ═══ Mobile: Slide-in Sidebar ═══ */}
+        <div
+          className={`md:hidden absolute z-40 h-[calc(100%-3.5rem)] transition-transform duration-300 w-[85vw] sm:w-80 flex shrink-0 ${
+            isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
+          <Sidebar
+            conversations={conversations}
+            activeConversationId={activeConversationId}
+            setActiveConversationId={(id) => {
+              setActiveConversationId(id);
+              setShowGroupInfo(false);
               if (window.innerWidth < 768) setIsSidebarOpen(false);
             }}
             onNewConversation={handleNewConversation}
             onConversationUpdate={handleConversationUpdate}
           />
-        ) : activeView === "workspace" ? (
-          <ChannelSidebar selectedWorkspaceId={selectedWorkspaceId} />
-        ) : null}
-      </div>
+        </div>
 
-      <div className="flex-1 w-full h-full min-w-0 z-10">
-        {activeView === "feed" ? (
-          <FeedView toggleSidebar={() => setIsWorkspaceOpen((prev) => !prev)} />
-        ) : (
+        {/* Main content */}
+        <div className="flex-1 w-full h-full min-w-0 z-10">
           <ChatWindow
             conversation={activeConversation}
             onMessageSent={handleMessageSent}
@@ -430,21 +457,20 @@ export default function ChatDashboard() {
             onConversationUpdate={handleConversationUpdate}
             conversations={conversations}
             toggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
-            toggleWorkspace={() => setIsWorkspaceOpen((prev) => !prev)}
-          />
-        )}
-      </div>
-
-      {showGroupInfo && activeConversation?.type === "group" && (
-        <div className="absolute top-0 right-0 h-full md:relative z-40 shrink-0">
-          <GroupInfoPanel
-            conversation={activeConversation}
-            currentUser={currentUser}
-            onClose={() => setShowGroupInfo(false)}
-            onConversationUpdate={handleConversationUpdate}
           />
         </div>
-      )}
+
+        {showGroupInfo && activeConversation?.type === "group" && (
+          <div className="absolute top-0 right-0 h-full md:relative z-40 shrink-0">
+            <GroupInfoPanel
+              conversation={activeConversation}
+              currentUser={currentUser}
+              onClose={() => setShowGroupInfo(false)}
+              onConversationUpdate={handleConversationUpdate}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

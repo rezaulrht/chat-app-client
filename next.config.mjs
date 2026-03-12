@@ -35,7 +35,7 @@ const nextConfig = {
       },
     ],
   },
-  transpilePackages: ["gif-picker-react-klipy"],
+  transpilePackages: ["gif-picker-react-klipy", "swiper"],
 };
 
 export default nextConfig;

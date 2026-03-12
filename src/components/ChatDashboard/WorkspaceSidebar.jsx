@@ -51,9 +51,9 @@ export default function WorkspaceSidebar({
 
                   // Handle navigation
                   if (tab.id === "home") {
-                    router.push("/chat");
+                    router.push("/app");
                   } else if (tab.id === "feed") {
-                    router.push("/feed");
+                    router.push("/app/feed");
                   } else if (tab.id === "workspace") {
                     if (activeView === "workspace" && selectedWorkspaceId) {
                       if (typeof setSelectedWorkspaceId === "function") {

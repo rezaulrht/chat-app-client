@@ -24,43 +24,17 @@ export default function ModulePage() {
 
   return (
     <ProtectedRoute>
-      <div className="flex flex-col h-screen w-full bg-obsidian overflow-hidden">
-        <WorkspaceSidebar
-          activeView={activeView}
-          setActiveView={setActiveView}
-          selectedWorkspaceId={selectedWorkspaceId}
-          setSelectedWorkspaceId={setSelectedWorkspaceId}
-        />
-
-        <div className="flex flex-1 min-h-0 relative">
-          {/* Mobile sidebar overlay */}
-          {isSidebarOpen && (
-            <div className="absolute inset-0 z-40 flex md:hidden">
-              <div
-                className="absolute inset-0 bg-black/50"
-                onClick={() => setIsSidebarOpen(false)}
-              />
-              <div className="relative z-50 w-64 shrink-0 bg-obsidian border-r border-white/[0.06]">
-                <ChannelSidebar
-                  selectedWorkspaceId={id}
-                  activeModuleId={moduleId}
-                  onBack={() => router.push("/app/workspace")}
-                  onSettingsOpen={() => {
-                    setIsSidebarOpen(false);
-                    setShowSettings(true);
-                  }}
-                  onCreateModule={(cat) => {
-                    setCreateModuleCategory(cat || "General");
-                    setIsSidebarOpen(false);
-                    setShowCreateModule(true);
-                  }}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Channel / Module Sidebar — desktop */}
-          <div className="hidden md:flex w-64 shrink-0 border-r border-white/[0.06]">
+      <div className="flex h-screen w-full bg-obsidian overflow-hidden">
+        {/* Unified Sidebar Area */}
+        <div className="hidden md:flex flex-col shrink-0 h-full w-80 overflow-hidden border-r border-white/6">
+          <WorkspaceSidebar
+            activeView={activeView}
+            setActiveView={setActiveView}
+            selectedWorkspaceId={selectedWorkspaceId}
+            setSelectedWorkspaceId={setSelectedWorkspaceId}
+          />
+          
+          <div className="flex-1 flex flex-col min-h-0">
             <ChannelSidebar
               selectedWorkspaceId={id}
               activeModuleId={moduleId}
@@ -72,9 +46,12 @@ export default function ModulePage() {
               }}
             />
           </div>
+        </div>
 
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col min-h-0 relative">
           {/* Main Chat Area */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 h-full">
             <ModuleProvider moduleId={moduleId} workspaceId={id}>
               <ModuleChatWindow
                 moduleId={moduleId}

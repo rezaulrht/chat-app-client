@@ -17,12 +17,12 @@ export default function WorkspacePage() {
 
   return (
     <ProtectedRoute>
-      <div className="flex flex-col h-screen w-full bg-obsidian overflow-hidden">
-        <WorkspaceSidebar />
-
-        <div className="flex flex-1 min-h-0 relative">
-          {/* Module Sidebar */}
-          <div className="hidden md:flex w-64 shrink-0 border-r border-white/[0.06]">
+      <div className="flex h-screen w-full bg-obsidian overflow-hidden">
+        {/* Unified Sidebar Area */}
+        <div className="hidden md:flex flex-col shrink-0 h-full w-80 overflow-hidden border-r border-white/6">
+          <WorkspaceSidebar />
+          
+          <div className="flex-1 flex flex-col min-h-0">
             <ChannelSidebar
               selectedWorkspaceId={id}
               onBack={() => router.push("/app/workspace")}
@@ -33,9 +33,12 @@ export default function WorkspacePage() {
               }}
             />
           </div>
+        </div>
 
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col min-h-0 relative">
           {/* Main Content — no module selected */}
-          <div className="flex-1 flex items-center justify-center">
+          <div className="flex-1 flex items-center justify-center h-full">
             <div className="text-center space-y-3">
               <Hash size={40} className="mx-auto text-ivory/10" />
               <p className="font-display text-sm text-ivory/20">

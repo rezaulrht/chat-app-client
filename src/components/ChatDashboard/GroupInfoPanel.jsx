@@ -465,7 +465,7 @@ export default function GroupInfoPanel({
 
                   {/* Dropdown menu */}
                   {menuOpen && (
-                    <div className="absolute right-2 top-11 z-50 glass-card rounded-xl shadow-[0_8px_40px_rgba(0,0,0,0.4)] py-1 min-w-[156px]">
+                    <div className="absolute right-2 top-11 z-50 bg-[#13131c] border border-white/10 rounded-xl shadow-[0_8px_40px_rgba(0,0,0,0.6)] py-1 min-w-[156px]">
                       {canPromote && (
                         <button
                           onClick={() => handleToggleAdmin(member._id, true)}

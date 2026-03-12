@@ -57,6 +57,11 @@ export function WorkspaceProvider({ children }) {
   // ── Fetch all workspaces on mount ────────────────────────────────────────
   useEffect(() => {
     const load = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setLoadingWorkspaces(false);
+        return;
+      }
       try {
         const data = await listMyWorkspaces();
         setWorkspaces(data);
@@ -91,8 +96,11 @@ export function WorkspaceProvider({ children }) {
   const createWorkspace = useCallback(async (formData) => {
     const ws = await apiCreateWorkspace(formData);
     setWorkspaces((prev) => [ws, ...prev]);
+    if (socket) {
+      socket.emit("workspace:join", ws._id);
+    }
     return ws;
-  }, []);
+  }, [socket]);
 
   const updateWorkspace = useCallback(async (id, data) => {
     const updated = await apiUpdateWorkspace(id, data);
@@ -153,14 +161,22 @@ export function WorkspaceProvider({ children }) {
   }, []);
 
   // ── Module CRUD ──────────────────────────────────────────────────────────
-  const createModule = useCallback(async (workspaceId, data) => {
-    const mod = await apiCreateModule(workspaceId, data);
-    setModulesCache((prev) => ({
-      ...prev,
-      [workspaceId]: [...(prev[workspaceId] || []), mod],
-    }));
-    return mod;
-  }, []);
+  const createModule = useCallback(
+    async (workspaceId, data) => {
+      const mod = await apiCreateModule(workspaceId, data);
+      setModulesCache((prev) => {
+        const existing = prev[workspaceId] || [];
+        if (existing.find((m) => m._id === mod._id)) return prev;
+        return {
+          ...prev,
+          [workspaceId]: [...existing, mod],
+        };
+      });
+      return mod;
+    },
+    [socket],
+  );
+
 
   const updateModule = useCallback(async (workspaceId, moduleId, data) => {
     const updated = await apiUpdateModule(workspaceId, moduleId, data);
@@ -257,6 +273,7 @@ export function WorkspaceProvider({ children }) {
     };
 
     const onModuleCreated = ({ module }) => {
+      if (!module || !module.workspaceId) return;
       setModulesCache((prev) => {
         const existing = prev[module.workspaceId] || [];
         if (existing.find((m) => m._id === module._id)) return prev;

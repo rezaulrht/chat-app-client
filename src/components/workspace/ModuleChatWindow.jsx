@@ -14,6 +14,7 @@ import {
   Loader2,
   Menu,
   X,
+  Plus,
 } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 import { useModule } from "@/hooks/useModule";
@@ -273,11 +274,11 @@ export default function ModuleChatWindow({
   return (
     <main className="flex-1 min-w-0 flex flex-col bg-obsidian relative h-full">
       {/* ── Header ──────────────────────────────────────────────────────────── */}
-      <header className="h-14 border-b border-white/[0.06] flex items-center justify-between px-4 bg-obsidian/80 backdrop-blur-sm shrink-0">
+      <header className="h-14 border-b border-white/6 flex items-center justify-between px-4 bg-obsidian/80 backdrop-blur-sm shrink-0">
         <div className="flex items-center gap-2.5">
           <button
             onClick={onToggleSidebar}
-            className="md:hidden w-8 h-8 rounded-xl bg-white/[0.04] flex items-center justify-center text-ivory/30 hover:text-ivory transition-colors"
+            className="md:hidden w-8 h-8 rounded-xl bg-white/4 flex items-center justify-center text-ivory/30 hover:text-ivory transition-colors"
           >
             <Menu size={18} />
           </button>
@@ -301,7 +302,7 @@ export default function ModuleChatWindow({
           <button
             onClick={loadMore}
             disabled={loading}
-            className="self-center px-4 py-1.5 rounded-full text-[11px] font-mono text-ivory/30 hover:text-accent border border-white/[0.06] hover:border-accent/30 transition-all flex items-center gap-1.5"
+            className="self-center px-4 py-1.5 rounded-full text-[11px] font-mono text-ivory/30 hover:text-accent border border-white/6 hover:border-accent/30 transition-all flex items-center gap-1.5"
           >
             {loading ? (
               <Loader2 size={12} className="animate-spin" />
@@ -347,11 +348,11 @@ export default function ModuleChatWindow({
             <React.Fragment key={msg._id}>
               {showDate && (
                 <div className="flex items-center gap-3 my-2">
-                  <div className="flex-1 h-px bg-white/[0.05]" />
-                  <span className="text-[10px] font-mono text-ivory/20 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.06] shrink-0">
+                  <div className="flex-1 h-px bg-white/5" />
+                  <span className="text-[10px] font-mono text-ivory/20 px-3 py-1 rounded-full bg-white/4 border border-white/6 shrink-0">
                     {getDateLabel(msg.createdAt)}
                   </span>
-                  <div className="flex-1 h-px bg-white/[0.05]" />
+                  <div className="flex-1 h-px bg-white/5" />
                 </div>
               )}
 
@@ -404,7 +405,7 @@ export default function ModuleChatWindow({
                     {/* Action toolbar (hover / long-press) */}
                     {!msg.isOptimistic && !msg.isDeleted && (
                       <div
-                        className={`absolute -top-7 left-0 items-center gap-0.5 bg-deep border border-white/[0.06] rounded-lg p-0.5 shadow-xl z-30 ${
+                        className={`absolute -top-7 left-0 items-center gap-0.5 bg-deep border border-white/6 rounded-lg p-0.5 shadow-xl z-30 ${
                           longPressedMsgId === msg._id
                             ? "flex"
                             : "hidden group-hover/bubble:flex"
@@ -420,7 +421,7 @@ export default function ModuleChatWindow({
                               reactToMessage(msg._id, emoji);
                               setLongPressedMsgId(null);
                             }}
-                            className={`p-1.5 rounded-md text-sm transition-all hover:bg-white/[0.06] hover:scale-125 ${
+                            className={`p-1.5 rounded-md text-sm transition-all hover:bg-white/6 hover:scale-125 ${
                               reactions[msg._id]?.[emoji]?.includes(user?._id)
                                 ? "bg-accent/20"
                                 : ""
@@ -429,7 +430,7 @@ export default function ModuleChatWindow({
                             {emoji}
                           </button>
                         ))}
-                        <div className="w-px h-5 bg-white/[0.06] mx-0.5" />
+                        <div className="w-px h-5 bg-white/6 mx-0.5" />
                         {/* Full emoji picker trigger */}
                         <button
                           type="button"
@@ -440,7 +441,7 @@ export default function ModuleChatWindow({
                             );
                             setLongPressedMsgId(null);
                           }}
-                          className="p-1.5 rounded-md text-ivory/40 hover:text-accent hover:bg-white/[0.06] transition-all"
+                          className="p-1.5 rounded-md text-ivory/40 hover:text-accent hover:bg-white/6 transition-all"
                         >
                           <Smile size={14} />
                         </button>
@@ -451,14 +452,14 @@ export default function ModuleChatWindow({
                             setReplyTo(msg);
                             setLongPressedMsgId(null);
                           }}
-                          className="p-1.5 rounded-md text-ivory/40 hover:text-accent hover:bg-white/[0.06] transition-all"
+                          className="p-1.5 rounded-md text-ivory/40 hover:text-accent hover:bg-white/6 transition-all"
                         >
                           <Reply size={14} />
                         </button>
                         {/* Edit / Delete (own messages only) */}
                         {isMe && (
                           <>
-                            <div className="w-px h-5 bg-white/[0.06] mx-0.5" />
+                            <div className="w-px h-5 bg-white/6 mx-0.5" />
                             <button
                               type="button"
                               onClick={(e) => {
@@ -512,7 +513,7 @@ export default function ModuleChatWindow({
                           Editing
                         </span>
                         <textarea
-                          className="w-full min-h-16 bg-deep text-ivory text-[13px] px-3 py-2 rounded-xl border border-white/[0.08] focus:outline-none focus:border-accent resize-none scrollbar-hide"
+                          className="w-full min-h-16 bg-deep text-ivory text-[13px] px-3 py-2 rounded-xl border border-white/8 focus:outline-none focus:border-accent resize-none scrollbar-hide"
                           value={editedText}
                           onChange={(e) => setEditedText(e.target.value)}
                           onKeyDown={(e) => {
@@ -533,7 +534,7 @@ export default function ModuleChatWindow({
                               setEditingId(null);
                               setEditedText("");
                             }}
-                            className="px-3 py-1.5 text-[11px] font-mono text-ivory/30 hover:text-ivory transition-colors rounded-lg hover:bg-white/[0.04]"
+                            className="px-3 py-1.5 text-[11px] font-mono text-ivory/30 hover:text-ivory transition-colors rounded-lg hover:bg-white/4"
                           >
                             Cancel (Esc)
                           </button>
@@ -546,11 +547,14 @@ export default function ModuleChatWindow({
                         </div>
                       </div>
                     ) : msg.isDeleted ? (
-                      <p className="italic text-ivory/20 text-[12px] font-mono">
-                        This message was deleted
-                      </p>
+                      <div className="flex items-center gap-2 p-2 px-3 bg-white/2 rounded-2xl border border-white/5 opacity-50 select-none w-fit">
+                        <Trash2 className="w-3 h-3 text-ivory/30" />
+                        <p className="italic text-ivory/40 text-[11px] font-mono leading-none">
+                          Deleted
+                        </p>
+                      </div>
                     ) : isGif ? (
-                      <div className="rounded-2xl overflow-hidden max-w-[260px]">
+                      <div className="rounded-2xl overflow-hidden max-w-65">
                         <img
                           src={msg.gifUrl}
                           alt="gif"
@@ -562,7 +566,7 @@ export default function ModuleChatWindow({
                         className={`inline-block px-3.5 py-2.5 rounded-2xl rounded-tl-none text-[13px] leading-relaxed max-w-prose ${
                           isMe
                             ? "bg-accent/15 text-ivory border border-accent/20"
-                            : "bg-white/[0.04] text-ivory/80 border border-white/[0.06]"
+                            : "bg-white/4 text-ivory/80 border border-white/6"
                         } ${msg.isOptimistic ? "opacity-60" : ""}`}
                       >
                         {msg.replyTo && (
@@ -589,14 +593,14 @@ export default function ModuleChatWindow({
                               <button
                                 key={emoji}
                                 onClick={() => reactToMessage(msg._id, emoji)}
-                                className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] border transition-all ${
-                                  users.includes(user?._id)
-                                    ? "bg-accent/20 border-accent/30 text-accent"
-                                    : "bg-white/[0.04] border-white/[0.08] text-ivory/50 hover:border-white/[0.15]"
+                                className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border transition-all ${
+                                  users.some(u => String(u) === String(user?._id))
+                                    ? "bg-accent/20 border-accent/40 text-accent"
+                                    : "bg-white/4 border-white/6 text-ivory/80 hover:bg-white/8"
                                 }`}
                               >
-                                {emoji}
-                                <span className="font-mono font-bold">
+                                <span className="text-[12px] leading-none">{emoji}</span>
+                                <span className="text-[10px] font-bold opacity-40 leading-none">
                                   {users.length}
                                 </span>
                               </button>
@@ -635,7 +639,7 @@ export default function ModuleChatWindow({
 
       {/* ── Reply Banner ──────────────────────────────────────────────────────── */}
       {replyTo && (
-        <div className="mx-4 mb-1 px-3 py-2 bg-white/[0.03] border border-white/[0.06] rounded-xl flex items-center justify-between gap-2">
+        <div className="mx-4 mb-1 px-3 py-2 bg-white/3 border border-white/6 rounded-xl flex items-center justify-between gap-2">
           <div className="min-w-0">
             <p className="text-[10px] font-mono text-accent/70 font-bold mb-0.5">
               Replying to {replyTo.sender?.name || "Member"}
@@ -644,7 +648,7 @@ export default function ModuleChatWindow({
           </div>
           <button
             onClick={() => setReplyTo(null)}
-            className="w-6 h-6 rounded-lg flex items-center justify-center text-ivory/20 hover:text-ivory/50 hover:bg-white/[0.06] shrink-0 transition-all"
+            className="w-6 h-6 rounded-lg flex items-center justify-center text-ivory/20 hover:text-ivory/50 hover:bg-white/6 shrink-0 transition-all"
           >
             <X size={13} />
           </button>
@@ -655,27 +659,24 @@ export default function ModuleChatWindow({
       {canType ? (
         <form
           onSubmit={handleSend}
-          className="mx-3 mb-3 flex items-end gap-2 relative"
+          className="p-4 relative z-20 bg-obsidian/80 backdrop-blur-sm border-t border-white/5"
         >
           {/* Emoji autocomplete suggestions */}
           {suggestions.length > 0 && (
-            <div className="absolute bottom-full left-0 mb-2 flex flex-wrap gap-1 bg-deep border border-white/[0.08] rounded-xl p-2 shadow-xl max-w-[320px] z-20">
+            <div className="absolute bottom-full left-2 sm:left-10 bg-deep/95 backdrop-blur-md border border-white/6 rounded-xl p-1 shadow-2xl z-50 min-w-37.5 max-w-[calc(100vw-2rem)] mb-2">
               {suggestions.map(([code, emoji], i) => (
-                <button
+                <div
                   key={code}
-                  type="button"
                   onClick={() => insertEmoji(emoji)}
-                  className={`px-2 py-1 rounded-lg text-sm transition-all hover:bg-white/[0.06] ${
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
                     i === suggestionIndex
-                      ? "bg-accent/20 ring-1 ring-accent/30"
-                      : ""
+                      ? "bg-accent/20 text-accent"
+                      : "hover:bg-white/6 text-ivory/40"
                   }`}
                 >
-                  {emoji}{" "}
-                  <span className="text-[10px] font-mono text-ivory/30">
-                    {code}
-                  </span>
-                </button>
+                  <span className="text-lg">{emoji}</span>
+                  <span className="text-xs font-mono">{code}</span>
+                </div>
               ))}
             </div>
           )}
@@ -684,7 +685,7 @@ export default function ModuleChatWindow({
           {showEmojiPicker && (
             <div
               ref={emojiPickerRef}
-              className="absolute bottom-full left-0 mb-2 z-30"
+              className="absolute bottom-20 right-0 sm:right-4 left-0 sm:left-auto z-50 shadow-2xl mx-2 sm:mx-0"
             >
               <EmojiPicker
                 onEmojiClick={(data) => {
@@ -692,8 +693,9 @@ export default function ModuleChatWindow({
                   setShowEmojiPicker(false);
                 }}
                 theme="dark"
-                height={340}
-                width={300}
+                emojiStyle="native"
+                width={350}
+                height={380}
               />
             </div>
           )}
@@ -702,33 +704,30 @@ export default function ModuleChatWindow({
           {showGifPicker && (
             <div
               ref={gifPickerRef}
-              className="absolute bottom-full left-0 mb-2 z-30"
+              className="absolute bottom-20 right-0 sm:right-4 left-0 sm:left-auto z-50 shadow-2xl rounded-2xl overflow-hidden border border-white/6 mx-2 sm:mx-0"
             >
               <GifPicker
                 onGifClick={handleGifClick}
                 klipyApiKey={process.env.NEXT_PUBLIC_KLIPY_API_KEY}
                 theme="dark"
-                width={300}
-                height={380}
+                width={380}
+                height={400}
               />
             </div>
           )}
 
-          {/* GIF button */}
-          <button
-            type="button"
-            onClick={() => {
-              setShowGifPicker((v) => !v);
-              setShowEmojiPicker(false);
-            }}
-            className="w-9 h-9 shrink-0 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-ivory/25 hover:text-accent hover:border-accent/30 transition-all text-[10px] font-bold font-mono"
-          >
-            GIF
-          </button>
+          <div className="bg-slate-surface rounded-2xl flex items-center flex-wrap p-2 gap-1 border border-white/5 focus-within:border-accent/50 transition-all shadow-inner">
+            {/* Using Plus icon for consistency with main chat even if we don't have extra tools yet */}
+            <button
+              type="button"
+              className="w-9 h-9 flex items-center justify-center text-ivory/30 hover:text-accent transition-colors"
+              title="More"
+            >
+              <Plus size={20} />
+            </button>
 
-          <div className="flex-1 flex items-end gap-2 bg-white/[0.04] border border-white/[0.06] rounded-2xl px-3 py-2.5 focus-within:border-accent/30 transition-all">
             <textarea
-              className="flex-1 bg-transparent text-ivory text-[13px] resize-none outline-none placeholder:text-ivory/20 font-mono max-h-32 scrollbar-hide leading-relaxed"
+              className="flex-1 min-w-0 bg-transparent outline-none text-sm text-ivory/80 px-3 placeholder:text-ivory/20 resize-none py-2 scrollbar-hide max-h-32"
               placeholder={
                 isAnnouncement
                   ? `Post an announcement in #${activeModule.name}...`
@@ -750,28 +749,71 @@ export default function ModuleChatWindow({
                   Math.min(e.target.scrollHeight, 128) + "px";
               }}
             />
+
+            <button
+              type="button"
+              onClick={() => {
+                setShowGifPicker((v) => !v);
+                setShowEmojiPicker(false);
+              }}
+              className={`hidden sm:inline-flex px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${
+                showGifPicker
+                  ? "bg-accent/20 border-accent/40 text-accent"
+                  : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+              }`}
+            >
+              GIF
+            </button>
+
             <button
               type="button"
               onClick={() => {
                 setShowEmojiPicker((v) => !v);
                 setShowGifPicker(false);
               }}
-              className="w-7 h-7 rounded-xl flex items-center justify-center text-ivory/20 hover:text-accent transition-colors shrink-0"
+              className={`w-9 h-9 flex items-center justify-center transition-all ${
+                showEmojiPicker
+                  ? "text-accent"
+                  : "text-ivory/30 hover:text-ivory/60"
+              }`}
+              title="Emoji"
             >
-              <Smile size={16} />
+              <Smile size={20} />
             </button>
-          </div>
 
-          <button
-            type="submit"
-            disabled={!text.trim()}
-            className="w-9 h-9 shrink-0 rounded-xl bg-accent/15 hover:bg-accent/25 border border-accent/20 flex items-center justify-center text-accent transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-          >
-            <Send size={15} />
-          </button>
+            <button
+              type="submit"
+              disabled={!text.trim()}
+              className={`w-9 h-9 flex items-center justify-center rounded-xl ml-1 transition-all active:scale-95 shadow-lg ${
+                !text.trim()
+                  ? "bg-slate-700 text-ivory/40 cursor-not-allowed"
+                  : "bg-accent hover:bg-accent/90 text-black shadow-accent/20"
+              }`}
+            >
+              <Send size={18} />
+            </button>
+
+            {/* Mobile-only expanded toolbar row */}
+            <div className="sm:hidden w-full flex items-center gap-1 pt-1 border-t border-white/5 mt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowGifPicker(!showGifPicker);
+                  setShowEmojiPicker(false);
+                }}
+                className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${
+                  showGifPicker
+                    ? "bg-accent/20 border-accent/40 text-accent"
+                    : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+                }`}
+              >
+                GIF
+              </button>
+            </div>
+          </div>
         </form>
       ) : (
-        <div className="mx-3 mb-3 px-4 py-3 bg-white/[0.03] border border-white/[0.06] rounded-2xl text-center">
+        <div className="mx-3 mb-3 px-4 py-3 bg-white/3 border border-white/6 rounded-2xl text-center">
           <p className="text-ivory/20 text-[12px] font-mono">
             Only admins and owners can post in announcement modules
           </p>

@@ -18,6 +18,7 @@ import {
   MoreHorizontal,
   Pencil,
   Trash2,
+  LogOut,
 } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
@@ -145,7 +146,7 @@ export default function ChannelSidebar({
       {/* Workspace Header (click to open settings) */}
       <div
         onClick={() => onSettingsOpen?.()}
-        className="h-13 px-4 flex items-center justify-between border-b border-white/[0.06] hover:bg-white/[0.03] cursor-pointer transition-all duration-300 group relative"
+        className="h-13 px-4 flex items-center justify-between border-b border-white/6 hover:bg-white/3 cursor-pointer transition-all duration-300 group relative"
       >
         <div className="flex items-center gap-2 min-w-0">
           {onBack && (
@@ -231,7 +232,7 @@ export default function ChannelSidebar({
                             value={renameValue}
                             onChange={(e) => setRenameValue(e.target.value)}
                             maxLength={50}
-                            className="flex-1 min-w-0 bg-white/[0.05] border border-accent/30 rounded-md px-1.5 py-0.5 text-[10px] font-mono text-ivory/80 focus:outline-none focus:border-accent/60"
+                            className="flex-1 min-w-0 bg-white/5 border border-accent/30 rounded-md px-1.5 py-0.5 text-[10px] font-mono text-ivory/80 focus:outline-none focus:border-accent/60"
                           />
                           <button
                             type="submit"
@@ -277,13 +278,13 @@ export default function ChannelSidebar({
                               className="fixed inset-0 z-40"
                               onClick={() => setOpenMenuCat(null)}
                             />
-                            <div className="absolute right-0 top-6 z-50 w-44 bg-[#13131c] border border-white/[0.08] rounded-xl shadow-2xl shadow-black/50 overflow-hidden py-1">
+                            <div className="absolute right-0 top-6 z-50 w-44 bg-[#13131c] border border-white/8 rounded-xl shadow-2xl shadow-black/50 overflow-hidden py-1">
                               <button
                                 onClick={() => {
                                   setOpenMenuCat(null);
                                   onCreateModule?.(group.name);
                                 }}
-                                className="w-full flex items-center gap-2.5 px-3 py-2 text-[12px] text-ivory/60 hover:bg-white/[0.05] hover:text-ivory transition-colors"
+                                className="w-full flex items-center gap-2.5 px-3 py-2 text-[12px] text-ivory/60 hover:bg-white/5 hover:text-ivory transition-colors"
                               >
                                 <Plus size={13} className="text-accent/70" />
                                 Add module
@@ -296,12 +297,12 @@ export default function ChannelSidebar({
                                   );
                                   setRenameValue(group.name);
                                 }}
-                                className="w-full flex items-center gap-2.5 px-3 py-2 text-[12px] text-ivory/60 hover:bg-white/[0.05] hover:text-ivory transition-colors"
+                                className="w-full flex items-center gap-2.5 px-3 py-2 text-[12px] text-ivory/60 hover:bg-white/5 hover:text-ivory transition-colors"
                               >
                                 <Pencil size={13} className="text-ivory/40" />
                                 Rename category
                               </button>
-                              <div className="my-1 border-t border-white/[0.06]" />
+                              <div className="my-1 border-t border-white/6" />
                               <button
                                 onClick={() => {
                                   setOpenMenuCat(null);
@@ -336,8 +337,8 @@ export default function ChannelSidebar({
                           }
                           className={`flex items-center gap-2.5 px-2 py-[7px] rounded-xl cursor-pointer group/ch transition-all duration-200 relative ${
                             isActive
-                              ? "bg-white/[0.06] text-ivory backdrop-blur-sm"
-                              : "hover:bg-white/[0.03] text-ivory/30 hover:text-ivory/60"
+                              ? "bg-white/6 text-ivory backdrop-blur-sm"
+                              : "hover:bg-white/3 text-ivory/30 hover:text-ivory/60"
                           }`}
                         >
                           {isActive && (
@@ -388,7 +389,7 @@ export default function ChannelSidebar({
                   onChange={(e) => setNewCategoryName(e.target.value)}
                   placeholder="Category name…"
                   maxLength={50}
-                  className="flex-1 bg-white/[0.05] border border-accent/30 rounded-lg px-2 py-1 text-[11px] font-mono text-ivory/80 placeholder:text-ivory/20 focus:outline-none focus:border-accent/60 min-w-0"
+                  className="flex-1 bg-white/5 border border-accent/30 rounded-lg px-2 py-1 text-[11px] font-mono text-ivory/80 placeholder:text-ivory/20 focus:outline-none focus:border-accent/60 min-w-0"
                 />
                 <button
                   type="submit"
@@ -435,15 +436,13 @@ export default function ChannelSidebar({
       </div>
 
       {/* User Status Bar (bottom) */}
-      <div className="mx-2 mb-2 p-2.5 glass-card rounded-2xl flex items-center gap-2.5">
-        <div className="relative shrink-0 cursor-pointer group/av">
-          {/* TODO: restore avatar overlay presence dot once socket presence is wired */}
-          <div className="w-8 h-8 rounded-xl overflow-hidden ring-1 ring-white/[0.06] group-hover/av:ring-accent/40 transition-all duration-300">
+      <div className="h-14 glass-card mx-2 mb-2 rounded-xl px-3 flex items-center gap-2.5 group/user shrink-0 ring-1 ring-white/[0.04]">
+        <div className="relative shrink-0 cursor-pointer group/avatar">
+          <div className="w-8 h-8 rounded-xl overflow-hidden ring-1 ring-white/[0.06] group-hover/avatar:ring-accent/30 transition-all duration-200 shadow-[0_0_12px_rgba(0,211,187,0.05)]">
             <Image
               src={
                 currentUser?.avatar ||
-                "https://api.dicebear.com/7.x/avataaars/svg?seed=" +
-                  (currentUser?.name || "user")
+                `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser?.name}`
               }
               width={32}
               height={32}
@@ -452,24 +451,37 @@ export default function ChannelSidebar({
               unoptimized
             />
           </div>
+          <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-deep bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
         </div>
-        <div className="flex-1 min-w-0 cursor-pointer group/u">
-          <p className="text-ivory text-[13px] font-display font-bold truncate leading-tight group-hover/u:text-accent transition-colors duration-200">
+
+        <div className="flex-1 min-w-0 cursor-pointer overflow-hidden">
+          <p className="text-ivory text-[13px] font-display font-bold truncate leading-tight group-hover/user:text-accent transition-colors duration-200">
             {currentUser?.name?.split(" ")[0]}
           </p>
-          <div className="flex items-center gap-1">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <p className="text-ivory/20 text-[9px] font-mono font-medium uppercase tracking-[0.15em]">
-              Online
-            </p>
-          </div>
+          <p className="text-ivory/20 text-[10px] truncate leading-tight flex items-center gap-1 font-mono">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_4px_rgba(52,211,153,0.4)]" />
+            Online
+          </p>
         </div>
-        <button
-          onClick={() => onSettingsOpen?.()}
-          className="w-7 h-7 rounded-lg flex items-center justify-center text-ivory/15 hover:text-ivory/40 hover:bg-white/[0.04] transition-all duration-200"
-        >
-          <Settings size={14} />
-        </button>
+
+        <div className="flex items-center gap-0.5 opacity-40 group-hover/user:opacity-80 transition-opacity">
+          <button
+            onClick={() => onSettingsOpen?.()}
+            className="p-1.5 rounded-lg hover:bg-white/6 text-ivory/40 hover:text-ivory/60 transition-all duration-200"
+            title="Workspace Settings"
+          >
+            <Settings size={15} />
+          </button>
+          <button
+            onClick={() => {
+              window.location.href = "/";
+            }}
+            className="p-1.5 rounded-lg hover:bg-white/[0.06] text-ivory/40 hover:text-ivory/60 transition-all duration-200"
+            title="Logout"
+          >
+            <LogOut size={15} />
+          </button>
+        </div>
       </div>
     </aside>
   );

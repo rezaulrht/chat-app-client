@@ -720,8 +720,10 @@ export default function ModuleChatWindow({
             {/* Using Plus icon for consistency with main chat even if we don't have extra tools yet */}
             <button
               type="button"
-              className="w-9 h-9 flex items-center justify-center text-ivory/30 hover:text-accent transition-colors"
-              title="More"
+              onClick={() => toast("Coming soon", { icon: "🔜" })}
+              className="w-9 h-9 flex items-center justify-center text-ivory/30 hover:text-accent/50 transition-colors cursor-not-allowed"
+              title="Coming soon"
+              aria-disabled="true"
             >
               <Plus size={20} />
             </button>

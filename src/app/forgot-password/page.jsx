@@ -74,7 +74,6 @@ export default function ForgotPasswordPage() {
       }
 
       setError(message);
-      toast.error(message);
     } finally {
       setLoading(false);
     }

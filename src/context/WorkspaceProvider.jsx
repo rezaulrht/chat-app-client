@@ -87,7 +87,7 @@ export function WorkspaceProvider({ children }) {
       socket.emit("workspace:join", ws._id);
     }
     return ws;
-  }, []);
+  }, [socket]);
 
   const updateWorkspace = useCallback(async (id, data) => {
     const updated = await apiUpdateWorkspace(id, data);
@@ -159,9 +159,6 @@ export function WorkspaceProvider({ children }) {
           [workspaceId]: [...existing, mod],
         };
       });
-      if (socket) {
-        socket.emit("module:join", { moduleId: mod._id, workspaceId });
-      }
       return mod;
     },
     [socket],

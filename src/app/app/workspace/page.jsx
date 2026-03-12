@@ -11,7 +11,7 @@ import { useState } from "react";
 export default function WorkspaceListPage() {
   const router = useRouter();
   const { workspaces, loadingWorkspaces } = useWorkspace();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [activeView, setActiveView] = useState("workspace");
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState(null);
 
@@ -101,8 +101,7 @@ export default function WorkspaceListPage() {
             <div className="flex items-center gap-0.5 opacity-40 group-hover/user:opacity-80 transition-opacity">
               <button
                 onClick={() => {
-                  localStorage.removeItem("token");
-                  window.location.href = "/";
+                  logout();
                 }}
                 className="p-1.5 rounded-lg hover:bg-red-500/10 text-ivory/40 hover:text-red-400 transition-all duration-200"
                 title="Logout"

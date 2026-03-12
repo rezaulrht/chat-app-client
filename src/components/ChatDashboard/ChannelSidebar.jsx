@@ -31,7 +31,7 @@ export default function ChannelSidebar({
   onSettingsOpen, // () => void — opens WorkspaceSettingsPanel
   onCreateModule, // () => void — opens CreateModuleModal (later by Member 6)
 }) {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, logout } = useAuth();
   const {
     modulesCache,
     loadingModules,
@@ -473,9 +473,7 @@ export default function ChannelSidebar({
             <Settings size={15} />
           </button>
           <button
-            onClick={() => {
-              window.location.href = "/";
-            }}
+            onClick={() => logout()}
             className="p-1.5 rounded-lg hover:bg-white/6 text-ivory/40 hover:text-ivory/60 transition-all duration-200"
             title="Logout"
           >

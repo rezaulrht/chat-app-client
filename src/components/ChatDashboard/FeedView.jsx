@@ -40,13 +40,11 @@ function PulseBar({ delay = 0 }) {
 
 export default function FeedView() {
   const [dots, setDots] = useState("...");
-  const [tick, setTick] = useState(0);
 
   // Animated ellipsis
   useEffect(() => {
     const id = setInterval(() => {
       setDots((d) => (d.length >= 3 ? "." : d + "."));
-      setTick((t) => t + 1);
     }, 600);
     return () => clearInterval(id);
   }, []);

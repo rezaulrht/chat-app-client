@@ -254,7 +254,7 @@ export default function ModuleChatWindow({
         </div>
         <div className="text-center space-y-1.5">
           <h2 className="text-ivory font-display font-bold">Select a module</h2>
-          <p className="text-ivory/30 text-sm max-w-55">
+          <p className="text-ivory/30 text-sm max-w-[220px]">
             Choose a module from the sidebar to start chatting
           </p>
         </div>
@@ -363,7 +363,7 @@ export default function ModuleChatWindow({
                 onTouchMove={handleTouchEnd}
               >
                 {/* Sender avatar — always shown in modules */}
-                <div className="w-8 h-8 rounded-xl overflow-hidden shrink-0 mt-0.5 ring-1 ring-white/6">
+                <div className="w-8 h-8 rounded-xl overflow-hidden shrink-0 mt-0.5 ring-1 ring-white/[0.06]">
                   <Image
                     src={
                       msg.sender?.avatar ||
@@ -720,10 +720,8 @@ export default function ModuleChatWindow({
             {/* Using Plus icon for consistency with main chat even if we don't have extra tools yet */}
             <button
               type="button"
-              onClick={() => toast("Coming soon", { icon: "🔜" })}
-              className="w-9 h-9 flex items-center justify-center text-ivory/30 hover:text-accent/50 transition-colors cursor-not-allowed"
-              title="Coming soon"
-              aria-disabled="true"
+              className="w-9 h-9 flex items-center justify-center text-ivory/30 hover:text-accent transition-colors"
+              title="More"
             >
               <Plus size={20} />
             </button>

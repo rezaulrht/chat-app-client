@@ -31,7 +31,7 @@ function PulseBar({ delay = 0 }) {
   return (
     <div className="h-px w-full bg-white/5 rounded-full overflow-hidden">
       <div
-        className="h-full bg-gradient-to-r from-transparent via-accent to-transparent rounded-full animate-[shimmer_2.5s_ease-in-out_infinite]"
+        className="h-full bg-linear-to-r from-transparent via-accent to-transparent rounded-full animate-[shimmer_2.5s_ease-in-out_infinite]"
         style={{ animationDelay: `${delay}ms` }}
       />
     </div>
@@ -52,9 +52,9 @@ export default function FeedView() {
   return (
     <main className="flex-1 min-w-0 flex flex-col bg-obsidian relative h-full overflow-hidden">
       {/* ── Ambient background glows ── */}
-      <Orb className="top-[-10%] left-[-5%] w-[500px] h-[500px] bg-accent/4 blur-[140px]" />
-      <Orb className="bottom-[-10%] right-[-5%] w-[400px] h-[400px] bg-accent/3 blur-[120px]" />
-      <Orb className="top-[40%] left-[55%] w-[300px] h-[300px] bg-cyan/3 blur-[100px]" />
+      <Orb className="top-[-10%] left-[-5%] w-125 h-125 bg-accent/4 blur-[140px]" />
+      <Orb className="bottom-[-10%] right-[-5%] w-100 h-100 bg-accent/3 blur-[120px]" />
+      <Orb className="top-[40%] left-[55%] w-75 h-75 bg-cyan/3 blur-[100px]" />
 
       {/* ── Subtle grid overlay ── */}
       <div
@@ -91,7 +91,7 @@ export default function FeedView() {
             <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400" />
           </span>
         </div>
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent/10 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-accent/10 to-transparent" />
       </header>
 
       {/* ── Main content ── */}
@@ -151,7 +151,7 @@ export default function FeedView() {
               {features.map(({ icon: Icon, label }) => (
                 <div
                   key={label}
-                  className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/[0.025] border border-white/5 hover:border-accent/15 hover:bg-accent/5 transition-all duration-300 group"
+                  className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/2.5 border border-white/5 hover:border-accent/15 hover:bg-accent/5 transition-all duration-300 group"
                 >
                   <div className="w-7 h-7 rounded-lg bg-accent/8 border border-accent/15 flex items-center justify-center shrink-0 group-hover:border-accent/30 transition-colors duration-300">
                     <Icon size={13} className="text-accent/70 group-hover:text-accent transition-colors duration-300" />

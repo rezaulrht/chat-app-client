@@ -130,7 +130,7 @@ export function ModuleProvider({ children, moduleId, workspaceId }) {
     if (!socket) return;
 
     const onNewMessage = (msg) => {
-      if (msg.moduleId !== moduleId) return;
+      if (String(msg.moduleId) !== String(moduleId)) return;
 
       setMessages((prev) => {
         // Replace optimistic placeholder if tempId matches
@@ -141,12 +141,12 @@ export function ModuleProvider({ children, moduleId, workspaceId }) {
           return updated;
         }
         // Deduplicate by _id
-        if (prev.find((m) => m._id === msg._id)) return prev;
+        if (prev.find((m) => String(m._id) === String(msg._id))) return prev;
         return [...prev, msg];
       });
 
       // Auto-mark seen if we're viewing this module
-      if (msg.sender?._id !== user?._id && socket) {
+      if (String(msg.sender?._id) !== String(user?._id) && socket) {
         socket.emit("module:seen", {
           moduleId,
           workspaceId,
@@ -156,30 +156,30 @@ export function ModuleProvider({ children, moduleId, workspaceId }) {
     };
 
     const onReacted = ({ messageId, moduleId: mid, reactions: rxns }) => {
-      if (mid !== moduleId) return;
+      if (String(mid) !== String(moduleId)) return;
       setReactions((prev) => ({ ...prev, [messageId]: rxns }));
     };
 
     const onEdited = (updatedMsg) => {
-      if (updatedMsg.moduleId !== moduleId) return;
+      if (String(updatedMsg.moduleId) !== String(moduleId)) return;
       setMessages((prev) =>
         prev.map((m) =>
-          m._id === updatedMsg._id ? { ...m, ...updatedMsg } : m,
+          String(m._id) === String(updatedMsg._id) ? { ...m, ...updatedMsg } : m,
         ),
       );
     };
 
     const onDeleted = ({ messageId, moduleId: mid, forEveryone }) => {
-      if (mid !== moduleId) return;
+      if (String(mid) !== String(moduleId)) return;
       if (forEveryone) {
         setMessages((prev) =>
           prev.map((m) =>
-            m._id === messageId ? { ...m, isDeleted: true } : m,
+            String(m._id) === String(messageId) ? { ...m, isDeleted: true } : m,
           ),
         );
       } else {
         // "Delete for me" — remove from local list only
-        setMessages((prev) => prev.filter((m) => m._id !== messageId));
+        setMessages((prev) => prev.filter((m) => String(m._id) !== String(messageId)));
       }
     };
 

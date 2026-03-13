@@ -1,293 +1,150 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   X,
   Plus,
   Minus,
+  FileText,
   Code2,
   HelpCircle,
   Lightbulb,
-  Zap,
+  Sparkles,
+  BarChart3,
   Link2,
-  BarChart2,
-  BookOpen,
   Tag,
-  Paperclip,
-  AlignLeft,
-  Hash,
+  Lock,
+  Globe,
+  ImagePlus,
+  Upload,
 } from "lucide-react";
 
 const POST_TYPES = [
   {
     value: "post",
     label: "Post",
-    icon: BookOpen,
-    desc: "Share thoughts or an update",
+    icon: FileText,
+    heading: "Create New Post",
+    sub: "Share your ideas with the community.",
+    publishCta: "Publish Post",
   },
   {
     value: "snippet",
     label: "Snippet",
     icon: Code2,
-    desc: "Share reusable code with syntax highlight",
+    heading: "Create Code Snippet",
+    sub: "Share optimized logic with syntax-highlighted code.",
+    publishCta: "Publish Snippet",
   },
   {
     value: "question",
     label: "Question",
     icon: HelpCircle,
-    desc: "Ask the community for help",
+    heading: "Ask a Question",
+    sub: "Get help from the community.",
+    publishCta: "Publish Question",
   },
   {
     value: "til",
     label: "TIL",
     icon: Lightbulb,
-    desc: "Today I Learned — a quick insight",
+    heading: "Create TIL",
+    sub: "Share something you learned today.",
+    publishCta: "Publish TIL",
   },
   {
     value: "showcase",
     label: "Showcase",
-    icon: Zap,
-    desc: "Demo something you built",
+    icon: Sparkles,
+    heading: "Create Showcase",
+    sub: "Highlight your project and stack.",
+    publishCta: "Publish Showcase",
   },
   {
     value: "poll",
     label: "Poll",
-    icon: BarChart2,
-    desc: "Get a quick vote from the community",
+    icon: BarChart3,
+    heading: "Create Poll",
+    sub: "Collect quick opinions from the community.",
+    publishCta: "Publish Poll",
   },
   {
     value: "resource",
     label: "Resource",
     icon: Link2,
-    desc: "Share a useful link",
+    heading: "Create Resource",
+    sub: "Share useful links and references.",
+    publishCta: "Publish Resource",
   },
 ];
 
-const LANG_OPTIONS = [
+const CODE_LANGUAGES = [
   "javascript",
   "typescript",
   "python",
-  "rust",
   "go",
+  "rust",
   "java",
-  "css",
-  "html",
+  "csharp",
+  "php",
   "bash",
   "sql",
   "json",
   "yaml",
-  "markdown",
 ];
 
-// ── Shared textarea ───────────────────────────────────────────────────────────
-function MarkdownEditor({
-  value,
-  onChange,
-  placeholder = "Write something… (markdown supported)",
-  rows = 6,
-}) {
+const POLL_DURATIONS = ["1 Day", "3 Days", "7 Days", "14 Days"];
+const RESOURCE_CATEGORIES = [
+  "Documentation",
+  "Article",
+  "Video",
+  "Tool",
+  "Repository",
+  "Design",
+];
+
+function FieldLabel({ children }) {
   return (
-    <textarea
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      rows={rows}
-      className="w-full bg-white/[0.04] ring-1 ring-white/[0.07] focus:ring-accent/30 rounded-xl px-4 py-3 text-[13px] text-ivory/80 placeholder:text-ivory/20 font-sans resize-y outline-none transition-all leading-relaxed"
-    />
+    <p className="text-[11px] font-mono font-bold uppercase tracking-[0.12em] text-ivory/28 mb-2">
+      {children}
+    </p>
   );
 }
 
-// ── Code block editor (used for snippet type) ─────────────────────────────────
-function CodeBlockEditor({ blocks, onChange }) {
-  const addBlock = () =>
-    onChange([
-      ...blocks,
-      { filename: "index.js", language: "javascript", code: "" },
-    ]);
-  const removeBlock = (i) => onChange(blocks.filter((_, idx) => idx !== i));
-  const updateBlock = (i, key, val) => {
-    const next = [...blocks];
-    next[i] = { ...next[i], [key]: val };
-    onChange(next);
-  };
-
-  return (
-    <div className="flex flex-col gap-3">
-      {blocks.map((b, i) => (
-        <div
-          key={i}
-          className="rounded-xl ring-1 ring-white/[0.07] bg-deep overflow-hidden"
-        >
-          {/* Block header */}
-          <div className="flex items-center gap-2 px-3 py-2 border-b border-white/[0.06] bg-white/[0.02]">
-            <input
-              value={b.filename}
-              onChange={(e) => updateBlock(i, "filename", e.target.value)}
-              className="flex-1 bg-transparent text-[12px] font-mono text-ivory/70 outline-none placeholder:text-ivory/20"
-              placeholder="filename.js"
-            />
-            <select
-              value={b.language}
-              onChange={(e) => updateBlock(i, "language", e.target.value)}
-              className="bg-white/[0.04] ring-1 ring-white/[0.07] text-ivory/50 text-[11px] font-mono rounded-lg px-2 py-1 outline-none"
-            >
-              {LANG_OPTIONS.map((l) => (
-                <option key={l} value={l} className="bg-deep text-ivory">
-                  {l}
-                </option>
-              ))}
-            </select>
-            {blocks.length > 1 && (
-              <button
-                type="button"
-                onClick={() => removeBlock(i)}
-                className="text-red-400/40 hover:text-red-400/80 transition-colors"
-              >
-                <Minus size={13} />
-              </button>
-            )}
-          </div>
-
-          {/* Code textarea */}
-          <textarea
-            value={b.code}
-            onChange={(e) => updateBlock(i, "code", e.target.value)}
-            placeholder="// paste your code here"
-            rows={8}
-            className="w-full bg-transparent font-mono text-[12px] text-ivory/70 px-4 py-3 resize-y outline-none placeholder:text-ivory/15 leading-5"
-          />
-        </div>
-      ))}
-
-      <button
-        type="button"
-        onClick={addBlock}
-        className="flex items-center gap-1.5 text-[11px] font-mono text-accent/60 hover:text-accent transition-colors self-start"
-      >
-        <Plus size={12} /> Add file
-      </button>
-    </div>
-  );
-}
-
-// ── Poll editor ───────────────────────────────────────────────────────────────
-function PollEditor({ poll, onChange }) {
-  const setQuestion = (q) => onChange({ ...poll, question: q });
-  const setOptions = (opts) => onChange({ ...poll, options: opts });
-  const setMulti = (v) => onChange({ ...poll, multiSelect: v });
-  const setExpiry = (v) => onChange({ ...poll, expiresAt: v });
-
-  const addOption = () =>
-    setOptions([...(poll.options ?? []), { text: "", votes: [] }]);
-  const removeOption = (i) =>
-    setOptions(poll.options.filter((_, idx) => idx !== i));
-  const updateOption = (i, val) => {
-    const next = [...poll.options];
-    next[i] = { ...next[i], text: val };
-    setOptions(next);
-  };
-
-  return (
-    <div className="flex flex-col gap-3">
-      <input
-        value={poll.question ?? ""}
-        onChange={(e) => setQuestion(e.target.value)}
-        placeholder="Poll question…"
-        className="w-full bg-white/[0.04] ring-1 ring-white/[0.07] focus:ring-accent/30 rounded-xl px-4 py-2.5 text-[13px] text-ivory/80 placeholder:text-ivory/20 font-sans outline-none transition-all"
-      />
-      <div className="flex flex-col gap-2">
-        {(poll.options ?? []).map((opt, i) => (
-          <div key={i} className="flex items-center gap-2">
-            <span className="shrink-0 w-5 h-5 rounded-full ring-1 ring-white/[0.10] flex items-center justify-center text-[10px] text-ivory/25 font-mono">
-              {i + 1}
-            </span>
-            <input
-              value={opt.text}
-              onChange={(e) => updateOption(i, e.target.value)}
-              placeholder={`Option ${i + 1}`}
-              className="flex-1 bg-white/[0.04] ring-1 ring-white/[0.07] focus:ring-accent/30 rounded-lg px-3 py-2 text-[13px] text-ivory/80 placeholder:text-ivory/20 outline-none transition-all"
-            />
-            {(poll.options ?? []).length > 2 && (
-              <button
-                type="button"
-                onClick={() => removeOption(i)}
-                className="text-red-400/40 hover:text-red-400/80 transition-colors shrink-0"
-              >
-                <Minus size={13} />
-              </button>
-            )}
-          </div>
-        ))}
-        {(poll.options ?? []).length < 6 && (
-          <button
-            type="button"
-            onClick={addOption}
-            className="flex items-center gap-1.5 text-[11px] font-mono text-accent/60 hover:text-accent transition-colors self-start mt-1"
-          >
-            <Plus size={12} /> Add option
-          </button>
-        )}
-      </div>
-
-      <div className="flex items-center gap-4 pt-1">
-        <label className="flex items-center gap-2 text-[12px] font-mono text-ivory/50 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={poll.multiSelect ?? false}
-            onChange={(e) => setMulti(e.target.checked)}
-            className="accent-accent rounded"
-          />
-          Multi-select
-        </label>
-        <label className="flex items-center gap-2 text-[12px] font-mono text-ivory/50">
-          Expires
-          <input
-            type="datetime-local"
-            value={poll.expiresAt ?? ""}
-            onChange={(e) => setExpiry(e.target.value)}
-            className="bg-white/[0.04] ring-1 ring-white/[0.07] rounded-lg px-2 py-1 text-[11px] text-ivory/60 outline-none"
-          />
-        </label>
-      </div>
-    </div>
-  );
-}
-
-// ── Tag input ─────────────────────────────────────────────────────────────────
 function TagInput({ tags, onChange }) {
   const [input, setInput] = useState("");
 
   const addTag = () => {
-    const tag = input.trim().toLowerCase().replace(/\s+/g, "-");
-    if (!tag || tags.includes(tag) || tags.length >= 5) return;
-    onChange([...tags, tag]);
+    const next = input.trim().toLowerCase().replace(/\s+/g, "-");
+    if (!next || tags.includes(next) || tags.length >= 5) return;
+    onChange([...tags, next]);
     setInput("");
   };
 
-  const removeTag = (t) => onChange(tags.filter((x) => x !== t));
+  const removeTag = (tag) => onChange(tags.filter((t) => t !== tag));
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-2 flex-wrap">
-        {tags.map((t) => (
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        {tags.map((tag) => (
           <span
-            key={t}
-            className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/12 ring-1 ring-accent/25 text-accent text-[11px] font-mono font-semibold"
+            key={tag}
+            className="inline-flex items-center gap-1 rounded-full bg-accent/12 border border-accent/20 px-2 py-0.5 text-[11px] font-mono font-semibold text-accent"
           >
-            <span className="opacity-60">#</span>
-            {t}
+            #{tag}
             <button
               type="button"
-              onClick={() => removeTag(t)}
-              className="text-accent/50 hover:text-accent ml-0.5"
+              onClick={() => removeTag(tag)}
+              className="text-accent/60 hover:text-accent"
             >
               ×
             </button>
           </span>
         ))}
+
         {tags.length < 5 && (
-          <div className="flex items-center gap-1 bg-white/[0.04] ring-1 ring-white/[0.07] rounded-lg pl-2 pr-1 py-0.5">
-            <Hash size={11} className="text-ivory/25" />
+          <div className="inline-flex items-center gap-1 rounded-lg bg-white/[0.04] border border-white/[0.08] px-2 py-1">
+            <Tag size={11} className="text-ivory/30" />
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -298,215 +155,702 @@ function TagInput({ tags, onChange }) {
                 }
               }}
               placeholder="add tag"
-              className="bg-transparent text-[12px] font-mono text-ivory/70 placeholder:text-ivory/20 outline-none w-20"
+              className="w-24 bg-transparent text-[12px] font-mono text-ivory/70 placeholder:text-ivory/20 outline-none"
             />
             <button
               type="button"
               onClick={addTag}
-              className="text-accent/40 hover:text-accent transition-colors p-0.5"
+              className="text-accent/60 hover:text-accent"
             >
-              <Plus size={11} />
+              <Plus size={12} />
             </button>
           </div>
         )}
       </div>
-      <p className="text-[10px] font-mono text-ivory/20">
-        {tags.length}/5 tags · press Enter or comma to add
+      <p className="text-[10px] font-mono text-ivory/22">
+        {tags.length}/5 tags
       </p>
     </div>
   );
 }
 
-// ── Main PostComposer modal ───────────────────────────────────────────────────
+function MarkdownPanel({ value, onChange, placeholder }) {
+  const [tab, setTab] = useState("write");
+
+  return (
+    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] overflow-hidden">
+      <div className="flex items-center gap-4 px-4 pt-3 border-b border-white/[0.06]">
+        {[
+          { id: "write", label: "Write" },
+          { id: "preview", label: "Preview" },
+        ].map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => setTab(item.id)}
+            className={`pb-2 text-[12px] font-mono font-bold uppercase tracking-[0.12em] border-b-2 transition-colors ${
+              tab === item.id
+                ? "border-accent text-accent"
+                : "border-transparent text-ivory/30 hover:text-ivory/55"
+            }`}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "write" ? (
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          rows={10}
+          placeholder={placeholder}
+          className="w-full bg-transparent px-4 py-3 text-[14px] text-ivory/80 placeholder:text-ivory/22 outline-none resize-y"
+        />
+      ) : (
+        <div className="min-h-[220px] px-4 py-3 text-[14px] text-ivory/75 whitespace-pre-wrap leading-relaxed">
+          {value?.trim() ? value : "Nothing to preview yet..."}
+        </div>
+      )}
+
+      <div className="px-4 py-2 border-t border-white/[0.06] text-right text-[10px] font-mono text-ivory/22">
+        Markdown supported
+      </div>
+    </div>
+  );
+}
+
 export default function PostComposer({ open, onClose, onSubmit }) {
   const [type, setType] = useState("post");
+  const [tags, setTags] = useState(["learning", "productivity"]);
+  const [isPrivate, setIsPrivate] = useState(false);
+
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [codeBlocks, setCodeBlocks] = useState([
-    { filename: "index.js", language: "javascript", code: "" },
-  ]);
-  const [poll, setPoll] = useState({
-    question: "",
-    options: [
-      { text: "", votes: [] },
-      { text: "", votes: [] },
-    ],
-    multiSelect: false,
-    expiresAt: "",
-  });
+
+  const [snippetTitle, setSnippetTitle] = useState("");
+  const [snippetLanguage, setSnippetLanguage] = useState("typescript");
+  const [snippetFilename, setSnippetFilename] = useState("snippet.ts");
+  const [snippetCode, setSnippetCode] = useState("");
+
+  const [showcaseTitle, setShowcaseTitle] = useState("");
+  const [showcaseUrl, setShowcaseUrl] = useState("");
+  const [showcaseDescription, setShowcaseDescription] = useState("");
+  const [showcaseThumbnail, setShowcaseThumbnail] = useState("");
+
+  const [pollQuestion, setPollQuestion] = useState("");
+  const [pollOptions, setPollOptions] = useState(["", "", ""]);
+  const [pollDuration, setPollDuration] = useState("7 Days");
+  const [pollVisibility, setPollVisibility] = useState("Public");
+
+  const [resourceTitle, setResourceTitle] = useState("");
   const [resourceUrl, setResourceUrl] = useState("");
-  const [tags, setTags] = useState([]);
+  const [resourceCategory, setResourceCategory] = useState("Documentation");
+  const [resourceDescription, setResourceDescription] = useState("");
+
+  const activeType = useMemo(
+    () => POST_TYPES.find((item) => item.value === type) ?? POST_TYPES[0],
+    [type],
+  );
 
   if (!open) return null;
 
-  const needsTitle = ["question", "showcase", "resource"].includes(type);
-  const showContent = ["post", "question", "til", "showcase"].includes(type);
-  const showSnippet = type === "snippet";
-  const showPoll = type === "poll";
-  const showResource = type === "resource";
+  const updatePollOption = (index, value) => {
+    const next = [...pollOptions];
+    next[index] = value;
+    setPollOptions(next);
+  };
+
+  const removePollOption = (index) => {
+    if (pollOptions.length <= 2) return;
+    setPollOptions(pollOptions.filter((_, i) => i !== index));
+  };
+
+  const addPollOption = () => {
+    if (pollOptions.length >= 6) return;
+    setPollOptions([...pollOptions, ""]);
+  };
+
+  const buildPayload = () => {
+    const base = {
+      type,
+      tags,
+      isPrivate,
+    };
+
+    if (type === "post") {
+      return {
+        ...base,
+        title,
+        content,
+      };
+    }
+
+    if (type === "question") {
+      return {
+        ...base,
+        title,
+        content,
+      };
+    }
+
+    if (type === "til") {
+      return {
+        ...base,
+        content,
+      };
+    }
+
+    if (type === "snippet") {
+      return {
+        ...base,
+        title: snippetTitle,
+        content,
+        codeBlocks: [
+          {
+            filename: snippetFilename || "snippet.ts",
+            language: snippetLanguage,
+            code: snippetCode,
+          },
+        ],
+      };
+    }
+
+    if (type === "showcase") {
+      return {
+        ...base,
+        title: showcaseTitle,
+        content: showcaseDescription,
+        linkPreview: {
+          url: showcaseUrl,
+          title: showcaseTitle,
+          description: showcaseDescription,
+        },
+        screenshots: showcaseThumbnail ? [showcaseThumbnail] : [],
+      };
+    }
+
+    if (type === "poll") {
+      return {
+        ...base,
+        poll: {
+          question: pollQuestion,
+          options: pollOptions
+            .map((option) => option.trim())
+            .filter(Boolean)
+            .map((text) => ({ text, votes: [] })),
+          multiSelect: false,
+          duration: pollDuration,
+          visibility: pollVisibility,
+        },
+      };
+    }
+
+    return {
+      ...base,
+      title: resourceTitle,
+      content: resourceDescription,
+      linkPreview: {
+        url: resourceUrl,
+        title: resourceTitle,
+        description: resourceDescription,
+        category: resourceCategory,
+      },
+    };
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // TODO: call onSubmit with assembled payload
-    const payload = {
-      type,
-      title: needsTitle ? title : undefined,
-      content: showContent ? content : undefined,
-      codeBlocks: showSnippet ? codeBlocks : undefined,
-      poll: showPoll ? poll : undefined,
-      linkPreview: showResource ? { url: resourceUrl } : undefined,
-      tags,
-    };
-    onSubmit?.(payload);
+    onSubmit?.(buildPayload());
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-2xl max-h-[90vh] flex flex-col glass-card rounded-3xl overflow-hidden shadow-2xl">
-        {/* ── Modal header ── */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06] shrink-0">
-          <h2 className="font-display font-bold text-ivory text-base">
-            Create Post
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-xl text-ivory/30 hover:text-ivory hover:bg-white/[0.08] transition-all"
-          >
-            <X size={16} />
-          </button>
-        </div>
-
-        {/* ── Post type selector ── */}
-        <div className="px-6 pt-4 pb-0 shrink-0">
-          <div className="grid grid-cols-7 gap-1">
-            {POST_TYPES.map(({ value, label, icon: Icon }) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setType(value)}
-                title={label}
-                className={`flex flex-col items-center gap-1 px-1 py-2 rounded-xl text-[10px] font-mono font-bold uppercase tracking-wider transition-all duration-150 ${
-                  type === value
-                    ? "bg-accent/15 ring-1 ring-accent/30 text-accent"
-                    : "text-ivory/30 hover:text-ivory/60 hover:bg-white/[0.05]"
-                }`}
-              >
-                <Icon size={15} />
-                {label}
-              </button>
-            ))}
+    <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm p-0 md:p-6">
+      <div className="h-full md:h-auto md:max-h-[92vh] w-full md:max-w-5xl mx-auto glass-card rounded-none md:rounded-3xl overflow-hidden flex flex-col md:flex-row">
+        {/* Left selector panel */}
+        <aside className="w-full md:w-[260px] md:shrink-0 border-b md:border-b-0 md:border-r border-white/[0.07] bg-white/[0.01] flex flex-col">
+          <div className="px-5 pt-4 pb-3 border-b border-white/[0.06]">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-accent/15 border border-accent/25 flex items-center justify-center text-accent font-display font-bold">
+                ⚡
+              </div>
+              <div>
+                <p className="font-display font-bold text-ivory text-[20px] leading-tight">
+                  ConvoX
+                </p>
+                <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-accent/70">
+                  Midnight Luxe
+                </p>
+              </div>
+            </div>
           </div>
-          <p className="mt-2 mb-3 text-[11px] font-mono text-ivory/25">
-            {POST_TYPES.find((t) => t.value === type)?.desc}
-          </p>
-        </div>
 
-        {/* ── Scrollable form body ── */}
-        <form
-          onSubmit={handleSubmit}
-          className="flex-1 overflow-y-auto px-6 pb-6 flex flex-col gap-4 scrollbar-hide"
-        >
-          {/* Title */}
-          {needsTitle && (
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              placeholder={
-                type === "question"
-                  ? "What's your question?"
-                  : type === "showcase"
-                    ? "Project name / title"
-                    : "Resource title"
-              }
-              className="w-full bg-white/[0.04] ring-1 ring-white/[0.07] focus:ring-accent/30 rounded-xl px-4 py-2.5 text-[14px] font-display font-semibold text-ivory placeholder:text-ivory/20 outline-none transition-all"
-            />
-          )}
+          <div className="md:flex-1 overflow-x-auto md:overflow-y-auto scrollbar-hide px-3 py-3">
+            <div className="flex md:flex-col gap-2 min-w-max md:min-w-0">
+              {POST_TYPES.map(({ value, label, icon: Icon }) => {
+                const active = value === type;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setType(value)}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-left transition-all duration-150 border whitespace-nowrap ${
+                      active
+                        ? "bg-accent/12 border-accent/30 text-accent"
+                        : "bg-transparent border-transparent text-ivory/45 hover:text-ivory/70 hover:bg-white/[0.04]"
+                    }`}
+                  >
+                    <Icon size={15} />
+                    <span className="text-[13px] font-display font-semibold">
+                      {label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-          {/* Markdown editor */}
-          {showContent && (
-            <MarkdownEditor
-              value={content}
-              onChange={setContent}
-              placeholder={
-                type === "til"
-                  ? "What did you learn today?"
-                  : type === "question"
-                    ? "Describe your problem…"
-                    : type === "showcase"
-                      ? "Tell us about what you built…"
-                      : "What's on your mind?"
-              }
-            />
-          )}
+          <div className="hidden md:flex items-center gap-3 px-5 py-4 border-t border-white/[0.06]">
+            <div className="w-9 h-9 rounded-full bg-white/[0.08] border border-white/[0.12]" />
+            <div>
+              <p className="text-[13px] font-display font-bold text-ivory">
+                Alex Rivera
+              </p>
+              <p className="text-[11px] font-mono text-ivory/30">Pro Member</p>
+            </div>
+          </div>
+        </aside>
 
-          {/* Snippet code blocks */}
-          {showSnippet && (
-            <CodeBlockEditor blocks={codeBlocks} onChange={setCodeBlocks} />
-          )}
-
-          {/* Poll builder */}
-          {showPoll && <PollEditor poll={poll} onChange={setPoll} />}
-
-          {/* Resource URL */}
-          {showResource && (
-            <div className="flex flex-col gap-2">
-              <input
-                type="url"
-                value={resourceUrl}
-                onChange={(e) => setResourceUrl(e.target.value)}
-                required
-                placeholder="https://..."
-                className="w-full bg-white/[0.04] ring-1 ring-white/[0.07] focus:ring-accent/30 rounded-xl px-4 py-2.5 text-[13px] font-mono text-ivory/80 placeholder:text-ivory/20 outline-none transition-all"
-              />
-              {/* TODO: fetch link preview on blur */}
-              <p className="text-[10px] font-mono text-ivory/20">
-                Paste a URL — preview will be fetched automatically
+        {/* Main form */}
+        <section className="flex-1 min-h-0 flex flex-col">
+          <header className="px-5 md:px-7 py-4 border-b border-white/[0.07] flex items-start justify-between gap-3">
+            <div>
+              <h2 className="font-display font-bold text-ivory text-2xl md:text-[30px] leading-tight">
+                {activeType.heading}
+              </h2>
+              <p className="text-[13px] font-sans text-ivory/42 mt-1">
+                {activeType.sub}
               </p>
             </div>
-          )}
-
-          {/* Tags */}
-          <div>
-            <p className="text-[10px] font-mono font-bold text-ivory/30 uppercase tracking-[0.12em] mb-1.5 flex items-center gap-1.5">
-              <Tag size={10} /> Tags
-            </p>
-            <TagInput tags={tags} onChange={setTags} />
-          </div>
-
-          {/* Attachment hint */}
-          <button
-            type="button"
-            className="flex items-center gap-1.5 text-[11px] font-mono text-ivory/25 hover:text-ivory/50 transition-colors self-start"
-          >
-            <Paperclip size={12} /> Attach files (TODO)
-          </button>
-        </form>
-
-        {/* ── Footer ── */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-white/[0.06] shrink-0">
-          <p className="text-[10px] font-mono text-ivory/20">
-            Markdown supported · max 10,000 chars
-          </p>
-          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-[12px] font-mono font-bold text-ivory/40 hover:text-ivory hover:bg-white/[0.06] transition-all"
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-ivory/35 hover:text-ivory hover:bg-white/[0.06] transition-colors"
             >
-              Cancel
+              <X size={17} />
             </button>
+          </header>
+
+          <form
+            onSubmit={handleSubmit}
+            className="flex-1 min-h-0 overflow-y-auto scrollbar-hide px-5 md:px-7 py-5 space-y-5"
+          >
+            {type === "post" && (
+              <>
+                <div>
+                  <FieldLabel>Title</FieldLabel>
+                  <input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Enter a catchy title..."
+                    required
+                    className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-[15px] font-display font-semibold text-ivory placeholder:text-ivory/20 outline-none focus:border-accent/30"
+                  />
+                </div>
+
+                <div>
+                  <FieldLabel>Body</FieldLabel>
+                  <MarkdownPanel
+                    value={content}
+                    onChange={setContent}
+                    placeholder="Write your post in markdown..."
+                  />
+                </div>
+              </>
+            )}
+
+            {type === "snippet" && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="md:col-span-2">
+                    <FieldLabel>Snippet Title</FieldLabel>
+                    <input
+                      value={snippetTitle}
+                      onChange={(e) => setSnippetTitle(e.target.value)}
+                      placeholder="e.g. Binary Search Tree Implementation"
+                      required
+                      className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-[14px] text-ivory/85 placeholder:text-ivory/20 outline-none focus:border-accent/30"
+                    />
+                  </div>
+                  <div>
+                    <FieldLabel>Language</FieldLabel>
+                    <select
+                      value={snippetLanguage}
+                      onChange={(e) => setSnippetLanguage(e.target.value)}
+                      className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-3 text-[14px] text-ivory/80 outline-none"
+                    >
+                      {CODE_LANGUAGES.map((language) => (
+                        <option
+                          key={language}
+                          value={language}
+                          className="bg-deep text-ivory"
+                        >
+                          {language}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <FieldLabel>Source Code</FieldLabel>
+                  <div className="rounded-2xl border border-white/[0.08] bg-deep overflow-hidden">
+                    <div className="flex items-center justify-between px-3 py-2 border-b border-white/[0.06] bg-white/[0.02]">
+                      <input
+                        value={snippetFilename}
+                        onChange={(e) => setSnippetFilename(e.target.value)}
+                        placeholder="snippet.ts"
+                        className="bg-transparent text-[12px] font-mono text-ivory/60 placeholder:text-ivory/20 outline-none"
+                      />
+                      <p className="text-[10px] font-mono text-ivory/28 uppercase tracking-[0.12em]">
+                        Read-only lines: 0
+                      </p>
+                    </div>
+                    <textarea
+                      value={snippetCode}
+                      onChange={(e) => setSnippetCode(e.target.value)}
+                      rows={11}
+                      required
+                      placeholder="// Paste or type your code here..."
+                      className="w-full bg-transparent px-4 py-3 font-mono text-[13px] leading-6 text-ivory/75 placeholder:text-ivory/18 outline-none resize-y"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <FieldLabel>Notes (optional)</FieldLabel>
+                  <textarea
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    rows={3}
+                    placeholder="Explain what this snippet does..."
+                    className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-[14px] text-ivory/80 placeholder:text-ivory/20 outline-none resize-y"
+                  />
+                </div>
+              </>
+            )}
+
+            {type === "question" && (
+              <>
+                <div>
+                  <FieldLabel>Question Title</FieldLabel>
+                  <input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Describe the issue clearly..."
+                    required
+                    className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-[15px] font-display font-semibold text-ivory placeholder:text-ivory/20 outline-none focus:border-accent/30"
+                  />
+                </div>
+
+                <div>
+                  <FieldLabel>Details</FieldLabel>
+                  <MarkdownPanel
+                    value={content}
+                    onChange={setContent}
+                    placeholder="What have you tried? Include context, expected behavior, and actual behavior..."
+                  />
+                </div>
+              </>
+            )}
+
+            {type === "til" && (
+              <>
+                <div>
+                  <FieldLabel>What did you learn today?</FieldLabel>
+                  <MarkdownPanel
+                    value={content}
+                    onChange={setContent}
+                    placeholder="Share your new learning in a concise way..."
+                  />
+                </div>
+              </>
+            )}
+
+            {type === "showcase" && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <FieldLabel>Project Title</FieldLabel>
+                    <input
+                      value={showcaseTitle}
+                      onChange={(e) => setShowcaseTitle(e.target.value)}
+                      placeholder="e.g. My Awesome Dashboard"
+                      required
+                      className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-[14px] text-ivory/85 placeholder:text-ivory/20 outline-none focus:border-accent/30"
+                    />
+                  </div>
+                  <div>
+                    <FieldLabel>Live URL</FieldLabel>
+                    <input
+                      type="url"
+                      value={showcaseUrl}
+                      onChange={(e) => setShowcaseUrl(e.target.value)}
+                      placeholder="https://example.com"
+                      className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-[14px] text-ivory/85 placeholder:text-ivory/20 outline-none focus:border-accent/30"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <FieldLabel>Project Description</FieldLabel>
+                  <textarea
+                    value={showcaseDescription}
+                    onChange={(e) => setShowcaseDescription(e.target.value)}
+                    rows={5}
+                    placeholder="Tell us what you built, why you built it, and the stack used..."
+                    className="w-full rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-[14px] text-ivory/80 placeholder:text-ivory/20 outline-none resize-y"
+                  />
+                </div>
+
+                <div>
+                  <FieldLabel>Project Thumbnail</FieldLabel>
+                  <div className="rounded-2xl border border-dashed border-white/[0.14] bg-white/[0.02] p-8 text-center space-y-3">
+                    <div className="w-14 h-14 rounded-full mx-auto bg-accent/12 border border-accent/25 flex items-center justify-center text-accent">
+                      <Upload size={20} />
+                    </div>
+                    <p className="font-display font-bold text-ivory/80 text-lg leading-tight">
+                      Drop your image here
+                    </p>
+                    <p className="text-[12px] font-sans text-ivory/32">
+                      Supports JPG, PNG up to 10MB (16:9 recommended)
+                    </p>
+                    <div className="flex items-center justify-center gap-2">
+                      <ImagePlus size={14} className="text-ivory/35" />
+                      <input
+                        value={showcaseThumbnail}
+                        onChange={(e) => setShowcaseThumbnail(e.target.value)}
+                        placeholder="Paste image URL for now (design stub)"
+                        className="w-full max-w-sm rounded-lg border border-white/[0.1] bg-white/[0.03] px-3 py-2 text-[12px] text-ivory/70 placeholder:text-ivory/20 outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {type === "poll" && (
+              <>
+                <div>
+                  <FieldLabel>Question</FieldLabel>
+                  <input
+                    value={pollQuestion}
+                    onChange={(e) => setPollQuestion(e.target.value)}
+                    placeholder="What's on your mind?"
+                    required
+                    className="w-full rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-[15px] text-ivory/85 placeholder:text-ivory/20 outline-none focus:border-accent/30"
+                  />
+                </div>
+
+                <div>
+                  <FieldLabel>Poll Options</FieldLabel>
+                  <div className="space-y-2">
+                    {pollOptions.map((option, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <input
+                          value={option}
+                          onChange={(e) =>
+                            updatePollOption(index, e.target.value)
+                          }
+                          placeholder={`Option ${index + 1}`}
+                          className="flex-1 rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-2.5 text-[14px] text-ivory/85 placeholder:text-ivory/20 outline-none"
+                        />
+                        {pollOptions.length > 2 && (
+                          <button
+                            type="button"
+                            onClick={() => removePollOption(index)}
+                            className="w-8 h-8 rounded-lg border border-white/[0.08] bg-white/[0.03] text-ivory/35 hover:text-red-400/70"
+                          >
+                            <Minus size={14} className="mx-auto" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+
+                    {pollOptions.length < 6 && (
+                      <button
+                        type="button"
+                        onClick={addPollOption}
+                        className="inline-flex items-center gap-1 text-[12px] font-mono text-accent/80 hover:text-accent"
+                      >
+                        <Plus size={12} /> Add another option
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <FieldLabel>Duration</FieldLabel>
+                    <select
+                      value={pollDuration}
+                      onChange={(e) => setPollDuration(e.target.value)}
+                      className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 text-[14px] text-ivory/80 outline-none"
+                    >
+                      {POLL_DURATIONS.map((duration) => (
+                        <option
+                          key={duration}
+                          value={duration}
+                          className="bg-deep text-ivory"
+                        >
+                          {duration}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <FieldLabel>Visibility</FieldLabel>
+                    <select
+                      value={pollVisibility}
+                      onChange={(e) => setPollVisibility(e.target.value)}
+                      className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 text-[14px] text-ivory/80 outline-none"
+                    >
+                      {["Public", "Followers", "Private"].map((scope) => (
+                        <option
+                          key={scope}
+                          value={scope}
+                          className="bg-deep text-ivory"
+                        >
+                          {scope}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {type === "resource" && (
+              <>
+                <div>
+                  <FieldLabel>Resource Title</FieldLabel>
+                  <input
+                    value={resourceTitle}
+                    onChange={(e) => setResourceTitle(e.target.value)}
+                    placeholder="What's the name of this resource?"
+                    required
+                    className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-[14px] text-ivory/85 placeholder:text-ivory/20 outline-none focus:border-accent/30"
+                  />
+                </div>
+
+                <div>
+                  <FieldLabel>Resource URL</FieldLabel>
+                  <input
+                    type="url"
+                    value={resourceUrl}
+                    onChange={(e) => setResourceUrl(e.target.value)}
+                    placeholder="https://example.com/resource"
+                    required
+                    className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-[14px] font-mono text-ivory/75 placeholder:text-ivory/20 outline-none focus:border-accent/30"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <FieldLabel>Category</FieldLabel>
+                    <select
+                      value={resourceCategory}
+                      onChange={(e) => setResourceCategory(e.target.value)}
+                      className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 text-[14px] text-ivory/80 outline-none"
+                    >
+                      {RESOURCE_CATEGORIES.map((category) => (
+                        <option
+                          key={category}
+                          value={category}
+                          className="bg-deep text-ivory"
+                        >
+                          {category}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <FieldLabel>Tags</FieldLabel>
+                    <TagInput tags={tags} onChange={setTags} />
+                  </div>
+                </div>
+
+                <div>
+                  <FieldLabel>Description</FieldLabel>
+                  <textarea
+                    value={resourceDescription}
+                    onChange={(e) => setResourceDescription(e.target.value)}
+                    rows={5}
+                    placeholder="Briefly describe why this resource is valuable..."
+                    className="w-full rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-[14px] text-ivory/80 placeholder:text-ivory/20 outline-none resize-y"
+                  />
+                </div>
+              </>
+            )}
+
+            {type !== "resource" && (
+              <div>
+                <FieldLabel>Tags</FieldLabel>
+                <TagInput tags={tags} onChange={setTags} />
+              </div>
+            )}
+
+            <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-3 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[13px] font-display font-semibold text-ivory/80">
+                  Make Private
+                </p>
+                <p className="text-[11px] text-ivory/30">
+                  Only invited collaborators can view this post.
+                </p>
+              </div>
+              <label className="inline-flex items-center gap-2 cursor-pointer shrink-0">
+                {isPrivate ? (
+                  <Lock size={14} className="text-accent" />
+                ) : (
+                  <Globe size={14} className="text-ivory/35" />
+                )}
+                <input
+                  type="checkbox"
+                  checked={isPrivate}
+                  onChange={(e) => setIsPrivate(e.target.checked)}
+                  className="accent-accent"
+                />
+              </label>
+            </div>
+          </form>
+
+          <footer className="px-5 md:px-7 py-4 border-t border-white/[0.07] flex items-center justify-between gap-3">
             <button
-              type="submit"
-              form="post-composer-form"
-              onClick={handleSubmit}
-              className="px-5 py-2 rounded-xl text-[12px] font-mono font-bold bg-accent/15 ring-1 ring-accent/30 text-accent hover:bg-accent/25 transition-all duration-150"
+              type="button"
+              onClick={onClose}
+              className="px-3 py-2 text-[12px] font-mono font-bold uppercase tracking-[0.12em] text-ivory/38 hover:text-ivory/70 transition-colors"
             >
-              Publish
+              Discard
             </button>
-          </div>
-        </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="px-4 py-2 rounded-xl border border-white/[0.12] text-[12px] font-mono font-bold text-ivory/70 hover:bg-white/[0.04] transition-colors"
+              >
+                Save Draft
+              </button>
+              <button
+                type="submit"
+                onClick={handleSubmit}
+                className="px-5 py-2 rounded-xl bg-accent text-obsidian text-[12px] font-mono font-bold uppercase tracking-[0.1em] hover:bg-accent/85 transition-colors"
+              >
+                {activeType.publishCta}
+              </button>
+            </div>
+          </footer>
+        </section>
       </div>
     </div>
   );

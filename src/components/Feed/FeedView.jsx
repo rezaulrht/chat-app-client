@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Edit3 } from "lucide-react";
+import toast from "react-hot-toast";
 import PostCard from "./PostCard";
 import PostDetail from "./PostDetail";
 import PostComposer from "./PostComposer";
 import ShareModal from "./ShareModal";
 import FeedSidebar from "./FeedSidebar";
+import useFeed from "@/hooks/useFeed";
 
 // ── Tab definitions ───────────────────────────────────────────────────────────
 const TABS = [
@@ -17,147 +19,27 @@ const TABS = [
   { id: "qa", label: "Q&A" },
 ];
 
-// ── Design-phase mock posts ───────────────────────────────────────────────────
-const MOCK_POSTS = [
-  {
-    _id: "p1",
-    type: "question",
-    isPinned: true,
-    title: "Handling WebSocket reconnection in high-latency environments?",
-    content:
-      "Been having issues with Socket.io drops on mobile networks. What's the best exponential backoff strategy for auto-reconnects without flooding the server?",
-    author: {
-      _id: "dev_mira",
-      name: "dev_mira",
-      avatar: null,
-      reputation: 2100,
-    },
-    tags: ["websockets", "socket-io"],
-    reactions: {},
-    commentCount: 24,
-    views: 891,
-    isResolved: false,
-    acceptedAnswer: null,
-    createdAt: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-  },
-  {
-    _id: "p2",
-    type: "snippet",
-    title: null,
-    content: "Cleanest way to handle window resizing with a custom hook. 🪟",
-    author: {
-      _id: "josh_stack",
-      name: "josh_stack",
-      avatar: null,
-      reputation: 1420,
-    },
-    tags: ["react"],
-    reactions: {
-      "🔥": Array.from({ length: 12 }, (_, i) => `u${i + 1}`),
-      "✏️": Array.from({ length: 5 }, (_, i) => `u${i + 1}`),
-    },
-    commentCount: 0,
-    views: 224,
-    isPinned: false,
-    createdAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-    codeBlocks: [
-      {
-        filename: "useWindowSize.js",
-        language: "javascript",
-        code: 'function useWindowSize() {\n  const [size, setSize] = useState([window.innerWidth, window.innerHeight]);\n  useEffect(() => {\n    const handleResize = () => setSize([window.innerWidth, window.innerHeight]);\n    window.addEventListener("resize", handleResize);\n    return () => window.removeEventListener("resize", handleResize);\n  }, []);\n  return size;\n}',
-      },
-    ],
-  },
-  {
-    _id: "p3",
-    type: "til",
-    title: null,
-    content:
-      "Did you know `aspect-ratio` CSS property now has 94%+ global support? Say goodbye to the padding-bottom hack for responsive containers!",
-    author: {
-      _id: "css_wizard",
-      name: "css_wizard",
-      avatar: null,
-      reputation: 890,
-    },
-    tags: ["css", "webdev"],
-    reactions: { "👍": Array.from({ length: 142 }, (_, i) => `u${i + 1}`) },
-    commentCount: 18,
-    views: 402,
-    isPinned: false,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
-  },
-  {
-    _id: "p4",
-    type: "poll",
-    title: null,
-    content: null,
-    author: {
-      _id: "poll_master",
-      name: "poll_master",
-      avatar: null,
-      reputation: 340,
-    },
-    tags: ["statemanagement"],
-    reactions: {},
-    commentCount: 0,
-    views: 1842,
-    isPinned: false,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString(),
-    poll: {
-      question:
-        "What's your preferred state management for mid-sized apps in 2024?",
-      options: [
-        {
-          text: "Zustand",
-          votes: Array.from({ length: 47 }, (_, i) => `u${i + 1}`),
-        },
-        {
-          text: "Redux Toolkit",
-          votes: Array.from({ length: 31 }, (_, i) => `u${i + 1}`),
-        },
-        {
-          text: "Jotai",
-          votes: Array.from({ length: 22 }, (_, i) => `u${i + 1}`),
-        },
-      ],
-      multiSelect: false,
-      expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3).toISOString(),
-    },
-  },
-  {
-    _id: "p5",
-    type: "showcase",
-    title: `Just finished the beta for "SketchSync" — a collaborative real-time whiteboard for dev teams. Built with Next.js and Liveblocks.`,
-    content: null,
-    author: {
-      _id: "pixel_perfect",
-      name: "pixel_perfect",
-      avatar: null,
-      reputation: 2840,
-    },
-    tags: ["showcase", "nextjs"],
-    reactions: {
-      "😍": Array.from({ length: 84 }, (_, i) => `u${i + 1}`),
-      "💡": Array.from({ length: 12 }, (_, i) => `u${i + 1}`),
-    },
-    commentCount: 0,
-    views: 523,
-    isPinned: false,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
-    linkPreview: {
-      url: "https://sketchsync.io",
-      title: "sketchsync.io",
-      description: "The most intuitive canvas for remote pair programming...",
-      image: null,
-    },
-    screenshots: [
-      "https://placehold.co/400x260/1a1a2e/00d3bb?text=SketchSync",
-      "https://placehold.co/400x260/12121a/13c8ec?text=Whiteboard",
-      "https://placehold.co/400x260/1a1a2e/9b59b6?text=Collab",
-    ],
-  },
-];
+function getUserIdFromToken() {
+  if (typeof window === "undefined") return "";
+
+  const token = localStorage.getItem("token");
+  if (!token) return "";
+
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return "";
+    const decoded = JSON.parse(
+      atob(payload.replace(/-/g, "+").replace(/_/g, "/")),
+    );
+    return decoded?.id || "";
+  } catch {
+    return "";
+  }
+}
+
+function getApiErrorMessage(error, fallback) {
+  return error?.response?.data?.message || error?.message || fallback;
+}
 
 // ── Empty state ───────────────────────────────────────────────────────────────
 function EmptyFeed() {
@@ -196,14 +78,87 @@ function PostSkeleton() {
 
 // ── Main FeedView ─────────────────────────────────────────────────────────────
 export default function FeedView() {
-  const [activeTab, setActiveTab] = useState("latest");
-  const [composerOpen, setComposerOpen] = useState(false);
+  const {
+    posts,
+    activeTab,
+    setActiveTab,
+    setPage,
+    loading,
+    fetchPosts,
+    composerOpen,
+    setComposerOpen,
+    createPost,
+    editPost,
+    deletePost,
+  } = useFeed();
+
   const [activePost, setActivePost] = useState(null); // PostDetail view
   const [sharePost, setSharePost] = useState(null); // ShareModal target
+  const [editTarget, setEditTarget] = useState(null);
+  const [currentUserId, setCurrentUserId] = useState("");
 
-  // Design-phase: just show mock posts for all tabs
-  const displayPosts = MOCK_POSTS;
-  const loading = false;
+  const displayPosts = posts;
+
+  useEffect(() => {
+    setCurrentUserId(getUserIdFromToken());
+  }, []);
+
+  useEffect(() => {
+    fetchPosts();
+  }, [fetchPosts]);
+
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    setPage(1);
+  };
+
+  const closeComposer = () => {
+    setComposerOpen(false);
+    setEditTarget(null);
+  };
+
+  const handleCreatePost = async (payload) => {
+    try {
+      await createPost(payload);
+      toast.success("Post created");
+      closeComposer();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Failed to create post"));
+    }
+  };
+
+  const handleEditPost = (post) => {
+    setEditTarget(post);
+    setComposerOpen(true);
+  };
+
+  const handleUpdatePost = async (id, payload) => {
+    try {
+      const updated = await editPost(id, payload);
+      if (activePost?._id === id) {
+        setActivePost(updated);
+      }
+      toast.success("Post updated");
+      closeComposer();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Failed to update post"));
+    }
+  };
+
+  const handleDeletePost = async (id) => {
+    try {
+      await deletePost(id);
+      if (activePost?._id === id) {
+        setActivePost(null);
+      }
+      if (editTarget?._id === id) {
+        closeComposer();
+      }
+      toast.success("Post deleted");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Failed to delete post"));
+    }
+  };
 
   return (
     <div className="flex h-full bg-obsidian overflow-hidden">
@@ -216,7 +171,10 @@ export default function FeedView() {
           </h1>
           <button
             type="button"
-            onClick={() => setComposerOpen(true)}
+            onClick={() => {
+              setEditTarget(null);
+              setComposerOpen(true);
+            }}
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-accent text-obsidian font-display font-bold text-[13px] hover:bg-accent/85 active:scale-95 transition-all duration-150"
           >
             <Edit3 size={14} />
@@ -230,7 +188,7 @@ export default function FeedView() {
             <button
               key={tab.id}
               type="button"
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => handleTabChange(tab.id)}
               className={`shrink-0 whitespace-nowrap px-4 py-2.5 text-[13px] font-display font-semibold border-b-2 transition-all duration-150 -mb-px ${
                 activeTab === tab.id
                   ? "border-accent text-ivory"
@@ -248,7 +206,7 @@ export default function FeedView() {
             <PostDetail
               post={activePost}
               comments={[]}
-              currentUserId="u_me"
+              currentUserId={currentUserId}
               onBack={() => setActivePost(null)}
               onReact={() => {}}
               onShare={(p) => setSharePost(p)}
@@ -268,13 +226,13 @@ export default function FeedView() {
                 <PostCard
                   key={post._id}
                   post={post}
-                  currentUserId="u_me"
+                  currentUserId={currentUserId}
                   onOpen={setActivePost}
                   onReact={() => {}}
                   onShare={setSharePost}
                   onTagClick={() => {}}
-                  onEdit={() => {}}
-                  onDelete={() => {}}
+                  onEdit={handleEditPost}
+                  onDelete={handleDeletePost}
                 />
               ))}
             </div>
@@ -290,8 +248,10 @@ export default function FeedView() {
       {/* ── Modals ── */}
       <PostComposer
         open={composerOpen}
-        onClose={() => setComposerOpen(false)}
-        onSubmit={() => setComposerOpen(false)}
+        editPost={editTarget}
+        onClose={closeComposer}
+        onSubmit={handleCreatePost}
+        onEdit={handleUpdatePost}
       />
       <ShareModal
         post={sharePost}

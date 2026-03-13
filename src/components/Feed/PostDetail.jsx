@@ -23,6 +23,7 @@ import QABadge from "./QABadge";
 import ReactionBar from "./ReactionBar";
 import TagChip from "./TagChip";
 import SnippetBlock from "./SnippetBlock";
+import MarkdownText from "./MarkdownText";
 import PollCard from "./PollCard";
 import CommentSection from "./CommentSection";
 import { formatDistanceToNow } from "date-fns";
@@ -188,12 +189,9 @@ export default function PostDetail({
 
         {/* Full content (markdown) */}
         {post.content && post.type !== "poll" && (
-          <div className="prose prose-invert prose-sm max-w-none text-ivory/75 leading-relaxed">
-            {/* TODO: replace with <ReactMarkdown> + rehype-highlight */}
-            <p className="whitespace-pre-wrap text-[14px] font-sans">
-              {post.content}
-            </p>
-          </div>
+          <MarkdownText className="text-ivory/75 leading-relaxed">
+            {post.content}
+          </MarkdownText>
         )}
 
         {/* Code snippet — all files */}

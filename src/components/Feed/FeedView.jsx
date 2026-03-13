@@ -225,13 +225,13 @@ export default function FeedView() {
         </div>
 
         {/* Tab bar */}
-        <div className="shrink-0 flex items-end border-b border-white/[0.05] px-4">
+        <div className="shrink-0 flex items-end border-b border-white/[0.05] px-4 overflow-x-auto scrollbar-hide">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2.5 text-[13px] font-display font-semibold border-b-2 transition-all duration-150 -mb-px ${
+              className={`shrink-0 whitespace-nowrap px-4 py-2.5 text-[13px] font-display font-semibold border-b-2 transition-all duration-150 -mb-px ${
                 activeTab === tab.id
                   ? "border-accent text-ivory"
                   : "border-transparent text-ivory/40 hover:text-ivory/70"
@@ -243,7 +243,7 @@ export default function FeedView() {
         </div>
 
         {/* Post list or PostDetail */}
-        <div className="flex-1 overflow-y-auto scrollbar-hide">
+        <div className="flex-1 overflow-y-auto scrollbar-hide pb-[88px] xl:pb-0">
           {activePost ? (
             <PostDetail
               post={activePost}

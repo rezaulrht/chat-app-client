@@ -1,6 +1,7 @@
 "use client";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import WorkspaceSidebar from "@/components/ChatDashboard/WorkspaceSidebar";
+import MobileBottomNav from "@/components/ChatDashboard/MobileBottomNav";
 import FeedView from "@/components/Feed/FeedView";
 import FeedSidebar from "@/components/Feed/FeedSidebar";
 import { FeedProvider } from "@/context/FeedProvider";
@@ -30,9 +31,11 @@ export default function FeedPage() {
           </div>
 
           {/* Feed — handles its own three-column layout */}
-          <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+          <div className="flex-1 min-h-0 overflow-hidden flex flex-col pb-[72px] xl:pb-0">
             <FeedView />
           </div>
+
+          <MobileBottomNav />
         </div>
       </FeedProvider>
     </ProtectedRoute>

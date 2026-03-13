@@ -30,7 +30,9 @@ import {
   Sparkles,
   Globe,
   ChevronRight,
+  Rss,
 } from "lucide-react";
+import PostCard from "@/components/Feed/PostCard";
 
 // ── Role badge helper ───────────────────────────────────────────────────────
 function RoleBadge({ role }) {
@@ -89,6 +91,70 @@ function StrengthBar({ password }) {
   );
 }
 
+// ── Mock posts for design stub ────────────────────────────────────────────────
+const MOCK_MY_POSTS = [
+  {
+    _id: "post-1",
+    type: "article",
+    author: { _id: "me", name: "You", avatar: "", reputation: 540 },
+    title: "Understanding React Server Components in Next.js 14",
+    content:
+      "Server Components allow you to render components on the server and stream them to the client. This fundamentally changes how we think about data fetching and bundle size...",
+    tags: ["react", "nextjs", "server-components"],
+    views: 214,
+    comments: 8,
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    reactions: { "🔥": ["u1", "u2", "u3"], "💡": ["u4"] },
+    pinned: false,
+  },
+  {
+    _id: "post-2",
+    type: "snippet",
+    author: { _id: "me", name: "You", avatar: "", reputation: 540 },
+    title: "Debounce hook with TypeScript generics",
+    content: "A clean, reusable debounce hook that preserves type inference.",
+    snippet: {
+      files: [
+        {
+          filename: "useDebounce.ts",
+          language: "typescript",
+          code: `import { useState, useEffect } from 'react';
+
+export function useDebounce<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(t);
+  }, [value, delay]);
+  return debounced;
+}`,
+        },
+      ],
+    },
+    tags: ["typescript", "hooks", "react"],
+    views: 87,
+    comments: 3,
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    reactions: { "🚀": ["u1"], "💡": ["u2", "u3"] },
+    pinned: false,
+  },
+  {
+    _id: "post-3",
+    type: "question",
+    author: { _id: "me", name: "You", avatar: "", reputation: 540 },
+    title: "Why does useEffect run twice in React 18 strict mode?",
+    content:
+      "I noticed my useEffect cleanup function firing on mount. Is this expected behavior or a bug in my setup?",
+    tags: ["react", "hooks", "debugging"],
+    views: 319,
+    comments: 12,
+    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+    reactions: { "🔥": ["u5"] },
+    status: "answered",
+    pinned: false,
+  },
+];
+
 // ── Main Page ───────────────────────────────────────────────────────────────
 function ProfilePage() {
   const { user, updateProfile, changePassword } = useAuth();
@@ -112,7 +178,8 @@ function ProfilePage() {
   // UI state
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPw, setSavingPw] = useState(false);
-  const [activeSection, setActiveSection] = useState("edit"); // "edit" | "security"
+  const [activeSection, setActiveSection] = useState("edit"); // "edit" | "security" | "posts"
+  const [activePost, setActivePost] = useState(null);
 
   // ── Avatar picker ─────────────────────────────────────────────────────
   const handleAvatarChange = (e) => {
@@ -331,14 +398,16 @@ function ProfilePage() {
           ))}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div
+          className={`grid gap-6 ${activeSection === "posts" ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"}`}
+        >
           {/* ════════════════════════════════════════════════════════════ */}
           {/* LEFT COLUMN                                                  */}
           {/* ════════════════════════════════════════════════════════════ */}
           <div className="space-y-4">
             {/* Section tabs */}
             <div className="flex gap-1 p-1 bg-white/[0.03] rounded-xl border border-white/[0.06]">
-              {["edit", ...(isLocal ? ["security"] : [])].map((s) => (
+              {["edit", ...(isLocal ? ["security"] : []), "posts"].map((s) => (
                 <button
                   key={s}
                   onClick={() => setActiveSection(s)}
@@ -348,7 +417,11 @@ function ProfilePage() {
                       : "text-ivory/25 hover:text-ivory/50"
                   }`}
                 >
-                  {s === "edit" ? "Edit Profile" : "Security"}
+                  {s === "edit"
+                    ? "Edit Profile"
+                    : s === "security"
+                      ? "Security"
+                      : "My Posts"}
                 </button>
               ))}
             </div>
@@ -461,6 +534,60 @@ function ProfilePage() {
                     "Save Changes"
                   )}
                 </button>
+              </div>
+            )}
+
+            {/* ── My Posts Section ── */}
+            {activeSection === "posts" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-ivory/25 flex items-center gap-1.5">
+                    <Rss size={10} className="text-accent/50" />
+                    Published Posts
+                    <span className="ml-1 px-1.5 py-0.5 rounded-full bg-accent/10 text-accent text-[9px] font-mono">
+                      {MOCK_MY_POSTS.length}
+                    </span>
+                  </h2>
+                </div>
+
+                {MOCK_MY_POSTS.length === 0 ? (
+                  <div className="glass-card rounded-2xl border border-white/[0.08] p-10 flex flex-col items-center justify-center gap-3 text-center">
+                    <Rss size={28} className="text-ivory/10" />
+                    <p className="text-ivory/25 text-[13px] font-mono">
+                      No posts yet
+                    </p>
+                    <p className="text-ivory/15 text-[11px] font-mono max-w-xs">
+                      Share your knowledge — write articles, snippets, or ask
+                      questions in the Feed.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {MOCK_MY_POSTS.map((post) => (
+                      <PostCard
+                        key={post._id}
+                        post={post}
+                        currentUserId={user?._id || user?.id || "me"}
+                        onOpen={() => setActivePost(post)}
+                        onReact={() => {
+                          /* TODO */
+                        }}
+                        onShare={() => {
+                          /* TODO */
+                        }}
+                        onTagClick={() => {
+                          /* TODO */
+                        }}
+                        onEdit={() => {
+                          /* TODO */
+                        }}
+                        onDelete={() => {
+                          /* TODO */
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -579,132 +706,137 @@ function ProfilePage() {
           </div>
 
           {/* ════════════════════════════════════════════════════════════ */}
-          {/* RIGHT COLUMN                                                 */}
+          {/* RIGHT COLUMN (hidden when browsing own posts)               */}
           {/* ════════════════════════════════════════════════════════════ */}
-          <div className="space-y-4">
-            {/* ── Account Details ── */}
-            <div className="glass-card rounded-2xl border border-white/[0.08] p-5 space-y-3">
-              <h2 className="text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-ivory/25 flex items-center gap-1.5 mb-3">
-                <Shield size={10} className="text-accent/50" />
-                Account Details
-              </h2>
-
-              {[
-                {
-                  icon: Mail,
-                  label: "Email",
-                  value: user?.email,
-                  extra: user?.isVerified ? (
-                    <span className="inline-flex items-center gap-1 text-[9px] font-mono text-emerald-400">
-                      <CheckCircle2 size={9} />
-                      verified
-                    </span>
-                  ) : (
-                    <span className="text-[9px] font-mono text-amber-400/70">
-                      unverified
-                    </span>
-                  ),
-                },
-                {
-                  icon: ProviderIcon,
-                  label: "Sign-in method",
-                  value: providerLabel,
-                },
-                {
-                  icon: Calendar,
-                  label: "Member since",
-                  value: memberSince,
-                },
-                {
-                  icon: Globe,
-                  label: "Account type",
-                  value:
-                    user?.provider === "local"
-                      ? "Local account"
-                      : `OAuth — ${providerLabel}`,
-                },
-                {
-                  icon: User,
-                  label: "User ID",
-                  value: user?.id ? `…${user.id.slice(-8)}` : "—",
-                  mono: true,
-                },
-              ].map(({ icon: Icon, label, value, extra, mono }) => (
-                <div
-                  key={label}
-                  className="flex items-start gap-3 py-2.5 border-b border-white/[0.04] last:border-0"
-                >
-                  <div className="w-7 h-7 rounded-lg bg-white/[0.04] flex items-center justify-center shrink-0 mt-0.5">
-                    <Icon size={12} className="text-ivory/25" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[9px] font-mono text-ivory/20 uppercase tracking-wider mb-0.5">
-                      {label}
-                    </p>
-                    <p
-                      className={`text-[12px] text-ivory/60 truncate ${mono ? "font-mono" : ""}`}
-                    >
-                      {value}
-                    </p>
-                    {extra && <div className="mt-0.5">{extra}</div>}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* ── My Workspaces ── */}
-            <div className="glass-card rounded-2xl border border-white/[0.08] p-5">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-ivory/25 flex items-center gap-1.5">
-                  <Building2 size={10} className="text-accent/50" />
-                  My Workspaces
-                  <span className="ml-1 px-1.5 py-0.5 rounded-full bg-accent/10 text-accent text-[9px] font-mono">
-                    {workspaceCount}
-                  </span>
+          {activeSection !== "posts" && (
+            <div className="space-y-4">
+              {/* ── Account Details ── */}
+              <div className="glass-card rounded-2xl border border-white/[0.08] p-5 space-y-3">
+                <h2 className="text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-ivory/25 flex items-center gap-1.5 mb-3">
+                  <Shield size={10} className="text-accent/50" />
+                  Account Details
                 </h2>
-                <Link
-                  href="/app"
-                  className="text-[10px] font-mono text-ivory/25 hover:text-accent transition-colors flex items-center gap-0.5"
-                >
-                  Open app <ChevronRight size={10} />
-                </Link>
+
+                {[
+                  {
+                    icon: Mail,
+                    label: "Email",
+                    value: user?.email,
+                    extra: user?.isVerified ? (
+                      <span className="inline-flex items-center gap-1 text-[9px] font-mono text-emerald-400">
+                        <CheckCircle2 size={9} />
+                        verified
+                      </span>
+                    ) : (
+                      <span className="text-[9px] font-mono text-amber-400/70">
+                        unverified
+                      </span>
+                    ),
+                  },
+                  {
+                    icon: ProviderIcon,
+                    label: "Sign-in method",
+                    value: providerLabel,
+                  },
+                  {
+                    icon: Calendar,
+                    label: "Member since",
+                    value: memberSince,
+                  },
+                  {
+                    icon: Globe,
+                    label: "Account type",
+                    value:
+                      user?.provider === "local"
+                        ? "Local account"
+                        : `OAuth — ${providerLabel}`,
+                  },
+                  {
+                    icon: User,
+                    label: "User ID",
+                    value: user?.id ? `…${user.id.slice(-8)}` : "—",
+                    mono: true,
+                  },
+                ].map(({ icon: Icon, label, value, extra, mono }) => (
+                  <div
+                    key={label}
+                    className="flex items-start gap-3 py-2.5 border-b border-white/[0.04] last:border-0"
+                  >
+                    <div className="w-7 h-7 rounded-lg bg-white/[0.04] flex items-center justify-center shrink-0 mt-0.5">
+                      <Icon size={12} className="text-ivory/25" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[9px] font-mono text-ivory/20 uppercase tracking-wider mb-0.5">
+                        {label}
+                      </p>
+                      <p
+                        className={`text-[12px] text-ivory/60 truncate ${mono ? "font-mono" : ""}`}
+                      >
+                        {value}
+                      </p>
+                      {extra && <div className="mt-0.5">{extra}</div>}
+                    </div>
+                  </div>
+                ))}
               </div>
 
-              {workspaces?.length === 0 ? (
-                <div className="text-center py-6">
-                  <Building2 size={24} className="mx-auto text-ivory/10 mb-2" />
-                  <p className="text-ivory/20 text-[11px] font-mono">
-                    No workspaces yet
-                  </p>
+              {/* ── My Workspaces ── */}
+              <div className="glass-card rounded-2xl border border-white/[0.08] p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-ivory/25 flex items-center gap-1.5">
+                    <Building2 size={10} className="text-accent/50" />
+                    My Workspaces
+                    <span className="ml-1 px-1.5 py-0.5 rounded-full bg-accent/10 text-accent text-[9px] font-mono">
+                      {workspaceCount}
+                    </span>
+                  </h2>
+                  <Link
+                    href="/app"
+                    className="text-[10px] font-mono text-ivory/25 hover:text-accent transition-colors flex items-center gap-0.5"
+                  >
+                    Open app <ChevronRight size={10} />
+                  </Link>
                 </div>
-              ) : (
-                <div className="space-y-2 max-h-72 overflow-y-auto scrollbar-hide">
-                  {workspaces.map((ws) => (
-                    <div
-                      key={ws._id}
-                      className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/[0.03] transition-colors duration-150 group"
-                    >
-                      {/* Workspace avatar */}
-                      <div className="w-8 h-8 rounded-xl bg-linear-to-br from-accent/20 to-accent/5 border border-white/[0.08] flex items-center justify-center shrink-0 text-[11px] font-display font-bold text-accent/60">
-                        {ws.name?.charAt(0)?.toUpperCase()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[12px] font-display font-bold text-ivory/70 truncate">
-                          {ws.name}
-                        </p>
-                        {ws.description && (
-                          <p className="text-[10px] font-mono text-ivory/25 truncate mt-0.5">
-                            {ws.description}
+
+                {workspaces?.length === 0 ? (
+                  <div className="text-center py-6">
+                    <Building2
+                      size={24}
+                      className="mx-auto text-ivory/10 mb-2"
+                    />
+                    <p className="text-ivory/20 text-[11px] font-mono">
+                      No workspaces yet
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-72 overflow-y-auto scrollbar-hide">
+                    {workspaces.map((ws) => (
+                      <div
+                        key={ws._id}
+                        className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/[0.03] transition-colors duration-150 group"
+                      >
+                        {/* Workspace avatar */}
+                        <div className="w-8 h-8 rounded-xl bg-linear-to-br from-accent/20 to-accent/5 border border-white/[0.08] flex items-center justify-center shrink-0 text-[11px] font-display font-bold text-accent/60">
+                          {ws.name?.charAt(0)?.toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[12px] font-display font-bold text-ivory/70 truncate">
+                            {ws.name}
                           </p>
-                        )}
+                          {ws.description && (
+                            <p className="text-[10px] font-mono text-ivory/25 truncate mt-0.5">
+                              {ws.description}
+                            </p>
+                          )}
+                        </div>
+                        <RoleBadge role={ws.myRole} />
                       </div>
-                      <RoleBadge role={ws.myRole} />
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

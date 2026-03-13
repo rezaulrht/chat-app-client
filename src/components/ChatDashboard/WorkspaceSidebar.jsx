@@ -26,7 +26,7 @@ export default function WorkspaceSidebar({
       : "home";
 
   return (
-    <div className="h-14 shrink-0 px-3 flex items-center gap-3 border-b border-white/6 bg-white/1.5">
+    <div className="h-14 shrink-0 px-3 flex items-center gap-2 border-b border-white/6 bg-white/1.5">
       {/* ConvoX Logo → Landing */}
       <Link href="/" className="shrink-0 group">
         <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-white/4 group-hover:bg-accent/10 transition-all duration-300 ring-1 ring-white/6 group-hover:ring-accent/20">
@@ -34,8 +34,8 @@ export default function WorkspaceSidebar({
         </div>
       </Link>
 
-      <div className="flex-1 flex items-center justify-center">
-        <div className="inline-flex items-center gap-0.5 p-1 rounded-xl bg-white/3 ring-1 ring-white/4">
+      <div className="flex-1 min-w-0 flex items-center justify-start">
+        <div className="flex w-full items-center gap-0.5 p-1 rounded-xl bg-white/3 ring-1 ring-white/4">
           {tabs.map((tab) => {
             const isActive = activeId === tab.id;
             const Icon = tab.icon;
@@ -72,7 +72,7 @@ export default function WorkspaceSidebar({
                     setSelectedWorkspaceId(null);
                   }
                 }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-display font-bold tracking-wide transition-all duration-200 ${
+                className={`flex-1 min-w-0 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-display font-bold tracking-wide transition-all duration-200 ${
                   isActive
                     ? "bg-accent/12 text-accent shadow-[0_0_12px_rgba(0,211,187,0.06)]"
                     : "text-ivory/25 hover:text-ivory/50 hover:bg-white/4"

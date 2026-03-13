@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Edit3 } from "lucide-react";
+import toast from "react-hot-toast";
 import PostCard from "./PostCard";
 import PostDetail from "./PostDetail";
 import PostComposer from "./PostComposer";
@@ -34,6 +35,10 @@ function getUserIdFromToken() {
   } catch {
     return "";
   }
+}
+
+function getApiErrorMessage(error, fallback) {
+  return error?.response?.data?.message || error?.message || fallback;
 }
 
 // ── Empty state ───────────────────────────────────────────────────────────────
@@ -115,9 +120,10 @@ export default function FeedView() {
   const handleCreatePost = async (payload) => {
     try {
       await createPost(payload);
+      toast.success("Post created");
       closeComposer();
-    } catch {
-      // Error already handled in context
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Failed to create post"));
     }
   };
 
@@ -132,9 +138,10 @@ export default function FeedView() {
       if (activePost?._id === id) {
         setActivePost(updated);
       }
+      toast.success("Post updated");
       closeComposer();
-    } catch {
-      // Error already handled in context
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Failed to update post"));
     }
   };
 
@@ -147,8 +154,9 @@ export default function FeedView() {
       if (editTarget?._id === id) {
         closeComposer();
       }
-    } catch {
-      // Error already handled in context
+      toast.success("Post deleted");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Failed to delete post"));
     }
   };
 

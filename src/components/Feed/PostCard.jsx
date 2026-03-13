@@ -13,6 +13,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import SnippetBlock from "./SnippetBlock";
+import MarkdownText from "./MarkdownText";
 import { formatDistanceToNow } from "date-fns";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -185,9 +186,9 @@ export default function PostCard({
         <h3 className="font-display font-bold text-ivory text-[17px] leading-snug mb-2">
           {post.title}
         </h3>
-        <p className="text-[13px] text-ivory/50 leading-relaxed line-clamp-2 mb-4 font-sans">
+        <MarkdownText className="text-[13px] text-ivory/50 leading-relaxed mb-4 font-sans [&_p]:my-0 [&_strong]:text-ivory/80 [&_em]:text-ivory/75">
           {post.content}
-        </p>
+        </MarkdownText>
         <div
           className="flex items-center gap-3 flex-wrap"
           onClick={(e) => e.stopPropagation()}
@@ -248,9 +249,9 @@ export default function PostCard({
           />
         </div>
         {post.content && (
-          <p className="text-[13px] text-ivory/60 mb-3 font-sans">
+          <MarkdownText className="text-[13px] text-ivory/60 mb-3 font-sans [&_p]:my-0 [&_strong]:text-ivory/85 [&_em]:text-ivory/75">
             {post.content}
-          </p>
+          </MarkdownText>
         )}
         {(post.codeBlocks?.length ?? 0) > 0 && (
           <div onClick={(e) => e.stopPropagation()}>
@@ -284,20 +285,9 @@ export default function PostCard({
             onDelete={() => onDelete?.(post._id)}
           />
         </div>
-        <p className="text-[14px] text-ivory/75 leading-relaxed mb-4 font-sans">
-          {post.content?.split("`").map((part, i) =>
-            i % 2 === 1 ? (
-              <code
-                key={i}
-                className="font-mono text-accent/85 bg-accent/10 border border-accent/20 px-1.5 py-0.5 rounded text-[12px]"
-              >
-                {part}
-              </code>
-            ) : (
-              part
-            ),
-          )}
-        </p>
+        <MarkdownText className="text-[14px] text-ivory/75 leading-relaxed mb-4 font-sans [&_p]:my-0 [&_strong]:text-ivory/85 [&_em]:text-ivory/80">
+          {post.content}
+        </MarkdownText>
         <div
           className="flex items-center gap-4"
           onClick={(e) => e.stopPropagation()}
@@ -357,10 +347,7 @@ export default function PostCard({
               totalVotes > 0 ? Math.round((optionVotes / totalVotes) * 100) : 0;
             return (
               <div key={i} className="flex items-center gap-3">
-                <div
-                  className="relative flex-1 h-9 rounded-lg overflow-hidden bg-white/[0.04] border border-white/[0.07]"
-                  onClick={(e) => e.stopPropagation()}
-                >
+                <div className="relative flex-1 h-9 rounded-lg overflow-hidden bg-white/[0.04] border border-white/[0.07]">
                   <div
                     className={`absolute left-0 top-0 h-full ${POLL_COLORS[i % POLL_COLORS.length]} opacity-25 transition-all duration-500`}
                     style={{ width: `${pct}%` }}
@@ -429,7 +416,10 @@ export default function PostCard({
           </div>
         )}
         {post.linkPreview && (
-          <div
+          <a
+            href={post.linkPreview.url}
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.04] border border-white/[0.07] mb-3"
             onClick={(e) => e.stopPropagation()}
           >
@@ -444,7 +434,7 @@ export default function PostCard({
                 </p>
               )}
             </div>
-          </div>
+          </a>
         )}
         <div onClick={(e) => e.stopPropagation()}>
           <SimpleReactions
@@ -484,12 +474,15 @@ export default function PostCard({
         </h3>
       )}
       {post.content && (
-        <p className="text-[13px] text-ivory/55 leading-relaxed line-clamp-3 mb-3 font-sans">
+        <MarkdownText className="text-[13px] text-ivory/55 leading-relaxed mb-3 font-sans [&_p]:my-0 [&_strong]:text-ivory/80 [&_em]:text-ivory/75">
           {post.content}
-        </p>
+        </MarkdownText>
       )}
       {post.type === "resource" && post.linkPreview && (
-        <div
+        <a
+          href={post.linkPreview.url}
+          target="_blank"
+          rel="noopener noreferrer"
           className="flex gap-3 p-3 rounded-xl bg-white/[0.04] border border-white/[0.07] mb-3"
           onClick={(e) => e.stopPropagation()}
         >
@@ -504,7 +497,7 @@ export default function PostCard({
               {post.linkPreview.url}
             </p>
           </div>
-        </div>
+        </a>
       )}
       <div
         className="flex items-center gap-3"

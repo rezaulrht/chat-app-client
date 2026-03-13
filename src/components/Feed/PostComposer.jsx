@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import MarkdownText from "./MarkdownText";
 import {
   X,
   Plus,
@@ -209,8 +210,16 @@ function MarkdownPanel({ value, onChange, placeholder }) {
           className="w-full bg-transparent px-4 py-3 text-[14px] text-ivory/80 placeholder:text-ivory/22 outline-none resize-y"
         />
       ) : (
-        <div className="min-h-[220px] px-4 py-3 text-[14px] text-ivory/75 whitespace-pre-wrap leading-relaxed">
-          {value?.trim() ? value : "Nothing to preview yet..."}
+        <div className="min-h-[220px] px-4 py-3">
+          {value?.trim() ? (
+            <MarkdownText className="text-[14px] text-ivory/75 [&_p]:leading-relaxed">
+              {value}
+            </MarkdownText>
+          ) : (
+            <span className="text-[13px] font-mono text-ivory/22">
+              Nothing to preview yet...
+            </span>
+          )}
         </div>
       )}
 
@@ -545,6 +554,7 @@ export default function PostComposer({
           </header>
 
           <form
+            id="post-composer-form"
             onSubmit={handleSubmit}
             className="flex-1 min-h-0 overflow-y-auto scrollbar-hide px-5 md:px-7 py-5 space-y-5"
           >
@@ -946,6 +956,7 @@ export default function PostComposer({
               </button>
               <button
                 type="submit"
+                form="post-composer-form"
                 className="px-5 py-2 rounded-xl bg-accent text-obsidian text-[12px] font-mono font-bold uppercase tracking-[0.1em] hover:bg-accent/85 transition-colors"
               >
                 {isEditing ? "Save Changes" : activeType.publishCta}

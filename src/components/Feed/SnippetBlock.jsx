@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { Copy, Check } from "lucide-react";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 // ── Language label badge colours ──────────────────────────────────────────
 const LANG_COLORS = {
@@ -81,23 +83,40 @@ export default function SnippetBlock({ files = [] }) {
       </div>
 
       {/* ── Code area ────────────────────────────────────────────────── */}
-      <div className="overflow-x-auto max-h-80">
-        <table className="w-full text-[12px] leading-5">
-          <tbody>
-            {(current.code ?? "").split("\n").map((line, i) => (
-              <tr key={i} className="group hover:bg-white/[0.02]">
-                <td className="select-none text-ivory/15 text-right pr-4 pl-4 w-10 shrink-0 align-top pt-0.5">
-                  {i + 1}
-                </td>
-                <td className="text-ivory/80 pr-6 align-top pt-0.5 whitespace-pre">
-                  {/* TODO: replace with react-syntax-highlighter token rendering */}
-                  {line || "\u00a0"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <SyntaxHighlighter
+        language={current.language || "text"}
+        style={vscDarkPlus}
+        showLineNumbers
+        wrapLines
+        customStyle={{
+          margin: 0,
+          borderRadius: 0,
+          fontSize: "12px",
+          lineHeight: "1.6",
+          background: "#1E1E1E",
+          padding: "14px 0",
+          maxHeight: "320px",
+          overflowY: "auto",
+        }}
+        lineNumberStyle={{
+          minWidth: "3em",
+          paddingRight: "1.5em",
+          color: "rgba(255,255,255,0.18)",
+          userSelect: "none",
+          fontStyle: "normal",
+        }}
+        codeTagProps={{
+          style: {
+            fontFamily: "var(--font-mono, 'IBM Plex Mono', monospace)",
+            background: "transparent",
+            border: "none",
+            padding: 0,
+            borderRadius: 0,
+          },
+        }}
+      >
+        {String(current.code ?? "")}
+      </SyntaxHighlighter>
     </div>
   );
 }

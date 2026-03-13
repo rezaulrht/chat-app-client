@@ -91,6 +91,10 @@ export default function ChatWindow({
   const [suggestions, setSuggestions] = useState([]);
   const [suggestionIndex, setSuggestionIndex] = useState(0);
 
+  const [aiReplies, setAiReplies] = useState([]);
+  const [loadingAiReplies, setLoadingAiReplies] = useState(false);
+  const lastAiRepliesForMsgRef = useRef(null);
+
   // Scheduled messages UI
   const [scheduleMode, setScheduleMode] = useState(false);
   const [sendAt, setSendAt] = useState("");
@@ -315,6 +319,8 @@ export default function ChatWindow({
       setLongPressedMsgId(null);
       setScheduleMode(false);
       setShowScheduledPanel(false);
+      setAiReplies([]);
+      lastAiRepliesForMsgRef.current = null;
 
       try {
         const res = await api.get(`/api/chat/messages/${conversation._id}`);
@@ -469,6 +475,47 @@ export default function ChatWindow({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const fetchAiReplies = useCallback(
+    async (messagesList) => {
+      const visible = messagesList
+        .filter((m) => !m.isOptimistic && !m.isDeleted && m.text?.trim())
+        .slice(-10);
+
+      if (visible.length === 0) return;
+
+      const lastMsg = visible[visible.length - 1];
+
+      setLoadingAiReplies(true);
+      setAiReplies([]);
+
+      try {
+        const context = visible.slice(0, -1).map((m) => ({
+          text: m.text,
+          isMe: (m.sender?._id ?? m.sender) === user?._id,
+        }));
+
+        const res = await fetch("/api/ai-reply", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: context,
+            latestMessage: lastMsg.text,
+          }),
+        });
+
+        const data = await res.json();
+        if (Array.isArray(data.suggestions) && data.suggestions.length > 0) {
+          setAiReplies(data.suggestions.slice(0, 3));
+        }
+      } catch (err) {
+        console.error("[AI] fetchAiReplies error:", err);
+      } finally {
+        setLoadingAiReplies(false);
+      }
+    },
+    [user?._id],
+  );
+
   // Scheduled: refresh list
   const refreshScheduled = useCallback(async () => {
     if (!conversation?._id) return;
@@ -494,6 +541,13 @@ export default function ChatWindow({
     if (!conversation?._id) return;
     refreshScheduled();
   }, [conversation?._id, refreshScheduled]);
+
+  const handleAiButton = useCallback(() => {
+    const visible = messages.filter(
+      (m) => !m.isOptimistic && !m.isDeleted && m.text?.trim(),
+    );
+    fetchAiReplies(visible);
+  }, [messages, fetchAiReplies]);
 
   const onCancelScheduled = async (id) => {
     try {
@@ -586,6 +640,7 @@ export default function ChatWindow({
 
     setMessages((prev) => [...prev, optimistic]);
     setText("");
+    setAiReplies([]);
     const isGrp = conversation.type === "group";
     socket.emit("typing:stop", {
       conversationId: conversation._id,
@@ -1335,6 +1390,43 @@ export default function ChatWindow({
           </div>
         )}
 
+        {(aiReplies.length > 0 || loadingAiReplies) && (
+          <div className="flex items-center gap-1.5 flex-wrap mb-2 px-1">
+            <span className="text-[9px] text-ivory/20 font-semibold uppercase tracking-wide">
+              AI
+            </span>
+            {loadingAiReplies ? (
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+                <span className="text-[10px] text-ivory/30">Generating replies...</span>
+              </div>
+            ) : (
+              <>
+                {aiReplies.map((reply, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setText(reply)}
+                    className="px-3 py-1 text-[11px] rounded-full bg-accent/10 border border-accent/20 text-accent/80 hover:bg-accent/20 hover:text-accent transition-all max-w-[180px] truncate"
+                    title={reply}
+                  >
+                    {reply}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setAiReplies([])}
+                  className="ml-auto p-0.5 text-ivory/20 hover:text-ivory/50 transition-colors"
+                  title="Dismiss suggestions"
+                  aria-label="Dismiss AI suggestions"
+                >
+                  <X size={11} />
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
         <div className="bg-slate-surface rounded-2xl flex items-center flex-wrap p-2 gap-1 border border-white/5 focus-within:border-accent/50 transition-all shadow-inner">
           <button
             type="button"
@@ -1387,6 +1479,27 @@ export default function ChatWindow({
             }`}
           >
             GIF
+          </button>
+
+          <button
+            type="button"
+            onClick={handleAiButton}
+            disabled={loadingAiReplies}
+            title="AI reply suggestions"
+            aria-label="AI reply suggestions"
+            className={`hidden sm:inline-flex items-center gap-1 px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${
+              loadingAiReplies
+                ? "bg-accent/20 border-accent/40 text-accent cursor-not-allowed"
+                : aiReplies.length > 0
+                  ? "bg-accent/20 border-accent/40 text-accent"
+                  : "bg-white/4 border-white/10 text-ivory/30 hover:bg-accent/10 hover:border-accent/30 hover:text-accent"
+            }`}
+          >
+            {loadingAiReplies ? (
+              <span className="w-2.5 h-2.5 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+            ) : (
+              "✦ AI"
+            )}
           </button>
 
           {!isGroup && (
@@ -1481,6 +1594,27 @@ export default function ChatWindow({
               }`}
             >
               GIF
+            </button>
+
+            <button
+              type="button"
+              onClick={handleAiButton}
+              disabled={loadingAiReplies}
+              title="AI reply suggestions"
+              aria-label="AI reply suggestions"
+              className={`inline-flex items-center gap-1 px-2 py-1 text-[10px] font-black rounded-md border transition-all ${
+                loadingAiReplies
+                  ? "bg-accent/20 border-accent/40 text-accent cursor-not-allowed"
+                  : aiReplies.length > 0
+                    ? "bg-accent/20 border-accent/40 text-accent"
+                    : "bg-white/4 border-white/10 text-ivory/30 hover:bg-accent/10 hover:border-accent/30 hover:text-accent"
+              }`}
+            >
+              {loadingAiReplies ? (
+                <span className="w-2.5 h-2.5 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+              ) : (
+                "✦ AI"
+              )}
             </button>
 
             {!isGroup && (

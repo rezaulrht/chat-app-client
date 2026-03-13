@@ -13,7 +13,6 @@ import {
   ExternalLink,
 } from "lucide-react";
 import SnippetBlock from "./SnippetBlock";
-import PollCard from "./PollCard";
 import { formatDistanceToNow } from "date-fns";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -23,6 +22,18 @@ function timeAgo(date) {
   } catch {
     return "";
   }
+}
+
+function getPostReactions(post) {
+  return post?.reactions ?? post?.reactionsCount ?? {};
+}
+
+function getReactionTotal(reactions) {
+  return Object.values(reactions ?? {}).reduce((sum, value) => {
+    if (Array.isArray(value)) return sum + value.length;
+    if (typeof value === "number") return sum + value;
+    return sum;
+  }, 0);
 }
 
 // ── Reusable sub-components ──────────────────────────────────────────────────
@@ -52,8 +63,11 @@ function AvatarCircle({ user, size = 32 }) {
 function SimpleReactions({ reactions = {}, currentUserId, onReact }) {
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
-      {Object.entries(reactions).map(([emoji, users]) =>
-        users.length > 0 ? (
+      {Object.entries(reactions).map(([emoji, users]) => {
+        const usersList = Array.isArray(users) ? users : [];
+        const count = Array.isArray(users) ? users.length : Number(users) || 0;
+
+        return count > 0 ? (
           <button
             key={emoji}
             type="button"
@@ -62,15 +76,15 @@ function SimpleReactions({ reactions = {}, currentUserId, onReact }) {
               onReact?.(emoji);
             }}
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[12px] font-mono border transition-all duration-150 ${
-              users.includes(currentUserId)
+              usersList.includes(currentUserId)
                 ? "bg-accent/10 border-accent/25 text-accent"
                 : "bg-white/[0.04] border-white/[0.08] text-ivory/45 hover:bg-white/[0.07] hover:text-ivory/70"
             }`}
           >
-            {emoji} {users.length}
+            {emoji} {count}
           </button>
-        ) : null,
-      )}
+        ) : null;
+      })}
     </div>
   );
 }
@@ -111,6 +125,8 @@ function OverflowMenu({ isOwn, onShare, onEdit, onDelete }) {
               <button
                 onClick={() => {
                   setOpen(false);
+                  const confirmed = window.confirm("Delete this post?");
+                  if (!confirmed) return;
                   onDelete?.();
                 }}
                 className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-red-400/70 hover:text-red-400 hover:bg-red-400/5 transition-colors"
@@ -135,7 +151,13 @@ export default function PostCard({
   onEdit,
   onDelete,
 }) {
-  const isOwn = post.author?._id === currentUserId;
+  const authorId =
+    typeof post.author?._id === "string"
+      ? post.author._id
+      : post.author?._id?.toString?.() || "";
+  const isOwn = authorId === currentUserId || authorId === "me";
+  const commentCount = post.commentCount ?? post.commentsCount ?? 0;
+  const reactions = getPostReactions(post);
 
   // ── Base style for all feed items ──
   const base =
@@ -177,11 +199,17 @@ export default function PostCard({
             {timeAgo(post.createdAt)}
           </span>
           <div className="ml-auto flex items-center gap-2.5">
+            <OverflowMenu
+              isOwn={isOwn}
+              onShare={() => onShare?.(post)}
+              onEdit={() => onEdit?.(post)}
+              onDelete={() => onDelete?.(post._id)}
+            />
             <button
               onClick={() => onOpen?.(post)}
               className="flex items-center gap-1 text-[12px] font-mono text-ivory/30 hover:text-ivory/50 transition-colors"
             >
-              <MessageSquare size={12} /> {post.commentCount ?? 0}
+              <MessageSquare size={12} /> {commentCount}
             </button>
             <button
               onClick={() => onOpen?.(post)}
@@ -231,7 +259,7 @@ export default function PostCard({
         )}
         <div className="mt-3" onClick={(e) => e.stopPropagation()}>
           <SimpleReactions
-            reactions={post.reactions}
+            reactions={reactions}
             currentUserId={currentUserId}
             onReact={(emoji) => onReact?.(post._id, emoji)}
           />
@@ -242,16 +270,19 @@ export default function PostCard({
 
   // ────────────────── TIL ──────────────────────────────────────────────────
   if (post.type === "til") {
-    const totalReactions = Object.values(post.reactions ?? {}).reduce(
-      (a, b) => a + (b?.length ?? 0),
-      0,
-    );
+    const totalReactions = getReactionTotal(reactions);
     return (
       <article className={`${base} px-5 py-5`} onClick={() => onOpen?.(post)}>
-        <div className="mb-3">
+        <div className="mb-3 flex items-center justify-between gap-2">
           <span className="text-[10px] font-mono font-bold text-ivory/30 uppercase tracking-[0.16em] bg-white/[0.04] border border-white/[0.08] px-2 py-0.5 rounded">
             TIL
           </span>
+          <OverflowMenu
+            isOwn={isOwn}
+            onShare={() => onShare?.(post)}
+            onEdit={() => onEdit?.(post)}
+            onDelete={() => onDelete?.(post._id)}
+          />
         </div>
         <p className="text-[14px] text-ivory/75 leading-relaxed mb-4 font-sans">
           {post.content?.split("`").map((part, i) =>
@@ -278,7 +309,7 @@ export default function PostCard({
             onClick={() => onOpen?.(post)}
             className="flex items-center gap-1.5 text-[12px] font-mono text-ivory/35 hover:text-ivory/60 transition-colors"
           >
-            <MessageSquare size={12} /> {post.commentCount ?? 0}
+            <MessageSquare size={12} /> {commentCount}
           </button>
           <button className="flex items-center gap-1.5 text-[12px] font-mono text-ivory/35 hover:text-ivory/60 transition-colors">
             <Bookmark size={12} /> Save
@@ -300,23 +331,30 @@ export default function PostCard({
       "bg-purple-400",
       "bg-amber-400",
     ];
-    const daysLeft = post.poll.expiresAt
-      ? Math.max(
-          0,
-          Math.ceil((new Date(post.poll.expiresAt) - Date.now()) / 86400000),
-        )
+    const pollEndDate = post.poll.expiresAt ?? post.poll.endsAt;
+    const daysLeft = pollEndDate
+      ? Math.max(0, Math.ceil((new Date(pollEndDate) - Date.now()) / 86400000))
       : null;
     return (
       <article className={`${base} px-5 py-5`} onClick={() => onOpen?.(post)}>
-        <h3 className="font-display font-bold text-ivory text-[15px] leading-snug mb-4">
-          {post.poll.question}
-        </h3>
+        <div className="mb-4 flex items-start justify-between gap-2">
+          <h3 className="font-display font-bold text-ivory text-[15px] leading-snug">
+            {post.poll.question}
+          </h3>
+          <OverflowMenu
+            isOwn={isOwn}
+            onShare={() => onShare?.(post)}
+            onEdit={() => onEdit?.(post)}
+            onDelete={() => onDelete?.(post._id)}
+          />
+        </div>
         <div className="flex flex-col gap-2.5 mb-3">
           {post.poll.options.map((option, i) => {
+            const optionVotes = Array.isArray(option.votes)
+              ? option.votes.length
+              : 0;
             const pct =
-              totalVotes > 0
-                ? Math.round((option.votes.length / totalVotes) * 100)
-                : 0;
+              totalVotes > 0 ? Math.round((optionVotes / totalVotes) * 100) : 0;
             return (
               <div key={i} className="flex items-center gap-3">
                 <div
@@ -473,7 +511,7 @@ export default function PostCard({
         onClick={(e) => e.stopPropagation()}
       >
         <SimpleReactions
-          reactions={post.reactions ?? {}}
+          reactions={reactions}
           currentUserId={currentUserId}
           onReact={(emoji) => onReact?.(post._id, emoji)}
         />
@@ -481,7 +519,7 @@ export default function PostCard({
           onClick={() => onOpen?.(post)}
           className="ml-auto flex items-center gap-1 text-[12px] font-mono text-ivory/30 hover:text-ivory/50 transition-colors"
         >
-          <MessageSquare size={12} /> {post.commentCount ?? 0}
+          <MessageSquare size={12} /> {commentCount}
         </button>
         <button
           onClick={() => onShare?.(post)}

@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { FeedContext } from "./FeedContext";
+import api from "@/app/api/Axios";
 
 // ── Stub / mock data used during design phase ────────────────────────────────
 const MOCK_USER_STATS = {
@@ -31,21 +32,189 @@ export function FeedProvider({ children }) {
   const [selectedPost, setSelectedPost] = useState(null); // post detail view
   const [shareTarget, setShareTarget] = useState(null); // post being shared
 
-  // ── Stub API actions (TODO: wire to real API) ──────────────────────────────
+  const normalizePost = useCallback((post) => {
+    if (!post || typeof post !== "object") return post;
+    if (post.id && !post._id) {
+      return { ...post, _id: post.id };
+    }
+    return post;
+  }, []);
+
+  const mergePosts = useCallback(
+    (existing, incoming) => {
+      const map = new Map();
+
+      for (const post of existing) {
+        const normalized = normalizePost(post);
+        if (normalized?._id) {
+          map.set(normalized._id, normalized);
+        }
+      }
+
+      for (const post of incoming) {
+        const normalized = normalizePost(post);
+        if (normalized?._id) {
+          map.set(normalized._id, normalized);
+        }
+      }
+
+      return Array.from(map.values());
+    },
+    [normalizePost],
+  );
+
+  // ── Feed API actions ────────────────────────────────────────────────────────
   const fetchPosts = useCallback(async () => {
-    // TODO: GET /api/feed/posts?tab=&page=&type=&tags=&sort=
-  }, [activeTab, filters, page]);
+    setLoading(true);
+    try {
+      const response = await api.get("/api/feed/posts", {
+        params: {
+          tab: activeTab,
+          page,
+          type: filters.type,
+          tags: filters.tags?.join(",") || undefined,
+          sort: filters.sort,
+        },
+      });
 
-  const createPost = useCallback(async (payload) => {
-    // TODO: POST /api/feed/posts
-  }, []);
+      const nextPosts = Array.isArray(response.data?.posts)
+        ? response.data.posts.map(normalizePost)
+        : [];
 
-  const editPost = useCallback(async (id, payload) => {
-    // TODO: PATCH /api/feed/posts/:id
-  }, []);
+      if (page > 1) {
+        setPosts((prev) => mergePosts(prev, nextPosts));
+      } else {
+        setPosts(nextPosts);
+      }
+
+      if (typeof response.data?.hasMore === "boolean") {
+        setHasMore(response.data.hasMore);
+      } else {
+        setHasMore(nextPosts.length > 0);
+      }
+    } catch (error) {
+      console.error(
+        "fetchPosts error:",
+        error?.response?.data?.message || error.message,
+      );
+      if (page === 1) {
+        setPosts([]);
+      }
+      setHasMore(false);
+    } finally {
+      setLoading(false);
+    }
+  }, [activeTab, filters, page, mergePosts, normalizePost]);
+
+  const createPost = useCallback(
+    async (payload) => {
+      const tempId = `temp-${Date.now()}`;
+      const optimisticPost = {
+        _id: tempId,
+        ...payload,
+        author: {
+          _id: "me",
+          name: "You",
+          avatar: "",
+        },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        commentsCount: 0,
+        reactionsCount: {},
+      };
+
+      setPosts((prev) => [optimisticPost, ...prev]);
+
+      try {
+        const response = await api.post("/api/feed/posts", payload);
+        const created = normalizePost(response.data);
+
+        setPosts((prev) =>
+          prev.map((post) => (post._id === tempId ? created : post)),
+        );
+
+        return created;
+      } catch (error) {
+        setPosts((prev) => prev.filter((post) => post._id !== tempId));
+        console.error(
+          "createPost error:",
+          error?.response?.data?.message || error.message,
+        );
+        throw error;
+      }
+    },
+    [normalizePost],
+  );
+
+  const editPost = useCallback(
+    async (id, payload) => {
+      let previousPost = null;
+
+      setPosts((prev) =>
+        prev.map((post) => {
+          if (post._id !== id) return post;
+          previousPost = post;
+          return {
+            ...post,
+            ...payload,
+            updatedAt: new Date().toISOString(),
+          };
+        }),
+      );
+
+      try {
+        const response = await api.patch(`/api/feed/posts/${id}`, payload);
+        const updated = normalizePost(response.data);
+
+        setPosts((prev) =>
+          prev.map((post) => (post._id === id ? updated : post)),
+        );
+
+        return updated;
+      } catch (error) {
+        if (previousPost) {
+          setPosts((prev) =>
+            prev.map((post) => (post._id === id ? previousPost : post)),
+          );
+        }
+        console.error(
+          "editPost error:",
+          error?.response?.data?.message || error.message,
+        );
+        throw error;
+      }
+    },
+    [normalizePost],
+  );
 
   const deletePost = useCallback(async (id) => {
-    // TODO: DELETE /api/feed/posts/:id
+    let deletedPost = null;
+
+    setPosts((prev) => {
+      const next = [];
+      for (const post of prev) {
+        if (post._id === id) {
+          deletedPost = post;
+        } else {
+          next.push(post);
+        }
+      }
+      return next;
+    });
+
+    try {
+      await api.delete(`/api/feed/posts/${id}`);
+      return true;
+    } catch (error) {
+      if (deletedPost) {
+        setPosts((prev) => [deletedPost, ...prev]);
+      }
+      console.error(
+        "deletePost error:",
+        error?.response?.data?.message || error.message,
+      );
+      throw error;
+    }
   }, []);
 
   const reactToPost = useCallback(async (id, emoji) => {

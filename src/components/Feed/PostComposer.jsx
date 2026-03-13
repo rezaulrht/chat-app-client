@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   X,
   Plus,
@@ -102,6 +102,7 @@ const RESOURCE_CATEGORIES = [
   "Repository",
   "Design",
 ];
+const DEFAULT_TAGS = ["learning", "productivity"];
 
 function FieldLabel({ children }) {
   return (
@@ -220,9 +221,15 @@ function MarkdownPanel({ value, onChange, placeholder }) {
   );
 }
 
-export default function PostComposer({ open, onClose, onSubmit }) {
+export default function PostComposer({
+  open,
+  onClose,
+  onSubmit,
+  onEdit,
+  editPost,
+}) {
   const [type, setType] = useState("post");
-  const [tags, setTags] = useState(["learning", "productivity"]);
+  const [tags, setTags] = useState(DEFAULT_TAGS);
   const [isPrivate, setIsPrivate] = useState(false);
 
   const [title, setTitle] = useState("");
@@ -252,6 +259,89 @@ export default function PostComposer({ open, onClose, onSubmit }) {
     () => POST_TYPES.find((item) => item.value === type) ?? POST_TYPES[0],
     [type],
   );
+
+  const isEditing = Boolean(editPost?._id);
+
+  const resetForm = () => {
+    setType("post");
+    setTags(DEFAULT_TAGS);
+    setIsPrivate(false);
+
+    setTitle("");
+    setContent("");
+
+    setSnippetTitle("");
+    setSnippetLanguage("typescript");
+    setSnippetFilename("snippet.ts");
+    setSnippetCode("");
+
+    setShowcaseTitle("");
+    setShowcaseUrl("");
+    setShowcaseDescription("");
+    setShowcaseThumbnail("");
+
+    setPollQuestion("");
+    setPollOptions(["", "", ""]);
+    setPollDuration("7 Days");
+    setPollVisibility("Public");
+
+    setResourceTitle("");
+    setResourceUrl("");
+    setResourceCategory("Documentation");
+    setResourceDescription("");
+  };
+
+  useEffect(() => {
+    if (!open) return;
+
+    if (!editPost) {
+      resetForm();
+      return;
+    }
+
+    setType(editPost.type || "post");
+    setTags(Array.isArray(editPost.tags) ? editPost.tags.slice(0, 5) : []);
+    setIsPrivate(Boolean(editPost.isPrivate));
+
+    setTitle(editPost.title || "");
+    setContent(editPost.content || "");
+
+    const firstCodeBlock = editPost.codeBlocks?.[0] || {};
+    setSnippetTitle(editPost.title || "");
+    setSnippetLanguage(firstCodeBlock.language || "typescript");
+    setSnippetFilename(firstCodeBlock.filename || "snippet.ts");
+    setSnippetCode(firstCodeBlock.code || "");
+
+    setShowcaseTitle(editPost.title || "");
+    setShowcaseUrl(editPost.linkPreview?.url || "");
+    setShowcaseDescription(
+      editPost.content || editPost.linkPreview?.description || "",
+    );
+    setShowcaseThumbnail(editPost.screenshots?.[0] || "");
+
+    setPollQuestion(editPost.poll?.question || "");
+    const nextPollOptions = (editPost.poll?.options || [])
+      .map((option) =>
+        typeof option === "string" ? option : option?.text || "",
+      )
+      .filter(Boolean);
+    setPollOptions(
+      nextPollOptions.length >= 2 ? nextPollOptions : ["", "", ""],
+    );
+    setPollDuration(editPost.poll?.duration || "7 Days");
+    setPollVisibility(editPost.poll?.visibility || "Public");
+
+    setResourceTitle(editPost.title || "");
+    setResourceUrl(editPost.linkPreview?.url || "");
+    setResourceCategory(
+      editPost.resourceCategory ||
+        editPost.linkPreview?.category ||
+        "Documentation",
+    );
+    setResourceDescription(
+      editPost.content || editPost.linkPreview?.description || "",
+    );
+  }, [open, editPost]);
 
   if (!open) return null;
 
@@ -350,18 +440,25 @@ export default function PostComposer({ open, onClose, onSubmit }) {
       ...base,
       title: resourceTitle,
       content: resourceDescription,
+      resourceCategory,
       linkPreview: {
         url: resourceUrl,
         title: resourceTitle,
         description: resourceDescription,
-        category: resourceCategory,
       },
     };
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSubmit?.(buildPayload());
+    const payload = buildPayload();
+
+    if (isEditing && editPost?._id) {
+      await onEdit?.(editPost._id, payload);
+      return;
+    }
+
+    await onSubmit?.(payload);
   };
 
   return (
@@ -393,12 +490,16 @@ export default function PostComposer({ open, onClose, onSubmit }) {
                   <button
                     key={value}
                     type="button"
-                    onClick={() => setType(value)}
+                    onClick={() => {
+                      if (isEditing) return;
+                      setType(value);
+                    }}
                     className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-left transition-all duration-150 border whitespace-nowrap ${
                       active
                         ? "bg-accent/12 border-accent/30 text-accent"
                         : "bg-transparent border-transparent text-ivory/45 hover:text-ivory/70 hover:bg-white/[0.04]"
                     }`}
+                    disabled={isEditing}
                   >
                     <Icon size={15} />
                     <span className="text-[13px] font-display font-semibold">
@@ -426,10 +527,12 @@ export default function PostComposer({ open, onClose, onSubmit }) {
           <header className="px-5 md:px-7 py-4 border-b border-white/[0.07] flex items-start justify-between gap-3">
             <div>
               <h2 className="font-display font-bold text-ivory text-2xl md:text-[30px] leading-tight">
-                {activeType.heading}
+                {isEditing ? "Edit Post" : activeType.heading}
               </h2>
               <p className="text-[13px] font-sans text-ivory/42 mt-1">
-                {activeType.sub}
+                {isEditing
+                  ? "Update your content and save changes."
+                  : activeType.sub}
               </p>
             </div>
             <button
@@ -843,10 +946,9 @@ export default function PostComposer({ open, onClose, onSubmit }) {
               </button>
               <button
                 type="submit"
-                onClick={handleSubmit}
                 className="px-5 py-2 rounded-xl bg-accent text-obsidian text-[12px] font-mono font-bold uppercase tracking-[0.1em] hover:bg-accent/85 transition-colors"
               >
-                {activeType.publishCta}
+                {isEditing ? "Save Changes" : activeType.publishCta}
               </button>
             </div>
           </footer>

@@ -90,6 +90,7 @@ export default function FeedView() {
     createPost,
     editPost,
     deletePost,
+    reactToPost,
   } = useFeed();
 
   const [activePost, setActivePost] = useState(null); // PostDetail view
@@ -208,7 +209,7 @@ export default function FeedView() {
               comments={[]}
               currentUserId={currentUserId}
               onBack={() => setActivePost(null)}
-              onReact={() => {}}
+              onReact={(postId, emoji) => reactToPost(postId, emoji)}
               onShare={(p) => setSharePost(p)}
               onTagClick={() => {}}
             />
@@ -228,7 +229,7 @@ export default function FeedView() {
                   post={post}
                   currentUserId={currentUserId}
                   onOpen={setActivePost}
-                  onReact={() => {}}
+                  onReact={(postId, emoji) => reactToPost(postId, emoji)}
                   onShare={setSharePost}
                   onTagClick={() => {}}
                   onEdit={handleEditPost}

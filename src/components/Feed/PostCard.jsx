@@ -5,7 +5,6 @@ import Image from "next/image";
 import {
   MessageSquare,
   Share2,
-  Bookmark,
   MoreHorizontal,
   Pin,
   Pencil,
@@ -14,6 +13,7 @@ import {
 } from "lucide-react";
 import SnippetBlock from "./SnippetBlock";
 import MarkdownText from "./MarkdownText";
+import ReactionBar from "./ReactionBar";
 import { formatDistanceToNow } from "date-fns";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -26,15 +26,7 @@ function timeAgo(date) {
 }
 
 function getPostReactions(post) {
-  return post?.reactions ?? post?.reactionsCount ?? {};
-}
-
-function getReactionTotal(reactions) {
-  return Object.values(reactions ?? {}).reduce((sum, value) => {
-    if (Array.isArray(value)) return sum + value.length;
-    if (typeof value === "number") return sum + value;
-    return sum;
-  }, 0);
+  return post?.reactions ?? {};
 }
 
 // ── Reusable sub-components ──────────────────────────────────────────────────
@@ -57,35 +49,6 @@ function AvatarCircle({ user, size = 32 }) {
           {user?.name?.[0]?.toUpperCase() ?? "?"}
         </span>
       )}
-    </div>
-  );
-}
-
-function SimpleReactions({ reactions = {}, currentUserId, onReact }) {
-  return (
-    <div className="flex items-center gap-1.5 flex-wrap">
-      {Object.entries(reactions).map(([emoji, users]) => {
-        const usersList = Array.isArray(users) ? users : [];
-        const count = Array.isArray(users) ? users.length : Number(users) || 0;
-
-        return count > 0 ? (
-          <button
-            key={emoji}
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onReact?.(emoji);
-            }}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[12px] font-mono border transition-all duration-150 ${
-              usersList.includes(currentUserId)
-                ? "bg-accent/10 border-accent/25 text-accent"
-                : "bg-white/[0.04] border-white/[0.08] text-ivory/45 hover:bg-white/[0.07] hover:text-ivory/70"
-            }`}
-          >
-            {emoji} {count}
-          </button>
-        ) : null;
-      })}
     </div>
   );
 }
@@ -220,6 +183,14 @@ export default function PostCard({
             </button>
           </div>
         </div>
+        <div className="mt-3" onClick={(e) => e.stopPropagation()}>
+          <ReactionBar
+            reactions={reactions}
+            currentUserId={currentUserId}
+            onReact={(emoji) => onReact?.(post._id, emoji)}
+            variant="card"
+          />
+        </div>
       </article>
     );
   }
@@ -259,10 +230,11 @@ export default function PostCard({
           </div>
         )}
         <div className="mt-3" onClick={(e) => e.stopPropagation()}>
-          <SimpleReactions
+          <ReactionBar
             reactions={reactions}
             currentUserId={currentUserId}
             onReact={(emoji) => onReact?.(post._id, emoji)}
+            variant="card"
           />
         </div>
       </article>
@@ -271,7 +243,6 @@ export default function PostCard({
 
   // ────────────────── TIL ──────────────────────────────────────────────────
   if (post.type === "til") {
-    const totalReactions = getReactionTotal(reactions);
     return (
       <article className={`${base} px-5 py-5`} onClick={() => onOpen?.(post)}>
         <div className="mb-3 flex items-center justify-between gap-2">
@@ -292,17 +263,17 @@ export default function PostCard({
           className="flex items-center gap-4"
           onClick={(e) => e.stopPropagation()}
         >
-          <button className="flex items-center gap-1.5 text-[12px] font-mono text-ivory/35 hover:text-ivory/60 transition-colors">
-            👍 {totalReactions}
-          </button>
+          <ReactionBar
+            reactions={reactions}
+            currentUserId={currentUserId}
+            onReact={(emoji) => onReact?.(post._id, emoji)}
+            variant="card"
+          />
           <button
             onClick={() => onOpen?.(post)}
-            className="flex items-center gap-1.5 text-[12px] font-mono text-ivory/35 hover:text-ivory/60 transition-colors"
+            className="flex items-center gap-1.5 text-[12px] font-mono text-ivory/35 hover:text-ivory/60 transition-colors ml-auto"
           >
             <MessageSquare size={12} /> {commentCount}
-          </button>
-          <button className="flex items-center gap-1.5 text-[12px] font-mono text-ivory/35 hover:text-ivory/60 transition-colors">
-            <Bookmark size={12} /> Save
           </button>
         </div>
       </article>
@@ -437,10 +408,11 @@ export default function PostCard({
           </a>
         )}
         <div onClick={(e) => e.stopPropagation()}>
-          <SimpleReactions
-            reactions={post.reactions}
+          <ReactionBar
+            reactions={reactions}
             currentUserId={currentUserId}
             onReact={(emoji) => onReact?.(post._id, emoji)}
+            variant="card"
           />
         </div>
       </article>
@@ -503,10 +475,11 @@ export default function PostCard({
         className="flex items-center gap-3"
         onClick={(e) => e.stopPropagation()}
       >
-        <SimpleReactions
+        <ReactionBar
           reactions={reactions}
           currentUserId={currentUserId}
           onReact={(emoji) => onReact?.(post._id, emoji)}
+          variant="card"
         />
         <button
           onClick={() => onOpen?.(post)}

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useContext } from "react";
+import { SocketContext } from "@/context/SocketContext";
 import {
   ArrowLeft,
   Share2,
@@ -85,6 +86,15 @@ export default function PostDetail({
   onVotePoll,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const socketCtx = useContext(SocketContext);
+  const socket = socketCtx?.socket ?? null;
+
+  useEffect(() => {
+    if (!socket || !post._id) return;
+    socket.emit("feed:post:join", post._id);
+    return () => socket.emit("feed:post:leave", post._id);
+  }, [socket, post._id]);
 
   const typeMeta = TYPE_META[post.type] ?? TYPE_META.post;
   const TypeIcon = typeMeta.icon;

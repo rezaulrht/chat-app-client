@@ -53,7 +53,7 @@ export async function POST(req) {
               content: `Rewrite this message in a ${tone} tone: "${truncatedText}"`,
             },
           ],
-          max_tokens: 8192,
+          max_tokens: 400,
           temperature: 0.4,
         }),
       },

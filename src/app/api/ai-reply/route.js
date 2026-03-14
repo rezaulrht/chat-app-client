@@ -50,6 +50,7 @@ export async function POST(req) {
 
     const contextMessages = (messages || [])
       .filter((m) => m.text)
+      .slice(-4)
       .map((m) => ({
         role: m.isMe ? "assistant" : "user",
         content: m.text,
@@ -75,7 +76,7 @@ export async function POST(req) {
               content: `Suggest 3 short replies to: "${latestMessage}"`,
             },
           ],
-          max_tokens: 8192,
+          max_tokens: 300,
           temperature: 0.7,
         }),
       },

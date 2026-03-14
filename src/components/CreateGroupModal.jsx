@@ -3,19 +3,70 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
-import { X, Upload, Users, UserPlus, Search, Check } from "lucide-react";
+import {
+  X,
+  Upload,
+  Users,
+  UserPlus,
+  Search,
+  Check,
+  Camera,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
 import { getGroupInitials, getGroupAvatarColor } from "@/utils/groupAvatar";
 
-const MAX_MEMBERS = 49; // creator + 49 = 50 (MAX_GROUP_SIZE)
+const MAX_MEMBERS = 49;
+const compressImage = (
+  file,
+  maxWidth = 800,
+  maxHeight = 800,
+  quality = 0.8,
+) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new window.Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = (width * maxHeight) / height;
+            height = maxHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const compressedBase64 = canvas.toDataURL("image/jpeg", quality);
+        resolve(compressedBase64);
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
 
 export default function CreateGroupModal({ onGroupCreated }) {
   const { onlineUsers } = useSocket() || {};
 
   const [isOpen, setIsOpen] = useState(false);
   const [groupName, setGroupName] = useState("");
+  const [description, setDescription] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -25,6 +76,7 @@ export default function CreateGroupModal({ onGroupCreated }) {
   const [loading, setLoading] = useState(false);
 
   const searchInputRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   // Focus search input when modal opens
   useEffect(() => {
@@ -69,16 +121,29 @@ export default function CreateGroupModal({ onGroupCreated }) {
   const handleAvatarChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be less than 5MB");
+      return;
+    }
+
     setAvatarFile(file);
     if (avatarPreview) URL.revokeObjectURL(avatarPreview);
     setAvatarPreview(URL.createObjectURL(file));
   };
 
-  const removeAvatar = (e) => {
-    e.stopPropagation();
+  const removeAvatar = () => {
     setAvatarFile(null);
     if (avatarPreview) URL.revokeObjectURL(avatarPreview);
     setAvatarPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const addMember = (user) => {
@@ -101,16 +166,48 @@ export default function CreateGroupModal({ onGroupCreated }) {
       return;
     }
     if (selectedMembers.length < 2) {
-      toast.error("Add at least 2 members (3 total including you)");
+      toast.error("Add at least 2 members");
       return;
     }
 
     setLoading(true);
     try {
+      let avatarUrl = null;
+
+      // Step 1: Upload avatar to ImgBB if one was selected
+      if (avatarFile) {
+        try {
+          // Compress the image first
+          const compressedImage = await compressImage(
+            avatarFile,
+            800,
+            800,
+            0.8,
+          );
+
+          // Upload to ImgBB via your backend
+          const uploadRes = await api.post("/api/upload/avatar", {
+            image: compressedImage,
+          });
+
+          avatarUrl = uploadRes.data.url;
+          console.log("Avatar uploaded to ImgBB:", avatarUrl);
+        } catch (uploadErr) {
+          console.error("Avatar upload failed:", uploadErr);
+          toast.error(
+            uploadErr.response?.data?.message || "Failed to upload avatar",
+          );
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Step 2: Create the group with the ImgBB URL
       const res = await api.post("/api/chat/conversations/group", {
         name: groupName.trim(),
+        description: description.trim(),
+        avatar: avatarUrl, // ImgBB URL like "https://i.ibb.co/abc123/image.jpg"
         participantIds: selectedMembers.map((m) => m._id),
-        avatar: avatarFile ? avatarPreview : undefined,
       });
 
       toast.success(`"${res.data.name}" created!`);
@@ -118,8 +215,7 @@ export default function CreateGroupModal({ onGroupCreated }) {
       handleClose();
     } catch (err) {
       console.error("createGroup error:", err);
-      const msg =
-        err.response?.data?.message || "Failed to create group. Try again.";
+      const msg = err.response?.data?.message || "Failed to create group";
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -128,12 +224,11 @@ export default function CreateGroupModal({ onGroupCreated }) {
 
   const resetForm = () => {
     setGroupName("");
+    setDescription("");
     setSelectedMembers([]);
     setSearchQuery("");
     setSearchResults([]);
-    setAvatarFile(null);
-    if (avatarPreview) URL.revokeObjectURL(avatarPreview);
-    setAvatarPreview(null);
+    removeAvatar();
   };
 
   const handleClose = () => {
@@ -163,7 +258,6 @@ export default function CreateGroupModal({ onGroupCreated }) {
         <UserPlus size={12} />
       </button>
 
-      {/* Modal */}
       {isOpen &&
         typeof document !== "undefined" &&
         createPortal(
@@ -175,10 +269,10 @@ export default function CreateGroupModal({ onGroupCreated }) {
               className="glass-card w-full max-w-lg rounded-3xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[90vh] ring-1 ring-white/[0.08]"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* ── Header ── */}
+              {/* Header */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06] shrink-0 relative">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center shadow-[0_0_16px_rgba(0,211,187,0.08)]">
+                  <div className="w-8 h-8 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center">
                     <Users size={15} className="text-accent" />
                   </div>
                   <div>
@@ -196,119 +290,176 @@ export default function CreateGroupModal({ onGroupCreated }) {
                 >
                   <X size={14} className="text-ivory/30" />
                 </button>
-                <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent/10 to-transparent" />
               </div>
 
-              {/* ── Scrollable body ── */}
+              {/* Body */}
               <div className="overflow-y-auto flex-1 scrollbar-hide px-6 py-5 space-y-5">
-                {/* Avatar + Name row */}
-                <div className="flex items-center gap-4">
-                  {/* Avatar upload */}
-                  <label className="cursor-pointer group shrink-0">
-                    <div className="w-16 h-16 rounded-2xl overflow-hidden relative border-2 border-dashed border-accent/30 hover:border-accent/60 transition-all duration-300 shadow-[0_0_20px_rgba(0,211,187,0.05)] hover:shadow-[0_0_20px_rgba(0,211,187,0.12)]">
-                      {avatarPreview ? (
-                        <>
+                {/* Group Name */}
+                <div>
+                  <p className="text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-ivory/25 mb-2">
+                    Group Name
+                  </p>
+                  <input
+                    type="text"
+                    value={groupName}
+                    onChange={(e) => setGroupName(e.target.value)}
+                    maxLength={100}
+                    placeholder="Enter group name..."
+                    className="w-full glass-card rounded-2xl py-3 px-4 text-sm outline-none focus:ring-1 focus:ring-accent/30 text-ivory/80 placeholder:text-ivory/15 transition-all font-display"
+                  />
+                  <p className="text-[10px] text-ivory/10 mt-1.5 pl-1 font-mono">
+                    {groupName.length}/100
+                  </p>
+                </div>
+
+                {/* Group Avatar */}
+                <div>
+                  <p className="text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-ivory/25 mb-2">
+                    Group Photo (Optional)
+                  </p>
+                  <div className="flex items-center gap-4">
+                    {/* Avatar Preview */}
+                    <div className="relative shrink-0">
+                      <div
+                        className="w-20 h-20 rounded-2xl overflow-hidden flex items-center justify-center ring-2 ring-accent/20"
+                        style={{
+                          background: avatarPreview
+                            ? "transparent"
+                            : groupName
+                              ? avatarColor.bg
+                              : "rgba(26,26,46,0.6)",
+                        }}
+                      >
+                        {avatarPreview ? (
                           <Image
                             src={avatarPreview}
                             alt="Group avatar"
-                            fill
-                            className="object-cover"
+                            width={80}
+                            height={80}
+                            className="object-cover w-full h-full"
                             unoptimized
                           />
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                            <button
-                              type="button"
-                              onClick={removeAvatar}
-                              className="text-ivory"
-                            >
-                              <X size={18} />
-                            </button>
-                          </div>
-                        </>
-                      ) : (
-                        <div
-                          className="w-full h-full flex flex-col items-center justify-center gap-0.5 transition-colors"
-                          style={{
-                            backgroundColor: groupName
-                              ? avatarColor.bg
-                              : "rgba(26,26,46,0.6)",
-                          }}
+                        ) : groupName ? (
+                          <span
+                            className="text-2xl font-display font-black"
+                            style={{ color: avatarColor.text }}
+                          >
+                            {initials}
+                          </span>
+                        ) : (
+                          <Camera size={28} className="text-ivory/15" />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Upload/Remove Buttons */}
+                    <div className="flex-1 flex flex-col gap-2">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAvatarChange}
+                        className="hidden"
+                      />
+
+                      {!avatarPreview ? (
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-accent/10 border border-accent/20 text-accent hover:bg-accent/15 transition-all text-sm font-medium"
                         >
-                          {groupName ? (
-                            <span
-                              className="text-lg font-display font-black leading-none"
-                              style={{ color: avatarColor.text }}
-                            >
-                              {initials}
-                            </span>
-                          ) : (
-                            <Upload
-                              size={18}
-                              className="text-accent/50 group-hover:text-accent transition-colors"
-                            />
-                          )}
+                          <Upload size={14} />
+                          Upload Photo
+                        </button>
+                      ) : (
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-accent/10 border border-accent/20 text-accent hover:bg-accent/15 transition-all text-sm font-medium"
+                          >
+                            <Camera size={14} />
+                            Change
+                          </button>
+                          <button
+                            type="button"
+                            onClick={removeAvatar}
+                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/15 transition-all text-sm font-medium"
+                          >
+                            <X size={14} />
+                            Remove
+                          </button>
                         </div>
                       )}
-                    </div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleAvatarChange}
-                      className="hidden"
-                    />
-                  </label>
 
-                  {/* Group name input */}
-                  <div className="flex-1">
-                    <input
-                      type="text"
-                      value={groupName}
-                      onChange={(e) => setGroupName(e.target.value)}
-                      maxLength={100}
-                      placeholder="Group name..."
-                      className="w-full glass-card rounded-2xl py-3 px-4 text-sm outline-none focus:ring-1 focus:ring-accent/30 text-ivory/80 placeholder:text-ivory/15 transition-all font-display"
-                    />
-                    <p className="text-[10px] text-ivory/10 mt-1.5 pl-1 font-mono">
-                      {groupName.length}/100
-                    </p>
+                      <p className="text-[10px] text-ivory/30 px-1">
+                        JPG, PNG or GIF • Max 5MB
+                      </p>
+                    </div>
                   </div>
+                </div>
+
+                {/* Description Field */}
+                <div>
+                  <p className="text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-ivory/25 mb-2">
+                    Description (optional)
+                  </p>
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    maxLength={500}
+                    rows={3}
+                    placeholder="What is this group about?"
+                    className="w-full glass-card text-ivory text-sm p-3 rounded-xl border border-accent/30 focus:outline-none focus:ring-1 focus:ring-accent/30 resize-y min-h-[80px]"
+                  />
+                  <p className="text-right text-[10px] text-ivory/30 mt-1">
+                    {description.length}/500
+                  </p>
                 </div>
 
                 {/* Selected members chips */}
                 {selectedMembers.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {selectedMembers.map((member) => (
-                      <div
-                        key={member._id}
-                        className="flex items-center gap-1.5 bg-accent/10 border border-accent/20 text-accent/80 pl-1 pr-2 py-1 rounded-full text-xs"
-                      >
-                        <Image
-                          src={
-                            member.avatar ||
-                            `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.name}`
-                          }
-                          alt={member.name}
-                          width={20}
-                          height={20}
-                          className="rounded-full"
-                          unoptimized
-                        />
-                        <span className="font-display font-semibold">
-                          {member.name.split(" ")[0]}
-                        </span>
-                        <button
-                          onClick={() => removeMember(member._id)}
-                          className="text-accent/50 hover:text-red-400 transition-colors ml-0.5"
+                  <div>
+                    <p className="text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-ivory/25 mb-2">
+                      Members ({selectedMembers.length})
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedMembers.map((member) => (
+                        <div
+                          key={member._id}
+                          className="flex items-center gap-1.5 bg-accent/10 border border-accent/20 text-accent/80 pl-1 pr-2 py-1 rounded-full text-xs"
                         >
-                          <X size={12} />
-                        </button>
-                      </div>
-                    ))}
+                          <Image
+                            src={
+                              member.avatar ||
+                              `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.name}`
+                            }
+                            alt={member.name}
+                            width={20}
+                            height={20}
+                            className="rounded-full"
+                            unoptimized
+                          />
+                          <span className="font-display font-semibold">
+                            {member.name.split(" ")[0]}
+                          </span>
+                          <button
+                            onClick={() => removeMember(member._id)}
+                            className="text-accent/50 hover:text-red-400 transition-colors ml-0.5"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 
                 {/* User search */}
                 <div>
+                  <p className="text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-ivory/25 mb-2">
+                    Add Members
+                  </p>
                   <div className="relative mb-2">
                     <Search
                       className="absolute left-3 top-1/2 -translate-y-1/2 text-ivory/15"
@@ -342,14 +493,6 @@ export default function CreateGroupModal({ onGroupCreated }) {
                         </p>
                       )}
 
-                    {!searching &&
-                      !searchQuery &&
-                      selectedMembers.length === 0 && (
-                        <p className="text-center text-ivory/10 text-xs py-5">
-                          Search for friends to add to the group
-                        </p>
-                      )}
-
                     {searchResults.map((user) => {
                       const isSelected = selectedMembers.some(
                         (m) => m._id === user._id,
@@ -377,25 +520,10 @@ export default function CreateGroupModal({ onGroupCreated }) {
                               className="rounded-xl"
                               unoptimized
                             />
-                            {onlineUsers?.get(user._id)?.online && (
-                              <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-deep shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
-                            )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-ivory/80 text-sm font-display font-semibold truncate">
                               {user.name}
-                            </p>
-                            <p
-                              className={
-                                "text-xs font-mono " +
-                                (onlineUsers?.get(user._id)?.online
-                                  ? "text-emerald-400"
-                                  : "text-ivory/15")
-                              }
-                            >
-                              {onlineUsers?.get(user._id)?.online
-                                ? "Online"
-                                : user.email}
                             </p>
                           </div>
                           {isSelected && (
@@ -408,7 +536,7 @@ export default function CreateGroupModal({ onGroupCreated }) {
                 </div>
               </div>
 
-              {/* ── Footer ── */}
+              {/* Footer */}
               <div className="px-6 py-4 border-t border-white/[0.06] flex gap-3 shrink-0">
                 <button
                   onClick={handleClose}
@@ -430,11 +558,6 @@ export default function CreateGroupModal({ onGroupCreated }) {
                     <>
                       <Users size={15} />
                       Create Group
-                      {selectedMembers.length >= 2 && (
-                        <span className="text-[10px] bg-obsidian/20 rounded-full px-1.5 py-0.5 font-mono font-bold">
-                          {selectedMembers.length + 1}
-                        </span>
-                      )}
                     </>
                   )}
                 </button>

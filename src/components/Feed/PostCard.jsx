@@ -53,7 +53,6 @@ function AvatarCircle({ user, size = 32 }) {
   );
 }
 
-
 function OverflowMenu({ isOwn, onShare, onEdit, onDelete }) {
   const [open, setOpen] = useState(false);
   return (
@@ -410,7 +409,7 @@ export default function PostCard({
         )}
         <div onClick={(e) => e.stopPropagation()}>
           <ReactionBar
-            reactions={post.reactions}
+            reactions={reactions}
             currentUserId={currentUserId}
             onReact={(emoji) => onReact?.(post._id, emoji)}
             variant="card"

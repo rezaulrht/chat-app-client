@@ -26,7 +26,7 @@ function timeAgo(date) {
 }
 
 function getPostReactions(post) {
-  return post?.reactions ?? post?.reactionsCount ?? {};
+  return post?.reactions ?? {};
 }
 
 function getReactionTotal(reactions) {

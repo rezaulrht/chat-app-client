@@ -21,18 +21,25 @@ export function FeedProvider({ children }) {
   const [composerOpen, setComposerOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState(null);
   const [shareTarget, setShareTarget] = useState(null);
-  const [userStats, setUserStats] = useState({
+  const { user: authUser } = useAuth();
+
+  const [userStats, setUserStats] = useState(() => ({
     reputation: 0,
     level: "Newcomer",
     badge: "🟢",
     postCount: 0,
-  });
+    followersCount: 0,
+    followingCount: 0,
+    followedTags: [],
+    name: "",
+    avatar: "",
+    _id: "",
+  }));
 
   // ── Social state ───────────────────────────────────────────────────────────
   const [followingSet, setFollowingSet] = useState(new Set());
   const [profileCache, setProfileCache] = useState({});
 
-  const { user: authUser } = useAuth();
   const socketCtx = useContext(SocketContext);
   const socket = socketCtx?.socket ?? null;
 
@@ -118,6 +125,7 @@ export function FeedProvider({ children }) {
         badge: res.data.badge ?? "🟢",
         followersCount: res.data.followersCount ?? 0,
         followingCount: res.data.followingCount ?? 0,
+        followedTags: res.data.followedTags ?? [],
         name: res.data.name ?? authUser?.name ?? "",
         avatar: res.data.avatar ?? authUser?.avatar ?? "",
         _id: res.data._id ?? userId,
@@ -444,7 +452,7 @@ export function FeedProvider({ children }) {
     shareTarget,
     setShareTarget,
     userStats,
-    followedTags: [],
+    followedTags: userStats.followedTags ?? [],
     fetchMyStats,
     // Social state
     followingSet,

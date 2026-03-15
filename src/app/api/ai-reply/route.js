@@ -41,28 +41,28 @@ export async function POST(req) {
       return NextResponse.json({ suggestions: [] });
     }
 
-    const systemPrompt = `You are a chat reply assistant. Suggest exactly 3 short, natural reply options (each under 12 words) for the latest message. Output ONLY a JSON array of 3 strings. No explanation, no markdown. Example output: ["Sounds good!", "I'll check and get back to you", "Thanks for the update!"]`;
-
-    const contextMessages = (messages || [])
+    // Build a simple conversation transcript as plain text
+    const thread = (messages || [])
       .filter((m) => m.text)
-      .slice(-4)
-      .map((m) => ({
-        role: m.isMe ? "assistant" : "user",
-        content: m.text,
-      }));
+      .slice(-8)
+      .map((m) => `${m.isMe ? "Me" : "Friend"}: ${m.text}`)
+      .join("\n");
 
     const completion = await openai.chat.completions.create({
       model: DEFAULT_MODEL,
       messages: [
-        { role: "system", content: systemPrompt },
-        ...contextMessages,
+        {
+          role: "system",
+          content:
+            'You suggest quick chat replies. Output ONLY a JSON array of exactly 3 short strings (each under 12 words). No explanation. Example: ["Sounds good!", "Got it, thanks!", "Let me check"]',
+        },
         {
           role: "user",
-          content: `Suggest 3 short replies to: "${latestMessage}"`,
+          content: `Here is a chat conversation:\n${thread}\n\nSuggest 3 short, natural replies that "Me" could send next. Do NOT repeat or echo what "Friend" said. Output ONLY a JSON array:`,
         },
       ],
-      max_tokens: 300,
-      temperature: 0.7,
+      max_tokens: 200,
+      temperature: 0.8,
     });
 
     const choice = completion.choices?.[0]?.message;
@@ -73,6 +73,14 @@ export async function POST(req) {
     if (suggestions.length < 2) {
       suggestions = extractSuggestions(reasoning);
     }
+
+    // Strip any leaked labels the model might have added
+    suggestions = suggestions.map((s) =>
+      s
+        .replace(/^(Me|Friend|Them|User|Assistant):\s*/i, "")
+        .replace(/^["']|["']$/g, "")
+        .trim(),
+    );
 
     return NextResponse.json({ suggestions });
   } catch (err) {

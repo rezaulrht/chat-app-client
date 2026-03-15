@@ -4,6 +4,7 @@ import { useState, useCallback, useContext, useEffect } from "react";
 import { SocketContext } from "./SocketContext";
 import { FeedContext } from "./FeedContext";
 import api from "@/app/api/Axios";
+import useAuth from "@/hooks/useAuth";
 
 export function FeedProvider({ children }) {
   // ── Feed state ─────────────────────────────────────────────────────────────
@@ -31,6 +32,7 @@ export function FeedProvider({ children }) {
   const [followingSet, setFollowingSet] = useState(new Set());
   const [profileCache, setProfileCache] = useState({});
 
+  const { user: authUser } = useAuth();
   const socketCtx = useContext(SocketContext);
   const socket = socketCtx?.socket ?? null;
 
@@ -114,6 +116,11 @@ export function FeedProvider({ children }) {
         postCount: res.data.postCount ?? 0,
         level: res.data.level ?? "Newcomer",
         badge: res.data.badge ?? "🟢",
+        followersCount: res.data.followersCount ?? 0,
+        followingCount: res.data.followingCount ?? 0,
+        name: res.data.name ?? authUser?.name ?? "",
+        avatar: res.data.avatar ?? authUser?.avatar ?? "",
+        _id: res.data._id ?? userId,
       });
     } catch (error) {
       // silently fail — stats not critical

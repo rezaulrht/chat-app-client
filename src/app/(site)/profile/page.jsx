@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
+import api from "@/app/api/Axios";
 import Image from "next/image";
 import Link from "next/link";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
@@ -91,70 +93,6 @@ function StrengthBar({ password }) {
   );
 }
 
-// ── Mock posts for design stub ────────────────────────────────────────────────
-const MOCK_MY_POSTS = [
-  {
-    _id: "post-1",
-    type: "article",
-    author: { _id: "me", name: "You", avatar: "", reputation: 540 },
-    title: "Understanding React Server Components in Next.js 14",
-    content:
-      "Server Components allow you to render components on the server and stream them to the client. This fundamentally changes how we think about data fetching and bundle size...",
-    tags: ["react", "nextjs", "server-components"],
-    views: 214,
-    comments: 8,
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    reactions: { "🔥": ["u1", "u2", "u3"], "💡": ["u4"] },
-    pinned: false,
-  },
-  {
-    _id: "post-2",
-    type: "snippet",
-    author: { _id: "me", name: "You", avatar: "", reputation: 540 },
-    title: "Debounce hook with TypeScript generics",
-    content: "A clean, reusable debounce hook that preserves type inference.",
-    snippet: {
-      files: [
-        {
-          filename: "useDebounce.ts",
-          language: "typescript",
-          code: `import { useState, useEffect } from 'react';
-
-export function useDebounce<T>(value: T, delay: number): T {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(t);
-  }, [value, delay]);
-  return debounced;
-}`,
-        },
-      ],
-    },
-    tags: ["typescript", "hooks", "react"],
-    views: 87,
-    comments: 3,
-    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    reactions: { "🚀": ["u1"], "💡": ["u2", "u3"] },
-    pinned: false,
-  },
-  {
-    _id: "post-3",
-    type: "question",
-    author: { _id: "me", name: "You", avatar: "", reputation: 540 },
-    title: "Why does useEffect run twice in React 18 strict mode?",
-    content:
-      "I noticed my useEffect cleanup function firing on mount. Is this expected behavior or a bug in my setup?",
-    tags: ["react", "hooks", "debugging"],
-    views: 319,
-    comments: 12,
-    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-    reactions: { "🔥": ["u5"] },
-    status: "answered",
-    pinned: false,
-  },
-];
-
 // ── Main Page ───────────────────────────────────────────────────────────────
 function ProfilePage() {
   const { user, updateProfile, changePassword } = useAuth();
@@ -178,8 +116,46 @@ function ProfilePage() {
   // UI state
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPw, setSavingPw] = useState(false);
-  const [activeSection, setActiveSection] = useState("edit"); // "edit" | "security" | "posts"
+  const searchParams = useSearchParams();
+  const [activeSection, setActiveSection] = useState(
+    searchParams?.get("tab") === "posts" ? "posts" : "edit",
+  );
   const [activePost, setActivePost] = useState(null);
+
+  // ── My posts (real API) ───────────────────────────────────────────────
+  const [myPosts, setMyPosts] = useState([]);
+  const [myPostsLoading, setMyPostsLoading] = useState(false);
+  const [myPostsPage, setMyPostsPage] = useState(1);
+  const [myPostsHasMore, setMyPostsHasMore] = useState(false);
+
+  const loadMyPosts = useCallback(
+    async (page = 1) => {
+      const userId = user?._id || user?.id;
+      if (!userId) return;
+      setMyPostsLoading(true);
+      try {
+        const res = await api.get(`/api/feed/users/${userId}/posts`, {
+          params: { page, limit: 20 },
+        });
+        const incoming = res.data.posts || [];
+        if (page === 1) setMyPosts(incoming);
+        else setMyPosts((prev) => [...prev, ...incoming]);
+        setMyPostsHasMore(res.data.hasMore ?? false);
+      } catch (err) {
+        console.error("loadMyPosts error:", err.message);
+      } finally {
+        setMyPostsLoading(false);
+      }
+    },
+    [user],
+  );
+
+  useEffect(() => {
+    if (activeSection === "posts") {
+      setMyPostsPage(1);
+      loadMyPosts(1);
+    }
+  }, [activeSection, loadMyPosts]);
 
   // ── Avatar picker ─────────────────────────────────────────────────────
   const handleAvatarChange = (e) => {
@@ -545,12 +521,18 @@ function ProfilePage() {
                     <Rss size={10} className="text-accent/50" />
                     Published Posts
                     <span className="ml-1 px-1.5 py-0.5 rounded-full bg-accent/10 text-accent text-[9px] font-mono">
-                      {MOCK_MY_POSTS.length}
+                      {myPosts.length}
                     </span>
                   </h2>
                 </div>
 
-                {MOCK_MY_POSTS.length === 0 ? (
+                {myPostsLoading && myPosts.length === 0 ? (
+                  <div className="flex justify-center py-10">
+                    <span className="text-accent/40 text-[12px] font-mono animate-pulse">
+                      Loading posts...
+                    </span>
+                  </div>
+                ) : myPosts.length === 0 ? (
                   <div className="glass-card rounded-2xl border border-white/[0.08] p-10 flex flex-col items-center justify-center gap-3 text-center">
                     <Rss size={28} className="text-ivory/10" />
                     <p className="text-ivory/25 text-[13px] font-mono">
@@ -563,29 +545,32 @@ function ProfilePage() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {MOCK_MY_POSTS.map((post) => (
+                    {myPosts.map((post) => (
                       <PostCard
                         key={post._id}
                         post={post}
                         currentUserId={user?._id || user?.id || "me"}
                         onOpen={() => setActivePost(post)}
-                        onReact={() => {
-                          /* TODO */
-                        }}
-                        onShare={() => {
-                          /* TODO */
-                        }}
-                        onTagClick={() => {
-                          /* TODO */
-                        }}
-                        onEdit={() => {
-                          /* TODO */
-                        }}
-                        onDelete={() => {
-                          /* TODO */
-                        }}
+                        onReact={() => {}}
+                        onShare={() => {}}
+                        onTagClick={() => {}}
+                        onEdit={() => {}}
+                        onDelete={() => {}}
                       />
                     ))}
+                    {myPostsHasMore && (
+                      <button
+                        onClick={() => {
+                          const next = myPostsPage + 1;
+                          setMyPostsPage(next);
+                          loadMyPosts(next);
+                        }}
+                        disabled={myPostsLoading}
+                        className="w-full py-2 text-[11px] font-mono text-ivory/25 hover:text-ivory/50 transition-colors"
+                      >
+                        {myPostsLoading ? "Loading..." : "Load more"}
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

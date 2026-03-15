@@ -75,6 +75,13 @@ function PublicProfilePage() {
     if (!profileId) return;
     let cancelled = false;
 
+    // Reset stale state before loading new profile
+    setProfile(null);
+    setFollowing(false);
+    setPosts([]);
+    setPostsPage(1);
+    setHasMorePosts(false);
+
     const load = async () => {
       setLoadingProfile(true);
       try {
@@ -357,10 +364,10 @@ function PublicProfilePage() {
                     ))}
                     {hasMorePosts && (
                       <button
-                        onClick={() => {
+                        onClick={async () => {
                           const next = postsPage + 1;
+                          await loadPosts(next);
                           setPostsPage(next);
-                          loadPosts(next);
                         }}
                         disabled={loadingPosts}
                         className="w-full py-2 text-[12px] font-mono text-ivory/30 hover:text-ivory/60 transition-colors flex items-center justify-center gap-2"

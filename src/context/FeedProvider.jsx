@@ -352,6 +352,15 @@ export function FeedProvider({ children }) {
         };
       });
 
+      // Update own followingCount in sidebar
+      setUserStats((prev) => ({
+        ...prev,
+        followingCount: Math.max(
+          0,
+          (prev.followingCount ?? 0) + (wasFollowing ? -1 : 1),
+        ),
+      }));
+
       try {
         const res = await api.post(`/api/feed/users/${userId}/follow`);
         return res.data;
@@ -374,6 +383,14 @@ export function FeedProvider({ children }) {
             },
           };
         });
+        // Revert own followingCount
+        setUserStats((prev) => ({
+          ...prev,
+          followingCount: Math.max(
+            0,
+            (prev.followingCount ?? 0) + (wasFollowing ? 1 : -1),
+          ),
+        }));
         console.error(
           "followUser error:",
           error?.response?.data?.message || error.message,

@@ -128,11 +128,15 @@ function ProfilePage() {
   const [myPostsPage, setMyPostsPage] = useState(1);
   const [myPostsHasMore, setMyPostsHasMore] = useState(false);
 
+  const [myPostsError, setMyPostsError] = useState(false);
+  const [myPostsLoaded, setMyPostsLoaded] = useState(false);
+
   const loadMyPosts = useCallback(
     async (page = 1) => {
       const userId = user?._id || user?.id;
       if (!userId) return;
       setMyPostsLoading(true);
+      setMyPostsError(false);
       try {
         const res = await api.get(`/api/feed/users/${userId}/posts`, {
           params: { page, limit: 20 },
@@ -141,8 +145,10 @@ function ProfilePage() {
         if (page === 1) setMyPosts(incoming);
         else setMyPosts((prev) => [...prev, ...incoming]);
         setMyPostsHasMore(res.data.hasMore ?? false);
+        setMyPostsLoaded(true);
       } catch (err) {
         console.error("loadMyPosts error:", err.message);
+        setMyPostsError(true);
       } finally {
         setMyPostsLoading(false);
       }
@@ -532,7 +538,19 @@ function ProfilePage() {
                       Loading posts...
                     </span>
                   </div>
-                ) : myPosts.length === 0 ? (
+                ) : myPostsError ? (
+                  <div className="glass-card rounded-2xl border border-white/[0.08] p-10 flex flex-col items-center justify-center gap-3 text-center">
+                    <p className="text-red-400/50 text-[13px] font-mono">
+                      Failed to load posts
+                    </p>
+                    <button
+                      onClick={() => loadMyPosts(1)}
+                      className="text-accent text-[12px] font-mono hover:underline"
+                    >
+                      Try again
+                    </button>
+                  </div>
+                ) : myPostsLoaded && myPosts.length === 0 ? (
                   <div className="glass-card rounded-2xl border border-white/[0.08] p-10 flex flex-col items-center justify-center gap-3 text-center">
                     <Rss size={28} className="text-ivory/10" />
                     <p className="text-ivory/25 text-[13px] font-mono">
@@ -560,10 +578,10 @@ function ProfilePage() {
                     ))}
                     {myPostsHasMore && (
                       <button
-                        onClick={() => {
+                        onClick={async () => {
                           const next = myPostsPage + 1;
+                          await loadMyPosts(next);
                           setMyPostsPage(next);
-                          loadMyPosts(next);
                         }}
                         disabled={myPostsLoading}
                         className="w-full py-2 text-[11px] font-mono text-ivory/25 hover:text-ivory/50 transition-colors"

@@ -25,12 +25,18 @@ export default function UserCard({
 }) {
   const { followUser, followingSet } = useFeed();
 
-  // followingSet from context takes priority, then prop
   const contextFollowing = user._id ? followingSet?.has(user._id) : undefined;
   const [followed, setFollowed] = useState(
     contextFollowing ?? legacyFollowing ?? initialFollowing,
   );
   const [loading, setLoading] = useState(false);
+
+  // Keep in sync when followingSet changes (e.g. toggled from another card)
+  useEffect(() => {
+    if (user._id && followingSet) {
+      setFollowed(followingSet.has(user._id));
+    }
+  }, [followingSet, user._id]);
 
   const handleFollow = async (e) => {
     e.preventDefault();

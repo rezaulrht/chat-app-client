@@ -1,20 +1,10 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useContext, useEffect } from "react";
+import { SocketContext } from "./SocketContext";
 import { FeedContext } from "./FeedContext";
 import api from "@/app/api/Axios";
 
-// ── Stub / mock data used during design phase ────────────────────────────────
-const MOCK_USER_STATS = {
-  reputation: 142,
-  level: "Contributor",
-  levelIcon: "🔵",
-  postCount: 12,
-  followersCount: 8,
-  followingCount: 5,
-};
-
-const MOCK_FOLLOWED_TAGS = ["react", "nextjs", "node"];
 
 export function FeedProvider({ children }) {
   // ── Feed state ─────────────────────────────────────────────────────────────
@@ -31,6 +21,15 @@ export function FeedProvider({ children }) {
   const [composerOpen, setComposerOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState(null); // post detail view
   const [shareTarget, setShareTarget] = useState(null); // post being shared
+  const [userStats, setUserStats] = useState({
+    reputation: 0,
+    level: "Newcomer",
+    badge: "🟢",
+    postCount: 0,
+  });
+
+  const socketCtx = useContext(SocketContext);
+  const socket = socketCtx?.socket ?? null;
 
   const normalizePost = useCallback((post) => {
     if (!post || typeof post !== "object") return post;
@@ -106,6 +105,34 @@ export function FeedProvider({ children }) {
     }
   }, [activeTab, filters, page, mergePosts, normalizePost]);
 
+  const fetchMyStats = useCallback(async () => {
+    try {
+      const response = await api.get("/api/feed/me/stats");
+      setUserStats(response.data);
+    } catch (error) {
+      console.error("fetchMyStats error:", error?.response?.data?.message || error.message);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchMyStats();
+  }, [fetchMyStats]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleReacted = ({ postId, reactions, reactionCount }) => {
+      setPosts((prev) =>
+        prev.map((p) =>
+          p._id === postId ? { ...p, reactions, reactionCount } : p,
+        ),
+      );
+    };
+
+    socket.on("feed:post:reacted", handleReacted);
+    return () => socket.off("feed:post:reacted", handleReacted);
+  }, [socket]);
+
   const createPost = useCallback(
     async (payload) => {
       const tempId = `temp-${Date.now()}`;
@@ -120,7 +147,8 @@ export function FeedProvider({ children }) {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         commentsCount: 0,
-        reactionsCount: {},
+        reactions: {},
+        reactionCount: 0,
       };
 
       setPosts((prev) => [optimisticPost, ...prev]);
@@ -217,9 +245,71 @@ export function FeedProvider({ children }) {
     }
   }, []);
 
-  const reactToPost = useCallback(async (id, emoji) => {
-    // TODO: POST /api/feed/posts/:id/react { emoji }
-  }, []);
+  const reactToPost = useCallback(
+    async (id, emoji) => {
+      // Snapshot for rollback
+      let snapshot = null;
+      const currentUserId = (() => {
+        try {
+          const token = localStorage.getItem("token");
+          if (!token) return null;
+          // JWT uses base64url (- and _ instead of + and /); atob needs standard base64
+          const b64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+          const payload = JSON.parse(atob(b64));
+          return payload.id ?? payload._id ?? null;
+        } catch {
+          return null;
+        }
+      })();
+
+      // Optimistic update
+      setPosts((prev) =>
+        prev.map((p) => {
+          if (p._id !== id) return p;
+          snapshot = p;
+
+          const existing = Array.isArray(p.reactions?.[emoji])
+            ? p.reactions[emoji]
+            : [];
+          const alreadyReacted = currentUserId && existing.includes(currentUserId);
+
+          const updated = alreadyReacted
+            ? existing.filter((uid) => uid !== currentUserId)
+            : currentUserId
+            ? [...existing, currentUserId]
+            : existing;
+
+          const countDelta = alreadyReacted ? -1 : 1;
+
+          return {
+            ...p,
+            reactions: { ...(p.reactions ?? {}), [emoji]: updated },
+            reactionCount: Math.max(0, (p.reactionCount ?? 0) + countDelta),
+          };
+        }),
+      );
+
+      try {
+        const response = await api.post(`/api/feed/posts/${id}/react`, { emoji });
+        // Sync with server truth
+        setPosts((prev) =>
+          prev.map((p) =>
+            p._id === id
+              ? { ...p, reactions: response.data.reactions, reactionCount: response.data.reactionCount }
+              : p,
+          ),
+        );
+        await fetchMyStats();
+      } catch (error) {
+        // Full rollback — restore entire post object, not just reaction fields
+        if (snapshot) {
+          setPosts((prev) => prev.map((p) => (p._id === id ? snapshot : p)));
+        }
+        console.error("reactToPost error:", error?.response?.data?.message || error.message);
+      }
+    },
+    [fetchMyStats],
+  );
 
   const voteOnPoll = useCallback(async (postId, optionIndex) => {
     // TODO: POST /api/feed/posts/:id/vote { optionIndex }
@@ -271,9 +361,9 @@ export function FeedProvider({ children }) {
     setSelectedPost,
     shareTarget,
     setShareTarget,
-    // Stats (will come from user object after API wired)
-    userStats: MOCK_USER_STATS,
-    followedTags: MOCK_FOLLOWED_TAGS,
+    userStats,
+    followedTags: [],
+    fetchMyStats,
     // Actions
     fetchPosts,
     createPost,

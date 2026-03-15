@@ -15,6 +15,7 @@ import {
   Menu,
   X,
   Plus,
+  Users,
 } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 import { useModule } from "@/hooks/useModule";
@@ -57,6 +58,8 @@ export default function ModuleChatWindow({
   moduleId,
   workspaceId,
   onToggleSidebar,
+  onToggleMembers,
+  showMembers,
 }) {
   const { user } = useAuth();
   const { workspaces, modulesCache } = useWorkspace();
@@ -293,6 +296,18 @@ export default function ModuleChatWindow({
             </p>
           </div>
         </div>
+        {/* Members toggle */}
+        <button
+          onClick={onToggleMembers}
+          title="Toggle member list"
+          className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
+            showMembers
+              ? "bg-accent/15 text-accent"
+              : "text-ivory/25 hover:text-ivory/60 hover:bg-white/6"
+          }`}
+        >
+          <Users size={16} />
+        </button>
       </header>
 
       {/* ── Message List ──────────────────────────────────────────────────────── */}

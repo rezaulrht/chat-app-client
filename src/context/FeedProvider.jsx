@@ -402,8 +402,9 @@ export function FeedProvider({ children }) {
   );
 
   const getUserProfile = useCallback(
-    async (userId) => {
-      if (profileCache[userId]) return profileCache[userId];
+    async (userId, { forceRefresh = false } = {}) => {
+      // Return cache only if not forcing refresh
+      if (!forceRefresh && profileCache[userId]) return profileCache[userId];
       try {
         const res = await api.get(`/api/feed/users/${userId}/profile`);
         const profile = res.data;
@@ -413,6 +414,8 @@ export function FeedProvider({ children }) {
         }
         return profile;
       } catch (error) {
+        // On error, return cached version if available
+        if (profileCache[userId]) return profileCache[userId];
         console.error(
           "getUserProfile error:",
           error?.response?.data?.message || error.message,

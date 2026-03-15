@@ -59,7 +59,7 @@ export async function POST(req) {
           content: `Post type: ${type || "post"}\nTitle: ${title || ""}\nContent: ${truncatedContent}\nAlready tagged: ${safeExisting.join(", ")}`,
         },
       ],
-      max_tokens: 512,
+      max_tokens: 500,
       temperature: 0.4,
     });
 

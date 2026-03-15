@@ -509,7 +509,7 @@ export default function ChatWindow({
     async (messagesList) => {
       const visible = messagesList
         .filter((m) => !m.isOptimistic && !m.isDeleted && m.text?.trim())
-        .slice(-10);
+        .slice(-12);
 
       if (visible.length === 0) return;
 
@@ -519,7 +519,7 @@ export default function ChatWindow({
       setAiReplies([]);
 
       try {
-        const context = visible.slice(0, -1).map((m) => ({
+        const context = visible.map((m) => ({
           text: m.text,
           isMe: (m.sender?._id ?? m.sender) === user?._id,
         }));

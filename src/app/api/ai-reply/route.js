@@ -1,0 +1,93 @@
+import { NextResponse } from "next/server";
+import openai, { DEFAULT_MODEL } from "@/lib/openai";
+
+function extractSuggestions(text) {
+  if (!text) return [];
+
+  try {
+    const jsonMatch = text.match(/\[[\s\S]*?\]/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (Array.isArray(parsed)) {
+        const result = parsed.filter((s) => typeof s === "string" && s.length > 1);
+        if (result.length > 0) return result.slice(0, 3);
+      }
+    }
+  } catch {}
+
+  const quoted = [...text.matchAll(/"([^"]{3,80})"/g)].map((m) => m[1]);
+  if (quoted.length >= 2) return quoted.slice(0, 3);
+
+  const listed = [...text.matchAll(/^[\s]*[1-3\-*•]\.*\s+(.{5,80})$/gm)].map((m) =>
+    m[1].replace(/^["']|["']$/g, "").trim(),
+  );
+  if (listed.length >= 2) return listed.slice(0, 3);
+
+  return [];
+}
+
+export async function POST(req) {
+  if (!process.env.OPENROUTER_API_KEY) {
+    return NextResponse.json(
+      { error: "OpenRouter API key not configured" },
+      { status: 500 },
+    );
+  }
+
+  try {
+    const { messages, latestMessage } = await req.json();
+
+    if (!latestMessage?.trim()) {
+      return NextResponse.json({ suggestions: [] });
+    }
+
+    // Build a simple conversation transcript as plain text
+    const thread = (messages || [])
+      .filter((m) => m.text)
+      .slice(-8)
+      .map((m) => `${m.isMe ? "Me" : "Friend"}: ${m.text}`)
+      .join("\n");
+
+    const completion = await openai.chat.completions.create({
+      model: DEFAULT_MODEL,
+      messages: [
+        {
+          role: "system",
+          content:
+            'You suggest quick chat replies. Output ONLY a JSON array of exactly 3 short strings (each under 12 words). No explanation. Example: ["Sounds good!", "Got it, thanks!", "Let me check"]',
+        },
+        {
+          role: "user",
+          content: `Here is a chat conversation:\n${thread}\n\nSuggest 3 short, natural replies that "Me" could send next. Do NOT repeat or echo what "Friend" said. Output ONLY a JSON array:`,
+        },
+      ],
+      max_tokens: 200,
+      temperature: 0.8,
+    });
+
+    const choice = completion.choices?.[0]?.message;
+    const content = choice?.content?.trim() || "";
+    const reasoning = choice?.reasoning?.trim() || "";
+
+    let suggestions = extractSuggestions(content);
+    if (suggestions.length < 2) {
+      suggestions = extractSuggestions(reasoning);
+    }
+
+    // Strip any leaked labels the model might have added
+    suggestions = suggestions.map((s) =>
+      s
+        .replace(/^(Me|Friend|Them|User|Assistant):\s*/i, "")
+        .replace(/^["']|["']$/g, "")
+        .trim(),
+    );
+
+    return NextResponse.json({ suggestions });
+  } catch (err) {
+    console.error("[ai-reply] error:", err);
+    return NextResponse.json(
+      { error: "Failed to generate suggestions" },
+      { status: 500 },
+    );
+  }
+}

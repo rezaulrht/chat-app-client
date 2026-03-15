@@ -91,6 +91,21 @@ export default function ChatWindow({
   const [suggestions, setSuggestions] = useState([]);
   const [suggestionIndex, setSuggestionIndex] = useState(0);
 
+  const [aiReplies, setAiReplies] = useState([]);
+  const [loadingAiReplies, setLoadingAiReplies] = useState(false);
+  const lastAiRepliesForMsgRef = useRef(null);
+
+  // Tone rewrite state
+  const [aiMenuOpen, setAiMenuOpen] = useState(false);
+  const [tonePickerOpen, setTonePickerOpen] = useState(false);
+  const [selectedTone, setSelectedTone] = useState("");
+  const [customTone, setCustomTone] = useState("");
+  const [loadingRewrite, setLoadingRewrite] = useState(false);
+  const [rewritePreview, setRewritePreview] = useState(null);
+  const [originalText, setOriginalText] = useState("");
+  const aiMenuRefDesktop = useRef(null);
+  const aiMenuRefMobile = useRef(null);
+
   // Scheduled messages UI
   const [scheduleMode, setScheduleMode] = useState(false);
   const [sendAt, setSendAt] = useState("");
@@ -147,13 +162,24 @@ export default function ChatWindow({
       if (gifPickerRef.current && !gifPickerRef.current.contains(e.target)) {
         setShowGifPicker(false);
       }
+      // Close AI menu on outside click
+      // A null ref means the element isn't mounted — treat as "outside"
+      const outsideDesktop =
+        !aiMenuRefDesktop.current ||
+        !aiMenuRefDesktop.current.contains(e.target);
+      const outsideMobile =
+        !aiMenuRefMobile.current ||
+        !aiMenuRefMobile.current.contains(e.target);
+      if (aiMenuOpen && outsideDesktop && outsideMobile) {
+        setAiMenuOpen(false);
+      }
     };
 
-    if (reactionPickerMsgId || showEmojiPicker || showGifPicker) {
+    if (reactionPickerMsgId || showEmojiPicker || showGifPicker || aiMenuOpen) {
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [reactionPickerMsgId, showEmojiPicker, showGifPicker]);
+  }, [reactionPickerMsgId, showEmojiPicker, showGifPicker, aiMenuOpen]);
 
   const handleEmojiClick = (emojiData) =>
     setText((prev) => prev + emojiData.emoji);
@@ -315,6 +341,16 @@ export default function ChatWindow({
       setLongPressedMsgId(null);
       setScheduleMode(false);
       setShowScheduledPanel(false);
+      setAiReplies([]);
+      lastAiRepliesForMsgRef.current = null;
+      // Tone rewrite resets
+      setAiMenuOpen(false);
+      setTonePickerOpen(false);
+      setSelectedTone("");
+      setCustomTone("");
+      setLoadingRewrite(false);
+      setRewritePreview(null);
+      setOriginalText("");
 
       try {
         const res = await api.get(`/api/chat/messages/${conversation._id}`);
@@ -469,6 +505,47 @@ export default function ChatWindow({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const fetchAiReplies = useCallback(
+    async (messagesList) => {
+      const visible = messagesList
+        .filter((m) => !m.isOptimistic && !m.isDeleted && m.text?.trim())
+        .slice(-12);
+
+      if (visible.length === 0) return;
+
+      const lastMsg = visible[visible.length - 1];
+
+      setLoadingAiReplies(true);
+      setAiReplies([]);
+
+      try {
+        const context = visible.map((m) => ({
+          text: m.text,
+          isMe: (m.sender?._id ?? m.sender) === user?._id,
+        }));
+
+        const res = await fetch("/api/ai-reply", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: context,
+            latestMessage: lastMsg.text,
+          }),
+        });
+
+        const data = await res.json();
+        if (Array.isArray(data.suggestions) && data.suggestions.length > 0) {
+          setAiReplies(data.suggestions.slice(0, 3));
+        }
+      } catch (err) {
+        console.error("[AI] fetchAiReplies error:", err);
+      } finally {
+        setLoadingAiReplies(false);
+      }
+    },
+    [user?._id],
+  );
+
   // Scheduled: refresh list
   const refreshScheduled = useCallback(async () => {
     if (!conversation?._id) return;
@@ -495,6 +572,42 @@ export default function ChatWindow({
     refreshScheduled();
   }, [conversation?._id, refreshScheduled]);
 
+  const handleAiButton = useCallback(() => {
+    const visible = messages.filter(
+      (m) => !m.isOptimistic && !m.isDeleted && m.text?.trim(),
+    );
+    fetchAiReplies(visible);
+  }, [messages, fetchAiReplies]);
+
+  // activeTone: string primitive — safe to use in useCallback dep array
+  const activeTone = customTone.trim() || selectedTone;
+
+  const handleRewrite = useCallback(async () => {
+    if (!activeTone || !text.trim() || loadingRewrite) return;
+
+    setOriginalText(text);      // capture before call — overwrites any previous value
+    setLoadingRewrite(true);
+    setRewritePreview(null);    // hide stale preview while loading
+
+    try {
+      const res = await fetch("/api/ai-rewrite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: text.slice(0, 2000), tone: activeTone }),
+      });
+      const data = await res.json();
+      if (data.rewrite?.trim()) {
+        setRewritePreview(data.rewrite.trim());
+      } else {
+        toast.error("Failed to rewrite message");
+      }
+    } catch {
+      toast.error("Failed to rewrite message");
+    } finally {
+      setLoadingRewrite(false);
+    }
+  }, [text, activeTone, loadingRewrite]);
+
   const onCancelScheduled = async (id) => {
     try {
       await cancelScheduledMessage({ scheduledId: id });
@@ -512,6 +625,15 @@ export default function ChatWindow({
 
   // Scheduled: create
   const scheduleMessage = async () => {
+    // Clear AI state so tone picker/preview don't persist after scheduling
+    setAiMenuOpen(false);
+    setTonePickerOpen(false);
+    setSelectedTone("");
+    setCustomTone("");
+    setLoadingRewrite(false);
+    setRewritePreview(null);
+    setOriginalText("");
+
     if (!text.trim() || !conversation?._id) return;
 
     if (!sendAt) {
@@ -586,6 +708,15 @@ export default function ChatWindow({
 
     setMessages((prev) => [...prev, optimistic]);
     setText("");
+    setAiReplies([]);
+    // Tone rewrite resets
+    setAiMenuOpen(false);
+    setTonePickerOpen(false);
+    setSelectedTone("");
+    setCustomTone("");
+    setLoadingRewrite(false);
+    setRewritePreview(null);
+    setOriginalText("");
     const isGrp = conversation.type === "group";
     socket.emit("typing:stop", {
       conversationId: conversation._id,
@@ -1217,28 +1348,69 @@ export default function ChatWindow({
         onSubmit={handleSend}
         className="p-4 relative z-20 bg-obsidian/80 backdrop-blur-sm border-t border-white/5"
       >
-        {replyTo && (
-          <div className="absolute bottom-full left-0 right-0 p-3 bg-slate-surface border-t border-accent/30 flex items-center justify-between">
-            <div className="flex items-center gap-3 overflow-hidden">
-              <div className="w-1 bg-accent h-8 rounded-full" />
-              <div className="overflow-hidden">
-                <p className="text-[11px] font-bold text-accent">
-                  Replying to {replyTo.sender?.name}
-                </p>
-                <p className="text-xs text-ivory/40 truncate">{replyTo.text}</p>
+        {/* Shared absolute wrapper — rewritePreview and replyTo stack as block elements */}
+        <div className="absolute bottom-full left-0 right-0">
+          {rewritePreview && (
+            <div className="p-3 bg-slate-surface border-t border-accent/30 flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-accent">
+                  AI rewrite · {activeTone}
+                </span>
+              </div>
+              <p className="text-sm text-ivory/80 leading-relaxed">{rewritePreview}</p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setText(rewritePreview);
+                    setRewritePreview(null);
+                    setTonePickerOpen(false);
+                    setSelectedTone("");
+                    setCustomTone("");
+                  }}
+                  className="px-3 py-1 text-[11px] font-bold rounded-lg bg-accent/20 border border-accent/40 text-accent hover:bg-accent/30 transition-all"
+                >
+                  ✓ Use this
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setText(originalText);
+                    setRewritePreview(null);
+                    setTonePickerOpen(false);
+                    setSelectedTone("");
+                    setCustomTone("");
+                  }}
+                  className="px-3 py-1 text-[11px] font-bold rounded-lg bg-white/5 border border-white/10 text-ivory/40 hover:text-ivory/70 transition-all"
+                >
+                  ✗ Discard
+                </button>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setReplyTo(null)}
-              className="p-1.5 hover:bg-white/5 rounded-full text-ivory/30"
-              aria-label="Cancel reply"
-              title="Cancel reply"
-            >
-              <X size={16} />
-            </button>
-          </div>
-        )}
+          )}
+          {replyTo && (
+            <div className="p-3 bg-slate-surface border-t border-accent/30 flex items-center justify-between">
+              <div className="flex items-center gap-3 overflow-hidden">
+                <div className="w-1 bg-accent h-8 rounded-full" />
+                <div className="overflow-hidden">
+                  <p className="text-[11px] font-bold text-accent">
+                    Replying to {replyTo.sender?.name}
+                  </p>
+                  <p className="text-xs text-ivory/40 truncate">{replyTo.text}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReplyTo(null)}
+                className="p-1.5 hover:bg-white/5 rounded-full text-ivory/30"
+                aria-label="Cancel reply"
+                title="Cancel reply"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          )}
+        </div>
 
         {showScheduledPanel && (
           <div className="mb-3 p-3 rounded-2xl bg-slate-surface border border-white/5">
@@ -1335,6 +1507,114 @@ export default function ChatWindow({
           </div>
         )}
 
+        {(aiReplies.length > 0 || loadingAiReplies || tonePickerOpen) && (
+          <div className="flex items-center gap-1.5 flex-wrap mb-2 px-1">
+            {tonePickerOpen ? (
+              /* ── Tone Picker ── */
+              <>
+                <span className="text-[9px] text-ivory/20 font-semibold uppercase tracking-wide">
+                  Rewrite as:
+                </span>
+                {["Formal", "Casual", "Friendly"].map((tone) => (
+                  <button
+                    key={tone}
+                    type="button"
+                    onClick={() => {
+                      setSelectedTone(tone);
+                      setCustomTone("");
+                    }}
+                    className={`px-3 py-1 text-[11px] rounded-full border transition-all ${
+                      selectedTone === tone && !customTone.trim()
+                        ? "bg-accent/20 border-accent/40 text-accent"
+                        : "bg-accent/10 border-accent/20 text-accent/80 hover:bg-accent/20 hover:text-accent"
+                    }`}
+                  >
+                    {tone}
+                  </button>
+                ))}
+                <input
+                  type="text"
+                  value={customTone}
+                  onChange={(e) => {
+                    setCustomTone(e.target.value);
+                    setSelectedTone("");
+                  }}
+                  maxLength={30}
+                  placeholder="Custom tone..."
+                  className="px-2 py-1 text-[11px] rounded-full bg-white/5 border border-white/10 text-ivory/60 placeholder:text-ivory/20 outline-none focus:border-accent/30 max-w-[120px]"
+                />
+                <button
+                  type="button"
+                  onClick={handleRewrite}
+                  disabled={!activeTone || loadingRewrite}
+                  className={`flex items-center gap-1 px-3 py-1 text-[11px] font-bold rounded-full border transition-all ${
+                    !activeTone || loadingRewrite
+                      ? "bg-white/5 border-white/10 text-ivory/20 cursor-not-allowed"
+                      : "bg-accent/20 border-accent/40 text-accent hover:bg-accent/30"
+                  }`}
+                >
+                  {loadingRewrite ? (
+                    <span className="w-2.5 h-2.5 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+                  ) : (
+                    "Rewrite →"
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTonePickerOpen(false);
+                    setSelectedTone("");
+                    setCustomTone("");
+                    setRewritePreview(null);
+                    setOriginalText("");
+                  }}
+                  className="ml-auto p-0.5 text-ivory/20 hover:text-ivory/50 transition-colors"
+                  title="Dismiss tone picker"
+                  aria-label="Dismiss tone picker"
+                >
+                  <X size={11} />
+                </button>
+              </>
+            ) : (
+              /* ── AI Reply Chips ── */
+              <>
+                <span className="text-[9px] text-ivory/20 font-semibold uppercase tracking-wide">
+                  AI
+                </span>
+                {loadingAiReplies ? (
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+                    <span className="text-[10px] text-ivory/30">Generating replies...</span>
+                  </div>
+                ) : (
+                  <>
+                    {aiReplies.map((reply, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setText(reply)}
+                        className="px-3 py-1 text-[11px] rounded-full bg-accent/10 border border-accent/20 text-accent/80 hover:bg-accent/20 hover:text-accent transition-all max-w-[180px] truncate"
+                        title={reply}
+                      >
+                        {reply}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setAiReplies([])}
+                      className="ml-auto p-0.5 text-ivory/20 hover:text-ivory/50 transition-colors"
+                      title="Dismiss suggestions"
+                      aria-label="Dismiss AI suggestions"
+                    >
+                      <X size={11} />
+                    </button>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
         <div className="bg-slate-surface rounded-2xl flex items-center flex-wrap p-2 gap-1 border border-white/5 focus-within:border-accent/50 transition-all shadow-inner">
           <button
             type="button"
@@ -1388,6 +1668,55 @@ export default function ChatWindow({
           >
             GIF
           </button>
+
+          <div ref={aiMenuRefDesktop} className="relative hidden sm:inline-flex">
+            <button
+              type="button"
+              onClick={() => setAiMenuOpen((v) => !v)}
+              title="AI tools"
+              aria-label="AI tools"
+              className={`inline-flex items-center gap-1 px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${
+                aiMenuOpen
+                  ? "bg-accent/20 border-accent/40 text-accent"
+                  : aiReplies.length > 0 || tonePickerOpen
+                    ? "bg-accent/20 border-accent/40 text-accent"
+                    : "bg-white/4 border-white/10 text-ivory/30 hover:bg-accent/10 hover:border-accent/30 hover:text-accent"
+              }`}
+            >
+              ✦ AI
+            </button>
+            {aiMenuOpen && (
+              <div className="absolute bottom-full mb-1 right-0 w-44 bg-deep border border-white/10 rounded-lg shadow-lg overflow-hidden z-50">
+                <button
+                  type="button"
+                  className="w-full text-left px-3 py-2 text-[11px] text-ivory/70 hover:bg-white/6 hover:text-ivory transition-colors"
+                  onClick={() => {
+                    setAiMenuOpen(false);
+                    handleAiButton();
+                  }}
+                >
+                  Reply suggestions
+                </button>
+                <button
+                  type="button"
+                  disabled={!text.trim()}
+                  className={`w-full text-left px-3 py-2 text-[11px] transition-colors ${
+                    text.trim()
+                      ? "text-ivory/70 hover:bg-white/6 hover:text-ivory"
+                      : "text-ivory/20 opacity-40 cursor-not-allowed"
+                  }`}
+                  onClick={() => {
+                    if (!text.trim()) return;
+                    setAiMenuOpen(false);
+                    setAiReplies([]);
+                    setTonePickerOpen(true);
+                  }}
+                >
+                  Rewrite tone
+                </button>
+              </div>
+            )}
+          </div>
 
           {!isGroup && (
             <button
@@ -1482,6 +1811,55 @@ export default function ChatWindow({
             >
               GIF
             </button>
+
+            <div ref={aiMenuRefMobile} className="relative inline-flex">
+              <button
+                type="button"
+                onClick={() => setAiMenuOpen((v) => !v)}
+                title="AI tools"
+                aria-label="AI tools"
+                className={`inline-flex items-center gap-1 px-2 py-1 text-[10px] font-black rounded-md border transition-all ${
+                  aiMenuOpen
+                    ? "bg-accent/20 border-accent/40 text-accent"
+                    : aiReplies.length > 0 || tonePickerOpen
+                      ? "bg-accent/20 border-accent/40 text-accent"
+                      : "bg-white/4 border-white/10 text-ivory/30 hover:bg-accent/10 hover:border-accent/30 hover:text-accent"
+                }`}
+              >
+                ✦ AI
+              </button>
+              {aiMenuOpen && (
+                <div className="absolute bottom-full mb-1 right-0 w-44 bg-deep border border-white/10 rounded-lg shadow-lg overflow-hidden z-50">
+                  <button
+                    type="button"
+                    className="w-full text-left px-3 py-2 text-[11px] text-ivory/70 hover:bg-white/6 hover:text-ivory transition-colors"
+                    onClick={() => {
+                      setAiMenuOpen(false);
+                      handleAiButton();
+                    }}
+                  >
+                    Reply suggestions
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!text.trim()}
+                    className={`w-full text-left px-3 py-2 text-[11px] transition-colors ${
+                      text.trim()
+                        ? "text-ivory/70 hover:bg-white/6 hover:text-ivory"
+                        : "text-ivory/20 opacity-40 cursor-not-allowed"
+                    }`}
+                    onClick={() => {
+                      if (!text.trim()) return;
+                      setAiMenuOpen(false);
+                      setAiReplies([]);
+                      setTonePickerOpen(true);
+                    }}
+                  >
+                    Rewrite tone
+                  </button>
+                </div>
+              )}
+            </div>
 
             {!isGroup && (
               <button

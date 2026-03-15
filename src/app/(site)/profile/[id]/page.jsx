@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -15,75 +15,16 @@ import {
   MessageSquare,
   UserPlus,
   UserCheck,
-  MapPin,
+  Loader2,
 } from "lucide-react";
+import toast from "react-hot-toast";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import useAuth from "@/hooks/useAuth";
+import useFeed from "@/hooks/useFeed";
 import ReputationBadge, { getLevel } from "@/components/Feed/ReputationBadge";
 import PostCard from "@/components/Feed/PostCard";
 import TagChip from "@/components/Feed/TagChip";
 
-// ── Design-phase mock profile ─────────────────────────────────────────────────
-const MOCK_PROFILE = {
-  _id: "u1",
-  name: "Alex Kim",
-  avatar: null,
-  bio: "Full-stack dev obsessed with DX and performance. Building cool things with TypeScript, Rust, and WebAssembly.",
-  location: "Seoul, South Korea",
-  website: "https://alexkim.dev",
-  provider: "github",
-  reputation: 820,
-  following: ["u2", "u3"],
-  followers: ["u2", "u3", "u4", "u5", "u6"],
-  followedTags: ["typescript", "rust", "webassembly"],
-  createdAt: "2024-01-15T00:00:00.000Z",
-};
-
-const MOCK_POSTS = [
-  {
-    _id: "p1",
-    type: "showcase",
-    title:
-      "Built a real-time collaborative whiteboard with WebRTC + Canvas API",
-    content:
-      "Spent the last 3 weekends on this. P2P signalling via a small Socket.io relay, all drawing state sync'd via CRDT-lite.",
-    author: MOCK_PROFILE,
-    tags: ["webrtc", "canvas", "showcase"],
-    reactions: { "🔥": ["u2", "u3", "u4", "u5"], "🚀": ["u6"] },
-    commentCount: 11,
-    views: 312,
-    isPinned: true,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(),
-  },
-  {
-    _id: "p2",
-    type: "question",
-    title: "What's the best way to manage global state in Next.js 14?",
-    content: "I've been juggling between Zustand, Jotai, and the Context API.",
-    author: MOCK_PROFILE,
-    tags: ["nextjs", "react", "state"],
-    reactions: { "🔥": ["u2", "u3"], "💡": ["u4"] },
-    commentCount: 7,
-    views: 142,
-    isPinned: false,
-    isResolved: false,
-    acceptedAnswer: null,
-    createdAt: new Date(Date.now() - 1000 * 60 * 37).toISOString(),
-  },
-];
-
-const MOCK_ACCEPTED_ANSWERS = [
-  {
-    _id: "c1",
-    post: { title: "How do I debounce inputs in React?" },
-    content:
-      "Use `useCallback` + a `useEffect` with `setTimeout` — or just reach for `use-debounce` from npm for convenience.",
-    reactions: { "👏": ["u2", "u3"] },
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
-  },
-];
-
-// ── Page tabs ─────────────────────────────────────────────────────────────────
 const TABS = [
   { id: "posts", label: "Posts", icon: FileText },
   { id: "answers", label: "Answers", icon: MessageSquare },
@@ -100,7 +41,6 @@ function formatJoined(dateStr) {
   }
 }
 
-// ── Stat pill ─────────────────────────────────────────────────────────────────
 function StatPill({ value, label }) {
   return (
     <div className="flex flex-col items-center px-4 py-2">
@@ -114,16 +54,140 @@ function StatPill({ value, label }) {
   );
 }
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
 function PublicProfilePage() {
   const params = useParams();
+  const profileId = params?.id;
   const { user: me } = useAuth();
-  const [activeTab, setActiveTab] = useState("posts");
-  const [following, setFollowing] = useState(false); // TODO: derive from me.following.includes(params.id)
+  const { getUserProfile, getUserPosts, followUser } = useFeed();
 
-  // Design-phase: always show mock profile
-  const profile = MOCK_PROFILE;
-  const isOwnProfile = profile._id === me?._id;
+  const [activeTab, setActiveTab] = useState("posts");
+  const [profile, setProfile] = useState(null);
+  const [posts, setPosts] = useState([]);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [loadingPosts, setLoadingPosts] = useState(false);
+  const [following, setFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
+  const [postsPage, setPostsPage] = useState(1);
+  const [hasMorePosts, setHasMorePosts] = useState(false);
+
+  // ── Load profile ───────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!profileId) return;
+    let cancelled = false;
+
+    // Reset stale state before loading new profile
+    setProfile(null);
+    setFollowing(false);
+    setPosts([]);
+    setPostsPage(1);
+    setHasMorePosts(false);
+
+    const load = async () => {
+      setLoadingProfile(true);
+      try {
+        const data = await getUserProfile(profileId);
+        if (!cancelled) {
+          setProfile(data);
+          setFollowing(data.isFollowing);
+        }
+      } catch {
+        if (!cancelled) toast.error("Could not load profile");
+      } finally {
+        if (!cancelled) setLoadingProfile(false);
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [profileId, getUserProfile]);
+
+  // ── Load posts ─────────────────────────────────────────────────────────────
+  const loadPosts = useCallback(
+    async (page = 1) => {
+      if (!profileId) return;
+      setLoadingPosts(true);
+      try {
+        const data = await getUserPosts(profileId, page);
+        if (page === 1) {
+          setPosts(data.posts || []);
+        } else {
+          setPosts((prev) => [...prev, ...(data.posts || [])]);
+        }
+        setHasMorePosts(data.hasMore ?? false);
+      } catch {
+        // silently fail — posts section shows empty state
+      } finally {
+        setLoadingPosts(false);
+      }
+    },
+    [profileId, getUserPosts],
+  );
+
+  useEffect(() => {
+    if (activeTab === "posts") {
+      setPostsPage(1);
+      loadPosts(1);
+    }
+  }, [activeTab, loadPosts]);
+
+  // ── Follow toggle ──────────────────────────────────────────────────────────
+  const handleFollow = async () => {
+    if (followLoading) return;
+    setFollowLoading(true);
+    const prev = following;
+
+    // Optimistic
+    setFollowing(!prev);
+    setProfile((p) =>
+      p
+        ? {
+            ...p,
+            followersCount: (p.followersCount ?? 0) + (prev ? -1 : 1),
+            isFollowing: !prev,
+          }
+        : p,
+    );
+
+    try {
+      await followUser(profileId);
+    } catch {
+      setFollowing(prev);
+      setProfile((p) =>
+        p
+          ? {
+              ...p,
+              followersCount: (p.followersCount ?? 0) + (prev ? 1 : -1),
+              isFollowing: prev,
+            }
+          : p,
+      );
+      toast.error("Could not update follow status");
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
+  // ── Loading / error states ─────────────────────────────────────────────────
+  if (loadingProfile) {
+    return (
+      <div className="min-h-screen bg-obsidian pt-20 flex items-center justify-center">
+        <Loader2 size={32} className="text-accent/40 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-obsidian pt-20 flex items-center justify-center">
+        <p className="text-ivory/30 font-mono text-sm">Profile not found.</p>
+      </div>
+    );
+  }
+
+  const isOwnProfile =
+    profile.isOwnProfile || profile._id?.toString() === (me?._id ?? me?.id);
   const level = getLevel(profile.reputation);
 
   const ProviderIcon =
@@ -135,7 +199,7 @@ function PublicProfilePage() {
 
   return (
     <div className="min-h-screen bg-obsidian pt-20 pb-16">
-      {/* ── Back link ── */}
+      {/* Back link */}
       <div className="max-w-4xl mx-auto px-4 mb-6">
         <Link
           href="/app/feed"
@@ -191,23 +255,28 @@ function PublicProfilePage() {
                 </div>
               </div>
 
-              {/* Follow button */}
-              {!isOwnProfile && (
+              {/* Follow / Edit */}
+              {!isOwnProfile ? (
                 <button
                   type="button"
-                  onClick={() => setFollowing((f) => !f)}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-mono font-bold transition-all duration-200 ${
+                  onClick={handleFollow}
+                  disabled={followLoading}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-mono font-bold transition-all duration-200 disabled:opacity-50 ${
                     following
                       ? "bg-accent/12 ring-1 ring-accent/25 text-accent hover:bg-accent/20"
                       : "bg-white/[0.06] ring-1 ring-white/[0.10] text-ivory/60 hover:text-ivory hover:bg-white/[0.10]"
                   }`}
                 >
-                  {following ? <UserCheck size={13} /> : <UserPlus size={13} />}
+                  {followLoading ? (
+                    <Loader2 size={13} className="animate-spin" />
+                  ) : following ? (
+                    <UserCheck size={13} />
+                  ) : (
+                    <UserPlus size={13} />
+                  )}
                   {following ? "Following" : "Follow"}
                 </button>
-              )}
-
-              {isOwnProfile && (
+              ) : (
                 <Link
                   href="/profile"
                   className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-mono font-bold bg-white/[0.06] ring-1 ring-white/[0.10] text-ivory/60 hover:text-ivory hover:bg-white/[0.10] transition-all"
@@ -217,31 +286,13 @@ function PublicProfilePage() {
               )}
             </div>
 
-            {/* Bio */}
             {profile.bio && (
               <p className="text-[13px] text-ivory/60 font-sans leading-relaxed">
                 {profile.bio}
               </p>
             )}
 
-            {/* Meta row */}
             <div className="flex items-center gap-4 flex-wrap text-[11px] font-mono text-ivory/30">
-              {profile.location && (
-                <span className="flex items-center gap-1">
-                  <MapPin size={11} /> {profile.location}
-                </span>
-              )}
-              {profile.website && (
-                <a
-                  href={profile.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 hover:text-accent/70 transition-colors"
-                >
-                  <Globe size={11} />{" "}
-                  {profile.website.replace(/^https?:\/\//, "")}
-                </a>
-              )}
               {profile.createdAt && (
                 <span className="flex items-center gap-1">
                   <Calendar size={11} /> Joined{" "}
@@ -250,7 +301,6 @@ function PublicProfilePage() {
               )}
             </div>
 
-            {/* Followed tags */}
             {(profile.followedTags?.length ?? 0) > 0 && (
               <div className="flex items-center gap-1.5 flex-wrap">
                 {profile.followedTags.map((tag) => (
@@ -263,16 +313,14 @@ function PublicProfilePage() {
 
         {/* ── Stats row ── */}
         <div className="glass-card rounded-2xl flex items-center divide-x divide-white/[0.06]">
-          <StatPill value={MOCK_POSTS.length} label="Posts" />
-          <StatPill value={profile.followers?.length ?? 0} label="Followers" />
-          <StatPill value={profile.following?.length ?? 0} label="Following" />
-          <StatPill value={MOCK_ACCEPTED_ANSWERS.length} label="Answers" />
-          <StatPill value={profile.reputation} label="Rep" />
+          <StatPill value={profile.postCount ?? 0} label="Posts" />
+          <StatPill value={profile.followersCount ?? 0} label="Followers" />
+          <StatPill value={profile.followingCount ?? 0} label="Following" />
+          <StatPill value={profile.reputation ?? 0} label="Rep" />
         </div>
 
-        {/* ── Tabs + content ── */}
+        {/* ── Tabs ── */}
         <div className="glass-card rounded-2xl overflow-hidden">
-          {/* Tab bar */}
           <div className="flex border-b border-white/[0.06] px-4 pt-2">
             {TABS.map(({ id, label, icon: Icon }) => (
               <button
@@ -290,53 +338,57 @@ function PublicProfilePage() {
             ))}
           </div>
 
-          {/* Tab content */}
           <div className="p-4 flex flex-col gap-3">
+            {/* Posts tab */}
             {activeTab === "posts" && (
               <>
-                {MOCK_POSTS.length === 0 ? (
+                {loadingPosts && posts.length === 0 ? (
+                  <div className="flex justify-center py-10">
+                    <Loader2
+                      size={24}
+                      className="text-accent/40 animate-spin"
+                    />
+                  </div>
+                ) : posts.length === 0 ? (
                   <p className="text-center text-[12px] font-mono text-ivory/20 py-10">
                     No posts yet.
                   </p>
                 ) : (
-                  MOCK_POSTS.map((post) => (
-                    <PostCard
-                      key={post._id}
-                      post={post}
-                      currentUserId={me?._id ?? ""}
-                    />
-                  ))
+                  <>
+                    {posts.map((post) => (
+                      <PostCard
+                        key={post._id}
+                        post={post}
+                        currentUserId={me?._id ?? me?.id ?? ""}
+                      />
+                    ))}
+                    {hasMorePosts && (
+                      <button
+                        onClick={async () => {
+                          const next = postsPage + 1;
+                          await loadPosts(next);
+                          setPostsPage(next);
+                        }}
+                        disabled={loadingPosts}
+                        className="w-full py-2 text-[12px] font-mono text-ivory/30 hover:text-ivory/60 transition-colors flex items-center justify-center gap-2"
+                      >
+                        {loadingPosts ? (
+                          <Loader2 size={13} className="animate-spin" />
+                        ) : (
+                          "Load more"
+                        )}
+                      </button>
+                    )}
+                  </>
                 )}
               </>
             )}
 
+            {/* Answers tab */}
             {activeTab === "answers" && (
-              <>
-                {MOCK_ACCEPTED_ANSWERS.length === 0 ? (
-                  <p className="text-center text-[12px] font-mono text-ivory/20 py-10">
-                    No accepted answers yet.
-                  </p>
-                ) : (
-                  MOCK_ACCEPTED_ANSWERS.map((ans) => (
-                    <div
-                      key={ans._id}
-                      className="glass-card rounded-xl p-4 flex flex-col gap-2"
-                    >
-                      <p className="text-[10px] font-mono text-emerald-400/60 uppercase tracking-wider">
-                        ✓ Accepted Answer
-                      </p>
-                      {ans.post?.title && (
-                        <p className="text-[12px] font-mono text-ivory/30 italic">
-                          On: {ans.post.title}
-                        </p>
-                      )}
-                      <p className="text-[13px] text-ivory/70 font-sans leading-relaxed">
-                        {ans.content}
-                      </p>
-                    </div>
-                  ))
-                )}
-              </>
+              <p className="text-center text-[12px] font-mono text-ivory/20 py-10">
+                Accepted answers coming soon.
+              </p>
             )}
           </div>
         </div>

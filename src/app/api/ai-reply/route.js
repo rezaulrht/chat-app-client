@@ -1,12 +1,9 @@
 import { NextResponse } from "next/server";
-
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-const MODEL = "nvidia/nemotron-3-super-120b-a12b:free";
+import openai, { DEFAULT_MODEL } from "@/lib/openai";
 
 function extractSuggestions(text) {
   if (!text) return [];
 
-  // Try JSON array first
   try {
     const jsonMatch = text.match(/\[[\s\S]*?\]/);
     if (jsonMatch) {
@@ -18,11 +15,9 @@ function extractSuggestions(text) {
     }
   } catch {}
 
-  // Fallback: extract quoted strings
   const quoted = [...text.matchAll(/"([^"]{3,80})"/g)].map((m) => m[1]);
   if (quoted.length >= 2) return quoted.slice(0, 3);
 
-  // Fallback: numbered/bulleted list like "1. Sure thing!" or "- Sure thing!"
   const listed = [...text.matchAll(/^[\s]*[1-3\-*•]\.*\s+(.{5,80})$/gm)].map((m) =>
     m[1].replace(/^["']|["']$/g, "").trim(),
   );
@@ -32,7 +27,7 @@ function extractSuggestions(text) {
 }
 
 export async function POST(req) {
-  if (!OPENROUTER_API_KEY) {
+  if (!process.env.OPENROUTER_API_KEY) {
     return NextResponse.json(
       { error: "OpenRouter API key not configured" },
       { status: 500 },
@@ -46,59 +41,31 @@ export async function POST(req) {
       return NextResponse.json({ suggestions: [] });
     }
 
-    const systemPrompt = `You are a chat reply assistant. Suggest exactly 3 short, natural reply options (each under 12 words) for the latest message. Output ONLY a JSON array of 3 strings. No explanation, no markdown. Example output: ["Sounds good!", "I'll check and get back to you", "Thanks for the update!"]`;
-
-    const contextMessages = (messages || [])
+    // Build a simple conversation transcript as plain text
+    const thread = (messages || [])
       .filter((m) => m.text)
-      .slice(-4)
-      .map((m) => ({
-        role: m.isMe ? "assistant" : "user",
-        content: m.text,
-      }));
+      .slice(-8)
+      .map((m) => `${m.isMe ? "Me" : "Friend"}: ${m.text}`)
+      .join("\n");
 
-    const response = await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
-          "X-Title": "ConvoX Chat",
+    const completion = await openai.chat.completions.create({
+      model: DEFAULT_MODEL,
+      messages: [
+        {
+          role: "system",
+          content:
+            'You suggest quick chat replies. Output ONLY a JSON array of exactly 3 short strings (each under 12 words). No explanation. Example: ["Sounds good!", "Got it, thanks!", "Let me check"]',
         },
-        body: JSON.stringify({
-          model: MODEL,
-          messages: [
-            { role: "system", content: systemPrompt },
-            ...contextMessages,
-            {
-              role: "user",
-              content: `Suggest 3 short replies to: "${latestMessage}"`,
-            },
-          ],
-          max_tokens: 300,
-          temperature: 0.7,
-        }),
-      },
-    );
+        {
+          role: "user",
+          content: `Here is a chat conversation:\n${thread}\n\nSuggest 3 short, natural replies that "Me" could send next. Do NOT repeat or echo what "Friend" said. Output ONLY a JSON array:`,
+        },
+      ],
+      max_tokens: 200,
+      temperature: 0.8,
+    });
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error("[AI route] OpenRouter HTTP", response.status, response.statusText);
-      console.error("[AI route] model:", MODEL);
-      console.error("[AI route] response body:", errText);
-      console.error("[AI route] request headers sent:", {
-        Authorization: `Bearer ${OPENROUTER_API_KEY?.slice(0, 12)}...`,
-        "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
-      });
-      return NextResponse.json({ error: "AI service error" }, { status: 502 });
-    }
-
-    const data = await response.json();
-    console.log("[AI route] OpenRouter response OK");
-    console.log("[AI route] raw data:", JSON.stringify(data, null, 2));
-    const choice = data.choices?.[0]?.message;
-
+    const choice = completion.choices?.[0]?.message;
     const content = choice?.content?.trim() || "";
     const reasoning = choice?.reasoning?.trim() || "";
 
@@ -107,9 +74,17 @@ export async function POST(req) {
       suggestions = extractSuggestions(reasoning);
     }
 
+    // Strip any leaked labels the model might have added
+    suggestions = suggestions.map((s) =>
+      s
+        .replace(/^(Me|Friend|Them|User|Assistant):\s*/i, "")
+        .replace(/^["']|["']$/g, "")
+        .trim(),
+    );
+
     return NextResponse.json({ suggestions });
   } catch (err) {
-    console.error("[AI route] error:", err);
+    console.error("[ai-reply] error:", err);
     return NextResponse.json(
       { error: "Failed to generate suggestions" },
       { status: 500 },

@@ -120,7 +120,7 @@ export default function FeedSidebar({
         {/* ── Navigation ── */}
         <nav className="flex flex-col gap-0.5 px-3 py-3 border-b border-white/[0.06]">
           {[
-            { href: "/profile", icon: FileText, label: "My Posts" },
+            { href: "/profile?tab=posts", icon: FileText, label: "My Posts" },
             {
               href: "/app/feed?view=following",
               icon: Tag,

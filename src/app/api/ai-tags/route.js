@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-const MODEL = "nvidia/nemotron-3-super-120b-a12b:free";
+import openai, { DEFAULT_MODEL } from "@/lib/openai";
 
 function extractTags(text) {
   if (!text) return [];
@@ -28,7 +26,7 @@ function extractTags(text) {
 }
 
 export async function POST(req) {
-  if (!OPENROUTER_API_KEY) {
+  if (!process.env.OPENROUTER_API_KEY) {
     return NextResponse.json(
       { error: "OpenRouter API key not configured" },
       { status: 500 },
@@ -48,43 +46,24 @@ export async function POST(req) {
     const safeExisting = Array.isArray(existingTags) ? existingTags : [];
     const truncatedContent = (content || "").slice(0, 3000);
 
-    const response = await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
-          "X-Title": "ConvoX Feed",
+    const completion = await openai.chat.completions.create({
+      model: DEFAULT_MODEL,
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a tag suggester for a developer community.\nSuggest up to 5 short lowercase hyphenated tags.\nInclude a MIX of:\n- 2-3 topic-specific tags about the technology or concept (e.g. 'react-hooks', 'mongoose', 'rest-api')\n- 1-2 broader category or community tags that describe the nature of the post (e.g. 'learning', 'til', 'backend', 'frontend', 'web-dev', 'career', 'devops', 'beginner', 'best-practices', 'tutorial')\nAvoid overly generic tags like 'programming' or 'code'.\nOutput ONLY a JSON array of strings. Each tag under 20 chars.",
         },
-        body: JSON.stringify({
-          model: MODEL,
-          messages: [
-            {
-              role: "system",
-              content:
-                "You are a tag suggester for a developer community.\nSuggest up to 5 short lowercase hyphenated tags.\nInclude a MIX of:\n- 2-3 topic-specific tags about the technology or concept (e.g. 'react-hooks', 'mongoose', 'rest-api')\n- 1-2 broader category or community tags that describe the nature of the post (e.g. 'learning', 'til', 'backend', 'frontend', 'web-dev', 'career', 'devops', 'beginner', 'best-practices', 'tutorial')\nAvoid overly generic tags like 'programming' or 'code'.\nOutput ONLY a JSON array of strings. Each tag under 20 chars.",
-            },
-            {
-              role: "user",
-              content: `Post type: ${type || "post"}\nTitle: ${title || ""}\nContent: ${truncatedContent}\nAlready tagged: ${safeExisting.join(", ")}`,
-            },
-          ],
-          max_tokens: 512,
-          temperature: 0.4,
-        }),
-      },
-    );
+        {
+          role: "user",
+          content: `Post type: ${type || "post"}\nTitle: ${title || ""}\nContent: ${truncatedContent}\nAlready tagged: ${safeExisting.join(", ")}`,
+        },
+      ],
+      max_tokens: 512,
+      temperature: 0.4,
+    });
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error("[ai-tags] OpenRouter error:", response.status, errText);
-      return NextResponse.json({ error: "AI service error" }, { status: 502 });
-    }
-
-    const data = await response.json();
-    const choice = data.choices?.[0]?.message;
+    const choice = completion.choices?.[0]?.message;
     const rawContent = choice?.content?.trim() || "";
     const reasoning = choice?.reasoning?.trim() || "";
 

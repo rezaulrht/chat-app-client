@@ -16,6 +16,7 @@ import {
   X,
   Plus,
   Users,
+  CheckCheck,
 } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 import { useModule } from "@/hooks/useModule";
@@ -30,6 +31,12 @@ const GifPicker = dynamic(
     import("gif-picker-react-klipy").then((m) => m.GifPicker || m.default || m),
   { ssr: false },
 );
+
+import {
+  createScheduledMessage,
+  listScheduledMessages,
+  cancelScheduledMessage,
+} from "@/utils/scheduleApi";
 
 const getDateLabel = (dateStr) => {
   const date = new Date(dateStr);
@@ -96,6 +103,17 @@ export default function ModuleChatWindow({
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [longPressedMsgId, setLongPressedMsgId] = useState(null);
 
+  // Scheduled messages
+  const [scheduleMode, setScheduleMode] = useState(false);
+  const [sendAt, setSendAt] = useState("");
+  const [showScheduledPanel, setShowScheduledPanel] = useState(false);
+  const [scheduledItems, setScheduledItems] = useState([]);
+  const [loadingScheduled, setLoadingScheduled] = useState(false);
+  const [scheduling, setScheduling] = useState(false);
+
+  // Read Receipts Popover
+  const [showSeenBy, setShowSeenBy] = useState(null); // stores msgId
+
   const bottomRef = useRef(null);
   const reactionPickerRef = useRef(null);
   const emojiPickerRef = useRef(null);
@@ -116,11 +134,12 @@ export default function ModuleChatWindow({
     setReactionPickerMsgId(null);
     setShowEmojiPicker(false);
     setShowGifPicker(false);
+    setShowSeenBy(null);
   }, [moduleId]);
 
   // Close pickers on outside click
   useEffect(() => {
-    const onDown = (e) => {
+    const handleClickOutside = (e) => {
       if (
         reactionPickerRef.current &&
         !reactionPickerRef.current.contains(e.target)
@@ -137,17 +156,26 @@ export default function ModuleChatWindow({
         setShowGifPicker(false);
       }
       if (longPressedMsgId) setLongPressedMsgId(null);
+
+      // Close seen by popover
+      if (showSeenBy) {
+        // We'll attach a data-attribute to the popover to avoid closing when clicking inside it
+        if (!e.target.closest('[data-seen-popover]')) {
+          setShowSeenBy(null);
+        }
+      }
     };
     if (
       reactionPickerMsgId ||
       showEmojiPicker ||
       showGifPicker ||
-      longPressedMsgId
+      longPressedMsgId ||
+      showSeenBy
     ) {
-      document.addEventListener("mousedown", onDown);
+      document.addEventListener("mousedown", handleClickOutside);
     }
-    return () => document.removeEventListener("mousedown", onDown);
-  }, [reactionPickerMsgId, showEmojiPicker, showGifPicker, longPressedMsgId]);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [reactionPickerMsgId, showEmojiPicker, showGifPicker, longPressedMsgId, showSeenBy]);
 
   // ── Long-press (mobile) ───────────────────────────────────────────────────
   const handleTouchStart = useCallback((msgId) => {
@@ -216,11 +244,71 @@ export default function ModuleChatWindow({
     }
   };
 
+  // ── Scheduled Messages ────────────────────────────────────────────────────
+  const refreshScheduled = useCallback(async () => {
+    if (!activeModule) return;
+    setLoadingScheduled(true);
+    try {
+      const res = await listScheduledMessages({ moduleId: activeModule._id });
+      setScheduledItems(res || []);
+    } catch (err) {
+      console.error("Failed to load scheduled messages", err);
+    } finally {
+      setLoadingScheduled(false);
+    }
+  }, [activeModule]);
+
+  // Load scheduled messages when returning or when switching modules
+  useEffect(() => {
+    if (activeModule) {
+      refreshScheduled();
+      setScheduleMode(false);
+      setShowScheduledPanel(false);
+    }
+  }, [activeModule?._id, refreshScheduled]);
+
+  const onCancelScheduled = async (id) => {
+    try {
+      await cancelScheduledMessage({ scheduledId: id });
+      refreshScheduled();
+      toast.success("Scheduled message cancelled");
+    } catch (err) {
+      toast.error("Failed to cancel scheduled message");
+    }
+  };
+
   // ── Send ──────────────────────────────────────────────────────────────────
-  const handleSend = (e) => {
+  const handleSend = async (e) => {
     e.preventDefault();
     if (!text.trim()) return;
     if (isAnnouncement && !isAdminOrOwner) return;
+
+    if (scheduleMode) {
+      if (!sendAt) return toast.error("Please pick a date & time");
+      const sendTime = new Date(sendAt).getTime();
+      if (sendTime <= Date.now()) {
+        return toast.error("Date & time must be in the future");
+      }
+      setScheduling(true);
+      try {
+        await createScheduledMessage({
+          moduleId: activeModule._id,
+          workspaceId: workspace?._id,
+          content: text.trim(),
+          sendAt: new Date(sendAt).toISOString(),
+        });
+        toast.success("Message scheduled");
+        setText("");
+        setScheduleMode(false);
+        setSendAt("");
+        refreshScheduled();
+      } catch (err) {
+        toast.error(err.response?.data?.error || "Failed to schedule message");
+      } finally {
+        setScheduling(false);
+      }
+      return;
+    }
     sendMessage({ text: text.trim(), replyTo });
     setText("");
     setReplyTo(null);
@@ -351,13 +439,33 @@ export default function ModuleChatWindow({
         )}
 
         {/* Date-separated message list */}
-        {messages.map((msg, index) => {
-          const isMe = msg.sender?._id === user?._id;
-          const isGif = !!msg.gifUrl;
-          const currentKey = toDateKey(msg.createdAt);
-          const prevKey =
-            index > 0 ? toDateKey(messages[index - 1].createdAt) : null;
-          const showDate = currentKey !== prevKey;
+        {(() => {
+          let lastAnyMeIndex = -1;
+          for (let i = messages.length - 1; i >= 0; i--) {
+            const m = messages[i];
+            const isMsgMe = m.sender?._id === user?._id || m.sender === user?._id;
+            if (isMsgMe && !m.isOptimistic) {
+              lastAnyMeIndex = i;
+              break;
+            }
+          }
+
+          return messages.map((msg, index) => {
+            const isMe = msg.sender?._id === user?._id;
+            const isGif = !!msg.gifUrl;
+            const currentKey = toDateKey(msg.createdAt);
+            const prevKey =
+              index > 0 ? toDateKey(messages[index - 1].createdAt) : null;
+            const showDate = currentKey !== prevKey;
+            
+            // Read receipts logic
+            const isLastMe = index === lastAnyMeIndex;
+            // Filter out the sender themselves from the readBy list for count
+            const uniqueReaders = (msg.readBy || []).filter(
+              (r) => r.user && r.user._id !== user?._id
+            );
+            // Hide if no one else read it yet
+            const hasReaders = uniqueReaders.length > 0;
 
           return (
             <React.Fragment key={msg._id}>
@@ -598,9 +706,7 @@ export default function ModuleChatWindow({
 
                     {/* Reaction pills */}
                     {reactions[msg._id] &&
-                      Object.entries(reactions[msg._id]).some(
-                        ([, users]) => users.length > 0,
-                      ) && (
+                      Object.keys(reactions[msg._id]).length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-1.5">
                           {Object.entries(reactions[msg._id])
                             .filter(([, users]) => users.length > 0)
@@ -615,19 +721,75 @@ export default function ModuleChatWindow({
                                 }`}
                               >
                                 <span className="text-[12px] leading-none">{emoji}</span>
-                                <span className="text-[10px] font-bold opacity-40 leading-none">
+                                <span className="text-[9px] font-bold text-ivory/40">
                                   {users.length}
                                 </span>
                               </button>
                             ))}
                         </div>
                       )}
+
+                    {/* Read Receipts (Shown only on the last message sent by the user) */}
+                    {isMe && isLastMe && (
+                      <div className="mt-1 relative flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (hasReaders) {
+                              setShowSeenBy(showSeenBy === msg._id ? null : msg._id);
+                            }
+                          }}
+                          className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold transition-all ${
+                            hasReaders 
+                              ? "bg-accent/10 border border-accent/20 text-accent hover:bg-accent/20 cursor-pointer" 
+                              : "bg-white/4 border border-white/5 text-ivory/30"
+                          }`}
+                        >
+                          <CheckCheck size={10} className={hasReaders ? "text-accent" : "text-ivory/30"} />
+                          {hasReaders ? `Seen by ${uniqueReaders.length}` : "Sent"}
+                        </button>
+                        
+                        {/* Seen By Popover */}
+                        {showSeenBy === msg._id && hasReaders && (
+                          <div 
+                            data-seen-popover="true"
+                            className="absolute z-50 top-full mt-1 left-0 w-48 bg-deep border border-white/10 rounded-xl shadow-2xl p-2 flex flex-col gap-1.5 max-h-48 overflow-y-auto scrollbar-hide"
+                          >
+                            <h4 className="text-[10px] font-mono font-bold text-ivory/40 px-1 uppercase tracking-wider mb-1">
+                              Read by
+                            </h4>
+                            {uniqueReaders.map((r, i) => (
+                              <div key={i} className="flex items-center justify-between px-1.5 py-1 rounded-lg hover:bg-white/4 min-w-0">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <Image 
+                                    src={r.user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${r.user.name}`} 
+                                    width={16} 
+                                    height={16} 
+                                    alt="" 
+                                    className="rounded-full shrink-0"
+                                    unoptimized
+                                  />
+                                  <span className="text-[11px] font-display font-medium text-ivory/80 truncate">
+                                    {r.user.name}
+                                  </span>
+                                </div>
+                                <span className="text-[9px] font-mono text-ivory/30 shrink-0 ml-2">
+                                  {new Date(r.readAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             </React.Fragment>
           );
-        })}
+        });
+      })()}
 
         {/* Typing indicator */}
         {typingUsers.length > 0 && (
@@ -731,6 +893,56 @@ export default function ModuleChatWindow({
             </div>
           )}
 
+          {showScheduledPanel && (
+            <div className="mb-3 p-3 rounded-2xl bg-slate-surface border border-white/5">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-bold text-ivory/80">
+                  Scheduled messages
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowScheduledPanel(false)}
+                  className="text-ivory/30 hover:text-ivory/60"
+                  aria-label="Close scheduled messages"
+                  title="Close"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {loadingScheduled ? (
+                <p className="text-xs text-ivory/30">Loading...</p>
+              ) : scheduledItems.length === 0 ? (
+                <p className="text-xs text-ivory/20">No scheduled messages</p>
+              ) : (
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {scheduledItems.map((s) => (
+                    <div
+                      key={s._id}
+                      className="flex items-center justify-between gap-3 p-2 rounded-xl bg-black/20 border border-white/5"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-xs text-ivory/80 truncate">
+                          {s.content}
+                        </p>
+                        <p className="text-[10px] text-ivory/30">
+                          {new Date(s.sendAt).toLocaleString()} • {s.status}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onCancelScheduled(s._id)}
+                        className="px-2 py-1 text-[10px] font-bold rounded-md border border-red-500/30 text-red-400 hover:bg-red-500/10"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="bg-slate-surface rounded-2xl flex items-center flex-wrap p-2 gap-1 border border-white/5 focus-within:border-accent/50 transition-all shadow-inner">
             {/* Using Plus icon for consistency with main chat even if we don't have extra tools yet */}
             <button
@@ -767,6 +979,46 @@ export default function ModuleChatWindow({
 
             <button
               type="button"
+              title="View scheduled messages"
+              aria-label="View scheduled messages"
+              onClick={() => {
+                setShowScheduledPanel((v) => !v);
+                refreshScheduled();
+              }}
+              className="hidden sm:inline-flex px-2 py-1 mx-1 text-[10px] font-black rounded-md border bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+            >
+              PENDING
+            </button>
+
+            <button
+              type="button"
+              title="Schedule message"
+              aria-label="Schedule message"
+              onClick={() => {
+                setScheduleMode((v) => !v);
+                setShowScheduledPanel(true);
+              }}
+              className={`hidden sm:inline-flex px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${
+                scheduleMode
+                  ? "bg-accent/20 border-accent/40 text-accent"
+                  : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+              }`}
+            >
+              SCHEDULE
+            </button>
+
+            {scheduleMode && (
+              <input
+                type="datetime-local"
+                value={sendAt}
+                min={new Date().toISOString().slice(0, 16)}
+                onChange={(e) => setSendAt(e.target.value)}
+                className="hidden sm:inline-flex mx-1 px-2 py-1 rounded-md bg-accent border border-white/10 text-ivory/80 text-[11px]"
+              />
+            )}
+
+            <button
+              type="button"
               onClick={() => {
                 setShowGifPicker((v) => !v);
                 setShowEmojiPicker(false);
@@ -798,9 +1050,10 @@ export default function ModuleChatWindow({
 
             <button
               type="submit"
-              disabled={!text.trim()}
+              disabled={scheduling || !text.trim()}
+              title={scheduleMode ? "Schedule send" : "Send"}
               className={`w-9 h-9 flex items-center justify-center rounded-xl ml-1 transition-all active:scale-95 shadow-lg ${
-                !text.trim()
+                !text.trim() || scheduling
                   ? "bg-slate-700 text-ivory/40 cursor-not-allowed"
                   : "bg-accent hover:bg-accent/90 text-black shadow-accent/20"
               }`}
@@ -810,6 +1063,20 @@ export default function ModuleChatWindow({
 
             {/* Mobile-only expanded toolbar row */}
             <div className="sm:hidden w-full flex items-center gap-1 pt-1 border-t border-white/5 mt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setScheduleMode((v) => !v);
+                  setShowScheduledPanel(true);
+                }}
+                className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${
+                  scheduleMode
+                    ? "bg-accent/20 border-accent/40 text-accent"
+                    : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+                }`}
+              >
+                SCHEDULE
+              </button>
               <button
                 type="button"
                 onClick={() => {

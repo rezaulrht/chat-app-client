@@ -3,7 +3,7 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { MessageCircle, Compass, Layers } from "lucide-react";
+import { MessageCircle, Compass, Layers, Globe } from "lucide-react";
 
 export default function WorkspaceSidebar({
   activeView,
@@ -17,13 +17,16 @@ export default function WorkspaceSidebar({
     { id: "home", label: "Chats", icon: MessageCircle, href: "/app" },
     { id: "feed", label: "Feed", icon: Compass, href: "/app/feed" },
     { id: "workspace", label: "Spaces", icon: Layers, href: "/app/workspace" },
+    { id: "discover", label: "Discover", icon: Globe, href: "/app/discover" },
   ];
 
   const activeId = pathname.startsWith("/app/workspace")
     ? "workspace"
-    : pathname.startsWith("/app/feed")
-      ? "feed"
-      : "home";
+    : pathname.startsWith("/app/discover")
+      ? "discover"
+      : pathname.startsWith("/app/feed")
+        ? "feed"
+        : "home";
 
   return (
     <div className="h-14 shrink-0 px-3 flex items-center gap-2 border-b border-white/6 bg-white/1.5">
@@ -54,6 +57,8 @@ export default function WorkspaceSidebar({
                     router.push("/app");
                   } else if (tab.id === "feed") {
                     router.push("/app/feed");
+                  } else if (tab.id === "discover") {
+                    router.push("/app/discover");
                   } else if (tab.id === "workspace") {
                     if (activeView === "workspace" && selectedWorkspaceId) {
                       if (typeof setSelectedWorkspaceId === "function") {

@@ -17,6 +17,8 @@ const apiGenerateInvite = (id, expiresIn = "never") =>
 const apiRevokeInvite = (id) => api.delete(`/api/workspaces/${id}/invite`);
 const apiJoinViaInvite = (code) =>
   api.post(`/api/workspaces/join/${code}`).then((r) => r.data);
+const apiGetWorkspaceByInvite = (code) =>
+  api.get(`/api/workspaces/invite/${code}`).then((r) => r.data);
 const apiJoinPublic = (wsId) =>
   api.post(`/api/workspaces/${wsId}/join-public`).then((r) => r.data);
 const apiDiscoverWorkspaces = (query, limit = 20) =>
@@ -185,6 +187,10 @@ export function WorkspaceProvider({ children }) {
     },
     [socket],
   );
+
+  const getWorkspaceByInvite = useCallback(async (code) => {
+    return await apiGetWorkspaceByInvite(code);
+  }, []);
 
   const leaveWorkspace = useCallback(async (workspaceId) => {
     await api.post(`/api/workspaces/${workspaceId}/leave`);
@@ -603,6 +609,7 @@ export function WorkspaceProvider({ children }) {
     generateInvite,
     revokeInvite,
     joinViaInvite,
+    getWorkspaceByInvite,
     leaveWorkspace,
     createRole,
     updateRole,

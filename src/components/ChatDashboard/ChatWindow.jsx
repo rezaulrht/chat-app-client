@@ -22,6 +22,8 @@ import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
 import { EMOJI_MAP } from "@/utils/emojis";
 import { formatLastSeen } from "@/utils/formatLastSeen";
+import CreatePollModal from "../CreatePollModal";
+import PollMessage from "../PollMessage";
 import { getGroupInitials, getGroupAvatarColor } from "@/utils/groupAvatar";
 import toast from "react-hot-toast";
 
@@ -94,6 +96,9 @@ export default function ChatWindow({
   const [aiReplies, setAiReplies] = useState([]);
   const [loadingAiReplies, setLoadingAiReplies] = useState(false);
   const lastAiRepliesForMsgRef = useRef(null);
+
+  // Poll state
+  const [showCreatePoll, setShowCreatePoll] = useState(false);
 
   // Message pinning state
   const [pinnedMessages, setPinnedMessages] = useState([]);
@@ -492,6 +497,12 @@ export default function ChatWindow({
         }),
       );
     };
+    // poll update handler for optimistic UI when voting or creating poll
+    const handlePollUpdated = ({ messageId, poll }) => {
+      setMessages((prev) =>
+        prev.map((m) => (m._id === messageId ? { ...m, poll } : m)),
+      );
+    };
 
     const handleReacted = ({
       messageId,
@@ -526,6 +537,7 @@ export default function ChatWindow({
     socket.on("message:deleted", handleDeleted);
     socket.on("message:pinned", handlePinned);
     socket.on("message:unpinned", handleUnpinned);
+    socket.on("poll:updated", handlePollUpdated);
 
     return () => {
       socket.off("message:new", handleReceive);
@@ -535,6 +547,7 @@ export default function ChatWindow({
       socket.off("message:deleted", handleDeleted);
       socket.off("message:pinned", handlePinned);
       socket.off("message:unpinned", handleUnpinned);
+      socket.off("poll:updated", handlePollUpdated);
     };
   }, [socket, conversation?._id, user?._id, onMessagesSeen]);
 
@@ -746,6 +759,16 @@ export default function ChatWindow({
       toast.error(err?.response?.data?.message || "Failed to unpin message");
     }
   };
+  // ──────────────────────────────────────────────────────────
+  // Poll handlers
+  // ──────────────────────────────────────────────────────────
+
+  const handlePollCreated = (pollMessage) => {
+    // setMessages((prev) => [...prev, pollMessage]);
+    setShowCreatePoll(false);
+  };
+
+ 
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -1476,6 +1499,9 @@ export default function ChatWindow({
                             This message was deleted
                           </p>
                         ) : editingMessageId === msg._id ? (
+                          // ────────────────────────────────────────────────────
+                          // Edit UI
+                          // ────────────────────────────────────────────────────
                           <div className="flex flex-col gap-3 w-full min-w-70">
                             <div className="flex items-center gap-2 text-accent text-[10px] font-bold uppercase tracking-wider">
                               <span className="w-1 h-3 bg-accent rounded-full" />
@@ -1526,7 +1552,18 @@ export default function ChatWindow({
                               </div>
                             </div>
                           </div>
+                        ) : msg.poll &&
+                          msg.poll.question &&
+                          msg.poll.options &&
+                          msg.poll.options.length > 0 ? (
+                          // ────────────────────────────────────────────────────
+                          // ✅ Poll Message - Only if valid poll data exists
+                          // ────────────────────────────────────────────────────
+                          <PollMessage message={msg}  />
                         ) : isGif ? (
+                          // ────────────────────────────────────────────────────
+                          // GIF Message
+                          // ────────────────────────────────────────────────────
                           <img
                             src={msg.gifUrl}
                             alt="GIF"
@@ -1534,6 +1571,9 @@ export default function ChatWindow({
                             loading="lazy"
                           />
                         ) : (
+                          // ────────────────────────────────────────────────────
+                          // Text Message
+                          // ────────────────────────────────────────────────────
                           msg.text
                         )}
                         <div
@@ -1989,6 +2029,34 @@ export default function ChatWindow({
             <Plus size={20} />
           </button>
 
+          {/* Poll Button */}
+          {isGroup && (
+            <button
+              type="button"
+              onClick={() => setShowCreatePoll(true)}
+              className="w-9 h-9 flex items-center justify-center text-ivory/30 hover:text-accent transition-colors"
+              title="Create Poll"
+              aria-label="Create Poll"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="3" y="3" width="7" height="7" />
+                <rect x="14" y="3" width="7" height="7" />
+                <rect x="14" y="14" width="7" height="7" />
+                <rect x="3" y="14" width="7" height="7" />
+              </svg>
+            </button>
+          )}
+
+          {/* ✅ SINGLE Input Field */}
           <input
             className="flex-1 min-w-0 bg-transparent outline-none text-sm text-ivory/80 px-3 placeholder:text-ivory/20"
             placeholder="Type a message..."
@@ -1997,6 +2065,7 @@ export default function ChatWindow({
             onKeyDown={handleKeyDown}
           />
 
+          {/* Emoji suggestions dropdown */}
           {suggestions.length > 0 && (
             <div className="absolute bottom-20 left-2 sm:left-10 bg-deep/95 backdrop-blur-md border border-white/6 rounded-xl p-1 shadow-2xl z-50 min-w-37.5 max-w-[calc(100vw-2rem)]">
               {suggestions.map(([code, emoji], i) => (
@@ -2016,6 +2085,7 @@ export default function ChatWindow({
             </div>
           )}
 
+          {/* GIF, AI, Schedule buttons... */}
           <button
             type="button"
             onClick={() => {
@@ -2031,7 +2101,6 @@ export default function ChatWindow({
           >
             GIF
           </button>
-
           <div
             ref={aiMenuRefDesktop}
             className="relative hidden sm:inline-flex"
@@ -2084,7 +2153,7 @@ export default function ChatWindow({
             )}
           </div>
 
-          {(
+          {
             <button
               type="button"
               title="View scheduled messages"
@@ -2097,9 +2166,9 @@ export default function ChatWindow({
             >
               PENDING
             </button>
-          )}
+          }
 
-          {(
+          {
             <button
               type="button"
               title="Schedule message"
@@ -2116,7 +2185,7 @@ export default function ChatWindow({
             >
               SCHEDULE
             </button>
-          )}
+          }
 
           {scheduleMode && (
             <input
@@ -2162,6 +2231,16 @@ export default function ChatWindow({
 
           {/* Mobile-only expanded toolbar row */}
           <div className="sm:hidden w-full flex items-center gap-1 pt-1 border-t border-white/5 mt-1">
+            {/* ✅ Poll Button (Mobile - Groups only) */}
+            {isGroup && (
+              <button
+                type="button"
+                onClick={() => setShowCreatePoll(true)}
+                className="px-2 py-1 text-[10px] font-black rounded-md border bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60 transition-all"
+              >
+                📊 POLL
+              </button>
+            )}
             <button
               type="button"
               onClick={() => {
@@ -2227,7 +2306,7 @@ export default function ChatWindow({
               )}
             </div>
 
-            {(
+            {
               <button
                 type="button"
                 title="View scheduled messages"
@@ -2240,9 +2319,9 @@ export default function ChatWindow({
               >
                 PENDING
               </button>
-            )}
+            }
 
-            {(
+            {
               <button
                 type="button"
                 title="Schedule message"
@@ -2259,7 +2338,7 @@ export default function ChatWindow({
               >
                 SCHEDULE
               </button>
-            )}
+            }
 
             {!isGroup && scheduleMode && (
               <input
@@ -2273,6 +2352,14 @@ export default function ChatWindow({
           </div>
         </div>
       </form>
+      {/* ✅ Create Poll Modal */}
+      {showCreatePoll && (
+        <CreatePollModal
+          conversation={conversation}
+          onClose={() => setShowCreatePoll(false)}
+          onPollCreated={handlePollCreated}
+        />
+      )}
     </main>
   );
 }

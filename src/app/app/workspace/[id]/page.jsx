@@ -20,11 +20,11 @@ export default function WorkspacePage() {
       <div className="flex h-screen w-full bg-obsidian overflow-hidden">
         {/* Unified Sidebar Area */}
         <div className="hidden md:flex flex-col shrink-0 h-full w-80 overflow-hidden border-r border-white/6">
-          <WorkspaceSidebar 
+          <WorkspaceSidebar
             activeView="workspace"
             selectedWorkspaceId={id}
           />
-          
+
           <div className="flex-1 flex flex-col min-h-0">
             <ChannelSidebar
               selectedWorkspaceId={id}

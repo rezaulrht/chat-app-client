@@ -2084,7 +2084,7 @@ export default function ChatWindow({
             )}
           </div>
 
-          {!isGroup && (
+          {(
             <button
               type="button"
               title="View scheduled messages"
@@ -2099,7 +2099,7 @@ export default function ChatWindow({
             </button>
           )}
 
-          {!isGroup && (
+          {(
             <button
               type="button"
               title="Schedule message"
@@ -2118,13 +2118,13 @@ export default function ChatWindow({
             </button>
           )}
 
-          {!isGroup && scheduleMode && (
+          {scheduleMode && (
             <input
               type="datetime-local"
               value={sendAt}
               min={new Date().toISOString().slice(0, 16)}
               onChange={(e) => setSendAt(e.target.value)}
-              className="hidden sm:inline-flex mx-1 px-2 py-1 rounded-md bg-accent border border-white/10 text-ivory/80 text-[11px]"
+              className="flex-1 min-w-0 px-2 py-1 rounded-md bg-accent border border-white/10 text-ivory/80 text-[11px]"
             />
           )}
 
@@ -2227,7 +2227,7 @@ export default function ChatWindow({
               )}
             </div>
 
-            {!isGroup && (
+            {(
               <button
                 type="button"
                 title="View scheduled messages"
@@ -2242,7 +2242,7 @@ export default function ChatWindow({
               </button>
             )}
 
-            {!isGroup && (
+            {(
               <button
                 type="button"
                 title="Schedule message"

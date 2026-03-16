@@ -406,8 +406,8 @@ export default function ModuleChatWindow({
           onClick={onToggleMembers}
           title="Toggle member list"
           className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${showMembers
-              ? "bg-accent/15 text-accent"
-              : "text-ivory/25 hover:text-ivory/60 hover:bg-white/6"
+            ? "bg-accent/15 text-accent"
+            : "text-ivory/25 hover:text-ivory/60 hover:bg-white/6"
             }`}
         >
           <Users size={16} />
@@ -544,8 +544,8 @@ export default function ModuleChatWindow({
                       {!msg.isOptimistic && !msg.isDeleted && (
                         <div
                           className={`absolute -top-7 left-0 items-center gap-0.5 bg-deep border border-white/6 rounded-lg p-0.5 shadow-xl z-30 ${longPressedMsgId === msg._id
-                              ? "flex"
-                              : "hidden group-hover/bubble:flex"
+                            ? "flex"
+                            : "hidden group-hover/bubble:flex"
                             }`}
                         >
                           {/* Quick reactions */}
@@ -559,8 +559,8 @@ export default function ModuleChatWindow({
                                 setLongPressedMsgId(null);
                               }}
                               className={`p-1.5 rounded-md text-sm transition-all hover:bg-white/6 hover:scale-125 ${reactions[msg._id]?.[emoji]?.includes(user?._id)
-                                  ? "bg-accent/20"
-                                  : ""
+                                ? "bg-accent/20"
+                                : ""
                                 }`}
                             >
                               {emoji}
@@ -700,8 +700,8 @@ export default function ModuleChatWindow({
                       ) : (
                         <div
                           className={`inline-block px-3.5 py-2.5 rounded-2xl rounded-tl-none text-[13px] leading-relaxed max-w-prose ${isMe
-                              ? "bg-accent/15 text-ivory border border-accent/20"
-                              : "bg-white/4 text-ivory/80 border border-white/6"
+                            ? "bg-accent/15 text-ivory border border-accent/20"
+                            : "bg-white/4 text-ivory/80 border border-white/6"
                             } ${msg.isOptimistic ? "opacity-60" : ""}`}
                         >
                           {msg.replyTo && (
@@ -727,8 +727,8 @@ export default function ModuleChatWindow({
                                   key={emoji}
                                   onClick={() => reactToMessage(msg._id, emoji)}
                                   className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border transition-all ${users.some(u => String(u) === String(user?._id))
-                                      ? "bg-accent/20 border-accent/40 text-accent"
-                                      : "bg-white/4 border-white/6 text-ivory/80 hover:bg-white/8"
+                                    ? "bg-accent/20 border-accent/40 text-accent"
+                                    : "bg-white/4 border-white/6 text-ivory/80 hover:bg-white/8"
                                     }`}
                                 >
                                   <span className="text-[12px] leading-none">{emoji}</span>
@@ -752,8 +752,8 @@ export default function ModuleChatWindow({
                               }
                             }}
                             className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold transition-all ${hasReaders
-                                ? "bg-accent/10 border border-accent/20 text-accent hover:bg-accent/20 cursor-pointer"
-                                : "bg-white/4 border border-white/5 text-ivory/30"
+                              ? "bg-accent/10 border border-accent/20 text-accent hover:bg-accent/20 cursor-pointer"
+                              : "bg-white/4 border border-white/5 text-ivory/30"
                               }`}
                           >
                             <CheckCheck size={10} className={hasReaders ? "text-accent" : "text-ivory/30"} />
@@ -856,8 +856,8 @@ export default function ModuleChatWindow({
                   key={code}
                   onClick={() => insertEmoji(emoji)}
                   className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${i === suggestionIndex
-                      ? "bg-accent/20 text-accent"
-                      : "hover:bg-white/6 text-ivory/40"
+                    ? "bg-accent/20 text-accent"
+                    : "hover:bg-white/6 text-ivory/40"
                     }`}
                 >
                   <span className="text-lg">{emoji}</span>
@@ -993,8 +993,8 @@ export default function ModuleChatWindow({
                 setShowEmojiPicker(false);
               }}
               className={`hidden sm:inline-flex px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${showGifPicker
-                  ? "bg-accent/20 border-accent/40 text-accent"
-                  : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+                ? "bg-accent/20 border-accent/40 text-accent"
+                : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
                 }`}
             >
               GIF
@@ -1007,8 +1007,8 @@ export default function ModuleChatWindow({
                 setShowGifPicker(false);
               }}
               className={`w-9 h-9 flex items-center justify-center transition-all ${showEmojiPicker
-                  ? "text-accent"
-                  : "text-ivory/30 hover:text-ivory/60"
+                ? "text-accent"
+                : "text-ivory/30 hover:text-ivory/60"
                 }`}
               title="Emoji"
             >
@@ -1021,8 +1021,8 @@ export default function ModuleChatWindow({
                 type="button"
                 onClick={() => setScheduleDropdownOpen((v) => !v)}
                 className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${scheduleDropdownOpen
-                    ? "bg-accent/20 text-accent"
-                    : "text-ivory/30 hover:text-ivory/60"
+                  ? "bg-accent/20 text-accent"
+                  : "text-ivory/30 hover:text-ivory/60"
                   }`}
                 title="Schedule or view pending"
               >
@@ -1108,8 +1108,8 @@ export default function ModuleChatWindow({
               disabled={scheduling || !text.trim()}
               title="Send"
               className={`w-9 h-9 flex items-center justify-center rounded-xl ml-1 transition-all active:scale-95 shadow-lg ${!text.trim() || scheduling
-                  ? "bg-slate-700 text-ivory/40 cursor-not-allowed opacity-50"
-                  : "bg-accent hover:bg-accent/90 text-black shadow-accent/20"
+                ? "bg-slate-700 text-ivory/40 cursor-not-allowed opacity-50"
+                : "bg-accent hover:bg-accent/90 text-black shadow-accent/20"
                 }`}
             >
               <Send size={18} />
@@ -1124,8 +1124,8 @@ export default function ModuleChatWindow({
                   setShowEmojiPicker(false);
                 }}
                 className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${showGifPicker
-                    ? "bg-accent/20 border-accent/40 text-accent"
-                    : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+                  ? "bg-accent/20 border-accent/40 text-accent"
+                  : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
                   }`}
               >
                 GIF
@@ -1135,8 +1135,8 @@ export default function ModuleChatWindow({
                 type="button"
                 onClick={() => setScheduleDropdownOpen((v) => !v)}
                 className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${scheduleDropdownOpen
-                    ? "bg-accent/20 border-accent/40 text-accent"
-                    : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+                  ? "bg-accent/20 border-accent/40 text-accent"
+                  : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
                   }`}
                 title="Schedule or view pending"
               >

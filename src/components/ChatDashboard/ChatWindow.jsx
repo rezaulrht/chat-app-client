@@ -852,8 +852,8 @@ export default function ChatWindow({
               <div className="relative">
                 <div
                   className={`rounded-2xl overflow-hidden ${isParticipantOnline
-                      ? "ring-2 ring-accent/60 ring-offset-1 ring-offset-[#0a0e13]"
-                      : ""
+                    ? "ring-2 ring-accent/60 ring-offset-1 ring-offset-[#0a0e13]"
+                    : ""
                     }`}
                 >
                   <Image
@@ -909,8 +909,8 @@ export default function ChatWindow({
             type="button"
             onClick={isGroup ? onToggleGroupInfo : undefined}
             className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${isGroup && showGroupInfo
-                ? "bg-accent/20 text-accent border border-accent/30"
-                : "bg-white/4 hover:bg-accent/10 hover:text-accent text-ivory/30"
+              ? "bg-accent/20 text-accent border border-accent/30"
+              : "bg-white/4 hover:bg-accent/10 hover:text-accent text-ivory/30"
               }`}
           >
             <Info size={16} />
@@ -1536,8 +1536,8 @@ export default function ChatWindow({
                       setCustomTone("");
                     }}
                     className={`px-3 py-1 text-[11px] rounded-full border transition-all ${selectedTone === tone && !customTone.trim()
-                        ? "bg-accent/20 border-accent/40 text-accent"
-                        : "bg-accent/10 border-accent/20 text-accent/80 hover:bg-accent/20 hover:text-accent"
+                      ? "bg-accent/20 border-accent/40 text-accent"
+                      : "bg-accent/10 border-accent/20 text-accent/80 hover:bg-accent/20 hover:text-accent"
                       }`}
                   >
                     {tone}
@@ -1559,8 +1559,8 @@ export default function ChatWindow({
                   onClick={handleRewrite}
                   disabled={!activeTone || loadingRewrite}
                   className={`flex items-center gap-1 px-3 py-1 text-[11px] font-bold rounded-full border transition-all ${!activeTone || loadingRewrite
-                      ? "bg-white/5 border-white/10 text-ivory/20 cursor-not-allowed"
-                      : "bg-accent/20 border-accent/40 text-accent hover:bg-accent/30"
+                    ? "bg-white/5 border-white/10 text-ivory/20 cursor-not-allowed"
+                    : "bg-accent/20 border-accent/40 text-accent hover:bg-accent/30"
                     }`}
                 >
                   {loadingRewrite ? (
@@ -1651,8 +1651,8 @@ export default function ChatWindow({
                   key={code}
                   onClick={() => insertEmoji(emoji)}
                   className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${i === suggestionIndex
-                      ? "bg-accent/20 text-accent"
-                      : "hover:bg-white/6 text-ivory/40"
+                    ? "bg-accent/20 text-accent"
+                    : "hover:bg-white/6 text-ivory/40"
                     }`}
                 >
                   <span className="text-lg">{emoji}</span>
@@ -1670,8 +1670,8 @@ export default function ChatWindow({
               setScheduleMode(false);
             }}
             className={`hidden sm:inline-flex px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${showGifPicker
-                ? "bg-accent/20 border-accent/40 text-accent"
-                : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+              ? "bg-accent/20 border-accent/40 text-accent"
+              : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
               }`}
           >
             GIF
@@ -1684,10 +1684,10 @@ export default function ChatWindow({
               title="AI tools"
               aria-label="AI tools"
               className={`inline-flex items-center gap-1 px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${aiMenuOpen
+                ? "bg-accent/20 border-accent/40 text-accent"
+                : aiReplies.length > 0 || tonePickerOpen
                   ? "bg-accent/20 border-accent/40 text-accent"
-                  : aiReplies.length > 0 || tonePickerOpen
-                    ? "bg-accent/20 border-accent/40 text-accent"
-                    : "bg-white/4 border-white/10 text-ivory/30 hover:bg-accent/10 hover:border-accent/30 hover:text-accent"
+                  : "bg-white/4 border-white/10 text-ivory/30 hover:bg-accent/10 hover:border-accent/30 hover:text-accent"
                 }`}
             >
               ✦ AI
@@ -1708,8 +1708,8 @@ export default function ChatWindow({
                   type="button"
                   disabled={!text.trim()}
                   className={`w-full text-left px-3 py-2 text-[11px] transition-colors ${text.trim()
-                      ? "text-ivory/70 hover:bg-white/6 hover:text-ivory"
-                      : "text-ivory/20 opacity-40 cursor-not-allowed"
+                    ? "text-ivory/70 hover:bg-white/6 hover:text-ivory"
+                    : "text-ivory/20 opacity-40 cursor-not-allowed"
                     }`}
                   onClick={() => {
                     if (!text.trim()) return;
@@ -1731,8 +1731,8 @@ export default function ChatWindow({
               setShowGifPicker(false);
             }}
             className={`w-9 h-9 flex items-center justify-center transition-all ${showEmojiPicker
-                ? "text-accent"
-                : "text-ivory/30 hover:text-ivory/60"
+              ? "text-accent"
+              : "text-ivory/30 hover:text-ivory/60"
               }`}
             title="Emoji"
             aria-label="Emoji"
@@ -1747,8 +1747,8 @@ export default function ChatWindow({
                 type="button"
                 onClick={() => setScheduleDropdownOpen((v) => !v)}
                 className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${scheduleDropdownOpen
-                    ? "bg-accent/20 text-accent"
-                    : "text-ivory/30 hover:text-ivory/60"
+                  ? "bg-accent/20 text-accent"
+                  : "text-ivory/30 hover:text-ivory/60"
                   }`}
                 title="Schedule or view pending"
               >
@@ -1834,8 +1834,8 @@ export default function ChatWindow({
             type="submit"
             disabled={scheduling || !text.trim()}
             className={`w-9 h-9 flex items-center justify-center rounded-xl ml-1 transition-all active:scale-95 shadow-lg ${!text.trim() || scheduling
-                ? "bg-slate-700 text-ivory/40 cursor-not-allowed opacity-50"
-                : "bg-accent hover:bg-accent/90 text-black shadow-accent/20"
+              ? "bg-slate-700 text-ivory/40 cursor-not-allowed opacity-50"
+              : "bg-accent hover:bg-accent/90 text-black shadow-accent/20"
               }`}
             title="Send"
             aria-label="Send"
@@ -1852,8 +1852,8 @@ export default function ChatWindow({
                 setShowEmojiPicker(false);
               }}
               className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${showGifPicker
-                  ? "bg-accent/20 border-accent/40 text-accent"
-                  : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+                ? "bg-accent/20 border-accent/40 text-accent"
+                : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
                 }`}
             >
               GIF
@@ -1866,10 +1866,10 @@ export default function ChatWindow({
                 title="AI tools"
                 aria-label="AI tools"
                 className={`inline-flex items-center gap-1 px-2 py-1 text-[10px] font-black rounded-md border transition-all ${aiMenuOpen
+                  ? "bg-accent/20 border-accent/40 text-accent"
+                  : aiReplies.length > 0 || tonePickerOpen
                     ? "bg-accent/20 border-accent/40 text-accent"
-                    : aiReplies.length > 0 || tonePickerOpen
-                      ? "bg-accent/20 border-accent/40 text-accent"
-                      : "bg-white/4 border-white/10 text-ivory/30 hover:bg-accent/10 hover:border-accent/30 hover:text-accent"
+                    : "bg-white/4 border-white/10 text-ivory/30 hover:bg-accent/10 hover:border-accent/30 hover:text-accent"
                   }`}
               >
                 ✦ AI
@@ -1890,8 +1890,8 @@ export default function ChatWindow({
                     type="button"
                     disabled={!text.trim()}
                     className={`w-full text-left px-3 py-2 text-[11px] transition-colors ${text.trim()
-                        ? "text-ivory/70 hover:bg-white/6 hover:text-ivory"
-                        : "text-ivory/20 opacity-40 cursor-not-allowed"
+                      ? "text-ivory/70 hover:bg-white/6 hover:text-ivory"
+                      : "text-ivory/20 opacity-40 cursor-not-allowed"
                       }`}
                     onClick={() => {
                       if (!text.trim()) return;
@@ -1912,8 +1912,8 @@ export default function ChatWindow({
                   type="button"
                   onClick={() => setScheduleDropdownOpen((v) => !v)}
                   className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${scheduleDropdownOpen
-                      ? "bg-accent/20 border-accent/40 text-accent"
-                      : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+                    ? "bg-accent/20 border-accent/40 text-accent"
+                    : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
                     }`}
                   title="Schedule or view pending"
                 >

@@ -5,7 +5,7 @@ import { Hash } from "lucide-react";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import WorkspaceSidebar from "@/components/ChatDashboard/WorkspaceSidebar";
 import ChannelSidebar from "@/components/ChatDashboard/ChannelSidebar";
-import WorkspaceSettingsPanel from "@/components/workspace/WorkspaceSettingsPanel";
+import WorkspaceSettingsModal from "@/components/workspace/WorkspaceSettingsModal";
 import CreateModuleModal from "@/components/workspace/CreateModuleModal";
 
 export default function WorkspacePage() {
@@ -20,7 +20,10 @@ export default function WorkspacePage() {
       <div className="flex h-screen w-full bg-obsidian overflow-hidden">
         {/* Unified Sidebar Area */}
         <div className="hidden md:flex flex-col shrink-0 h-full w-80 overflow-hidden border-r border-white/6">
-          <WorkspaceSidebar />
+          <WorkspaceSidebar 
+            activeView="workspace"
+            selectedWorkspaceId={id}
+          />
           
           <div className="flex-1 flex flex-col min-h-0">
             <ChannelSidebar
@@ -49,7 +52,7 @@ export default function WorkspacePage() {
 
           {/* Settings Panel */}
           {showSettings && (
-            <WorkspaceSettingsPanel
+            <WorkspaceSettingsModal
               workspaceId={id}
               onClose={() => setShowSettings(false)}
             />

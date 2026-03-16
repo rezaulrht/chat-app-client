@@ -1,6 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { Plus, Layers, Loader2, LogOut } from "lucide-react";
+import { Plus, Layers, Loader2, LogOut, Compass } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import WorkspaceSidebar from "@/components/ChatDashboard/WorkspaceSidebar";
@@ -70,6 +70,24 @@ export default function WorkspaceListPage() {
 
             {/* Create Workspace */}
             <CreateWorkspaceModal />
+
+            {/* Discover Link */}
+            <button
+              onClick={() => router.push("/app/discover")}
+              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-accent/10 transition-all duration-150 group border border-dashed border-white/10 hover:border-accent/30 mt-2"
+            >
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-accent/5 transition-all group-hover:bg-accent/20 border border-accent/10">
+                <Compass size={20} className="text-accent/60 group-hover:text-accent" />
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-ivory/70 text-sm font-display font-semibold group-hover:text-accent transition-colors">
+                  Discover Workspaces
+                </p>
+                <p className="text-ivory/15 text-[10px] font-mono mt-0.5 whitespace-nowrap">
+                  Find new communities
+                </p>
+              </div>
+            </button>
           </div>
 
           {/* User Status Bar (bottom) */}

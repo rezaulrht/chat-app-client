@@ -147,8 +147,16 @@ export default function ChannelSidebar({
     <aside className="w-full glass-panel flex flex-col shrink-0 flex-1 min-h-0 overflow-hidden">
       {/* Workspace Header (click to open settings) */}
       <div
-        onClick={() => onSettingsOpen?.()}
-        className="h-13 px-4 flex items-center justify-between border-b border-white/6 hover:bg-white/3 cursor-pointer transition-all duration-300 group relative"
+        onClick={() => {
+          if (workspace?.myRole === "owner" || workspace?.myRole === "admin") {
+            onSettingsOpen?.();
+          }
+        }}
+        className={`h-13 px-4 flex items-center justify-between border-b border-white/6 hover:bg-white/3 transition-all duration-300 group relative ${
+          workspace?.myRole === "owner" || workspace?.myRole === "admin"
+            ? "cursor-pointer"
+            : "cursor-default"
+        }`}
       >
         <div className="flex items-center gap-2 min-w-0">
           {onBack && (

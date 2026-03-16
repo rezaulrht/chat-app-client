@@ -17,7 +17,6 @@ export default function WorkspaceSidebar({
     { id: "home", label: "Chats", icon: MessageCircle, href: "/app" },
     { id: "feed", label: "Feed", icon: Compass, href: "/app/feed" },
     { id: "workspace", label: "Spaces", icon: Layers, href: "/app/workspace" },
-    { id: "discover", label: "Discover", icon: Globe, href: "/app/discover" },
   ];
 
   const activeId = pathname.startsWith("/app/workspace")
@@ -57,8 +56,6 @@ export default function WorkspaceSidebar({
                     router.push("/app");
                   } else if (tab.id === "feed") {
                     router.push("/app/feed");
-                  } else if (tab.id === "discover") {
-                    router.push("/app/discover");
                   } else if (tab.id === "workspace") {
                     if (activeView === "workspace" && selectedWorkspaceId) {
                       if (typeof setSelectedWorkspaceId === "function") {

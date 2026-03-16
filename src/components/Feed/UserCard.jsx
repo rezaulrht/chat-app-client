@@ -18,25 +18,37 @@ import toast from "react-hot-toast";
  */
 export default function UserCard({
   user = {},
-  isFollowing: initialFollowing = false,
+  isFollowing: initialFollowing,
   following: legacyFollowing, // backwards compat
   isCurrentUser = false,
   variant = "inline",
 }) {
   const { followUser, followingSet } = useFeed();
 
+  // Explicit props win; fall back to followingSet only if props are undefined
   const contextFollowing = user._id ? followingSet?.has(user._id) : undefined;
-  const [followed, setFollowed] = useState(
-    contextFollowing ?? legacyFollowing ?? initialFollowing,
-  );
+  const resolvedFollowing =
+    initialFollowing !== undefined
+      ? initialFollowing
+      : legacyFollowing !== undefined
+        ? legacyFollowing
+        : (contextFollowing ?? false);
+
+  const [followed, setFollowed] = useState(resolvedFollowing);
   const [loading, setLoading] = useState(false);
 
-  // Keep in sync when followingSet changes (e.g. toggled from another card)
+  // Sync with followingSet only when not loading and no explicit prop provided
   useEffect(() => {
-    if (user._id && followingSet) {
-      setFollowed(followingSet.has(user._id));
+    if (
+      !loading &&
+      initialFollowing === undefined &&
+      legacyFollowing === undefined
+    ) {
+      if (user._id && followingSet) {
+        setFollowed(followingSet.has(user._id));
+      }
     }
-  }, [followingSet, user._id]);
+  }, [followingSet, user._id, loading, initialFollowing, legacyFollowing]);
 
   const handleFollow = async (e) => {
     e.preventDefault();

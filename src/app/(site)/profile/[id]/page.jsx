@@ -106,7 +106,7 @@ function PublicProfilePage() {
   // ── Load posts ─────────────────────────────────────────────────────────────
   const loadPosts = useCallback(
     async (page = 1) => {
-      if (!profileId) return;
+      if (!profileId) return false;
       setLoadingPosts(true);
       try {
         const data = await getUserPosts(profileId, page);
@@ -116,8 +116,10 @@ function PublicProfilePage() {
           setPosts((prev) => [...prev, ...(data.posts || [])]);
         }
         setHasMorePosts(data.hasMore ?? false);
-      } catch {
-        // silently fail — posts section shows empty state
+        return true;
+      } catch (err) {
+        console.error("loadPosts error:", err?.message);
+        return false;
       } finally {
         setLoadingPosts(false);
       }
@@ -178,10 +180,16 @@ function PublicProfilePage() {
     );
   }
 
-  if (!profile) {
+  if (!profile && !loadingProfile) {
     return (
       <div className="min-h-screen bg-obsidian pt-20 flex items-center justify-center">
-        <p className="text-ivory/30 font-mono text-sm">Profile not found.</p>
+        <p className="text-ivory/30 font-mono text-sm">
+          {profileError === "notfound"
+            ? "Profile not found."
+            : profileError === "error"
+              ? "Could not load profile. Please try again."
+              : "Profile not found."}
+        </p>
       </div>
     );
   }
@@ -366,8 +374,8 @@ function PublicProfilePage() {
                       <button
                         onClick={async () => {
                           const next = postsPage + 1;
-                          await loadPosts(next);
-                          setPostsPage(next);
+                          const ok = await loadPosts(next);
+                          if (ok) setPostsPage(next);
                         }}
                         disabled={loadingPosts}
                         className="w-full py-2 text-[12px] font-mono text-ivory/30 hover:text-ivory/60 transition-colors flex items-center justify-center gap-2"

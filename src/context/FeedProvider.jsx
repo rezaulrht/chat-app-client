@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useContext, useEffect } from "react";
+import { useState, useCallback, useContext, useEffect, useRef } from "react";
 import { SocketContext } from "./SocketContext";
 import { FeedContext } from "./FeedContext";
 import api from "@/app/api/Axios";
@@ -39,6 +39,12 @@ export function FeedProvider({ children }) {
   // ── Social state ───────────────────────────────────────────────────────────
   const [followingSet, setFollowingSet] = useState(new Set());
   const [profileCache, setProfileCache] = useState({});
+  const profileCacheRef = useRef({});
+
+  // Keep ref in sync with state for stable reads inside callbacks
+  useEffect(() => {
+    profileCacheRef.current = profileCache;
+  }, [profileCache]);
 
   const socketCtx = useContext(SocketContext);
   const socket = socketCtx?.socket ?? null;
@@ -403,19 +409,30 @@ export function FeedProvider({ children }) {
 
   const getUserProfile = useCallback(
     async (userId, { forceRefresh = false } = {}) => {
-      // Return cache only if not forcing refresh
-      if (!forceRefresh && profileCache[userId]) return profileCache[userId];
+      // Use ref for stable cache reads — avoids recreating callback on every cache write
+      if (!forceRefresh && profileCacheRef.current[userId]) {
+        return profileCacheRef.current[userId];
+      }
       try {
         const res = await api.get(`/api/feed/users/${userId}/profile`);
         const profile = res.data;
+        profileCacheRef.current = {
+          ...profileCacheRef.current,
+          [userId]: profile,
+        };
         setProfileCache((prev) => ({ ...prev, [userId]: profile }));
-        if (profile.isFollowing) {
-          setFollowingSet((prev) => new Set([...prev, userId]));
-        }
+        // Sync followingSet for both true and false states
+        setFollowingSet((prev) => {
+          const next = new Set(prev);
+          if (profile.isFollowing) next.add(userId);
+          else next.delete(userId);
+          return next;
+        });
         return profile;
       } catch (error) {
         // On error, return cached version if available
-        if (profileCache[userId]) return profileCache[userId];
+        if (profileCacheRef.current[userId])
+          return profileCacheRef.current[userId];
         console.error(
           "getUserProfile error:",
           error?.response?.data?.message || error.message,
@@ -423,7 +440,7 @@ export function FeedProvider({ children }) {
         throw error;
       }
     },
-    [profileCache],
+    [], // stable — reads cache via ref, not state
   );
 
   const getUserPosts = useCallback(async (userId, page = 1, limit = 20) => {

@@ -134,7 +134,7 @@ function ProfilePage() {
   const loadMyPosts = useCallback(
     async (page = 1) => {
       const userId = user?._id || user?.id;
-      if (!userId) return;
+      if (!userId) return false;
       setMyPostsLoading(true);
       setMyPostsError(false);
       try {
@@ -146,9 +146,11 @@ function ProfilePage() {
         else setMyPosts((prev) => [...prev, ...incoming]);
         setMyPostsHasMore(res.data.hasMore ?? false);
         setMyPostsLoaded(true);
+        return true;
       } catch (err) {
         console.error("loadMyPosts error:", err.message);
         setMyPostsError(true);
+        return false;
       } finally {
         setMyPostsLoading(false);
       }
@@ -580,8 +582,8 @@ function ProfilePage() {
                       <button
                         onClick={async () => {
                           const next = myPostsPage + 1;
-                          await loadMyPosts(next);
-                          setMyPostsPage(next);
+                          const ok = await loadMyPosts(next);
+                          if (ok) setMyPostsPage(next);
                         }}
                         disabled={myPostsLoading}
                         className="w-full py-2 text-[11px] font-mono text-ivory/25 hover:text-ivory/50 transition-colors"

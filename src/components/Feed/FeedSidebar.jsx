@@ -72,17 +72,19 @@ export default function FeedSidebar({
   onTagFilter,
 }) {
   if (side === "left") {
-    const repLabel =
-      (userStats.reputation ?? 2500) >= 1000
-        ? `${((userStats.reputation ?? 2500) / 1000).toFixed(1)}k`
-        : String(userStats.reputation ?? 2500);
+    const rep = userStats.reputation ?? 0;
+    const repLabel = rep >= 1000 ? `${(rep / 1000).toFixed(1)}k` : String(rep);
     return (
       <aside className="w-full h-full flex flex-col overflow-y-auto scrollbar-hide">
         {/* ── User card ── */}
         <div className="flex flex-col items-center gap-3 px-5 pt-6 pb-5 border-b border-white/[0.06]">
           <div className="w-16 h-16 rounded-full overflow-hidden ring-2 ring-accent/30 bg-deep shrink-0">
             <Image
-              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userStats.name || "Alex"}`}
+              src={
+                userStats.avatar
+                  ? userStats.avatar
+                  : `https://api.dicebear.com/7.x/avataaars/svg?seed=${userStats.name || "user"}`
+              }
               alt="avatar"
               width={64}
               height={64}
@@ -92,7 +94,7 @@ export default function FeedSidebar({
           </div>
           <div className="text-center">
             <p className="font-display font-bold text-ivory text-[15px] leading-tight">
-              {userStats.name || "Alex Rivera"}
+              {userStats.name || "You"}
             </p>
             <span className="inline-block mt-1.5 text-[10px] font-mono font-bold text-accent bg-accent/10 border border-accent/20 px-2.5 py-0.5 rounded-full">
               REP: {repLabel}
@@ -101,9 +103,9 @@ export default function FeedSidebar({
           {/* Stats row */}
           <div className="flex items-center justify-around w-full pt-3 border-t border-white/[0.06]">
             {[
-              { label: "FANS", value: userStats.followersCount ?? "1.2k" },
-              { label: "FOLLOWING", value: userStats.followingCount ?? "850" },
-              { label: "POSTS", value: userStats.postCount ?? "42" },
+              { label: "FANS", value: userStats.followersCount ?? 0 },
+              { label: "FOLLOWING", value: userStats.followingCount ?? 0 },
+              { label: "POSTS", value: userStats.postCount ?? 0 },
             ].map(({ label, value }) => (
               <div key={label} className="flex flex-col items-center gap-0.5">
                 <span className="font-display font-bold text-ivory text-[15px] leading-tight">
@@ -120,7 +122,7 @@ export default function FeedSidebar({
         {/* ── Navigation ── */}
         <nav className="flex flex-col gap-0.5 px-3 py-3 border-b border-white/[0.06]">
           {[
-            { href: "/profile", icon: FileText, label: "My Posts" },
+            { href: "/profile?tab=posts", icon: FileText, label: "My Posts" },
             {
               href: "/app/feed?view=following",
               icon: Tag,

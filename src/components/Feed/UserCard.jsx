@@ -1,34 +1,75 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { UserPlus, UserCheck, MessageCircle } from "lucide-react";
+import { UserPlus, UserCheck, Loader2 } from "lucide-react";
 import ReputationBadge from "./ReputationBadge";
+import useFeed from "@/hooks/useFeed";
+import toast from "react-hot-toast";
 
 /**
  * UserCard — compact author info card.
- * Used inline in PostCard (hover) and standalone in sidebars.
  *
  * @param {object}  user          - { _id, name, avatar, reputation, bio }
- * @param {boolean} following     - whether the current viewer follows this user
+ * @param {boolean} isFollowing   - initial follow state from parent
  * @param {boolean} isCurrentUser - hide follow button for own card
  * @param {"inline"|"panel"} variant
  */
 export default function UserCard({
   user = {},
-  following = false,
+  isFollowing: initialFollowing,
+  following: legacyFollowing, // backwards compat
   isCurrentUser = false,
   variant = "inline",
 }) {
-  const [followed, setFollowed] = useState(following);
+  const { followUser, followingSet } = useFeed();
 
-  // Design-only toggle — TODO wire to followUser()
-  const handleFollow = (e) => {
+  // Explicit props win; fall back to followingSet only if props are undefined
+  const contextFollowing = user._id ? followingSet?.has(user._id) : undefined;
+  const resolvedFollowing =
+    initialFollowing !== undefined
+      ? initialFollowing
+      : legacyFollowing !== undefined
+        ? legacyFollowing
+        : (contextFollowing ?? false);
+
+  const [followed, setFollowed] = useState(resolvedFollowing);
+  const [loading, setLoading] = useState(false);
+
+  // Sync with followingSet only when not loading and no explicit prop provided
+  useEffect(() => {
+    if (
+      !loading &&
+      initialFollowing === undefined &&
+      legacyFollowing === undefined
+    ) {
+      if (user._id && followingSet) {
+        setFollowed(followingSet.has(user._id));
+      }
+    }
+  }, [followingSet, user._id, loading, initialFollowing, legacyFollowing]);
+
+  const handleFollow = async (e) => {
     e.preventDefault();
-    setFollowed((f) => !f);
+    e.stopPropagation();
+    if (loading || !user._id) return;
+
+    setLoading(true);
+    const prev = followed;
+    setFollowed(!prev); // optimistic
+
+    try {
+      await followUser(user._id);
+    } catch {
+      setFollowed(prev); // revert
+      toast.error("Could not update follow status");
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // ── Panel variant ───────────────────────────────────────────────────────────
   if (variant === "panel") {
     return (
       <div className="flex items-start gap-3 p-3 rounded-2xl bg-white/[0.04] ring-1 ring-white/[0.07]">
@@ -60,21 +101,30 @@ export default function UserCard({
             </Link>
             <ReputationBadge reputation={user.reputation ?? 0} size="sm" />
           </div>
+
           {user.bio && (
             <p className="text-[11px] text-ivory/40 mt-0.5 line-clamp-1">
               {user.bio}
             </p>
           )}
+
           {!isCurrentUser && (
             <button
               onClick={handleFollow}
-              className={`mt-2 flex items-center gap-1 text-[11px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg transition-all duration-200 ${
+              disabled={loading}
+              className={`mt-2 flex items-center gap-1 text-[11px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg transition-all duration-200 disabled:opacity-50 ${
                 followed
                   ? "text-accent/70 bg-accent/8 hover:bg-accent/12"
                   : "text-ivory/40 bg-white/[0.05] hover:text-accent hover:bg-accent/8"
               }`}
             >
-              {followed ? <UserCheck size={11} /> : <UserPlus size={11} />}
+              {loading ? (
+                <Loader2 size={11} className="animate-spin" />
+              ) : followed ? (
+                <UserCheck size={11} />
+              ) : (
+                <UserPlus size={11} />
+              )}
               {followed ? "Following" : "Follow"}
             </button>
           )}
@@ -83,7 +133,7 @@ export default function UserCard({
     );
   }
 
-  // Inline variant — compact row (used in post headers)
+  // ── Inline variant ──────────────────────────────────────────────────────────
   return (
     <Link
       href={`/profile/${user._id}`}

@@ -16,6 +16,9 @@ import {
   Trash2,
   Check,
   Menu,
+  Clock,
+  Calendar,
+  Trash,
 } from "lucide-react";
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
@@ -107,6 +110,7 @@ export default function ChatWindow({
   const aiMenuRefMobile = useRef(null);
 
   // Scheduled messages UI
+  const [scheduleDropdownOpen, setScheduleDropdownOpen] = useState(false);
   const [scheduleMode, setScheduleMode] = useState(false);
   const [sendAt, setSendAt] = useState("");
   const [scheduling, setScheduling] = useState(false);
@@ -114,6 +118,8 @@ export default function ChatWindow({
   const [scheduledItems, setScheduledItems] = useState([]);
   const [showScheduledPanel, setShowScheduledPanel] = useState(false);
   const [loadingScheduled, setLoadingScheduled] = useState(false);
+
+  const scheduleDropdownRef = useRef(null);
 
   // Edit/Delete UI
   const [editingMessageId, setEditingMessageId] = useState(null);
@@ -173,13 +179,26 @@ export default function ChatWindow({
       if (aiMenuOpen && outsideDesktop && outsideMobile) {
         setAiMenuOpen(false);
       }
+      // Close schedule dropdown on outside click
+      if (
+        scheduleDropdownRef.current &&
+        !scheduleDropdownRef.current.contains(e.target)
+      ) {
+        setScheduleDropdownOpen(false);
+      }
     };
 
-    if (reactionPickerMsgId || showEmojiPicker || showGifPicker || aiMenuOpen) {
+    if (
+      reactionPickerMsgId ||
+      showEmojiPicker ||
+      showGifPicker ||
+      aiMenuOpen ||
+      scheduleDropdownOpen
+    ) {
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [reactionPickerMsgId, showEmojiPicker, showGifPicker, aiMenuOpen]);
+  }, [reactionPickerMsgId, showEmojiPicker, showGifPicker, aiMenuOpen, scheduleDropdownOpen]);
 
   const handleEmojiClick = (emojiData) =>
     setText((prev) => prev + emojiData.emoji);
@@ -559,8 +578,8 @@ export default function ChatWindow({
       console.error(err);
       toast.error(
         err?.response?.data?.error ||
-          err?.response?.data?.message ||
-          "Failed to load scheduled messages",
+        err?.response?.data?.message ||
+        "Failed to load scheduled messages",
       );
     } finally {
       setLoadingScheduled(false);
@@ -617,8 +636,8 @@ export default function ChatWindow({
       console.error(err);
       toast.error(
         err?.response?.data?.error ||
-          err?.response?.data?.message ||
-          "Failed to cancel scheduled message",
+        err?.response?.data?.message ||
+        "Failed to cancel scheduled message",
       );
     }
   };
@@ -676,8 +695,8 @@ export default function ChatWindow({
       console.error(err);
       toast.error(
         err?.response?.data?.error ||
-          err?.response?.data?.message ||
-          "Failed to schedule",
+        err?.response?.data?.message ||
+        "Failed to schedule",
       );
     } finally {
       setScheduling(false);
@@ -687,9 +706,6 @@ export default function ChatWindow({
   const handleSend = async (e) => {
     e.preventDefault();
     if (!text.trim() || !conversation) return;
-
-    // Scheduled send
-    if (scheduleMode) return scheduleMessage();
 
     // Normal send (socket)
     if (!socket) return;
@@ -776,8 +792,8 @@ export default function ChatWindow({
     : 0;
   const groupOnlineCount = isGroup
     ? (conversation.participants || []).filter(
-        (p) => onlineUsers?.get(p._id)?.online,
-      ).length
+      (p) => onlineUsers?.get(p._id)?.online,
+    ).length
     : 0;
   const groupAvatarColors = isGroup
     ? getGroupAvatarColor(conversation.name)
@@ -835,11 +851,10 @@ export default function ChatWindow({
             <>
               <div className="relative">
                 <div
-                  className={`rounded-2xl overflow-hidden ${
-                    isParticipantOnline
+                  className={`rounded-2xl overflow-hidden ${isParticipantOnline
                       ? "ring-2 ring-accent/60 ring-offset-1 ring-offset-[#0a0e13]"
                       : ""
-                  }`}
+                    }`}
                 >
                   <Image
                     src={
@@ -854,9 +869,8 @@ export default function ChatWindow({
                   />
                 </div>
                 <div
-                  className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-obsidian ${
-                    isParticipantOnline ? "bg-emerald-400" : "bg-slate-600"
-                  }`}
+                  className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-obsidian ${isParticipantOnline ? "bg-emerald-400" : "bg-slate-600"
+                    }`}
                 />
               </div>
 
@@ -894,11 +908,10 @@ export default function ChatWindow({
           <button
             type="button"
             onClick={isGroup ? onToggleGroupInfo : undefined}
-            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
-              isGroup && showGroupInfo
+            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${isGroup && showGroupInfo
                 ? "bg-accent/20 text-accent border border-accent/30"
                 : "bg-white/4 hover:bg-accent/10 hover:text-accent text-ivory/30"
-            }`}
+              }`}
           >
             <Info size={16} />
           </button>
@@ -1091,8 +1104,7 @@ export default function ChatWindow({
 
                       <div
                         className={`${isGif ? "p-1" : "p-3.5"} rounded-2xl text-[13px] leading-relaxed relative z-10 
-                        ${
-                          editingMessageId === msg._id
+                        ${editingMessageId === msg._id
                             ? "bg-slate-surface text-ivory border border-accent/50 shadow-2xl shadow-accent/10 rounded-br-none"
                             : isMe
                               ? isGif
@@ -1101,7 +1113,7 @@ export default function ChatWindow({
                               : isGif
                                 ? "bg-transparent"
                                 : "bg-slate-surface text-ivory/80 rounded-bl-none shadow-sm shadow-black/5"
-                        } 
+                          } 
                         ${msg.isOptimistic ? "opacity-60" : ""}`}
                       >
                         {msg.replyTo && (
@@ -1202,7 +1214,7 @@ export default function ChatWindow({
                             emojiStyle="native"
                             width={
                               typeof window !== "undefined" &&
-                              window.innerWidth < 400
+                                window.innerWidth < 400
                                 ? Math.min(window.innerWidth - 32, 300)
                                 : 320
                             }
@@ -1523,11 +1535,10 @@ export default function ChatWindow({
                       setSelectedTone(tone);
                       setCustomTone("");
                     }}
-                    className={`px-3 py-1 text-[11px] rounded-full border transition-all ${
-                      selectedTone === tone && !customTone.trim()
+                    className={`px-3 py-1 text-[11px] rounded-full border transition-all ${selectedTone === tone && !customTone.trim()
                         ? "bg-accent/20 border-accent/40 text-accent"
                         : "bg-accent/10 border-accent/20 text-accent/80 hover:bg-accent/20 hover:text-accent"
-                    }`}
+                      }`}
                   >
                     {tone}
                   </button>
@@ -1547,11 +1558,10 @@ export default function ChatWindow({
                   type="button"
                   onClick={handleRewrite}
                   disabled={!activeTone || loadingRewrite}
-                  className={`flex items-center gap-1 px-3 py-1 text-[11px] font-bold rounded-full border transition-all ${
-                    !activeTone || loadingRewrite
+                  className={`flex items-center gap-1 px-3 py-1 text-[11px] font-bold rounded-full border transition-all ${!activeTone || loadingRewrite
                       ? "bg-white/5 border-white/10 text-ivory/20 cursor-not-allowed"
                       : "bg-accent/20 border-accent/40 text-accent hover:bg-accent/30"
-                  }`}
+                    }`}
                 >
                   {loadingRewrite ? (
                     <span className="w-2.5 h-2.5 rounded-full border-2 border-accent border-t-transparent animate-spin" />
@@ -1640,11 +1650,10 @@ export default function ChatWindow({
                 <div
                   key={code}
                   onClick={() => insertEmoji(emoji)}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-                    i === suggestionIndex
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${i === suggestionIndex
                       ? "bg-accent/20 text-accent"
                       : "hover:bg-white/6 text-ivory/40"
-                  }`}
+                    }`}
                 >
                   <span className="text-lg">{emoji}</span>
                   <span className="text-xs font-mono">{code}</span>
@@ -1660,11 +1669,10 @@ export default function ChatWindow({
               setShowEmojiPicker(false);
               setScheduleMode(false);
             }}
-            className={`hidden sm:inline-flex px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${
-              showGifPicker
+            className={`hidden sm:inline-flex px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${showGifPicker
                 ? "bg-accent/20 border-accent/40 text-accent"
                 : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
-            }`}
+              }`}
           >
             GIF
           </button>
@@ -1675,13 +1683,12 @@ export default function ChatWindow({
               onClick={() => setAiMenuOpen((v) => !v)}
               title="AI tools"
               aria-label="AI tools"
-              className={`inline-flex items-center gap-1 px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${
-                aiMenuOpen
+              className={`inline-flex items-center gap-1 px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${aiMenuOpen
                   ? "bg-accent/20 border-accent/40 text-accent"
                   : aiReplies.length > 0 || tonePickerOpen
                     ? "bg-accent/20 border-accent/40 text-accent"
                     : "bg-white/4 border-white/10 text-ivory/30 hover:bg-accent/10 hover:border-accent/30 hover:text-accent"
-              }`}
+                }`}
             >
               ✦ AI
             </button>
@@ -1700,11 +1707,10 @@ export default function ChatWindow({
                 <button
                   type="button"
                   disabled={!text.trim()}
-                  className={`w-full text-left px-3 py-2 text-[11px] transition-colors ${
-                    text.trim()
+                  className={`w-full text-left px-3 py-2 text-[11px] transition-colors ${text.trim()
                       ? "text-ivory/70 hover:bg-white/6 hover:text-ivory"
                       : "text-ivory/20 opacity-40 cursor-not-allowed"
-                  }`}
+                    }`}
                   onClick={() => {
                     if (!text.trim()) return;
                     setAiMenuOpen(false);
@@ -1718,78 +1724,121 @@ export default function ChatWindow({
             )}
           </div>
 
-          {!isGroup && (
-            <button
-              type="button"
-              title="View scheduled messages"
-              aria-label="View scheduled messages"
-              onClick={() => {
-                setShowScheduledPanel((v) => !v);
-                refreshScheduled();
-              }}
-              className="hidden sm:inline-flex px-2 py-1 mx-1 text-[10px] font-black rounded-md border bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
-            >
-              PENDING
-            </button>
-          )}
-
-          {!isGroup && (
-            <button
-              type="button"
-              title="Schedule message"
-              aria-label="Schedule message"
-              onClick={() => {
-                setScheduleMode((v) => !v);
-                setShowScheduledPanel(true);
-              }}
-              className={`hidden sm:inline-flex px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${
-                scheduleMode
-                  ? "bg-accent/20 border-accent/40 text-accent"
-                  : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
-              }`}
-            >
-              SCHEDULE
-            </button>
-          )}
-
-          {!isGroup && scheduleMode && (
-            <input
-              type="datetime-local"
-              value={sendAt}
-              min={new Date().toISOString().slice(0, 16)}
-              onChange={(e) => setSendAt(e.target.value)}
-              className="hidden sm:inline-flex mx-1 px-2 py-1 rounded-md bg-accent border border-white/10 text-ivory/80 text-[11px]"
-            />
-          )}
-
           <button
             type="button"
             onClick={() => {
               setShowEmojiPicker(!showEmojiPicker);
               setShowGifPicker(false);
-              setScheduleMode(false);
             }}
-            className={`w-9 h-9 flex items-center justify-center transition-all ${
-              showEmojiPicker
+            className={`w-9 h-9 flex items-center justify-center transition-all ${showEmojiPicker
                 ? "text-accent"
                 : "text-ivory/30 hover:text-ivory/60"
-            }`}
+              }`}
             title="Emoji"
             aria-label="Emoji"
           >
             <Smile size={20} />
           </button>
 
+          {/* Schedule Dropdown */}
+          {!isGroup && (
+            <div ref={scheduleDropdownRef} className="relative inline-flex">
+              <button
+                type="button"
+                onClick={() => setScheduleDropdownOpen((v) => !v)}
+                className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${scheduleDropdownOpen
+                    ? "bg-accent/20 text-accent"
+                    : "text-ivory/30 hover:text-ivory/60"
+                  }`}
+                title="Schedule or view pending"
+              >
+                <Clock size={18} />
+              </button>
+
+              {scheduleDropdownOpen && (
+                <div className="absolute bottom-full right-0 mb-2 w-56 bg-deep border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                  {/* Header */}
+                  <div className="px-4 py-3 border-b border-white/8 flex items-center justify-between">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-ivory/40">
+                      Schedule Message
+                    </span>
+                    <button
+                      onClick={() => setScheduleDropdownOpen(false)}
+                      className="text-ivory/20 hover:text-ivory transition-colors"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+
+                  {/* Content */}
+                  <div className="p-3 space-y-2">
+                    {/* Schedule Option */}
+                    <div>
+                      <label className="text-[11px] font-mono text-ivory/50 mb-2 block">
+                        Send at
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={sendAt}
+                        min={new Date().toISOString().slice(0, 16)}
+                        onChange={(e) => setSendAt(e.target.value)}
+                        className="w-full bg-white/4 border border-white/10 rounded-lg px-2.5 py-2 text-xs text-ivory/80 outline-none focus:border-accent/40 transition-colors"
+                      />
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!sendAt) {
+                            toast.error("Please select a date and time");
+                            return;
+                          }
+                          await scheduleMessage();
+                          setScheduleDropdownOpen(false);
+                        }}
+                        disabled={!sendAt || scheduling}
+                        className="w-full mt-2 px-3 py-1.5 bg-accent/20 hover:bg-accent/30 disabled:opacity-50 disabled:cursor-not-allowed text-accent text-[11px] font-bold rounded-lg transition-all"
+                      >
+                        {scheduling ? "Scheduling..." : "Schedule"}
+                      </button>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="h-px bg-white/5" />
+
+                    {/* Pending Messages */}
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowScheduledPanel(true);
+                          refreshScheduled();
+                          setScheduleDropdownOpen(false);
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-semibold text-ivory/70 hover:bg-white/5 rounded-lg transition-colors"
+                      >
+                        <Calendar size={14} className="text-accent/60" />
+                        View Pending
+                        {scheduledItems.length > 0 && (
+                          <span className="ml-auto px-2 py-0.5 bg-accent/20 text-accent text-[10px] font-mono rounded">
+                            {scheduledItems.length}
+                          </span>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <button
             type="submit"
-            disabled={scheduling}
-            className={`w-9 h-9 flex items-center justify-center rounded-xl ml-1 transition-all active:scale-95 shadow-lg ${
-              scheduling
-                ? "bg-slate-700 text-ivory/40 cursor-not-allowed"
+            disabled={scheduling || !text.trim()}
+            className={`w-9 h-9 flex items-center justify-center rounded-xl ml-1 transition-all active:scale-95 shadow-lg ${!text.trim() || scheduling
+                ? "bg-slate-700 text-ivory/40 cursor-not-allowed opacity-50"
                 : "bg-accent hover:bg-accent/90 text-black shadow-accent/20"
-            }`}
-            title={scheduleMode ? "Schedule send" : "Send"}
-            aria-label={scheduleMode ? "Schedule send" : "Send"}
+              }`}
+            title="Send"
+            aria-label="Send"
           >
             <Send size={18} />
           </button>
@@ -1801,13 +1850,11 @@ export default function ChatWindow({
               onClick={() => {
                 setShowGifPicker(!showGifPicker);
                 setShowEmojiPicker(false);
-                setScheduleMode(false);
               }}
-              className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${
-                showGifPicker
+              className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${showGifPicker
                   ? "bg-accent/20 border-accent/40 text-accent"
                   : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
-              }`}
+                }`}
             >
               GIF
             </button>
@@ -1818,13 +1865,12 @@ export default function ChatWindow({
                 onClick={() => setAiMenuOpen((v) => !v)}
                 title="AI tools"
                 aria-label="AI tools"
-                className={`inline-flex items-center gap-1 px-2 py-1 text-[10px] font-black rounded-md border transition-all ${
-                  aiMenuOpen
+                className={`inline-flex items-center gap-1 px-2 py-1 text-[10px] font-black rounded-md border transition-all ${aiMenuOpen
                     ? "bg-accent/20 border-accent/40 text-accent"
                     : aiReplies.length > 0 || tonePickerOpen
                       ? "bg-accent/20 border-accent/40 text-accent"
                       : "bg-white/4 border-white/10 text-ivory/30 hover:bg-accent/10 hover:border-accent/30 hover:text-accent"
-                }`}
+                  }`}
               >
                 ✦ AI
               </button>
@@ -1843,11 +1889,10 @@ export default function ChatWindow({
                   <button
                     type="button"
                     disabled={!text.trim()}
-                    className={`w-full text-left px-3 py-2 text-[11px] transition-colors ${
-                      text.trim()
+                    className={`w-full text-left px-3 py-2 text-[11px] transition-colors ${text.trim()
                         ? "text-ivory/70 hover:bg-white/6 hover:text-ivory"
                         : "text-ivory/20 opacity-40 cursor-not-allowed"
-                    }`}
+                      }`}
                     onClick={() => {
                       if (!text.trim()) return;
                       setAiMenuOpen(false);
@@ -1862,47 +1907,19 @@ export default function ChatWindow({
             </div>
 
             {!isGroup && (
-              <button
-                type="button"
-                title="View scheduled messages"
-                aria-label="View scheduled messages"
-                onClick={() => {
-                  setShowScheduledPanel((v) => !v);
-                  refreshScheduled();
-                }}
-                className="px-2 py-1 text-[10px] font-black rounded-md border bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
-              >
-                PENDING
-              </button>
-            )}
-
-            {!isGroup && (
-              <button
-                type="button"
-                title="Schedule message"
-                aria-label="Schedule message"
-                onClick={() => {
-                  setScheduleMode((v) => !v);
-                  setShowScheduledPanel(true);
-                }}
-                className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${
-                  scheduleMode
-                    ? "bg-accent/20 border-accent/40 text-accent"
-                    : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
-                }`}
-              >
-                SCHEDULE
-              </button>
-            )}
-
-            {!isGroup && scheduleMode && (
-              <input
-                type="datetime-local"
-                value={sendAt}
-                min={new Date().toISOString().slice(0, 16)}
-                onChange={(e) => setSendAt(e.target.value)}
-                className="flex-1 min-w-0 px-2 py-1 rounded-md bg-accent border border-white/10 text-ivory/80 text-[11px]"
-              />
+              <div className="relative inline-flex">
+                <button
+                  type="button"
+                  onClick={() => setScheduleDropdownOpen((v) => !v)}
+                  className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${scheduleDropdownOpen
+                      ? "bg-accent/20 border-accent/40 text-accent"
+                      : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+                    }`}
+                  title="Schedule or view pending"
+                >
+                  ⏱ Schedule
+                </button>
+              </div>
             )}
           </div>
         </div>

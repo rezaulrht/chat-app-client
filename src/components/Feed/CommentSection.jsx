@@ -38,6 +38,39 @@ function CommentAvatar({ author }) {
   );
 }
 
+function MinimalDeleteModal({ open, onCancel, onConfirm }) {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-4">
+      <div className="w-full max-w-xs rounded-2xl bg-deep/95 p-4 ring-1 ring-white/12 shadow-2xl">
+        <p className="text-[13px] font-display font-semibold text-ivory/90">
+          Delete this comment?
+        </p>
+        <p className="mt-1 text-[11px] font-mono text-ivory/40">
+          This action cannot be undone.
+        </p>
+        <div className="mt-4 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-lg px-3 py-1.5 text-[11px] font-semibold text-ivory/45 transition-colors hover:bg-white/6 hover:text-ivory/70"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="rounded-lg bg-red-400/12 px-3 py-1.5 text-[11px] font-semibold text-red-400 ring-1 ring-red-400/25 transition-colors hover:bg-red-400/18"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Single comment ────────────────────────────────────────────────────────────
 function CommentItem({
   comment,
@@ -55,6 +88,7 @@ function CommentItem({
   const [menuOpen, setMenuOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [draftText, setDraftText] = useState(comment.content || "");
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const authorId = comment.author?._id?.toString?.() || String(comment.author?._id || "");
   const isOwn = authorId && String(currentUserId || "") === authorId;
   const commentTime = timeAgo(comment.createdAt);
@@ -75,167 +109,176 @@ function CommentItem({
   };
 
   return (
-    <div
-      className={`flex gap-2.5 ${depth > 0 ? "ml-10" : ""}`}
-    >
-      <CommentAvatar author={comment.author} />
+    <>
+      <div
+        className={`flex gap-2.5 ${depth > 0 ? "ml-10" : ""}`}
+      >
+        <CommentAvatar author={comment.author} />
 
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start gap-2">
-          <div className="min-w-0 flex-1 rounded-[18px] bg-white/6 px-3 py-2.5 ring-1 ring-white/8">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="truncate font-display text-[13px] font-semibold text-ivory/88">
-                {comment.author?.name ?? "Unknown"}
-              </span>
-              {isAccepted && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-400/10 px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide text-emerald-300/80">
-                  <CheckCircle2 size={10} /> Accepted
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start gap-2">
+            <div className="min-w-0 flex-1 rounded-[18px] bg-white/6 px-3 py-2.5 ring-1 ring-white/8">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="truncate font-display text-[13px] font-semibold text-ivory/88">
+                  {comment.author?.name ?? "Unknown"}
                 </span>
-              )}
-            </div>
-
-            <div className="mt-1.5 text-[13px] leading-relaxed text-ivory/72">
-              {comment.isDeleted ? (
-                <span className="italic text-ivory/25">[deleted]</span>
-              ) : isEditing ? (
-                <div className="flex flex-col gap-2">
-                  <textarea
-                    value={draftText}
-                    onChange={(e) => setDraftText(e.target.value)}
-                    rows={3}
-                    className="w-full rounded-2xl bg-white/4 px-3 py-2 text-[13px] text-ivory/80 placeholder:text-ivory/20 outline-none ring-1 ring-white/7 transition-all focus:ring-accent/30 resize-none font-sans"
-                  />
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={handleSaveEdit}
-                      className="rounded-lg bg-accent/15 px-2.5 py-1 text-[11px] font-semibold text-accent ring-1 ring-accent/30 transition-all hover:bg-accent/25"
-                    >
-                      Save
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDraftText(comment.content || "");
-                        setIsEditing(false);
-                      }}
-                      className="rounded-lg px-2.5 py-1 text-[11px] font-semibold text-ivory/40 transition-all hover:bg-white/6 hover:text-ivory/70"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                comment.content
-              )}
-            </div>
-          </div>
-
-          <div className="relative shrink-0 pt-1">
-            <button
-              type="button"
-              onClick={() => setMenuOpen((v) => !v)}
-              className="flex h-7 w-7 items-center justify-center rounded-full text-ivory/22 transition-all hover:bg-white/6 hover:text-ivory/55"
-            >
-              <MoreHorizontal size={14} />
-            </button>
-            {menuOpen && (
-              <div className="absolute right-0 top-8 z-20 w-32 rounded-xl glass-card py-1 shadow-xl ring-1 ring-white/8">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    onReply?.(comment);
-                  }}
-                  className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] text-ivory/60 hover:bg-white/5 hover:text-ivory"
-                >
-                  <CornerDownRight size={11} /> Reply
-                </button>
-                {isOwn && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMenuOpen(false);
-                        setDraftText(comment.content || "");
-                        setIsEditing(true);
-                      }}
-                      className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] text-ivory/60 hover:bg-white/5 hover:text-ivory"
-                    >
-                      <Pencil size={11} /> Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMenuOpen(false);
-                        const confirmed = window.confirm("Delete this comment?");
-                        if (!confirmed) return;
-                        onDelete?.(comment._id?.toString?.() || String(comment._id));
-                      }}
-                      className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] text-red-400/70 hover:bg-red-400/5 hover:text-red-400"
-                    >
-                      <Trash2 size={11} /> Delete
-                    </button>
-                  </>
+                {isAccepted && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-400/10 px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide text-emerald-300/80">
+                    <CheckCircle2 size={10} /> Accepted
+                  </span>
                 )}
               </div>
-            )}
-          </div>
-        </div>
 
-        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 pl-2 text-[11px] font-semibold text-ivory/34">
-          <button
-            type="button"
-            onClick={() => onReply?.(comment)}
-            className="transition-colors hover:text-ivory/62"
-            disabled={isEditing}
-          >
-            Reply
-          </button>
-          {isQuestionAuthor && !isAccepted && depth === 0 && (
+              <div className="mt-1.5 text-[13px] leading-relaxed text-ivory/72">
+                {comment.isDeleted ? (
+                  <span className="italic text-ivory/25">[deleted]</span>
+                ) : isEditing ? (
+                  <div className="flex flex-col gap-2">
+                    <textarea
+                      value={draftText}
+                      onChange={(e) => setDraftText(e.target.value)}
+                      rows={3}
+                      className="w-full rounded-2xl bg-white/4 px-3 py-2 text-[13px] text-ivory/80 placeholder:text-ivory/20 outline-none ring-1 ring-white/7 transition-all focus:ring-accent/30 resize-none font-sans"
+                    />
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleSaveEdit}
+                        className="rounded-lg bg-accent/15 px-2.5 py-1 text-[11px] font-semibold text-accent ring-1 ring-accent/30 transition-all hover:bg-accent/25"
+                      >
+                        Save
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDraftText(comment.content || "");
+                          setIsEditing(false);
+                        }}
+                        className="rounded-lg px-2.5 py-1 text-[11px] font-semibold text-ivory/40 transition-all hover:bg-white/6 hover:text-ivory/70"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  comment.content
+                )}
+              </div>
+            </div>
+
+            <div className="relative shrink-0 pt-1">
+              <button
+                type="button"
+                onClick={() => setMenuOpen((v) => !v)}
+                className="flex h-7 w-7 items-center justify-center rounded-full text-ivory/22 transition-all hover:bg-white/6 hover:text-ivory/55"
+              >
+                <MoreHorizontal size={14} />
+              </button>
+              {menuOpen && (
+                <div className="absolute right-0 top-8 z-20 w-32 rounded-xl glass-card py-1 shadow-xl ring-1 ring-white/8">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      onReply?.(comment);
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] text-ivory/60 hover:bg-white/5 hover:text-ivory"
+                  >
+                    <CornerDownRight size={11} /> Reply
+                  </button>
+                  {isOwn && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMenuOpen(false);
+                          setDraftText(comment.content || "");
+                          setIsEditing(true);
+                        }}
+                        className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] text-ivory/60 hover:bg-white/5 hover:text-ivory"
+                      >
+                        <Pencil size={11} /> Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMenuOpen(false);
+                          setConfirmDeleteOpen(true);
+                        }}
+                        className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] text-red-400/70 hover:bg-red-400/5 hover:text-red-400"
+                      >
+                        <Trash2 size={11} /> Delete
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 pl-2 text-[11px] font-semibold text-ivory/34">
             <button
               type="button"
-              onClick={() => onAccept?.(comment._id)}
-              className="transition-colors hover:text-emerald-300/80"
-              title="Mark as accepted answer"
+              onClick={() => onReply?.(comment)}
+              className="transition-colors hover:text-ivory/62"
+              disabled={isEditing}
             >
-              Accept answer
+              Reply
             </button>
-          )}
-          <span className="font-mono text-ivory/24">{commentTime}</span>
-        </div>
-
-        {!comment.isDeleted && (
-          <div className="mt-2 pl-2">
-            <ReactionBar
-              reactions={comment.reactions ?? {}}
-              currentUserId={currentUserId}
-              onReact={(emoji) => onReact?.(comment._id, emoji)}
-              variant="comment"
-            />
+            {isQuestionAuthor && !isAccepted && depth === 0 && (
+              <button
+                type="button"
+                onClick={() => onAccept?.(comment._id)}
+                className="transition-colors hover:text-emerald-300/80"
+                title="Mark as accepted answer"
+              >
+                Accept answer
+              </button>
+            )}
+            <span className="font-mono text-ivory/24">{commentTime}</span>
           </div>
-        )}
 
-        {replies.length > 0 && (
-          <div className="mt-3 flex flex-col gap-3 pl-2">
-            {replies.map((r) => (
-              <CommentItem
-                key={r._id}
-                comment={r}
+          {!comment.isDeleted && (
+            <div className="mt-2 pl-2">
+              <ReactionBar
+                reactions={comment.reactions ?? {}}
                 currentUserId={currentUserId}
-                isQuestionAuthor={false}
-                isAccepted={false}
-                onReply={onReply}
-                onReact={onReact}
-                onDelete={onDelete}
-                onEdit={onEdit}
-                depth={1}
+                onReact={(emoji) => onReact?.(comment._id, emoji)}
+                variant="comment"
               />
-            ))}
-          </div>
-        )}
+            </div>
+          )}
+
+          {replies.length > 0 && (
+            <div className="mt-3 flex flex-col gap-3 pl-2">
+              {replies.map((r) => (
+                <CommentItem
+                  key={r._id}
+                  comment={r}
+                  currentUserId={currentUserId}
+                  isQuestionAuthor={false}
+                  isAccepted={false}
+                  onReply={onReply}
+                  onReact={onReact}
+                  onDelete={onDelete}
+                  onEdit={onEdit}
+                  depth={1}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+
+      <MinimalDeleteModal
+        open={confirmDeleteOpen}
+        onCancel={() => setConfirmDeleteOpen(false)}
+        onConfirm={() => {
+          setConfirmDeleteOpen(false);
+          onDelete?.(comment._id?.toString?.() || String(comment._id));
+        }}
+      />
+    </>
   );
 }
 

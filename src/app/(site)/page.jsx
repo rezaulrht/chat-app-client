@@ -1,4 +1,5 @@
 import React from "react";
+import LenisRoot from "@/components/LenisRoot";
 
 import HeroSection      from "@/components/Landing/HeroSection";
 import DemoSection      from "@/components/Landing/DemoSection";
@@ -13,17 +14,19 @@ import CustomerSlider   from "@/components/Landing/CustomerSlider";
 
 export default function HomePage() {
   return (
-    <div>
-      <HeroSection />
-      <DemoSection />
-      <Features />
-      <StickyStory />
-      <UseCases />
-      <Integrations />
-      <CompetitiveEdge />
-      <Analytics />
-      <Faq />
-      <CustomerSlider />
-    </div>
+    <LenisRoot>
+      <div>
+        <HeroSection />
+        <DemoSection />
+        <Features />
+        <StickyStory />
+        <UseCases />
+        <Integrations />
+        <CompetitiveEdge />
+        <Analytics />
+        <Faq />
+        <CustomerSlider />
+      </div>
+    </LenisRoot>
   );
 }

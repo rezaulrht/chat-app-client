@@ -1282,7 +1282,6 @@ export default function WorkspaceSettingsModal({ workspaceId, onClose }) {
       <div className="relative w-full max-w-3xl h-[88vh] max-h-[720px] bg-[#0e0e17] rounded-3xl shadow-2xl shadow-black/60 flex overflow-hidden ring-1 ring-white/6 mx-4">
         {/* ── Left nav */}
         <nav
-          data-lenis-prevent="true"
           className="w-52 shrink-0 border-r border-white/6 bg-white/[0.015] flex flex-col py-4 overflow-y-auto"
         >
           <div className="px-4 mb-5">
@@ -1339,7 +1338,6 @@ export default function WorkspaceSettingsModal({ workspaceId, onClose }) {
 
           {/* Scrollable content */}
           <div
-            data-lenis-prevent="true"
             className="flex-1 overflow-y-auto p-6 relative"
           >
             {activeTab === "overview" && (

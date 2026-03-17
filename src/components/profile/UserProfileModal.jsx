@@ -187,7 +187,7 @@ export default function UserProfileModal({ onClose }) {
         </div>
 
         {/* ── scrollable body ──────────────────────────────────────── */}
-        <div className="flex-1 overflow-y-auto scrollbar-hide px-6 pb-6" data-lenis-prevent>
+        <div className="flex-1 overflow-y-auto scrollbar-hide px-6 pb-6">
           {/* ═══════════════ PROFILE TAB ═══════════════ */}
           {activeTab === "profile" && (
             <div className="space-y-5">

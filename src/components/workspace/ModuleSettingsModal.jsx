@@ -57,7 +57,7 @@ export default function ModuleSettingsModal({ workspaceId, moduleId, onClose }) 
       <div className="relative w-full max-w-3xl h-[85vh] md:h-[600px] flex flex-col md:flex-row bg-obsidian border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
         
         {/* Sidebar */}
-        <div data-lenis-prevent="true" className="md:w-60 bg-white/[0.02] border-r border-white/5 flex flex-col p-4 shrink-0 overflow-y-auto">
+        <div className="md:w-60 bg-white/[0.02] border-r border-white/5 flex flex-col p-4 shrink-0 overflow-y-auto">
           <div className="mb-6 px-2">
             <h2 className="text-ivory font-display font-bold text-[16px] truncate">
               {moduleData.name}
@@ -90,7 +90,7 @@ export default function ModuleSettingsModal({ workspaceId, moduleId, onClose }) 
         </div>
 
         {/* Content Area */}
-        <div data-lenis-prevent="true" className="flex-1 overflow-y-auto p-6 relative">
+        <div className="flex-1 overflow-y-auto p-6 relative">
           <button
             onClick={onClose}
             className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 text-ivory/40 hover:text-ivory transition-all backdrop-blur-md z-10"

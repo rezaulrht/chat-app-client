@@ -26,8 +26,13 @@ export default function ModulePage() {
   return (
     <ProtectedRoute>
       <div className="flex h-screen w-full bg-obsidian overflow-hidden">
+        {/* ── Mobile Sidebar Overlay */}
+        {isSidebarOpen && (
+          <div className="md:hidden fixed inset-0 z-40 bg-black/50" onClick={() => setIsSidebarOpen(false)} />
+        )}
+        
         {/* ── Left sidebar (nav + channels) */}
-        <div className="hidden md:flex flex-col shrink-0 h-full w-72 overflow-hidden border-r border-white/6">
+        <div className={`${isSidebarOpen ? 'flex absolute inset-y-0 left-0 z-50 bg-obsidian' : 'hidden'} md:static md:flex flex-col shrink-0 h-full w-72 overflow-hidden border-r border-white/6`}>
           <WorkspaceSidebar
             activeView={activeView}
             setActiveView={setActiveView}

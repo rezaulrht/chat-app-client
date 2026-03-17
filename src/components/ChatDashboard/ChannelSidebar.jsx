@@ -484,13 +484,15 @@ export default function ChannelSidebar({
         </div>
 
         <div className="flex items-center gap-0.5 opacity-40 group-hover/user:opacity-80 transition-opacity">
-          <button
-            onClick={() => onSettingsOpen?.()}
-            className="p-1.5 rounded-lg hover:bg-white/6 text-ivory/40 hover:text-ivory/60 transition-all duration-200"
-            title="Workspace Settings"
-          >
-            <Settings size={15} />
-          </button>
+          {(workspace?.myRole === "owner" || workspace?.myRole === "admin") && (
+            <button
+              onClick={() => onSettingsOpen?.()}
+              className="p-1.5 rounded-lg hover:bg-white/6 text-ivory/40 hover:text-ivory/60 transition-all duration-200"
+              title="Workspace Settings"
+            >
+              <Settings size={15} />
+            </button>
+          )}
           <button
             onClick={() => logout()}
             className="p-1.5 rounded-lg hover:bg-white/6 text-ivory/40 hover:text-ivory/60 transition-all duration-200"

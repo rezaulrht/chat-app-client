@@ -29,6 +29,7 @@ export default function ShareModal({ post, open, onClose }) {
   const [sent, setSent] = useState(false);
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   // Load real conversations when modal opens
   useEffect(() => {
@@ -36,6 +37,7 @@ export default function ShareModal({ post, open, onClose }) {
     setSelected(null);
     setMessage("");
     setSent(false);
+    setError(null);
 
     const load = async () => {
       setLoading(true);
@@ -44,7 +46,10 @@ export default function ShareModal({ post, open, onClose }) {
         setConversations(res.data || []);
       } catch (err) {
         console.error("ShareModal: failed to load conversations", err.message);
-        setConversations([]);
+        // Preserve any previously loaded list; show error instead of clearing
+        setError(
+          "Couldn't load conversations. Check your connection and try again.",
+        );
       } finally {
         setLoading(false);
       }
@@ -105,6 +110,7 @@ export default function ShareModal({ post, open, onClose }) {
       }, 1000);
     } catch (err) {
       console.error("ShareModal: failed to send", err.message);
+      setError("Failed to send. Please try again.");
     } finally {
       setSending(false);
     }
@@ -170,6 +176,10 @@ export default function ShareModal({ post, open, onClose }) {
             <div className="flex justify-center py-4">
               <Loader2 size={18} className="text-accent/40 animate-spin" />
             </div>
+          ) : error ? (
+            <p className="text-center text-[12px] font-mono text-red-400/70 py-4 px-2">
+              {error}
+            </p>
           ) : filtered.length === 0 ? (
             <p className="text-center text-[12px] font-mono text-ivory/20 py-4">
               No conversations found

@@ -3,21 +3,24 @@ import api from "@/app/api/Axios";
 
 export async function createScheduledMessage({
   conversationId,
+  moduleId,
+  workspaceId,
   content,
   sendAt,
 }) {
   const res = await api.post("/api/messages/schedule", {
     conversationId,
+    moduleId,
+    workspaceId,
     content,
     sendAt,
   });
   return res.data;
 }
 
-export async function listScheduledMessages({ conversationId }) {
-  const res = await api.get(
-    `/api/messages/scheduled?conversationId=${conversationId}`,
-  );
+export async function listScheduledMessages({ conversationId, moduleId }) {
+  const queryParam = conversationId ? `conversationId=${conversationId}` : `moduleId=${moduleId}`;
+  const res = await api.get(`/api/messages/scheduled?${queryParam}`);
   return res.data;
 }
 

@@ -48,8 +48,8 @@ function timeAgo(date) {
 }
 
 function questionStatus(post) {
-  if (post.acceptedAnswer) return "resolved";
-  if ((post.commentCount ?? 0) > 0) return "answered";
+  if (post.acceptedAnswer || post.acceptedComment) return "resolved";
+  if ((post.commentCount ?? post.commentsCount ?? 0) > 0) return "answered";
   return "open";
 }
 
@@ -99,6 +99,8 @@ export default function PostDetail({
   const typeMeta = TYPE_META[post.type] ?? TYPE_META.post;
   const TypeIcon = typeMeta.icon;
   const isOwn = post.author?._id === currentUserId;
+  const effectiveCommentCount = post.commentCount ?? post.commentsCount ?? 0;
+  const acceptedAnswerId = post.acceptedAnswer ?? post.acceptedComment ?? null;
 
   return (
     <div className="flex flex-col gap-0 h-full overflow-y-auto scrollbar-hide">
@@ -265,8 +267,8 @@ export default function PostDetail({
             onReact={(emoji) => onReact?.(post._id, emoji)}
           />
           <span className="flex items-center gap-1.5 text-[12px] font-mono text-ivory/25 ml-auto">
-            <MessageSquare size={12} /> {post.commentCount ?? 0} comment
-            {post.commentCount !== 1 ? "s" : ""}
+            <MessageSquare size={12} /> {effectiveCommentCount} comment
+            {effectiveCommentCount !== 1 ? "s" : ""}
           </span>
         </div>
 
@@ -274,8 +276,8 @@ export default function PostDetail({
         <CommentSection
           comments={comments}
           currentUserId={currentUserId}
-          isQuestionPost={post.type === "question"}
-          acceptedAnswerId={post.acceptedAnswer}
+          isQuestionPost={post.type === "question" && isOwn}
+          acceptedAnswerId={acceptedAnswerId}
           onAddComment={(payload) => onAddComment?.(post._id, payload)}
           onReact={(commentId, emoji) =>
             onReactComment?.(post._id, commentId, emoji)

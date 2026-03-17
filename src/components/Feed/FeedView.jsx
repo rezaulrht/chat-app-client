@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { Edit3 } from "lucide-react";
 import toast from "react-hot-toast";
 import PostCard from "./PostCard";
@@ -97,6 +98,16 @@ export default function FeedView() {
   const [sharePost, setSharePost] = useState(null); // ShareModal target
   const [editTarget, setEditTarget] = useState(null);
   const [currentUserId, setCurrentUserId] = useState("");
+
+  const searchParams = useSearchParams();
+
+  // Auto-open a post when ?post=<id> is in the URL (e.g. from a shared chat link)
+  useEffect(() => {
+    const postId = searchParams?.get("post");
+    if (!postId || !posts?.length) return;
+    const found = posts.find((p) => p._id === postId);
+    if (found) setActivePost(found);
+  }, [searchParams, posts]);
 
   const displayPosts = posts;
 

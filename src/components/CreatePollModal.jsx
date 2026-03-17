@@ -11,8 +11,10 @@ export default function CreatePollModal({
   onPollCreated,
 }) {
   const [question, setQuestion] = useState("");
-  const [options, setOptions] = useState(["", ""]);
-  // ☝️ Minimum 2 options দিয়ে শুরু করছি
+  const [options, setOptions] = useState([
+    { id: "opt-1", value: "" },
+    { id: "opt-2", value: "" },
+  ]);
 
   const [allowMultiple, setAllowMultiple] = useState(false);
   const [hasExpiry, setHasExpiry] = useState(false);
@@ -28,31 +30,32 @@ export default function CreatePollModal({
       toast.error("Maximum 10 options allowed");
       return;
     }
-    setOptions([...options, ""]);
-    // ☝️ Empty string নতুন option হিসেবে add করছি
+    // ✅ Generate unique ID for new option
+    setOptions([...options, { id: `opt-${Date.now()}`, value: "" }]);
   };
 
   // ──────────────────────────────────────────────────────────
   // Remove option
   // ──────────────────────────────────────────────────────────
 
-  const handleRemoveOption = (index) => {
+  const handleRemoveOption = (optionId) => {
     if (options.length <= 2) {
       toast.error("At least 2 options are required");
       return;
     }
-    setOptions(options.filter((_, i) => i !== index));
-    // ☝️ filter দিয়ে specific index বাদ দিচ্ছি
+    // ✅ Remove by ID instead of index
+    setOptions(options.filter((opt) => opt.id !== optionId));
   };
 
   // ──────────────────────────────────────────────────────────
   // Update option text
   // ──────────────────────────────────────────────────────────
 
-  const handleOptionChange = (index, value) => {
-    const newOptions = [...options];
-    newOptions[index] = value;
-    setOptions(newOptions);
+  const handleOptionChange = (optionId, value) => {
+    // ✅ Update by ID instead of index
+    setOptions(
+      options.map((opt) => (opt.id === optionId ? { ...opt, value } : opt)),
+    );
   };
 
   // ──────────────────────────────────────────────────────────
@@ -65,9 +68,9 @@ export default function CreatePollModal({
       toast.error("Please enter a poll question");
       return;
     }
-
-    const validOptions = options.filter((opt) => opt.trim());
-    // ☝️ খালি options বাদ দিচ্ছি
+    const validOptions = options
+      .filter((opt) => opt.value.trim())
+      .map((opt) => opt.value.trim());
 
     if (validOptions.length < 2) {
       toast.error("Please provide at least 2 options");
@@ -167,19 +170,21 @@ export default function CreatePollModal({
               Options
             </label>
             <div className="space-y-2">
-              {options.map((option, index) => (
-                <div key={index} className="flex items-center gap-2">
+              {options.map((option) => (
+                <div key={option.id} className="flex items-center gap-2">
                   <input
                     type="text"
-                    value={option}
-                    onChange={(e) => handleOptionChange(index, e.target.value)}
-                    placeholder={`Option ${index + 1}`}
+                    value={option.value}
+                    onChange={(e) =>
+                      handleOptionChange(option.id, e.target.value)
+                    }
+                    placeholder={`Option ${options.indexOf(option) + 1}`}
                     maxLength={200}
                     className="flex-1 px-4 py-2.5 bg-slate-surface border border-white/10 rounded-xl text-ivory text-sm placeholder:text-ivory/20 focus:outline-none focus:border-accent/50 transition-all"
                   />
                   {options.length > 2 && (
                     <button
-                      onClick={() => handleRemoveOption(index)}
+                      onClick={() => handleRemoveOption(option.id)}
                       className="w-9 h-9 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 flex items-center justify-center text-red-400 transition-all"
                       title="Remove option"
                     >

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { Check } from "lucide-react";
 import toast from "react-hot-toast";
@@ -13,16 +13,20 @@ export default function PollMessage({ message }) {
   const { poll } = message;
 
   const [localPoll, setLocalPoll] = useState(poll);
-  // ☝️ Local state যাতে optimistic update করতে পারি
-
   const [voting, setVoting] = useState(false);
 
+  // ✅ Track optimistic update state to prevent external updates from overwriting
+  const optimisticPendingRef = useRef(false);
+
   // ──────────────────────────────────────────────────────────
-  // Update local state when prop changes (socket update)
+  // Update local state when prop changes (but not during optimistic update)
   // ──────────────────────────────────────────────────────────
 
   useEffect(() => {
-    setLocalPoll(poll);
+    // ✅ Only update if we're not in the middle of an optimistic update
+    if (!optimisticPendingRef.current) {
+      setLocalPoll(poll);
+    }
   }, [poll]);
 
   // ──────────────────────────────────────────────────────────
@@ -51,10 +55,9 @@ export default function PollMessage({ message }) {
       opt.votes?.some((v) => v._id === user?._id || v === user?._id),
     )
     .map((opt) => opt.id);
-  // ☝️ User কোন কোন options এ vote দিয়েছে তার array
 
   // ──────────────────────────────────────────────────────────
-  // Handle vote
+  // Handle vote with true optimistic updates and rollback on error
   // ──────────────────────────────────────────────────────────
 
   const handleVote = async (optionId) => {
@@ -66,20 +69,54 @@ export default function PollMessage({ message }) {
     if (voting) return;
 
     setVoting(true);
+    optimisticPendingRef.current = true; // ✅ Mark optimistic update in progress
+
+    // ✅ Save previous state for rollback on error
+    const previousPoll = JSON.parse(JSON.stringify(localPoll));
 
     try {
+      // ✅ OPTIMISTIC UPDATE - Apply changes immediately before API call
+      const updatedPoll = JSON.parse(JSON.stringify(localPoll));
+      const option = updatedPoll.options.find((opt) => opt.id === optionId);
+
+      if (option) {
+        const hasVoted = option.votes.some((v) => (v._id || v) === user?._id);
+
+        if (hasVoted) {
+          // Remove vote
+          option.votes = option.votes.filter((v) => (v._id || v) !== user?._id);
+        } else {
+          // Add vote
+          if (!updatedPoll.allowMultiple) {
+            // Single choice - remove from other options
+            updatedPoll.options.forEach((opt) => {
+              opt.votes = opt.votes.filter((v) => (v._id || v) !== user?._id);
+            });
+          }
+          // Add user to this option's votes
+          option.votes.push(user._id);
+        }
+
+        // Apply optimistic update immediately
+        setLocalPoll(updatedPoll);
+      }
+
+      // Make API call
       const res = await api.post(`/api/chat/messages/${message._id}/vote`, {
         optionId,
       });
 
-      // Update local state optimistically
+      // ✅ Merge server response (confirms or corrects optimistic update)
       setLocalPoll(res.data.poll);
-
     } catch (err) {
       console.error("Vote error:", err);
+
+      // ✅ ROLLBACK - Restore previous state on error
+      setLocalPoll(previousPoll);
       toast.error(err.response?.data?.message || "Failed to vote");
     } finally {
       setVoting(false);
+      optimisticPendingRef.current = false; // ✅ Clear optimistic flag
     }
   };
 
@@ -114,7 +151,6 @@ export default function PollMessage({ message }) {
             totalVotes > 0 ? Math.round((voteCount / totalVotes) * 100) : 0;
 
           const isVoted = userVotes.includes(option.id);
-          // ☝️ Current user এই option এ vote দিয়েছে কিনা
 
           return (
             <button
@@ -136,7 +172,6 @@ export default function PollMessage({ message }) {
                 className="absolute inset-0 rounded-xl bg-accent/10 transition-all duration-500"
                 style={{ width: `${percentage}%` }}
               />
-              {/* ☝️ CSS দিয়ে animated progress bar */}
 
               {/* Option Content */}
               <div className="relative px-4 py-3 flex items-center justify-between">
@@ -191,9 +226,11 @@ export default function PollMessage({ message }) {
         )}
       </div>
 
- {/* Show Voters (Optional) */}
- 
-     {totalVotes > 0 && (
+      {/* ──────────────────────────────────────────────── */}
+      {/* Show Voters (with defensive handling for string IDs) */}
+      {/* ──────────────────────────────────────────────── */}
+
+      {totalVotes > 0 && (
         <details className="mt-3 group">
           <summary className="text-xs text-accent cursor-pointer hover:text-accent/80 transition-colors list-none">
             <span className="group-open:hidden">Show who voted →</span>
@@ -208,37 +245,54 @@ export default function PollMessage({ message }) {
                 <div key={option.id} className="text-xs">
                   <p className="font-bold text-ivory/80 mb-1">{option.text}:</p>
                   <div className="flex flex-wrap gap-1">
-                    {option.votes.map((voter) => (
-                      <div
-                        key={voter._id || voter}
-                        className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 border border-white/10"
-                      >
-                        {voter.avatar ? (
-                          <Image
-                            src={voter.avatar}
-                            width={16}
-                            height={16}
-                            className="rounded-full"
-                            alt={voter.name || ""}
-                            unoptimized
-                          />
-                        ) : (
-                          <div
-                            className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold"
-                            style={{
-                              background: getGroupAvatarColor(voter.name || "")
-                                .bg,
-                              color: getGroupAvatarColor(voter.name || "").text,
-                            }}
-                          >
-                            {getGroupInitials(voter.name || "?")}
-                          </div>
-                        )}
-                        <span className="text-ivory/60">
-                          {voter.name || "Anonymous"}
-                        </span>
-                      </div>
-                    ))}
+                    {option.votes.map((voter) => {
+                      // ✅ Defensively handle voter as either string ID or object
+                      const isString = typeof voter === "string";
+                      const voterId = isString ? voter : voter._id;
+                      const displayName = isString
+                        ? "Anonymous"
+                        : voter.name || "Anonymous";
+                      const avatar = isString ? null : voter.avatar;
+
+                      return (
+                        <div
+                          key={voterId}
+                          className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 border border-white/10"
+                        >
+                          {avatar ? (
+                            <Image
+                              src={avatar}
+                              width={16}
+                              height={16}
+                              className="rounded-full"
+                              alt={displayName}
+                              unoptimized
+                            />
+                          ) : (
+                            <div
+                              className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold"
+                              style={{
+                                background: getGroupAvatarColor(
+                                  displayName === "Anonymous"
+                                    ? "?"
+                                    : displayName,
+                                ).bg,
+                                color: getGroupAvatarColor(
+                                  displayName === "Anonymous"
+                                    ? "?"
+                                    : displayName,
+                                ).text,
+                              }}
+                            >
+                              {getGroupInitials(
+                                displayName === "Anonymous" ? "?" : displayName,
+                              )}
+                            </div>
+                          )}
+                          <span className="text-ivory/60">{displayName}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );

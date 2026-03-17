@@ -219,12 +219,10 @@ export default function GroupInfoPanel({
       const res = await api.patch(`/api/chat/conversations/${convId}/info`, {
         description: trimmed,
       });
-      console.log("Description update response:", res.data); // ← ADD THIS
       onConversationUpdate?.(res.data);
       toast.success("Description updated");
       setEditingDesc(false);
     } catch (err) {
-      console.error("Error:", err.response?.data); // ← ADD THIS TOO
       toast.error(
         err?.response?.data?.message || "Failed to update description",
       );
@@ -342,10 +340,16 @@ export default function GroupInfoPanel({
             </p>
             {amAdmin && (
               <button
-                onClick={() => setEditingDesc(!editingDesc)}
-                className="text-accent text-xs flex items-center gap-1 hover:text-accent/80"
+                type="button"
+                onClick={() => {
+                  if (editingDesc) {
+                    // Cancelling edit - reset to original
+                    setEditDesc(group.description || "");
+                  }
+                  setEditingDesc(!editingDesc);
+                }}
+                className="..."
               >
-                <Edit2 size={11} />
                 {editingDesc ? "Cancel" : "Edit"}
               </button>
             )}

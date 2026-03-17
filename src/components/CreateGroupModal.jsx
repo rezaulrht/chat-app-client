@@ -22,42 +22,68 @@ const compressImage = (
   file,
   maxWidth = 800,
   maxHeight = 800,
-  quality = 0.8,
+  quality = 0.9,
 ) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.readAsDataURL(file);
+
+    reader.onload = (event) => {
       const img = new window.Image();
+      img.src = event.target.result;
+
       img.onload = () => {
         const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+
         let width = img.width;
         let height = img.height;
 
         if (width > height) {
           if (width > maxWidth) {
-            height = (height * maxWidth) / width;
+            height *= maxWidth / width;
             width = maxWidth;
           }
         } else {
           if (height > maxHeight) {
-            width = (width * maxHeight) / height;
+            width *= maxHeight / height;
             height = maxHeight;
           }
         }
 
         canvas.width = width;
         canvas.height = height;
-        const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, width, height);
 
-        const compressedBase64 = canvas.toDataURL("image/jpeg", quality);
-        resolve(compressedBase64);
+        const isPNG = file.type === "image/png";
+        const outputFormat = isPNG ? "image/png" : "image/jpeg";
+
+        // Convert canvas to base64 string
+        const base64 = canvas.toDataURL(
+          outputFormat,
+          isPNG ? undefined : quality,
+        );
+
+        // Cleanup
+        img.onload = img.onerror = null;
+        reader.onload = reader.onerror = null;
+        img.src = "";
+        canvas.width = canvas.height = 0;
+
+        resolve(base64); // ✅ return base64 string
       };
-      img.onerror = reject;
-      img.src = e.target.result;
+
+      img.onerror = (error) => {
+        img.onload = img.onerror = null;
+        reader.onload = reader.onerror = null;
+        reject(error);
+      };
     };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
+
+    reader.onerror = (error) => {
+      reader.onload = reader.onerror = null;
+      reject(error);
+    };
   });
 };
 
@@ -191,7 +217,6 @@ export default function CreateGroupModal({ onGroupCreated }) {
           });
 
           avatarUrl = uploadRes.data.url;
-          console.log("Avatar uploaded to ImgBB:", avatarUrl);
         } catch (uploadErr) {
           console.error("Avatar upload failed:", uploadErr);
           toast.error(

@@ -26,6 +26,7 @@ import CreatePollModal from "../CreatePollModal";
 import PollMessage from "../PollMessage";
 import { getGroupInitials, getGroupAvatarColor } from "@/utils/groupAvatar";
 import toast from "react-hot-toast";
+import PinIcon from "../icons/PinIcon";
 
 import {
   createScheduledMessage,
@@ -355,15 +356,6 @@ export default function ChatWindow({
       conversationId: conversation._id,
     });
   };
-  const handlePinned = ({ conversationId: cId, pinnedMessages: pins }) => {
-    if (cId !== conversation?._id) return;
-    setPinnedMessages(pins || []);
-  };
-
-  const handleUnpinned = ({ conversationId: cId, pinnedMessages: pins }) => {
-    if (cId !== conversation?._id) return;
-    setPinnedMessages(pins || []);
-  };
 
   // Fetch messages when conversation changes
   useEffect(() => {
@@ -457,16 +449,46 @@ export default function ChatWindow({
   useEffect(() => {
     if (!socket) return;
 
+    const handlePinned = ({ conversationId: cId, pinnedMessages: pins }) => {
+      if (cId !== conversation?._id) return;
+      setPinnedMessages(pins || []);
+    };
+
+    const handleUnpinned = ({ conversationId: cId, pinnedMessages: pins }) => {
+      if (cId !== conversation?._id) return;
+      setPinnedMessages(pins || []);
+    };
     const handleReceive = (msg) => {
-      if (msg.conversationId !== conversation?._id) return;
+      console.log(
+        "📨 message:new received:",
+        msg._id,
+        msg.text?.substring(0, 30),
+      );
+
+      if (msg.conversationId !== conversation?._id) {
+        console.log("❌ Wrong conversation - ignoring");
+        return;
+      }
 
       setMessages((prev) => {
+        // ✅ CRITICAL: Check if this exact message already exists
+        const alreadyExists = prev.some((m) => m._id === msg._id);
+        if (alreadyExists) {
+          console.log("⚠️ Message already exists, skipping:", msg._id);
+          return prev;
+        }
+
+        // Check for optimistic message to replace (for regular messages)
         const optimisticIndex = prev.findIndex((m) => m._id === msg.tempId);
         if (optimisticIndex !== -1) {
+          console.log("🔄 Replacing optimistic message");
           const updated = [...prev];
           updated[optimisticIndex] = msg;
           return updated;
         }
+
+        // Add new message
+        console.log("✅ Adding new message:", msg._id);
         return [...prev, msg];
       });
 
@@ -764,11 +786,36 @@ export default function ChatWindow({
   // ──────────────────────────────────────────────────────────
 
   const handlePollCreated = (pollMessage) => {
-    // setMessages((prev) => [...prev, pollMessage]);
+    console.log("📊 Poll created:", pollMessage._id);
+
+    // ✅ Check if already exists before adding
+    setMessages((prev) => {
+      const alreadyExists = prev.some((m) => m._id === pollMessage._id);
+      if (alreadyExists) {
+        console.log("⚠️ Poll already in messages, not adding again");
+        return prev;
+      }
+      console.log("✅ Adding poll optimistically");
+      return [...prev, pollMessage];
+    });
+
     setShowCreatePoll(false);
   };
-
- 
+  // ✅ Remove duplicates if they somehow get in
+  useEffect(() => {
+    setMessages((prev) => {
+      const seen = new Set();
+      const unique = prev.filter((msg) => {
+        if (seen.has(msg._id)) {
+          console.warn("Removing duplicate message:", msg._id);
+          return false;
+        }
+        seen.add(msg._id);
+        return true;
+      });
+      return unique;
+    });
+  }, [conversation?._id]);
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -991,19 +1038,7 @@ export default function ChatWindow({
               title="View pinned messages"
               aria-label="View pinned messages"
             >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M12 17v5" />
-                <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
-              </svg>
+              <PinIcon size={14} className="text-amber-400" />
               <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-black text-[9px] font-bold rounded-full flex items-center justify-center">
                 {pinnedMessages.length}
               </span>
@@ -1033,20 +1068,7 @@ export default function ChatWindow({
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center">
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="text-amber-400"
-                    >
-                      <path d="M12 17v5" />
-                      <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
-                    </svg>
+                    <PinIcon size={14} className="text-amber-400" />
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-amber-400">
@@ -1191,21 +1213,79 @@ export default function ChatWindow({
                         {/* Jump to Message Button (optional) */}
                         <button
                           type="button"
-                          onClick={() => {
-                            // Find the message in the list and scroll to it
+                          onClick={async () => {
                             const msgElement = document.getElementById(
                               `msg-${msg._id}`,
                             );
+
                             if (msgElement) {
+                              // Message already in DOM - scroll to it
                               msgElement.scrollIntoView({
                                 behavior: "smooth",
                                 block: "center",
                               });
-                              // Flash highlight effect
                               msgElement.classList.add("animate-pulse");
                               setTimeout(() => {
                                 msgElement.classList.remove("animate-pulse");
                               }, 2000);
+                            } else {
+                              // Message not in current view - try to load it
+                              try {
+                                toast.loading("Loading message...", {
+                                  id: `jump-${msg._id}`,
+                                });
+
+                                // Fetch all messages from conversation
+                                const response = await api.get(
+                                  `/api/chat/messages/${conversation._id}`,
+                                );
+                                const allMessages = response.data || [];
+
+                                // Check if target message exists
+                                const messageExists = allMessages.some(
+                                  (m) => m._id === msg._id,
+                                );
+
+                                if (messageExists) {
+                                  // Update messages state with full conversation history
+                                  setMessages(allMessages);
+
+                                  toast.dismiss(`jump-${msg._id}`);
+
+                                  // Wait for DOM to update, then scroll to message
+                                  setTimeout(() => {
+                                    const element = document.getElementById(
+                                      `msg-${msg._id}`,
+                                    );
+                                    if (element) {
+                                      element.scrollIntoView({
+                                        behavior: "smooth",
+                                        block: "center",
+                                      });
+                                      element.classList.add("animate-pulse");
+                                      setTimeout(() => {
+                                        element.classList.remove(
+                                          "animate-pulse",
+                                        );
+                                      }, 2000);
+                                      toast.success("Message found!");
+                                    } else {
+                                      toast.error(
+                                        "Message could not be displayed",
+                                      );
+                                    }
+                                  }, 300);
+                                } else {
+                                  toast.dismiss(`jump-${msg._id}`);
+                                  toast.error(
+                                    "Message not found or has been deleted",
+                                  );
+                                }
+                              } catch (err) {
+                                toast.dismiss(`jump-${msg._id}`);
+                                toast.error("Failed to load message");
+                                console.error("Jump to message error:", err);
+                              }
                             }
                           }}
                           className="absolute bottom-2 right-2 px-2 py-1 rounded-md bg-accent/10 hover:bg-accent/20 border border-accent/20 text-accent text-[9px] font-bold opacity-0 group-hover:opacity-100 transition-all"
@@ -1421,19 +1501,7 @@ export default function ChatWindow({
                                   isPinned ? "Unpin message" : "Pin message"
                                 }
                               >
-                                <svg
-                                  width="14"
-                                  height="14"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                >
-                                  <path d="M12 17v5" />
-                                  <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
-                                </svg>
+                                <PinIcon size={14} className="text-amber-400" />
                               </button>
                             );
                           })()}
@@ -1559,7 +1627,7 @@ export default function ChatWindow({
                           // ────────────────────────────────────────────────────
                           // ✅ Poll Message - Only if valid poll data exists
                           // ────────────────────────────────────────────────────
-                          <PollMessage message={msg}  />
+                          <PollMessage message={msg} />
                         ) : isGif ? (
                           // ────────────────────────────────────────────────────
                           // GIF Message

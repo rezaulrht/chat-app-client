@@ -10,6 +10,7 @@ import MemberListPanel from "@/components/workspace/MemberListPanel";
 import { ModuleProvider } from "@/context/ModuleProvider";
 import ModuleChatWindow from "@/components/workspace/ModuleChatWindow";
 import CreateModuleModal from "@/components/workspace/CreateModuleModal";
+import ModuleSettingsModal from "@/components/workspace/ModuleSettingsModal";
 
 export default function ModulePage() {
   const { id, moduleId } = useParams();
@@ -26,6 +27,7 @@ export default function ModulePage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showCreateModule, setShowCreateModule] = useState(false);
   const [createModuleCategory, setCreateModuleCategory] = useState("General");
+  const [activeSettingsModuleId, setActiveSettingsModuleId] = useState(null);
 
   const [activeView, setActiveView] = useState("workspace");
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState(id);
@@ -56,6 +58,7 @@ export default function ModulePage() {
                 setCreateModuleCategory(cat || "General");
                 setShowCreateModule(true);
               }}
+              onModuleSettingsOpen={(modId) => setActiveSettingsModuleId(modId)}
             />
           </div>
         </div>
@@ -112,6 +115,15 @@ export default function ModulePage() {
           workspaceId={id}
           defaultCategory={createModuleCategory}
           onClose={() => setShowCreateModule(false)}
+        />
+      )}
+
+      {/* ── Module Settings Modal */}
+      {activeSettingsModuleId && (
+        <ModuleSettingsModal
+          workspaceId={id}
+          moduleId={activeSettingsModuleId}
+          onClose={() => setActiveSettingsModuleId(null)}
         />
       )}
     </ProtectedRoute>

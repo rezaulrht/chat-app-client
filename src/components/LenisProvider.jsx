@@ -4,8 +4,11 @@ import { ReactLenis } from "lenis/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 
 gsap.registerPlugin(ScrollTrigger);
+
+const LENIS_EXCLUDED_PATHS = ["/chat", "/app/workspace", "/app/feed", "/feed"];
 
 /**
  * LenisProvider
@@ -13,11 +16,19 @@ gsap.registerPlugin(ScrollTrigger);
  * Wraps the entire app with Lenis smooth-scroll.
  * Syncs Lenis' RAF into GSAP's ticker so GSAP ScrollTrigger animations
  * and all other GSAP scroll-driven work stay perfectly in lock-step.
+ *
+ * Lenis is disabled on chat, workspace, and feed routes where native
+ * scroll behaviour is required.
  */
 export default function LenisProvider({ children }) {
   const lenisRef = useRef(null);
+  const pathname = usePathname();
+
+  const isExcluded = LENIS_EXCLUDED_PATHS.some((p) => pathname?.startsWith(p));
 
   useEffect(() => {
+    if (isExcluded) return;
+
     function update(time) {
       lenisRef.current?.lenis?.raf(time * 1000);
     }
@@ -39,7 +50,11 @@ export default function LenisProvider({ children }) {
       clearTimeout(t);
       lenisRef.current?.lenis?.off("scroll", ScrollTrigger.update);
     };
-  }, []);
+  }, [isExcluded]);
+
+  if (isExcluded) {
+    return <>{children}</>;
+  }
 
   return (
     <ReactLenis

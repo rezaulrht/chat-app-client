@@ -31,6 +31,7 @@ export default function ChannelSidebar({
   activeModuleId,
   onSettingsOpen, // () => void — opens WorkspaceSettingsPanel
   onCreateModule, // () => void — opens CreateModuleModal (later by Member 6)
+  onModuleSettingsOpen, // (moduleId) => void — opens ModuleSettingsModal
 }) {
   const { user: currentUser, logout } = useAuth();
   const {
@@ -369,6 +370,18 @@ export default function ChannelSidebar({
                             <span className="text-[10px] font-bold font-mono bg-accent/20 text-accent rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
                               {mod.unreadCount > 99 ? "99+" : mod.unreadCount}
                             </span>
+                          )}
+                          
+                          {isAdminOrOwner && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onModuleSettingsOpen?.(mod._id);
+                              }}
+                              className="text-ivory/20 hover:text-accent opacity-0 group-hover/ch:opacity-100 transition-all rounded p-1 hover:bg-white/5 absolute right-2"
+                            >
+                              <Settings size={13} />
+                            </button>
                           )}
                         </div>
                       );

@@ -89,8 +89,6 @@ function OverflowMenu({ isOwn, onShare, onEdit, onDelete }) {
               <button
                 onClick={() => {
                   setOpen(false);
-                  const confirmed = window.confirm("Delete this post?");
-                  if (!confirmed) return;
                   onDelete?.();
                 }}
                 className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-red-400/70 hover:text-red-400 hover:bg-red-400/5 transition-colors"
@@ -131,11 +129,10 @@ export default function PostCard({
   if (post.type === "question") {
     return (
       <article
-        className={`${base} ${
-          post.isPinned
+        className={`${base} ${post.isPinned
             ? "pl-4 pr-5 py-5 border-l-[3px] border-l-accent"
             : "px-5 py-5"
-        }`}
+          }`}
         onClick={() => onOpen?.(post)}
       >
         {post.isPinned && (

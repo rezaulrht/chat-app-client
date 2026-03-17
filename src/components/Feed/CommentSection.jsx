@@ -10,7 +10,6 @@ import {
   Pencil,
 } from "lucide-react";
 import ReactionBar from "./ReactionBar";
-import UserCard from "./UserCard";
 import { formatDistanceToNow } from "date-fns";
 
 function timeAgo(date) {
@@ -19,6 +18,24 @@ function timeAgo(date) {
   } catch {
     return "";
   }
+}
+
+function CommentAvatar({ author }) {
+  return (
+    <div className="mt-0.5 h-8 w-8 shrink-0 overflow-hidden rounded-full bg-white/6 ring-1 ring-white/8">
+      {author?.avatar ? (
+        <img
+          src={author.avatar}
+          alt={author?.name || "Comment author"}
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center font-display text-xs font-bold text-ivory/45">
+          {author?.name?.[0] ?? "?"}
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ── Single comment ────────────────────────────────────────────────────────────
@@ -37,117 +54,109 @@ function CommentItem({
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const isOwn = comment.author?._id === currentUserId;
+  const commentTime = timeAgo(comment.createdAt);
 
   return (
     <div
-      className={`flex gap-3 ${depth > 0 ? "ml-8 border-l border-white/[0.05] pl-4" : ""}`}
+      className={`flex gap-2.5 ${depth > 0 ? "ml-10" : ""}`}
     >
-      {/* Avatar stub */}
-      <div className="shrink-0 mt-1 w-7 h-7 rounded-lg overflow-hidden bg-white/[0.06] ring-1 ring-white/[0.08] flex items-center justify-center text-ivory/40 font-display font-bold text-[11px]">
-        {comment.author?.avatar ? (
-          <img
-            src={comment.author.avatar}
-            alt=""
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          (comment.author?.name?.[0] ?? "?")
-        )}
-      </div>
+      <CommentAvatar author={comment.author} />
 
       <div className="flex-1 min-w-0">
-        {/* Header */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 flex-wrap">
-            <UserCard user={comment.author} variant="inline" />
-            <span className="text-[10px] font-mono text-ivory/20">
-              {timeAgo(comment.createdAt)}
-            </span>
-            {isAccepted && (
-              <span className="flex items-center gap-1 text-[10px] font-mono text-emerald-400/70 uppercase tracking-wider">
-                <CheckCircle2 size={10} /> Accepted answer
+        <div className="flex items-start gap-2">
+          <div className="min-w-0 flex-1 rounded-[18px] bg-white/6 px-3 py-2.5 ring-1 ring-white/8">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="truncate font-display text-[13px] font-semibold text-ivory/88">
+                {comment.author?.name ?? "Unknown"}
               </span>
-            )}
-          </div>
+              {isAccepted && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-400/10 px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide text-emerald-300/80">
+                  <CheckCircle2 size={10} /> Accepted
+                </span>
+              )}
+            </div>
 
-          {/* Actions */}
-          <div className="flex items-center gap-1 shrink-0">
-            {/* Accept button (visible to question author, not if already resolved) */}
-            {isQuestionAuthor && !isAccepted && depth === 0 && (
-              <button
-                type="button"
-                onClick={() => onAccept?.(comment._id)}
-                className="text-[10px] font-mono text-ivory/25 hover:text-emerald-400 transition-colors px-1.5 py-0.5 rounded-md hover:bg-emerald-400/8"
-                title="Mark as accepted answer"
-              >
-                ✓ Accept
-              </button>
-            )}
-
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setMenuOpen((v) => !v)}
-                className="w-6 h-6 flex items-center justify-center rounded-md text-ivory/20 hover:text-ivory/50 hover:bg-white/[0.06] transition-all"
-              >
-                <MoreHorizontal size={12} />
-              </button>
-              {menuOpen && (
-                <div className="absolute right-0 top-7 z-20 w-32 rounded-xl glass-card ring-1 ring-white/[0.08] py-1 shadow-xl">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      onReply?.(comment);
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-ivory/60 hover:text-ivory hover:bg-white/[0.05]"
-                  >
-                    <CornerDownRight size={11} /> Reply
-                  </button>
-                  {isOwn && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMenuOpen(false);
-                          onEdit?.(comment);
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-ivory/60 hover:text-ivory hover:bg-white/[0.05]"
-                      >
-                        <Pencil size={11} /> Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMenuOpen(false);
-                          onDelete?.(comment._id);
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-red-400/70 hover:text-red-400 hover:bg-red-400/5"
-                      >
-                        <Trash2 size={11} /> Delete
-                      </button>
-                    </>
-                  )}
-                </div>
+            <div className="mt-1.5 text-[13px] leading-relaxed text-ivory/72">
+              {comment.isDeleted ? (
+                <span className="italic text-ivory/25">[deleted]</span>
+              ) : (
+                comment.content
               )}
             </div>
           </div>
+
+          <div className="relative shrink-0 pt-1">
+            <button
+              type="button"
+              onClick={() => setMenuOpen((v) => !v)}
+              className="flex h-7 w-7 items-center justify-center rounded-full text-ivory/22 transition-all hover:bg-white/6 hover:text-ivory/55"
+            >
+              <MoreHorizontal size={14} />
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 top-8 z-20 w-32 rounded-xl glass-card py-1 shadow-xl ring-1 ring-white/8">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onReply?.(comment);
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] text-ivory/60 hover:bg-white/5 hover:text-ivory"
+                >
+                  <CornerDownRight size={11} /> Reply
+                </button>
+                {isOwn && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onEdit?.(comment);
+                      }}
+                      className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] text-ivory/60 hover:bg-white/5 hover:text-ivory"
+                    >
+                      <Pencil size={11} /> Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onDelete?.(comment._id);
+                      }}
+                      className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] text-red-400/70 hover:bg-red-400/5 hover:text-red-400"
+                    >
+                      <Trash2 size={11} /> Delete
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Body */}
-        <div className="mt-1.5 text-[13px] text-ivory/70 leading-relaxed font-sans">
-          {
-            comment.isDeleted ? (
-              <span className="italic text-ivory/25">[deleted]</span>
-            ) : (
-              comment.content
-            ) /* TODO: render as markdown */
-          }
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 pl-2 text-[11px] font-semibold text-ivory/34">
+          <button
+            type="button"
+            onClick={() => onReply?.(comment)}
+            className="transition-colors hover:text-ivory/62"
+          >
+            Reply
+          </button>
+          {isQuestionAuthor && !isAccepted && depth === 0 && (
+            <button
+              type="button"
+              onClick={() => onAccept?.(comment._id)}
+              className="transition-colors hover:text-emerald-300/80"
+              title="Mark as accepted answer"
+            >
+              Accept answer
+            </button>
+          )}
+          <span className="font-mono text-ivory/24">{commentTime}</span>
         </div>
 
-        {/* Reactions */}
         {!comment.isDeleted && (
-          <div className="mt-2">
+          <div className="mt-2 pl-2">
             <ReactionBar
               reactions={comment.reactions ?? {}}
               currentUserId={currentUserId}
@@ -157,9 +166,8 @@ function CommentItem({
           </div>
         )}
 
-        {/* Nested replies */}
         {replies.length > 0 && (
-          <div className="mt-3 flex flex-col gap-3">
+          <div className="mt-3 flex flex-col gap-3 pl-2">
             {replies.map((r) => (
               <CommentItem
                 key={r._id}
@@ -229,58 +237,62 @@ export default function CommentSection({
   };
 
   return (
-    <div className="flex flex-col gap-5">
-      {/* Count */}
-      <h4 className="text-[12px] font-mono font-bold text-ivory/30 uppercase tracking-[0.12em]">
+    <div className="flex flex-col gap-4">
+      <h4 className="text-[12px] font-mono font-bold uppercase tracking-[0.12em] text-ivory/30">
         {comments.filter((c) => !c.isDeleted).length} Comment
         {comments.length !== 1 ? "s" : ""}
       </h4>
 
-      {/* Comment composer */}
-      <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-        {replyTarget && (
-          <div className="flex items-center gap-2 text-[11px] font-mono text-ivory/30">
-            <CornerDownRight size={11} />
-            Replying to{" "}
-            <span className="text-accent/70">{replyTarget.author?.name}</span>
+      <form onSubmit={handleSubmit} className="flex gap-3 rounded-2xl bg-white/4 px-3 py-3 ring-1 ring-white/7">
+        <CommentAvatar
+          author={{
+            name: currentUserId ? "You" : "?",
+          }}
+        />
+        <div className="flex-1">
+          {replyTarget && (
+            <div className="flex items-center gap-2 text-[11px] font-mono text-ivory/30">
+              <CornerDownRight size={11} />
+              Replying to{" "}
+              <span className="text-accent/70">{replyTarget.author?.name}</span>
+              <button
+                type="button"
+                onClick={() => setReplyTarget(null)}
+                className="text-ivory/20 hover:text-ivory/50 ml-1"
+              >
+                ×
+              </button>
+            </div>
+          )}
+          <div className="mt-2 flex gap-2">
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder={
+                replyTarget
+                  ? "Write a reply…"
+                  : "Add a comment… (markdown supported)"
+              }
+              rows={2}
+              className="flex-1 rounded-2xl bg-white/4 px-3 py-2 text-[13px] text-ivory/80 placeholder:text-ivory/20 outline-none ring-1 ring-white/7 transition-all focus:ring-accent/30 resize-none font-sans"
+            />
             <button
-              type="button"
-              onClick={() => setReplyTarget(null)}
-              className="text-ivory/20 hover:text-ivory/50 ml-1"
+              type="submit"
+              disabled={!text.trim()}
+              className="mt-auto flex h-9 w-9 items-center justify-center rounded-full bg-accent/15 text-accent ring-1 ring-accent/30 transition-all duration-150 hover:bg-accent/25 disabled:cursor-not-allowed disabled:opacity-30"
             >
-              ×
+              <Send size={14} />
             </button>
           </div>
-        )}
-        <div className="flex gap-2">
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder={
-              replyTarget
-                ? "Write a reply…"
-                : "Add a comment… (markdown supported)"
-            }
-            rows={2}
-            className="flex-1 bg-white/[0.04] ring-1 ring-white/[0.07] focus:ring-accent/30 rounded-xl px-3 py-2 text-[13px] text-ivory/80 placeholder:text-ivory/20 font-sans resize-none outline-none transition-all"
-          />
-          <button
-            type="submit"
-            disabled={!text.trim()}
-            className="h-fit mt-auto flex items-center justify-center w-9 h-9 rounded-xl bg-accent/15 ring-1 ring-accent/30 text-accent hover:bg-accent/25 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-150"
-          >
-            <Send size={14} />
-          </button>
         </div>
       </form>
 
-      {/* Comment list */}
       {sorted.length === 0 ? (
         <p className="text-center text-[12px] font-mono text-ivory/20 py-6">
           No comments yet. Be the first!
         </p>
       ) : (
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-4">
           {sorted.map((c) => (
             <CommentItem
               key={c._id}

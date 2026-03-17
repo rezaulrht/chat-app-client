@@ -232,7 +232,7 @@ export default function PollMessage({ message }) {
 
       {totalVotes > 0 && (
         <details className="mt-3 group">
-          <summary className="text-xs text-accent cursor-pointer hover:text-accent/80 transition-colors list-none">
+          <summary className="text-xs text-white cursor-pointer hover:text-white/80 transition-colors list-none">
             <span className="group-open:hidden">Show who voted →</span>
             <span className="hidden group-open:inline">Hide voters ↑</span>
           </summary>

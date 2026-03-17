@@ -2,7 +2,10 @@
 
 import { ReactLenis } from "lenis/react";
 import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useEffect, useRef } from "react";
+
+gsap.registerPlugin(ScrollTrigger);
 
 /**
  * LenisProvider
@@ -20,9 +23,22 @@ export default function LenisProvider({ children }) {
     }
 
     gsap.ticker.add(update);
-    gsap.ticker.lagSmoothing(0); // prevent frame-drop jitter
+    gsap.ticker.lagSmoothing(0);
 
-    return () => gsap.ticker.remove(update);
+    // Give lenis a tick to initialise, then wire up ScrollTrigger
+    const t = setTimeout(() => {
+      const lenis = lenisRef.current?.lenis;
+      if (lenis) {
+        lenis.on("scroll", ScrollTrigger.update);
+        ScrollTrigger.refresh();
+      }
+    }, 100);
+
+    return () => {
+      gsap.ticker.remove(update);
+      clearTimeout(t);
+      lenisRef.current?.lenis?.off("scroll", ScrollTrigger.update);
+    };
   }, []);
 
   return (

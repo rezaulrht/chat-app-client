@@ -375,8 +375,9 @@ function RolesTab({ workspace, onCreateRole, onUpdateRole, onDeleteRole }) {
 // ─────────────────────────────────────────────────────────────────────────────
 function MembersTab({ workspace, members, currentUser, onUpdateMemberRole, onRemoveMember, onAssignRoles }) {
   const [search, setSearch] = useState("");
-  const [actionUserId, setActionUserId] = useState(null);
-  const [assigningUser, setAssigningUser] = useState(null);
+  const [assigningUserId, setAssigningUserId] = useState(null);
+  const [assigningRoleIds, setAssigningRoleIds] = useState([]);
+  const [savingRoles, setSavingRoles] = useState(false);
 
   const isOwner = workspace?.myRole === "owner";
   const isAdmin = workspace?.myRole === "admin" || isOwner;
@@ -421,22 +422,23 @@ function MembersTab({ workspace, members, currentUser, onUpdateMemberRole, onRem
             .filter(Boolean);
 
           return (
-            <div key={m.user?._id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/3 transition-colors group">
-              {/* Avatar */}
-              <div className="relative shrink-0">
-                <div className="w-9 h-9 rounded-xl overflow-hidden ring-1 ring-white/[0.06]">
-                  <Image
-                    src={m.user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.user?.name}`}
-                    width={36} height={36} alt={m.user?.name || ""} className="rounded-xl" unoptimized
-                  />
+            <div key={m.user?._id} className="flex flex-col gap-2 px-3 py-2.5 rounded-xl hover:bg-white/3 transition-colors group">
+              <div className="flex items-center gap-3 w-full">
+                {/* Avatar */}
+                <div className="relative shrink-0">
+                  <div className="w-9 h-9 rounded-xl overflow-hidden ring-1 ring-white/[0.06]">
+                    <Image
+                      src={m.user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.user?.name}`}
+                      width={36} height={36} alt={m.user?.name || ""} className="rounded-xl" unoptimized
+                    />
+                  </div>
+                  {isThisOwner && (
+                    <Crown size={10} className="absolute -top-1 -right-1 text-yellow-400" />
+                  )}
                 </div>
-                {isThisOwner && (
-                  <Crown size={10} className="absolute -top-1 -right-1 text-yellow-400" />
-                )}
-              </div>
 
-              {/* Info */}
-              <div className="flex-1 min-w-0">
+                {/* Info */}
+                <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="text-[13px] font-display font-bold text-ivory/80 truncate">
                     {m.user?.name} {isMe && <span className="text-accent/60 text-[10px]">(you)</span>}
@@ -455,6 +457,21 @@ function MembersTab({ workspace, members, currentUser, onUpdateMemberRole, onRem
               {/* Actions — only for admins/owners, not on yourself or the owner */}
               {isAdmin && !isMe && !isThisOwner && (
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {/* Assign Roles */}
+                  <button
+                    title="Assign Custom Roles"
+                    onClick={() => {
+                      if (assigningUserId === m.user._id) {
+                        setAssigningUserId(null);
+                      } else {
+                        setAssigningUserId(m.user._id);
+                        setAssigningRoleIds(m.roleIds || []);
+                      }
+                    }}
+                    className="p-1.5 rounded-lg text-ivory/25 hover:text-accent hover:bg-white/6 transition-all"
+                  >
+                    <Hash size={13} />
+                  </button>
                   {/* Toggle admin */}
                   <button
                     title={m.role === "admin" ? "Demote to member" : "Promote to admin"}
@@ -484,6 +501,63 @@ function MembersTab({ workspace, members, currentUser, onUpdateMemberRole, onRem
                       <UserMinus size={13} />
                     </button>
                   )}
+                </div>
+              )}
+              </div>
+
+              {/* Assign Roles Overlay/Dropdown equivalent */}
+              {assigningUserId === m.user?._id && (
+                <div className="w-full mt-1 p-3 bg-white/4 rounded-xl border border-white/6 shadow-inner">
+                  <p className="text-[10px] font-mono font-bold text-ivory/40 uppercase tracking-widest mb-2">Assign Custom Roles</p>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {roles.length === 0 ? (
+                      <span className="text-[11px] text-ivory/30 italic">No custom roles created in workspace yet.</span>
+                    ) : (
+                      roles.map(r => {
+                        const selected = assigningRoleIds.includes(r._id);
+                        return (
+                          <button
+                            key={r._id}
+                            onClick={() => {
+                              setAssigningRoleIds(prev =>
+                                prev.includes(r._id) ? prev.filter(id => id !== r._id) : [...prev, r._id]
+                              );
+                            }}
+                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-mono font-bold transition-all border ${selected ? "border-accent/40 bg-accent/15 text-accent" : "border-white/10 text-ivory/50 hover:bg-white/8"}`}
+                          >
+                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: r.color }} />
+                            {r.name}
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={() => setAssigningUserId(null)}
+                      className="px-3 py-1.5 text-[11px] font-mono text-ivory/40 hover:text-ivory bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={async () => {
+                        setSavingRoles(true);
+                        try {
+                          await onAssignRoles(m.user._id, assigningRoleIds);
+                          toast.success("Roles updated");
+                          setAssigningUserId(null);
+                        } catch {
+                          toast.error("Failed to update roles");
+                        } finally {
+                          setSavingRoles(false);
+                        }
+                      }}
+                      disabled={savingRoles}
+                      className="px-3 py-1.5 text-[11px] font-mono font-bold text-accent bg-accent/15 hover:bg-accent/25 rounded-lg border border-accent/20 transition-colors flex items-center gap-1"
+                    >
+                      {savingRoles && <Loader2 size={11} className="animate-spin" />} Save
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -517,6 +591,10 @@ function InvitesTab({ workspace, onGenerateInvite, onRevokeInvite }) {
     { value: "7d",  label: "7 days" },
     { value: "never", label: "Never expires" },
   ];
+
+  useEffect(() => {
+    setExpiresIn(workspace?.inviteExpiresIn || "never");
+  }, [workspace?.inviteExpiresIn, workspace?.inviteUrl, inviteUrl]);
 
   const handleGenerate = async () => {
     setGenerating(true);
@@ -581,6 +659,22 @@ function InvitesTab({ workspace, onGenerateInvite, onRevokeInvite }) {
               Expires: {new Date(workspace.inviteCodeExpiresAt).toLocaleString()}
             </p>
           )}
+
+          <div>
+            <label className="block text-[11px] font-mono font-bold text-ivory/40 uppercase tracking-widest mb-2">
+              Regenerate Expiry
+            </label>
+            <select
+              value={expiresIn}
+              onChange={(e) => setExpiresIn(e.target.value)}
+              className="w-full bg-white/4 border border-white/8 rounded-xl px-3 py-2 text-[13px] text-ivory/70 focus:outline-none focus:border-accent/40"
+            >
+              {EXPIRY_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+
           <div className="flex gap-2">
             <button onClick={handleGenerate} disabled={generating}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/8 text-ivory/50 hover:text-ivory rounded-xl text-[11px] font-mono transition-all">

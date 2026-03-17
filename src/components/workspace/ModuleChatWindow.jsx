@@ -471,7 +471,7 @@ export default function ModuleChatWindow({
           }
 
           return messages.map((msg, index) => {
-            const isMe = msg.sender?._id === user?._id;
+            const isMe = msg.sender?._id === user?._id || msg.sender === user?._id;
             const isGif = !!msg.gifUrl;
             const currentKey = toDateKey(msg.createdAt);
             const prevKey =
@@ -1058,7 +1058,7 @@ export default function ModuleChatWindow({
                       <input
                         type="datetime-local"
                         value={sendAt}
-                        min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+                        min={formatLocalMin()}
                         onChange={(e) => setSendAt(e.target.value)}
                         className="w-full bg-white/4 border border-white/10 rounded-lg px-2.5 py-2 text-xs text-ivory/80 outline-none focus:border-accent/40 transition-colors"
                       />

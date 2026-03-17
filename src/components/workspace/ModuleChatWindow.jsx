@@ -169,9 +169,11 @@ export default function ModuleChatWindow({
         }
       }
       // Close schedule dropdown on outside click
+      const mobileTrigger = e.target.closest('.mobile-schedule-trigger');
       if (
         scheduleDropdownRef.current &&
-        !scheduleDropdownRef.current.contains(e.target)
+        !scheduleDropdownRef.current.contains(e.target) &&
+        !mobileTrigger
       ) {
         setScheduleDropdownOpen(false);
       }
@@ -326,9 +328,11 @@ export default function ModuleChatWindow({
       setSendAt("");
       refreshScheduled();
       setShowScheduledPanel(true);
+      sendTyping(false);
     } catch (err) {
       toast.error(err.response?.data?.error || "Failed to schedule message");
     } finally {
+      sendTyping(false);
       setScheduling(false);
     }
   };
@@ -1054,7 +1058,7 @@ export default function ModuleChatWindow({
                       <input
                         type="datetime-local"
                         value={sendAt}
-                        min={new Date().toISOString().slice(0, 16)}
+                        min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
                         onChange={(e) => setSendAt(e.target.value)}
                         className="w-full bg-white/4 border border-white/10 rounded-lg px-2.5 py-2 text-xs text-ivory/80 outline-none focus:border-accent/40 transition-colors"
                       />
@@ -1134,7 +1138,7 @@ export default function ModuleChatWindow({
               <button
                 type="button"
                 onClick={() => setScheduleDropdownOpen((v) => !v)}
-                className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${scheduleDropdownOpen
+                className={`mobile-schedule-trigger px-2 py-1 text-[10px] font-black rounded-md border transition-all ${scheduleDropdownOpen
                   ? "bg-accent/20 border-accent/40 text-accent"
                   : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
                   }`}

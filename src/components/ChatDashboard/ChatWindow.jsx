@@ -120,6 +120,7 @@ export default function ChatWindow({
   const [loadingScheduled, setLoadingScheduled] = useState(false);
 
   const scheduleDropdownRef = useRef(null);
+  const scheduleMobileTriggerRef = useRef(null);
 
   // Edit/Delete UI
   const [editingMessageId, setEditingMessageId] = useState(null);
@@ -180,9 +181,17 @@ export default function ChatWindow({
         setAiMenuOpen(false);
       }
       // Close schedule dropdown on outside click
+      const outsideScheduleDesktop =
+        !scheduleDropdownRef.current ||
+        !scheduleDropdownRef.current.contains(e.target);
+      const outsideScheduleMobile =
+        !scheduleMobileTriggerRef.current ||
+        !scheduleMobileTriggerRef.current.contains(e.target);
+      
       if (
-        scheduleDropdownRef.current &&
-        !scheduleDropdownRef.current.contains(e.target)
+        scheduleDropdownOpen &&
+        outsideScheduleDesktop &&
+        outsideScheduleMobile
       ) {
         setScheduleDropdownOpen(false);
       }
@@ -1780,7 +1789,7 @@ export default function ChatWindow({
                       <input
                         type="datetime-local"
                         value={sendAt}
-                        min={new Date().toISOString().slice(0, 16)}
+                        min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
                         onChange={(e) => setSendAt(e.target.value)}
                         className="w-full bg-white/4 border border-white/10 rounded-lg px-2.5 py-2 text-xs text-ivory/80 outline-none focus:border-accent/40 transition-colors"
                       />
@@ -1907,7 +1916,7 @@ export default function ChatWindow({
             </div>
 
             {!isGroup && (
-              <div className="relative inline-flex">
+              <div ref={scheduleMobileTriggerRef} className="relative inline-flex">
                 <button
                   type="button"
                   onClick={() => setScheduleDropdownOpen((v) => !v)}

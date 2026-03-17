@@ -37,8 +37,10 @@ function MemberRow({ member, roles, isOnline, onProfileClick }) {
 
   return (
     <div
-      onClick={() => onProfileClick?.(member)}
-      className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/4 cursor-pointer transition-all group"
+      onClick={onProfileClick ? () => onProfileClick(member) : undefined}
+      className={`flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all group ${
+        onProfileClick ? "hover:bg-white/4 cursor-pointer" : ""
+      }`}
     >
       {/* Avatar */}
       <div className="relative shrink-0">

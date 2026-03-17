@@ -15,6 +15,10 @@ import {
   Menu,
   X,
   Plus,
+  Users,
+  CheckCheck,
+  Clock,
+  Calendar,
 } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 import { useModule } from "@/hooks/useModule";
@@ -29,6 +33,12 @@ const GifPicker = dynamic(
     import("gif-picker-react-klipy").then((m) => m.GifPicker || m.default || m),
   { ssr: false },
 );
+
+import {
+  createScheduledMessage,
+  listScheduledMessages,
+  cancelScheduledMessage,
+} from "@/utils/scheduleApi";
 
 const getDateLabel = (dateStr) => {
   const date = new Date(dateStr);
@@ -57,6 +67,8 @@ export default function ModuleChatWindow({
   moduleId,
   workspaceId,
   onToggleSidebar,
+  onToggleMembers,
+  showMembers,
 }) {
   const { user } = useAuth();
   const { workspaces, modulesCache } = useWorkspace();
@@ -93,11 +105,24 @@ export default function ModuleChatWindow({
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [longPressedMsgId, setLongPressedMsgId] = useState(null);
 
+  // Scheduled messages
+  const [scheduleDropdownOpen, setScheduleDropdownOpen] = useState(false);
+  const [scheduleMode, setScheduleMode] = useState(false);
+  const [sendAt, setSendAt] = useState("");
+  const [showScheduledPanel, setShowScheduledPanel] = useState(false);
+  const [scheduledItems, setScheduledItems] = useState([]);
+  const [loadingScheduled, setLoadingScheduled] = useState(false);
+  const [scheduling, setScheduling] = useState(false);
+
+  // Read Receipts Popover
+  const [showSeenBy, setShowSeenBy] = useState(null); // stores msgId
+
   const bottomRef = useRef(null);
   const reactionPickerRef = useRef(null);
   const emojiPickerRef = useRef(null);
   const gifPickerRef = useRef(null);
   const longPressTimer = useRef(null);
+  const scheduleDropdownRef = useRef(null);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -113,11 +138,12 @@ export default function ModuleChatWindow({
     setReactionPickerMsgId(null);
     setShowEmojiPicker(false);
     setShowGifPicker(false);
+    setShowSeenBy(null);
   }, [moduleId]);
 
   // Close pickers on outside click
   useEffect(() => {
-    const onDown = (e) => {
+    const handleClickOutside = (e) => {
       if (
         reactionPickerRef.current &&
         !reactionPickerRef.current.contains(e.target)
@@ -134,17 +160,34 @@ export default function ModuleChatWindow({
         setShowGifPicker(false);
       }
       if (longPressedMsgId) setLongPressedMsgId(null);
+
+      // Close seen by popover
+      if (showSeenBy) {
+        // We'll attach a data-attribute to the popover to avoid closing when clicking inside it
+        if (!e.target.closest('[data-seen-popover]')) {
+          setShowSeenBy(null);
+        }
+      }
+      // Close schedule dropdown on outside click
+      if (
+        scheduleDropdownRef.current &&
+        !scheduleDropdownRef.current.contains(e.target)
+      ) {
+        setScheduleDropdownOpen(false);
+      }
     };
     if (
       reactionPickerMsgId ||
       showEmojiPicker ||
       showGifPicker ||
-      longPressedMsgId
+      longPressedMsgId ||
+      showSeenBy ||
+      scheduleDropdownOpen
     ) {
-      document.addEventListener("mousedown", onDown);
+      document.addEventListener("mousedown", handleClickOutside);
     }
-    return () => document.removeEventListener("mousedown", onDown);
-  }, [reactionPickerMsgId, showEmojiPicker, showGifPicker, longPressedMsgId]);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [reactionPickerMsgId, showEmojiPicker, showGifPicker, longPressedMsgId, showSeenBy, scheduleDropdownOpen]);
 
   // ── Long-press (mobile) ───────────────────────────────────────────────────
   const handleTouchStart = useCallback((msgId) => {
@@ -213,16 +256,81 @@ export default function ModuleChatWindow({
     }
   };
 
+  // ── Scheduled Messages ────────────────────────────────────────────────────
+  const refreshScheduled = useCallback(async () => {
+    if (!activeModule) return;
+    setLoadingScheduled(true);
+    try {
+      const res = await listScheduledMessages({ moduleId: activeModule._id });
+      setScheduledItems(res || []);
+    } catch (err) {
+      console.error("Failed to load scheduled messages", err);
+    } finally {
+      setLoadingScheduled(false);
+    }
+  }, [activeModule]);
+
+  // Load scheduled messages when returning or when switching modules
+  useEffect(() => {
+    if (activeModule) {
+      refreshScheduled();
+      setShowScheduledPanel(false);
+    }
+  }, [activeModule?._id, refreshScheduled]);
+
+  const onCancelScheduled = async (id) => {
+    try {
+      await cancelScheduledMessage({ scheduledId: id });
+      refreshScheduled();
+      toast.success("Scheduled message cancelled");
+    } catch (err) {
+      toast.error("Failed to cancel scheduled message");
+    }
+  };
+
   // ── Send ──────────────────────────────────────────────────────────────────
-  const handleSend = (e) => {
+  const handleSend = async (e) => {
     e.preventDefault();
     if (!text.trim()) return;
     if (isAnnouncement && !isAdminOrOwner) return;
+
     sendMessage({ text: text.trim(), replyTo });
     setText("");
     setReplyTo(null);
     setSuggestions([]);
     sendTyping(false);
+  };
+
+  const scheduleMessage = async () => {
+    if (!text.trim()) return;
+    if (!sendAt) {
+      toast.error("Please select a date and time");
+      return;
+    }
+
+    const sendTime = new Date(sendAt).getTime();
+    if (sendTime <= Date.now()) {
+      return toast.error("Scheduled time must be in the future");
+    }
+
+    setScheduling(true);
+    try {
+      await createScheduledMessage({
+        moduleId: activeModule._id,
+        workspaceId: workspace?._id,
+        content: text.trim(),
+        sendAt: new Date(sendAt).toISOString(),
+      });
+      toast.success("✅ Message scheduled!");
+      setText("");
+      setSendAt("");
+      refreshScheduled();
+      setShowScheduledPanel(true);
+    } catch (err) {
+      toast.error(err.response?.data?.error || "Failed to schedule message");
+    } finally {
+      setScheduling(false);
+    }
   };
 
   // ── GIF ───────────────────────────────────────────────────────────────────
@@ -293,6 +401,17 @@ export default function ModuleChatWindow({
             </p>
           </div>
         </div>
+        {/* Members toggle */}
+        <button
+          onClick={onToggleMembers}
+          title="Toggle member list"
+          className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${showMembers
+            ? "bg-accent/15 text-accent"
+            : "text-ivory/25 hover:text-ivory/60 hover:bg-white/6"
+            }`}
+        >
+          <Users size={16} />
+        </button>
       </header>
 
       {/* ── Message List ──────────────────────────────────────────────────────── */}
@@ -336,283 +455,351 @@ export default function ModuleChatWindow({
         )}
 
         {/* Date-separated message list */}
-        {messages.map((msg, index) => {
-          const isMe = msg.sender?._id === user?._id;
-          const isGif = !!msg.gifUrl;
-          const currentKey = toDateKey(msg.createdAt);
-          const prevKey =
-            index > 0 ? toDateKey(messages[index - 1].createdAt) : null;
-          const showDate = currentKey !== prevKey;
+        {(() => {
+          let lastAnyMeIndex = -1;
+          for (let i = messages.length - 1; i >= 0; i--) {
+            const m = messages[i];
+            const isMsgMe = m.sender?._id === user?._id || m.sender === user?._id;
+            if (isMsgMe && !m.isOptimistic) {
+              lastAnyMeIndex = i;
+              break;
+            }
+          }
 
-          return (
-            <React.Fragment key={msg._id}>
-              {showDate && (
-                <div className="flex items-center gap-3 my-2">
-                  <div className="flex-1 h-px bg-white/5" />
-                  <span className="text-[10px] font-mono text-ivory/20 px-3 py-1 rounded-full bg-white/4 border border-white/6 shrink-0">
-                    {getDateLabel(msg.createdAt)}
-                  </span>
-                  <div className="flex-1 h-px bg-white/5" />
-                </div>
-              )}
+          return messages.map((msg, index) => {
+            const isMe = msg.sender?._id === user?._id;
+            const isGif = !!msg.gifUrl;
+            const currentKey = toDateKey(msg.createdAt);
+            const prevKey =
+              index > 0 ? toDateKey(messages[index - 1].createdAt) : null;
+            const showDate = currentKey !== prevKey;
 
-              <div
-                className="flex items-start gap-2.5 group"
-                onTouchStart={() => handleTouchStart(msg._id)}
-                onTouchEnd={handleTouchEnd}
-                onTouchMove={handleTouchEnd}
-              >
-                {/* Sender avatar — always shown in modules */}
-                <div className="w-8 h-8 rounded-xl overflow-hidden shrink-0 mt-0.5 ring-1 ring-white/[0.06]">
-                  <Image
-                    src={
-                      msg.sender?.avatar ||
-                      `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.sender?.name || "user"}`
-                    }
-                    width={32}
-                    height={32}
-                    className="rounded-xl"
-                    alt={msg.sender?.name || ""}
-                    unoptimized
-                  />
-                </div>
+            // Read receipts logic
+            const isLastMe = index === lastAnyMeIndex;
+            // Filter out the sender themselves from the readBy list for count
+            const uniqueReaders = (msg.readBy || []).filter(
+              (r) => r.user && r.user._id !== user?._id
+            );
+            // Hide if no one else read it yet
+            const hasReaders = uniqueReaders.length > 0;
 
-                <div className="flex-1 min-w-0">
-                  {/* Sender name + timestamp */}
-                  <div className="flex items-baseline gap-2 mb-1">
-                    <span
-                      className={`text-[13px] font-display font-bold leading-none ${
-                        isMe ? "text-accent/80" : "text-ivory/70"
-                      }`}
-                    >
-                      {isMe ? "You" : msg.sender?.name || "Member"}
+            return (
+              <React.Fragment key={msg._id}>
+                {showDate && (
+                  <div className="flex items-center gap-3 my-2">
+                    <div className="flex-1 h-px bg-white/5" />
+                    <span className="text-[10px] font-mono text-ivory/20 px-3 py-1 rounded-full bg-white/4 border border-white/6 shrink-0">
+                      {getDateLabel(msg.createdAt)}
                     </span>
-                    <span className="text-[10px] font-mono text-ivory/20">
-                      {new Date(msg.createdAt).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
-                    {msg.isEdited && (
-                      <span className="text-[9px] font-mono text-ivory/15">
-                        (edited)
-                      </span>
-                    )}
+                    <div className="flex-1 h-px bg-white/5" />
+                  </div>
+                )}
+
+                <div
+                  className="flex items-start gap-2.5 group"
+                  onTouchStart={() => handleTouchStart(msg._id)}
+                  onTouchEnd={handleTouchEnd}
+                  onTouchMove={handleTouchEnd}
+                >
+                  {/* Sender avatar — always shown in modules */}
+                  <div className="w-8 h-8 rounded-xl overflow-hidden shrink-0 mt-0.5 ring-1 ring-white/[0.06]">
+                    <Image
+                      src={
+                        msg.sender?.avatar ||
+                        `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.sender?.name || "user"}`
+                      }
+                      width={32}
+                      height={32}
+                      className="rounded-xl"
+                      alt={msg.sender?.name || ""}
+                      unoptimized
+                    />
                   </div>
 
-                  {/* Message bubble */}
-                  <div className="relative group/bubble">
-                    {/* Action toolbar (hover / long-press) */}
-                    {!msg.isOptimistic && !msg.isDeleted && (
-                      <div
-                        className={`absolute -top-7 left-0 items-center gap-0.5 bg-deep border border-white/6 rounded-lg p-0.5 shadow-xl z-30 ${
-                          longPressedMsgId === msg._id
+                  <div className="flex-1 min-w-0">
+                    {/* Sender name + timestamp */}
+                    <div className="flex items-baseline gap-2 mb-1">
+                      <span
+                        className={`text-[13px] font-display font-bold leading-none ${isMe ? "text-accent/80" : "text-ivory/70"
+                          }`}
+                      >
+                        {isMe ? "You" : msg.sender?.name || "Member"}
+                      </span>
+                      <span className="text-[10px] font-mono text-ivory/20">
+                        {new Date(msg.createdAt).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                      {msg.isEdited && (
+                        <span className="text-[9px] font-mono text-ivory/15">
+                          (edited)
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Message bubble */}
+                    <div className="relative group/bubble">
+                      {/* Action toolbar (hover / long-press) */}
+                      {!msg.isOptimistic && !msg.isDeleted && (
+                        <div
+                          className={`absolute -top-7 left-0 items-center gap-0.5 bg-deep border border-white/6 rounded-lg p-0.5 shadow-xl z-30 ${longPressedMsgId === msg._id
                             ? "flex"
                             : "hidden group-hover/bubble:flex"
-                        }`}
-                      >
-                        {/* Quick reactions */}
-                        {["👍", "❤️", "😂", "😮", "😢"].map((emoji) => (
+                            }`}
+                        >
+                          {/* Quick reactions */}
+                          {["👍", "❤️", "😂", "😮", "😢"].map((emoji) => (
+                            <button
+                              key={emoji}
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                reactToMessage(msg._id, emoji);
+                                setLongPressedMsgId(null);
+                              }}
+                              className={`p-1.5 rounded-md text-sm transition-all hover:bg-white/6 hover:scale-125 ${reactions[msg._id]?.[emoji]?.includes(user?._id)
+                                ? "bg-accent/20"
+                                : ""
+                                }`}
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                          <div className="w-px h-5 bg-white/6 mx-0.5" />
+                          {/* Full emoji picker trigger */}
                           <button
-                            key={emoji}
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              reactToMessage(msg._id, emoji);
+                              setReactionPickerMsgId(
+                                reactionPickerMsgId === msg._id ? null : msg._id,
+                              );
                               setLongPressedMsgId(null);
                             }}
-                            className={`p-1.5 rounded-md text-sm transition-all hover:bg-white/6 hover:scale-125 ${
-                              reactions[msg._id]?.[emoji]?.includes(user?._id)
-                                ? "bg-accent/20"
-                                : ""
-                            }`}
+                            className="p-1.5 rounded-md text-ivory/40 hover:text-accent hover:bg-white/6 transition-all"
                           >
-                            {emoji}
+                            <Smile size={14} />
                           </button>
-                        ))}
-                        <div className="w-px h-5 bg-white/6 mx-0.5" />
-                        {/* Full emoji picker trigger */}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setReactionPickerMsgId(
-                              reactionPickerMsgId === msg._id ? null : msg._id,
-                            );
-                            setLongPressedMsgId(null);
-                          }}
-                          className="p-1.5 rounded-md text-ivory/40 hover:text-accent hover:bg-white/6 transition-all"
-                        >
-                          <Smile size={14} />
-                        </button>
-                        {/* Reply */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setReplyTo(msg);
-                            setLongPressedMsgId(null);
-                          }}
-                          className="p-1.5 rounded-md text-ivory/40 hover:text-accent hover:bg-white/6 transition-all"
-                        >
-                          <Reply size={14} />
-                        </button>
-                        {/* Edit / Delete (own messages only) */}
-                        {isMe && (
-                          <>
-                            <div className="w-px h-5 bg-white/6 mx-0.5" />
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditingId(msg._id);
-                                setEditedText(msg.text || "");
-                                setLongPressedMsgId(null);
-                              }}
-                              className="p-1.5 rounded-md text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 transition-all"
-                            >
-                              <Pencil size={14} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDelete(msg._id);
-                                setLongPressedMsgId(null);
-                              }}
-                              className="p-1.5 rounded-md text-red-400 hover:text-red-300 hover:bg-red-500/20 transition-all"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Full emoji reaction picker */}
-                    {reactionPickerMsgId === msg._id && (
-                      <div
-                        ref={reactionPickerRef}
-                        className="absolute top-6 left-0 z-40"
-                      >
-                        <EmojiPicker
-                          onEmojiClick={(emojiData) => {
-                            reactToMessage(msg._id, emojiData.emoji);
-                            setReactionPickerMsgId(null);
-                          }}
-                          theme="dark"
-                          height={340}
-                          width={300}
-                        />
-                      </div>
-                    )}
-
-                    {/* Message content */}
-                    {editingId === msg._id ? (
-                      <div className="flex flex-col gap-2 bg-slate-surface rounded-2xl p-3 border border-accent/40 max-w-lg">
-                        <span className="text-[10px] font-mono font-bold text-accent uppercase tracking-wider">
-                          Editing
-                        </span>
-                        <textarea
-                          className="w-full min-h-16 bg-deep text-ivory text-[13px] px-3 py-2 rounded-xl border border-white/8 focus:outline-none focus:border-accent resize-none scrollbar-hide"
-                          value={editedText}
-                          onChange={(e) => setEditedText(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) {
-                              e.preventDefault();
-                              handleEditSave();
-                            }
-                            if (e.key === "Escape") {
-                              setEditingId(null);
-                              setEditedText("");
-                            }
-                          }}
-                          autoFocus
-                        />
-                        <div className="flex gap-2 justify-end">
+                          {/* Reply */}
                           <button
+                            type="button"
                             onClick={() => {
-                              setEditingId(null);
-                              setEditedText("");
+                              setReplyTo(msg);
+                              setLongPressedMsgId(null);
                             }}
-                            className="px-3 py-1.5 text-[11px] font-mono text-ivory/30 hover:text-ivory transition-colors rounded-lg hover:bg-white/4"
+                            className="p-1.5 rounded-md text-ivory/40 hover:text-accent hover:bg-white/6 transition-all"
                           >
-                            Cancel (Esc)
+                            <Reply size={14} />
                           </button>
-                          <button
-                            onClick={handleEditSave}
-                            className="px-3 py-1.5 text-[11px] font-mono text-accent bg-accent/10 hover:bg-accent/20 rounded-lg border border-accent/20 transition-all"
-                          >
-                            Save (Enter)
-                          </button>
-                        </div>
-                      </div>
-                    ) : msg.isDeleted ? (
-                      <div className="flex items-center gap-2 p-2 px-3 bg-white/2 rounded-2xl border border-white/5 opacity-50 select-none w-fit">
-                        <Trash2 className="w-3 h-3 text-ivory/30" />
-                        <p className="italic text-ivory/40 text-[11px] font-mono leading-none">
-                          Deleted
-                        </p>
-                      </div>
-                    ) : isGif ? (
-                      <div className="rounded-2xl overflow-hidden max-w-65">
-                        <img
-                          src={msg.gifUrl}
-                          alt="gif"
-                          className="w-full h-auto rounded-2xl"
-                        />
-                      </div>
-                    ) : (
-                      <div
-                        className={`inline-block px-3.5 py-2.5 rounded-2xl rounded-tl-none text-[13px] leading-relaxed max-w-prose ${
-                          isMe
-                            ? "bg-accent/15 text-ivory border border-accent/20"
-                            : "bg-white/4 text-ivory/80 border border-white/6"
-                        } ${msg.isOptimistic ? "opacity-60" : ""}`}
-                      >
-                        {msg.replyTo && (
-                          <div className="mb-2 p-2 bg-black/20 rounded-lg border-l-2 border-accent/50 text-[11px] opacity-80 line-clamp-2">
-                            <p className="font-bold mb-0.5 text-accent/70">
-                              {msg.replyTo.sender?.name || "Member"}
-                            </p>
-                            {msg.replyTo.text}
-                          </div>
-                        )}
-                        {msg.text}
-                      </div>
-                    )}
-
-                    {/* Reaction pills */}
-                    {reactions[msg._id] &&
-                      Object.entries(reactions[msg._id]).some(
-                        ([, users]) => users.length > 0,
-                      ) && (
-                        <div className="flex flex-wrap gap-1 mt-1.5">
-                          {Object.entries(reactions[msg._id])
-                            .filter(([, users]) => users.length > 0)
-                            .map(([emoji, users]) => (
+                          {/* Edit / Delete (own messages only) */}
+                          {isMe && (
+                            <>
+                              <div className="w-px h-5 bg-white/6 mx-0.5" />
                               <button
-                                key={emoji}
-                                onClick={() => reactToMessage(msg._id, emoji)}
-                                className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border transition-all ${
-                                  users.some(u => String(u) === String(user?._id))
-                                    ? "bg-accent/20 border-accent/40 text-accent"
-                                    : "bg-white/4 border-white/6 text-ivory/80 hover:bg-white/8"
-                                }`}
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingId(msg._id);
+                                  setEditedText(msg.text || "");
+                                  setLongPressedMsgId(null);
+                                }}
+                                className="p-1.5 rounded-md text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 transition-all"
                               >
-                                <span className="text-[12px] leading-none">{emoji}</span>
-                                <span className="text-[10px] font-bold opacity-40 leading-none">
-                                  {users.length}
-                                </span>
+                                <Pencil size={14} />
                               </button>
-                            ))}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDelete(msg._id);
+                                  setLongPressedMsgId(null);
+                                }}
+                                className="p-1.5 rounded-md text-red-400 hover:text-red-300 hover:bg-red-500/20 transition-all"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </>
+                          )}
                         </div>
                       )}
+
+                      {/* Full emoji reaction picker */}
+                      {reactionPickerMsgId === msg._id && (
+                        <div
+                          ref={reactionPickerRef}
+                          className="absolute top-6 left-0 z-40"
+                        >
+                          <EmojiPicker
+                            onEmojiClick={(emojiData) => {
+                              reactToMessage(msg._id, emojiData.emoji);
+                              setReactionPickerMsgId(null);
+                            }}
+                            theme="dark"
+                            height={340}
+                            width={300}
+                          />
+                        </div>
+                      )}
+
+                      {/* Message content */}
+                      {editingId === msg._id ? (
+                        <div className="flex flex-col gap-2 bg-slate-surface rounded-2xl p-3 border border-accent/40 max-w-lg">
+                          <span className="text-[10px] font-mono font-bold text-accent uppercase tracking-wider">
+                            Editing
+                          </span>
+                          <textarea
+                            className="w-full min-h-16 bg-deep text-ivory text-[13px] px-3 py-2 rounded-xl border border-white/8 focus:outline-none focus:border-accent resize-none scrollbar-hide"
+                            value={editedText}
+                            onChange={(e) => setEditedText(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && !e.shiftKey) {
+                                e.preventDefault();
+                                handleEditSave();
+                              }
+                              if (e.key === "Escape") {
+                                setEditingId(null);
+                                setEditedText("");
+                              }
+                            }}
+                            autoFocus
+                          />
+                          <div className="flex gap-2 justify-end">
+                            <button
+                              onClick={() => {
+                                setEditingId(null);
+                                setEditedText("");
+                              }}
+                              className="px-3 py-1.5 text-[11px] font-mono text-ivory/30 hover:text-ivory transition-colors rounded-lg hover:bg-white/4"
+                            >
+                              Cancel (Esc)
+                            </button>
+                            <button
+                              onClick={handleEditSave}
+                              className="px-3 py-1.5 text-[11px] font-mono text-accent bg-accent/10 hover:bg-accent/20 rounded-lg border border-accent/20 transition-all"
+                            >
+                              Save (Enter)
+                            </button>
+                          </div>
+                        </div>
+                      ) : msg.isDeleted ? (
+                        <div className="flex items-center gap-2 p-2 px-3 bg-white/2 rounded-2xl border border-white/5 opacity-50 select-none w-fit">
+                          <Trash2 className="w-3 h-3 text-ivory/30" />
+                          <p className="italic text-ivory/40 text-[11px] font-mono leading-none">
+                            Deleted
+                          </p>
+                        </div>
+                      ) : isGif ? (
+                        <div className="rounded-2xl overflow-hidden max-w-65">
+                          <img
+                            src={msg.gifUrl}
+                            alt="gif"
+                            className="w-full h-auto rounded-2xl"
+                          />
+                        </div>
+                      ) : (
+                        <div
+                          className={`inline-block px-3.5 py-2.5 rounded-2xl rounded-tl-none text-[13px] leading-relaxed max-w-prose ${isMe
+                            ? "bg-accent/15 text-ivory border border-accent/20"
+                            : "bg-white/4 text-ivory/80 border border-white/6"
+                            } ${msg.isOptimistic ? "opacity-60" : ""}`}
+                        >
+                          {msg.replyTo && (
+                            <div className="mb-2 p-2 bg-black/20 rounded-lg border-l-2 border-accent/50 text-[11px] opacity-80 line-clamp-2">
+                              <p className="font-bold mb-0.5 text-accent/70">
+                                {msg.replyTo.sender?.name || "Member"}
+                              </p>
+                              {msg.replyTo.text}
+                            </div>
+                          )}
+                          {msg.text}
+                        </div>
+                      )}
+
+                      {/* Reaction pills */}
+                      {reactions[msg._id] &&
+                        Object.keys(reactions[msg._id]).length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            {Object.entries(reactions[msg._id])
+                              .filter(([, users]) => users.length > 0)
+                              .map(([emoji, users]) => (
+                                <button
+                                  key={emoji}
+                                  onClick={() => reactToMessage(msg._id, emoji)}
+                                  className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border transition-all ${users.some(u => String(u) === String(user?._id))
+                                    ? "bg-accent/20 border-accent/40 text-accent"
+                                    : "bg-white/4 border-white/6 text-ivory/80 hover:bg-white/8"
+                                    }`}
+                                >
+                                  <span className="text-[12px] leading-none">{emoji}</span>
+                                  <span className="text-[9px] font-bold text-ivory/40">
+                                    {users.length}
+                                  </span>
+                                </button>
+                              ))}
+                          </div>
+                        )}
+
+                      {/* Read Receipts (Shown only on the last message sent by the user) */}
+                      {isMe && isLastMe && (
+                        <div className="mt-1 relative flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (hasReaders) {
+                                setShowSeenBy(showSeenBy === msg._id ? null : msg._id);
+                              }
+                            }}
+                            className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold transition-all ${hasReaders
+                              ? "bg-accent/10 border border-accent/20 text-accent hover:bg-accent/20 cursor-pointer"
+                              : "bg-white/4 border border-white/5 text-ivory/30"
+                              }`}
+                          >
+                            <CheckCheck size={10} className={hasReaders ? "text-accent" : "text-ivory/30"} />
+                            {hasReaders ? `Seen by ${uniqueReaders.length}` : "Sent"}
+                          </button>
+
+                          {/* Seen By Popover */}
+                          {showSeenBy === msg._id && hasReaders && (
+                            <div
+                              data-seen-popover="true"
+                              className="absolute z-50 top-full mt-1 left-0 w-48 bg-deep border border-white/10 rounded-xl shadow-2xl p-2 flex flex-col gap-1.5 max-h-48 overflow-y-auto scrollbar-hide"
+                            >
+                              <h4 className="text-[10px] font-mono font-bold text-ivory/40 px-1 uppercase tracking-wider mb-1">
+                                Read by
+                              </h4>
+                              {uniqueReaders.map((r, i) => (
+                                <div key={i} className="flex items-center justify-between px-1.5 py-1 rounded-lg hover:bg-white/4 min-w-0">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <Image
+                                      src={r.user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${r.user.name}`}
+                                      width={16}
+                                      height={16}
+                                      alt=""
+                                      className="rounded-full shrink-0"
+                                      unoptimized
+                                    />
+                                    <span className="text-[11px] font-display font-medium text-ivory/80 truncate">
+                                      {r.user.name}
+                                    </span>
+                                  </div>
+                                  <span className="text-[9px] font-mono text-ivory/30 shrink-0 ml-2">
+                                    {new Date(r.readAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </React.Fragment>
-          );
-        })}
+              </React.Fragment>
+            );
+          });
+        })()}
 
         {/* Typing indicator */}
         {typingUsers.length > 0 && (
@@ -668,11 +855,10 @@ export default function ModuleChatWindow({
                 <div
                   key={code}
                   onClick={() => insertEmoji(emoji)}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-                    i === suggestionIndex
-                      ? "bg-accent/20 text-accent"
-                      : "hover:bg-white/6 text-ivory/40"
-                  }`}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${i === suggestionIndex
+                    ? "bg-accent/20 text-accent"
+                    : "hover:bg-white/6 text-ivory/40"
+                    }`}
                 >
                   <span className="text-lg">{emoji}</span>
                   <span className="text-xs font-mono">{code}</span>
@@ -716,6 +902,56 @@ export default function ModuleChatWindow({
             </div>
           )}
 
+          {showScheduledPanel && (
+            <div className="mb-3 p-3 rounded-2xl bg-slate-surface border border-white/5">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-bold text-ivory/80">
+                  Scheduled messages
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowScheduledPanel(false)}
+                  className="text-ivory/30 hover:text-ivory/60"
+                  aria-label="Close scheduled messages"
+                  title="Close"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {loadingScheduled ? (
+                <p className="text-xs text-ivory/30">Loading...</p>
+              ) : scheduledItems.length === 0 ? (
+                <p className="text-xs text-ivory/20">No scheduled messages</p>
+              ) : (
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {scheduledItems.map((s) => (
+                    <div
+                      key={s._id}
+                      className="flex items-center justify-between gap-3 p-2 rounded-xl bg-black/20 border border-white/5"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-xs text-ivory/80 truncate">
+                          {s.content}
+                        </p>
+                        <p className="text-[10px] text-ivory/30">
+                          {new Date(s.sendAt).toLocaleString()} • {s.status}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onCancelScheduled(s._id)}
+                        className="px-2 py-1 text-[10px] font-bold rounded-md border border-red-500/30 text-red-400 hover:bg-red-500/10"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="bg-slate-surface rounded-2xl flex items-center flex-wrap p-2 gap-1 border border-white/5 focus-within:border-accent/50 transition-all shadow-inner">
             {/* Using Plus icon for consistency with main chat even if we don't have extra tools yet */}
             <button
@@ -756,11 +992,10 @@ export default function ModuleChatWindow({
                 setShowGifPicker((v) => !v);
                 setShowEmojiPicker(false);
               }}
-              className={`hidden sm:inline-flex px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${
-                showGifPicker
-                  ? "bg-accent/20 border-accent/40 text-accent"
-                  : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
-              }`}
+              className={`hidden sm:inline-flex px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${showGifPicker
+                ? "bg-accent/20 border-accent/40 text-accent"
+                : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+                }`}
             >
               GIF
             </button>
@@ -771,24 +1006,111 @@ export default function ModuleChatWindow({
                 setShowEmojiPicker((v) => !v);
                 setShowGifPicker(false);
               }}
-              className={`w-9 h-9 flex items-center justify-center transition-all ${
-                showEmojiPicker
-                  ? "text-accent"
-                  : "text-ivory/30 hover:text-ivory/60"
-              }`}
+              className={`w-9 h-9 flex items-center justify-center transition-all ${showEmojiPicker
+                ? "text-accent"
+                : "text-ivory/30 hover:text-ivory/60"
+                }`}
               title="Emoji"
             >
               <Smile size={20} />
             </button>
 
+            {/* Schedule Dropdown */}
+            <div ref={scheduleDropdownRef} className="relative inline-flex">
+              <button
+                type="button"
+                onClick={() => setScheduleDropdownOpen((v) => !v)}
+                className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${scheduleDropdownOpen
+                  ? "bg-accent/20 text-accent"
+                  : "text-ivory/30 hover:text-ivory/60"
+                  }`}
+                title="Schedule or view pending"
+              >
+                <Clock size={18} />
+              </button>
+
+              {scheduleDropdownOpen && (
+                <div className="absolute bottom-full right-0 mb-2 w-56 bg-deep border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                  {/* Header */}
+                  <div className="px-4 py-3 border-b border-white/8 flex items-center justify-between">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-ivory/40">
+                      Schedule Message
+                    </span>
+                    <button
+                      onClick={() => setScheduleDropdownOpen(false)}
+                      className="text-ivory/20 hover:text-ivory transition-colors"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+
+                  {/* Content */}
+                  <div className="p-3 space-y-2">
+                    {/* Schedule Option */}
+                    <div>
+                      <label className="text-[11px] font-mono text-ivory/50 mb-2 block">
+                        Send at
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={sendAt}
+                        min={new Date().toISOString().slice(0, 16)}
+                        onChange={(e) => setSendAt(e.target.value)}
+                        className="w-full bg-white/4 border border-white/10 rounded-lg px-2.5 py-2 text-xs text-ivory/80 outline-none focus:border-accent/40 transition-colors"
+                      />
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!sendAt) {
+                            toast.error("Please select a date and time");
+                            return;
+                          }
+                          await scheduleMessage();
+                          setScheduleDropdownOpen(false);
+                        }}
+                        disabled={!sendAt || scheduling}
+                        className="w-full mt-2 px-3 py-1.5 bg-accent/20 hover:bg-accent/30 disabled:opacity-50 disabled:cursor-not-allowed text-accent text-[11px] font-bold rounded-lg transition-all"
+                      >
+                        {scheduling ? "Scheduling..." : "Schedule"}
+                      </button>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="h-px bg-white/5" />
+
+                    {/* Pending Messages */}
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowScheduledPanel(true);
+                          refreshScheduled();
+                          setScheduleDropdownOpen(false);
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-semibold text-ivory/70 hover:bg-white/5 rounded-lg transition-colors"
+                      >
+                        <Calendar size={14} className="text-accent/60" />
+                        View Pending
+                        {scheduledItems.length > 0 && (
+                          <span className="ml-auto px-2 py-0.5 bg-accent/20 text-accent text-[10px] font-mono rounded">
+                            {scheduledItems.length}
+                          </span>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <button
               type="submit"
-              disabled={!text.trim()}
-              className={`w-9 h-9 flex items-center justify-center rounded-xl ml-1 transition-all active:scale-95 shadow-lg ${
-                !text.trim()
-                  ? "bg-slate-700 text-ivory/40 cursor-not-allowed"
-                  : "bg-accent hover:bg-accent/90 text-black shadow-accent/20"
-              }`}
+              disabled={scheduling || !text.trim()}
+              title="Send"
+              className={`w-9 h-9 flex items-center justify-center rounded-xl ml-1 transition-all active:scale-95 shadow-lg ${!text.trim() || scheduling
+                ? "bg-slate-700 text-ivory/40 cursor-not-allowed opacity-50"
+                : "bg-accent hover:bg-accent/90 text-black shadow-accent/20"
+                }`}
             >
               <Send size={18} />
             </button>
@@ -801,13 +1123,24 @@ export default function ModuleChatWindow({
                   setShowGifPicker(!showGifPicker);
                   setShowEmojiPicker(false);
                 }}
-                className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${
-                  showGifPicker
-                    ? "bg-accent/20 border-accent/40 text-accent"
-                    : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
-                }`}
+                className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${showGifPicker
+                  ? "bg-accent/20 border-accent/40 text-accent"
+                  : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+                  }`}
               >
                 GIF
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setScheduleDropdownOpen((v) => !v)}
+                className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${scheduleDropdownOpen
+                  ? "bg-accent/20 border-accent/40 text-accent"
+                  : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+                  }`}
+                title="Schedule or view pending"
+              >
+                ⏱ Schedule
               </button>
             </div>
           </div>

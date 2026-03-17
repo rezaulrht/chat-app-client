@@ -790,6 +790,7 @@ export default function ChatWindow({
     setSuggestions([]);
     setReplyTo(null);
     resetFiles();
+    onMessageSent?.(conversation._id, optimistic.text || null, null, attachments);
   };
 
   if (!conversation) {

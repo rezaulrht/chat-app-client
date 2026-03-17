@@ -171,6 +171,8 @@ export default function FeedView() {
     fetchComments,
     addComment,
     reactToComment,
+    editComment,
+    deleteComment,
   } = useFeed();
 
   const [activePost, setActivePost] = useState(null); // PostDetail view
@@ -325,6 +327,49 @@ export default function FeedView() {
     }
   };
 
+  const handleEditComment = async (postId, commentId, content) => {
+    try {
+      await editComment(postId, commentId, content);
+      toast.success("Comment updated");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Failed to update comment"));
+      throw error;
+    }
+  };
+
+  const handleDeleteComment = async (postId, commentId) => {
+    try {
+      const data = await deleteComment(postId, commentId);
+      setActivePost((prev) => {
+        if (!prev || prev._id !== postId) return prev;
+        const nextCount =
+          typeof data?.commentsCount === "number"
+            ? Math.max(0, data.commentsCount)
+            : Math.max(
+              0,
+              (prev.commentCount ?? prev.commentsCount ?? 0) - (data?.removedCount ?? 1),
+            );
+        const acceptedId = prev.acceptedAnswer ?? prev.acceptedComment ?? null;
+
+        return {
+          ...prev,
+          commentCount: nextCount,
+          commentsCount: nextCount,
+          acceptedAnswer:
+            String(acceptedId) === String(commentId) ? null : prev.acceptedAnswer,
+          acceptedComment:
+            String(acceptedId) === String(commentId) ? null : prev.acceptedComment,
+          status:
+            String(acceptedId) === String(commentId) ? "open" : prev.status,
+        };
+      });
+      toast.success("Comment deleted");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Failed to delete comment"));
+      throw error;
+    }
+  };
+
   const handleAcceptAnswer = async (postId, commentId) => {
     try {
       const data = await acceptAnswer(postId, commentId);
@@ -398,6 +443,8 @@ export default function FeedView() {
               onAddComment={handleAddComment}
               onReactComment={handleReactComment}
               onAcceptAnswer={handleAcceptAnswer}
+              onEditComment={handleEditComment}
+              onDeleteComment={handleDeleteComment}
             />
           ) : isInitialLoading ? (
             <div className="flex flex-col">

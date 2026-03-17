@@ -20,11 +20,16 @@ import {
 } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
+import useFeed from "@/hooks/useFeed";
 import toast from "react-hot-toast";
 
 export default function UserProfileModal({ onClose }) {
   const { user, updateProfile, changePassword } = useAuth();
   const { workspaces } = useWorkspace();
+  const { userStats, fetchMyStats } = useFeed();
+
+  // Refresh feed stats when modal opens
+  useEffect(() => { fetchMyStats(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── editable fields ──────────────────────────────────────────────────
   const [name, setName] = useState(user?.name || "");
@@ -182,7 +187,7 @@ export default function UserProfileModal({ onClose }) {
         </div>
 
         {/* ── scrollable body ──────────────────────────────────────── */}
-        <div className="flex-1 overflow-y-auto scrollbar-hide px-6 pb-6">
+        <div className="flex-1 overflow-y-auto scrollbar-hide px-6 pb-6" data-lenis-prevent>
           {/* ═══════════════ PROFILE TAB ═══════════════ */}
           {activeTab === "profile" && (
             <div className="space-y-5">
@@ -350,23 +355,22 @@ export default function UserProfileModal({ onClose }) {
               </div>
 
               {/* Stats row */}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="flex flex-col items-center justify-center py-3 px-2 bg-white/[0.03] rounded-xl border border-white/[0.06]">
-                  <p className="text-[22px] font-display font-bold text-ivory leading-none">
-                    {workspaceCount}
-                  </p>
-                  <p className="text-[9px] font-mono text-ivory/25 mt-1 uppercase tracking-wider">
-                    Workspaces
-                  </p>
-                </div>
-                <div className="flex flex-col items-center justify-center py-3 px-2 bg-white/[0.03] rounded-xl border border-white/[0.06]">
-                  <p className="text-[22px] font-display font-bold text-accent/80 leading-none">
-                    {providerLabel[0]}
-                  </p>
-                  <p className="text-[9px] font-mono text-ivory/25 mt-1 uppercase tracking-wider">
-                    via {providerLabel}
-                  </p>
-                </div>
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { value: workspaceCount, label: "Workspaces" },
+                  { value: userStats.postCount, label: "Posts" },
+                  { value: userStats.followersCount, label: "Followers" },
+                  { value: userStats.followingCount, label: "Following" },
+                ].map(({ value, label }) => (
+                  <div key={label} className="flex flex-col items-center justify-center py-3 px-1 bg-white/[0.03] rounded-xl border border-white/[0.06]">
+                    <p className="text-[18px] font-display font-bold text-ivory leading-none">
+                      {value}
+                    </p>
+                    <p className="text-[8px] font-mono text-ivory/25 mt-1 uppercase tracking-wider text-center">
+                      {label}
+                    </p>
+                  </div>
+                ))}
               </div>
 
               {/* Save button */}

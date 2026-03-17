@@ -53,8 +53,26 @@ function CommentItem({
   depth = 0,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const isOwn = comment.author?._id === currentUserId;
+  const [isEditing, setIsEditing] = useState(false);
+  const [draftText, setDraftText] = useState(comment.content || "");
+  const authorId = comment.author?._id?.toString?.() || String(comment.author?._id || "");
+  const isOwn = authorId && String(currentUserId || "") === authorId;
   const commentTime = timeAgo(comment.createdAt);
+
+  const handleSaveEdit = async () => {
+    const next = draftText.trim();
+    if (!next || next === String(comment.content || "").trim()) {
+      setIsEditing(false);
+      return;
+    }
+
+    try {
+      await onEdit?.(comment._id, next);
+      setIsEditing(false);
+    } catch {
+      // Parent handler already surfaces toast errors.
+    }
+  };
 
   return (
     <div
@@ -79,6 +97,34 @@ function CommentItem({
             <div className="mt-1.5 text-[13px] leading-relaxed text-ivory/72">
               {comment.isDeleted ? (
                 <span className="italic text-ivory/25">[deleted]</span>
+              ) : isEditing ? (
+                <div className="flex flex-col gap-2">
+                  <textarea
+                    value={draftText}
+                    onChange={(e) => setDraftText(e.target.value)}
+                    rows={3}
+                    className="w-full rounded-2xl bg-white/4 px-3 py-2 text-[13px] text-ivory/80 placeholder:text-ivory/20 outline-none ring-1 ring-white/7 transition-all focus:ring-accent/30 resize-none font-sans"
+                  />
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSaveEdit}
+                      className="rounded-lg bg-accent/15 px-2.5 py-1 text-[11px] font-semibold text-accent ring-1 ring-accent/30 transition-all hover:bg-accent/25"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDraftText(comment.content || "");
+                        setIsEditing(false);
+                      }}
+                      className="rounded-lg px-2.5 py-1 text-[11px] font-semibold text-ivory/40 transition-all hover:bg-white/6 hover:text-ivory/70"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
               ) : (
                 comment.content
               )}
@@ -111,7 +157,8 @@ function CommentItem({
                       type="button"
                       onClick={() => {
                         setMenuOpen(false);
-                        onEdit?.(comment);
+                        setDraftText(comment.content || "");
+                        setIsEditing(true);
                       }}
                       className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] text-ivory/60 hover:bg-white/5 hover:text-ivory"
                     >
@@ -121,7 +168,9 @@ function CommentItem({
                       type="button"
                       onClick={() => {
                         setMenuOpen(false);
-                        onDelete?.(comment._id);
+                        const confirmed = window.confirm("Delete this comment?");
+                        if (!confirmed) return;
+                        onDelete?.(comment._id?.toString?.() || String(comment._id));
                       }}
                       className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] text-red-400/70 hover:bg-red-400/5 hover:text-red-400"
                     >
@@ -139,6 +188,7 @@ function CommentItem({
             type="button"
             onClick={() => onReply?.(comment)}
             className="transition-colors hover:text-ivory/62"
+            disabled={isEditing}
           >
             Reply
           </button>

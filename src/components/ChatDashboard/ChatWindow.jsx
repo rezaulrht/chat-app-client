@@ -46,6 +46,13 @@ const EmojiPicker = dynamic(() => import("emoji-picker-react"), { ssr: false });
  */
 function parseSharedPost(text) {
   if (!text || typeof text !== "string") return null;
+
+  // Require the exact structured header that ShareModal generates.
+  // Plain pasted feed links (no share header) stay as normal text.
+  const shareBlockStart = text.indexOf("📎 *Shared a ");
+  if (shareBlockStart === -1) return null;
+
+  // Must also contain a valid feed post URL
   const urlMatch = text.match(
     /https?:\/\/[^\s]+\/app\/feed\?post=([a-zA-Z0-9]+)/,
   );
@@ -54,20 +61,19 @@ function parseSharedPost(text) {
   const postId = urlMatch[1];
   const url = urlMatch[0];
 
-  // Extract optional prefix (user's own message before the share block)
-  const shareBlockStart = text.indexOf("📎");
+  // Optional user message written before the share block
   const prefix =
     shareBlockStart > 0 ? text.slice(0, shareBlockStart).trim() : "";
 
-  // Parse type
+  // Parse type — safe: header already confirmed present
   const typeMatch = text.match(/📎 \*Shared a ([^*]+)\*/);
   const type = typeMatch ? typeMatch[1].trim() : "post";
 
-  // Parse title — between ** ** or fallback
+  // Parse title — between ** **
   const titleMatch = text.match(/\*\*([^*]+)\*\*/);
   const title = titleMatch ? titleMatch[1].trim() : "";
 
-  // Parse author — "by <name>"
+  // Parse author — "by <n>\n"
   const authorMatch = text.match(/\nby (.+)\n/);
   const author = authorMatch ? authorMatch[1].trim() : "";
 

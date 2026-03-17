@@ -148,14 +148,9 @@ export default function ChannelSidebar({
       {/* Workspace Header (click to open settings) */}
       <div
         onClick={() => {
-          if (workspace?.myRole === "owner" || workspace?.myRole === "admin") {
-            onSettingsOpen?.();
-          }
+          onSettingsOpen?.();
         }}
-        className={`h-13 px-4 flex items-center justify-between border-b border-white/6 hover:bg-white/3 transition-all duration-300 group relative ${workspace?.myRole === "owner" || workspace?.myRole === "admin"
-            ? "cursor-pointer"
-            : "cursor-default"
-          }`}
+        className={`h-13 px-4 flex items-center justify-between border-b border-white/6 hover:bg-white/3 transition-all duration-300 group relative cursor-pointer`}
       >
         <div className="flex items-center gap-2 min-w-0">
           {onBack && (
@@ -484,15 +479,13 @@ export default function ChannelSidebar({
         </div>
 
         <div className="flex items-center gap-0.5 opacity-40 group-hover/user:opacity-80 transition-opacity">
-          {(workspace?.myRole === "owner" || workspace?.myRole === "admin") && (
-            <button
-              onClick={() => onSettingsOpen?.()}
-              className="p-1.5 rounded-lg hover:bg-white/6 text-ivory/40 hover:text-ivory/60 transition-all duration-200"
-              title="Workspace Settings"
-            >
-              <Settings size={15} />
-            </button>
-          )}
+          <button
+            onClick={() => onSettingsOpen?.()}
+            className="p-1.5 rounded-lg hover:bg-white/6 text-ivory/40 hover:text-ivory/60 transition-all duration-200"
+            title="Workspace Settings"
+          >
+            <Settings size={15} />
+          </button>
           <button
             onClick={() => logout()}
             className="p-1.5 rounded-lg hover:bg-white/6 text-ivory/40 hover:text-ivory/60 transition-all duration-200"

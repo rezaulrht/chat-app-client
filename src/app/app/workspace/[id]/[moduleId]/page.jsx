@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import WorkspaceSidebar from "@/components/ChatDashboard/WorkspaceSidebar";
 import ChannelSidebar from "@/components/ChatDashboard/ChannelSidebar";
@@ -15,7 +15,14 @@ export default function ModulePage() {
   const { id, moduleId } = useParams();
   const router = useRouter();
   const [showSettings, setShowSettings] = useState(false);
-  const [showMembers, setShowMembers] = useState(false);
+  const [showMembers, setShowMembers] = useState(true);
+
+  useEffect(() => {
+    // Close on mobile screens by default
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      setShowMembers(false);
+    }
+  }, []);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showCreateModule, setShowCreateModule] = useState(false);
   const [createModuleCategory, setCreateModuleCategory] = useState("General");

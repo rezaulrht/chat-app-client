@@ -63,7 +63,7 @@ const TABS = [
 // ─────────────────────────────────────────────────────────────────────────────
 // OVERVIEW TAB
 // ─────────────────────────────────────────────────────────────────────────────
-function OverviewTab({ workspace, onUpdate }) {
+function OverviewTab({ workspace, onUpdate, isAdmin }) {
   const [name, setName] = useState(workspace?.name || "");
   const [description, setDescription] = useState(workspace?.description || "");
   const [avatarUrl, setAvatarUrl] = useState(workspace?.avatar || "");
@@ -102,7 +102,7 @@ function OverviewTab({ workspace, onUpdate }) {
           className="relative w-full h-28 rounded-2xl overflow-hidden bg-white/4 border border-white/8 group cursor-pointer"
           style={bannerUrl ? { backgroundImage: `url(${bannerUrl})`, backgroundSize: "cover", backgroundPosition: "center" } : {}}
         >
-          {!bannerUrl && (
+          {!bannerUrl && isAdmin && (
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center">
                 <Camera size={20} className="mx-auto text-ivory/20 mb-1" />
@@ -121,22 +121,26 @@ function OverviewTab({ workspace, onUpdate }) {
             )}
           </div>
         </div>
-        <div className="mt-10">
-          <input
-            type="text"
-            value={bannerUrl}
-            onChange={(e) => setBannerUrl(e.target.value)}
-            placeholder="https://example.com/banner.jpg"
-            className="w-full bg-white/4 border border-white/8 rounded-xl px-3 py-2 text-[12px] font-mono text-ivory/70 placeholder:text-ivory/20 focus:outline-none focus:border-accent/40"
-          />
-        </div>
+        {isAdmin && (
+          <div className="mt-10">
+            <input
+              type="text"
+              value={bannerUrl}
+              onChange={(e) => setBannerUrl(e.target.value)}
+              placeholder="https://example.com/banner.jpg"
+              className="w-full bg-white/4 border border-white/8 rounded-xl px-3 py-2 text-[12px] font-mono text-ivory/70 placeholder:text-ivory/20 focus:outline-none focus:border-accent/40"
+            />
+          </div>
+        )}
       </div>
 
       {/* Avatar URL */}
-      <SettingsInput label="Avatar URL" value={avatarUrl} onChange={setAvatarUrl} placeholder="https://example.com/avatar.jpg" />
+      {isAdmin && (
+        <SettingsInput label="Avatar URL" value={avatarUrl} onChange={setAvatarUrl} placeholder="https://example.com/avatar.jpg" />
+      )}
 
       {/* Name */}
-      <SettingsInput label="Workspace Name" value={name} onChange={setName} placeholder="My Awesome Workspace" />
+      <SettingsInput label="Workspace Name" value={name} onChange={setName} placeholder="My Awesome Workspace" disabled={!isAdmin} />
 
       {/* Description */}
       <div>
@@ -148,7 +152,8 @@ function OverviewTab({ workspace, onUpdate }) {
           onChange={(e) => setDescription(e.target.value)}
           placeholder="What's this workspace about?"
           rows={3}
-          className="w-full bg-white/4 border border-white/8 rounded-xl px-3 py-2 text-[13px] text-ivory/70 placeholder:text-ivory/20 focus:outline-none focus:border-accent/40 resize-none scrollbar-hide"
+          disabled={!isAdmin}
+          className="w-full bg-white/4 border border-white/8 rounded-xl px-3 py-2 text-[13px] text-ivory/70 placeholder:text-ivory/20 focus:outline-none focus:border-accent/40 resize-none scrollbar-hide disabled:opacity-70"
         />
       </div>
 
@@ -164,12 +169,13 @@ function OverviewTab({ workspace, onUpdate }) {
             return (
               <button
                 key={v}
+                disabled={!isAdmin}
                 onClick={() => setVisibility(v)}
                 className={`flex-1 flex items-center gap-2 px-4 py-3 rounded-xl border transition-all ${
                   isActive
                     ? "border-accent/50 bg-accent/10 text-accent"
                     : "border-white/8 bg-white/3 text-ivory/30 hover:bg-white/6"
-                }`}
+                } ${!isAdmin && "opacity-70 cursor-not-allowed"}`}
               >
                 <Icon size={15} />
                 <span className="text-[13px] font-display font-bold capitalize">{v}</span>
@@ -179,7 +185,7 @@ function OverviewTab({ workspace, onUpdate }) {
         </div>
       </div>
 
-      {isDirty && (
+      {isDirty && isAdmin && (
         <button
           onClick={handleSave}
           disabled={saving}
@@ -193,7 +199,7 @@ function OverviewTab({ workspace, onUpdate }) {
   );
 }
 
-function SettingsInput({ label, value, onChange, placeholder }) {
+function SettingsInput({ label, value, onChange, placeholder, disabled }) {
   return (
     <div>
       <label className="block text-[11px] font-mono font-bold text-ivory/40 uppercase tracking-widest mb-2">
@@ -202,9 +208,10 @@ function SettingsInput({ label, value, onChange, placeholder }) {
       <input
         type="text"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => !disabled && onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full bg-white/4 border border-white/8 rounded-xl px-3 py-2 text-[13px] text-ivory/70 placeholder:text-ivory/20 focus:outline-none focus:border-accent/40"
+        disabled={disabled}
+        className="w-full bg-white/4 border border-white/8 rounded-xl px-3 py-2 text-[13px] text-ivory/70 placeholder:text-ivory/20 focus:outline-none focus:border-accent/40 disabled:opacity-70"
       />
     </div>
   );
@@ -859,7 +866,7 @@ export default function WorkspaceSettingsModal({ workspaceId, onClose }) {
             {TABS.map((tab) => {
               const Icon = tab.Icon;
               const isActive = activeTab === tab.id;
-              if (tab.id === "danger" || tab.id === "invites") {
+              if (tab.id === "roles" || tab.id === "invites") {
                 if (!isAdmin) return null;
               }
               return (
@@ -898,7 +905,7 @@ export default function WorkspaceSettingsModal({ workspaceId, onClose }) {
           {/* Scrollable content */}
           <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
             {activeTab === "overview" && (
-              <OverviewTab workspace={workspace} onUpdate={(d) => updateWorkspace(workspaceId, d)} />
+              <OverviewTab workspace={workspace} isAdmin={isAdmin} onUpdate={(d) => updateWorkspace(workspaceId, d)} />
             )}
             {activeTab === "roles" && isAdmin && (
               <RolesTab

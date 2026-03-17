@@ -107,32 +107,49 @@ export default function MemberListPanel({ workspaceId, onClose, onSettingsOpen }
   // Group members: owner → admins → custom → members, then split online / offline
   const groupedSections = React.useMemo(() => {
     const sections = [];
+    const groupedIds = new Set();
 
-    const byRole = (role) => members.filter((m) => m.role === role);
-    const online = (list) => list.filter((m) => onlineUsers.has(m.user?._id));
-    const offline = (list) => list.filter((m) => !onlineUsers.has(m.user?._id));
+    // Owner
+    const owners = members.filter((m) => m.role === "owner");
+    if (owners.length) {
+      sections.push({ title: `Owner — ${owners.length}`, color: "#e5b456", items: owners });
+      owners.forEach((m) => groupedIds.add(m.user?._id));
+    }
 
-    const owners = byRole("owner");
-    if (owners.length) sections.push({ title: "Owner", color: "#e5b456", items: owners });
+    // Admins
+    const admins = members.filter((m) => m.role === "admin" && !groupedIds.has(m.user?._id));
+    if (admins.length) {
+      sections.push({ title: `Admin — ${admins.length}`, color: "#e55692", items: admins });
+      admins.forEach((m) => groupedIds.add(m.user?._id));
+    }
 
-    const admins = byRole("admin");
-    if (admins.length) sections.push({ title: "Admins", color: "#e55692", items: admins });
+    // Custom Roles
+    if (roles && roles.length) {
+      roles.forEach((role) => {
+        const roleMembers = members.filter(
+          (m) => (m.roleIds || []).includes(role._id) && !groupedIds.has(m.user?._id)
+        );
+        if (roleMembers.length) {
+          sections.push({ title: `${role.name} — ${roleMembers.length}`, color: role.color, items: roleMembers });
+          roleMembers.forEach((m) => groupedIds.add(m.user?._id));
+        }
+      });
+    }
 
-    const regularMembers = byRole("member");
-    if (regularMembers.length) {
-      const onlineMembers = online(regularMembers);
-      const offlineMembers = offline(regularMembers);
+    // Remaining Members
+    const remaining = members.filter((m) => !groupedIds.has(m.user?._id));
+    const onlineMembers = remaining.filter((m) => onlineUsers.has(m.user?._id));
+    const offlineMembers = remaining.filter((m) => !onlineUsers.has(m.user?._id));
 
-      if (onlineMembers.length) {
-        sections.push({ title: `Online — ${onlineMembers.length}`, color: "#56e574", items: onlineMembers });
-      }
-      if (offlineMembers.length) {
-        sections.push({ title: `Offline — ${offlineMembers.length}`, color: null, items: offlineMembers });
-      }
+    if (onlineMembers.length) {
+      sections.push({ title: `Online — ${onlineMembers.length}`, color: "#56e574", items: onlineMembers });
+    }
+    if (offlineMembers.length) {
+      sections.push({ title: `Offline — ${offlineMembers.length}`, color: null, items: offlineMembers });
     }
 
     return sections;
-  }, [members, onlineUsers]);
+  }, [members, roles, onlineUsers]);
 
   return (
     <aside className="w-64 h-full flex flex-col bg-[#0d0d16] border-l border-white/6 shrink-0 overflow-hidden">

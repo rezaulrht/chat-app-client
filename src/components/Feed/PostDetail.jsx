@@ -69,6 +69,8 @@ function questionStatus(post) {
  * @param {Function} onReactComment
  * @param {Function} onAcceptAnswer
  * @param {Function} onVotePoll
+ * @param {Function} onEditComment
+ * @param {Function} onDeleteComment
  */
 export default function PostDetail({
   post = {},
@@ -84,6 +86,8 @@ export default function PostDetail({
   onReactComment,
   onAcceptAnswer,
   onVotePoll,
+  onEditComment,
+  onDeleteComment,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -283,6 +287,10 @@ export default function PostDetail({
             onReactComment?.(post._id, commentId, emoji)
           }
           onAccept={(commentId) => onAcceptAnswer?.(post._id, commentId)}
+          onEdit={(commentId, content) =>
+            onEditComment?.(post._id, commentId, content)
+          }
+          onDelete={(commentId) => onDeleteComment?.(post._id, commentId)}
         />
       </article>
     </div>

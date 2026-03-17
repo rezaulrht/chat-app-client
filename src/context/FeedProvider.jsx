@@ -466,6 +466,90 @@ export function FeedProvider({ children }) {
 
     return res.data;
   }, []);
+
+  const editComment = useCallback(async (postId, commentId, content) => {
+    const res = await api.patch(`/api/feed/comments/${commentId}`, { content });
+
+    setCommentsByPost((prev) => {
+      const existing = Array.isArray(prev[postId]) ? prev[postId] : [];
+      const updated = existing.map((c) =>
+        c._id === commentId
+          ? {
+            ...c,
+            ...res.data,
+            replyTo: res.data.parentComment || c.replyTo || null,
+          }
+          : c,
+      );
+      return { ...prev, [postId]: updated };
+    });
+
+    return res.data;
+  }, []);
+
+  const deleteComment = useCallback(async (postId, commentId) => {
+    const normalizedCommentId = String(commentId || "");
+    if (!normalizedCommentId) {
+      throw new Error("Invalid comment ID");
+    }
+
+    const existing = Array.isArray(commentsByPost[postId])
+      ? commentsByPost[postId]
+      : [];
+    const removedIds = new Set([normalizedCommentId]);
+
+    for (const comment of existing) {
+      const parentId = comment.replyTo ?? comment.parentComment ?? null;
+      if (String(parentId) === normalizedCommentId) {
+        removedIds.add(String(comment._id));
+      }
+    }
+
+    const removedCount = removedIds.size;
+
+    const res = await api.delete(`/api/feed/comments/${normalizedCommentId}`);
+
+    setCommentsByPost((prev) => {
+      const current = Array.isArray(prev[postId]) ? prev[postId] : [];
+      const updated = current.filter((c) => !removedIds.has(String(c._id)));
+      return { ...prev, [postId]: updated };
+    });
+
+    const serverCommentsCount =
+      typeof res.data?.commentsCount === "number"
+        ? res.data.commentsCount
+        : null;
+    const deletedCount =
+      typeof res.data?.deletedCount === "number"
+        ? res.data.deletedCount
+        : removedCount;
+
+    setPosts((prev) =>
+      prev.map((p) =>
+        p._id === postId
+          ? normalizePost({
+            ...p,
+            commentsCount:
+              serverCommentsCount != null
+                ? Math.max(0, serverCommentsCount)
+                : Math.max(
+                  0,
+                  (p.commentsCount ?? p.commentCount ?? 0) - deletedCount,
+                ),
+          })
+          : p,
+      ),
+    );
+
+    return {
+      removedCount: deletedCount,
+      commentsCount:
+        serverCommentsCount != null
+          ? Math.max(0, serverCommentsCount)
+          : undefined,
+    };
+  }, [commentsByPost, normalizePost]);
+
   const followTag = useCallback(async () => {
     /* TODO */
   }, []);
@@ -646,6 +730,8 @@ export function FeedProvider({ children }) {
     fetchComments,
     addComment,
     reactToComment,
+    editComment,
+    deleteComment,
     followTag,
     searchPosts,
     // Social actions

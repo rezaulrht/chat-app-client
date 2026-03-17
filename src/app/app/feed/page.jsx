@@ -5,6 +5,19 @@ import MobileBottomNav from "@/components/ChatDashboard/MobileBottomNav";
 import FeedView from "@/components/Feed/FeedView";
 import FeedSidebar from "@/components/Feed/FeedSidebar";
 import { FeedProvider } from "@/context/FeedProvider";
+import useFeed from "@/hooks/useFeed";
+
+function ConnectedLeftSidebar({ onTagFilter }) {
+  const { userStats, followedTags } = useFeed();
+  return (
+    <FeedSidebar
+      side="left"
+      userStats={userStats}
+      followedTags={followedTags}
+      onTagFilter={onTagFilter}
+    />
+  );
+}
 
 export default function FeedPage() {
   return (
@@ -15,18 +28,7 @@ export default function FeedPage() {
           <div className="hidden xl:flex flex-col shrink-0 h-full w-[320px] border-r border-white/[0.06]">
             <WorkspaceSidebar />
             <div className="flex-1 min-h-0 overflow-hidden border-t border-white/[0.04]">
-              <FeedSidebar
-                side="left"
-                userStats={{
-                  name: "Alex Rivera",
-                  reputation: 2500,
-                  followersCount: "1.2k",
-                  followingCount: "850",
-                  postCount: "42",
-                }}
-                followedTags={["react", "nodejs", "typescript", "webdev"]}
-                onTagFilter={() => {}}
-              />
+              <ConnectedLeftSidebar onTagFilter={() => {}} />
             </div>
           </div>
 

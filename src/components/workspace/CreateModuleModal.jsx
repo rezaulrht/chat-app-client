@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { Hash, Megaphone, Lock, X, Loader2 } from "lucide-react";
+import { Hash, Megaphone, Lock, X, Loader2, Check, Shield } from "lucide-react";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import toast from "react-hot-toast";
 
@@ -49,6 +49,7 @@ export default function CreateModuleModal({
       : categories[0] || "General",
   );
   const [isPrivate, setIsPrivate] = useState(false);
+  const [allowedRoles, setAllowedRoles] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -88,6 +89,7 @@ export default function CreateModuleModal({
         type,
         category,
         isPrivate,
+        allowedRoles: isPrivate ? allowedRoles : [],
       });
       toast.success(`#${mod.name} created!`);
       onClose();
@@ -245,6 +247,48 @@ export default function CreateModuleModal({
               />
             </button>
           </div>
+
+          {/* Allowed Roles (when private) */}
+          {isPrivate && workspace?.roles?.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Shield size={12} className="text-ivory/30" />
+                <label className="text-[11px] font-mono font-bold text-ivory/40 uppercase tracking-wider">
+                  Role Access
+                </label>
+              </div>
+              <p className="text-[10px] font-mono text-ivory/25">
+                Select roles that can access this private channel (leave empty for admins/owner only)
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {workspace.roles.map((role) => {
+                  const selected = allowedRoles.includes(role._id);
+                  return (
+                    <button
+                      key={role._id}
+                      type="button"
+                      onClick={() =>
+                        setAllowedRoles((prev) =>
+                          selected
+                            ? prev.filter((id) => id !== role._id)
+                            : [...prev, role._id],
+                        )
+                      }
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-mono font-bold transition-all"
+                      style={{
+                        borderColor: selected ? role.color : role.color + "30",
+                        color: selected ? role.color : role.color + "60",
+                        backgroundColor: selected ? role.color + "20" : "transparent",
+                      }}
+                    >
+                      {selected && <Check size={10} />}
+                      {role.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Footer */}
           <div className="flex gap-2 pt-1">

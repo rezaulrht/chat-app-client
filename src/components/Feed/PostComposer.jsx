@@ -18,6 +18,9 @@ import {
   Globe,
   ImagePlus,
   Upload,
+  Loader2,
+  Wand2,
+  Undo2,
 } from "lucide-react";
 
 const POST_TYPES = [
@@ -239,6 +242,10 @@ export default function PostComposer({
 }) {
   const [type, setType] = useState("post");
   const [tags, setTags] = useState(DEFAULT_TAGS);
+  const [suggestedTags, setSuggestedTags] = useState([]);
+  const [isSuggestingTags, setIsSuggestingTags] = useState(false);
+  const [isPolishing, setIsPolishing] = useState(false);
+  const [prePolishSnapshot, setPrePolishSnapshot] = useState(null);
   const [isPrivate, setIsPrivate] = useState(false);
 
   const [title, setTitle] = useState("");
@@ -274,6 +281,10 @@ export default function PostComposer({
   const resetForm = () => {
     setType("post");
     setTags(DEFAULT_TAGS);
+    setSuggestedTags([]);
+    setIsSuggestingTags(false);
+    setIsPolishing(false);
+    setPrePolishSnapshot(null);
     setIsPrivate(false);
 
     setTitle("");
@@ -353,6 +364,115 @@ export default function PostComposer({
   }, [open, editPost]);
 
   if (!open) return null;
+
+  const getContentForSuggestions = () => {
+    switch (type) {
+      case "snippet":
+        return snippetCode || content;
+      case "showcase":
+        return showcaseDescription;
+      case "poll":
+        return pollQuestion;
+      case "resource":
+        return resourceDescription;
+      default:
+        return content;
+    }
+  };
+
+  const getTitleForSuggestions = () => {
+    switch (type) {
+      case "snippet":
+        return snippetTitle;
+      case "showcase":
+        return showcaseTitle;
+      case "resource":
+        return resourceTitle;
+      default:
+        return title;
+    }
+  };
+
+  const handleSuggestTags = async () => {
+    if (isSuggestingTags) return;
+    setIsSuggestingTags(true);
+    setSuggestedTags([]);
+
+    try {
+      const res = await fetch("/api/ai-tags", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: getTitleForSuggestions(),
+          content: getContentForSuggestions(),
+          type,
+          existingTags: tags,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed");
+
+      const data = await res.json();
+      const incoming = (data.tags || [])
+        .filter((t) => !tags.includes(t) && t.length <= 20)
+        .slice(0, 5 - tags.length);
+      setSuggestedTags(incoming);
+    } catch {
+      setSuggestedTags([]);
+    } finally {
+      setIsSuggestingTags(false);
+    }
+  };
+
+  const acceptSuggestedTag = (tag) => {
+    if (tags.length >= 5 || tags.includes(tag)) return;
+    setTags([...tags, tag]);
+    setSuggestedTags((prev) => prev.filter((t) => t !== tag));
+  };
+
+  const dismissSuggestedTag = (tag) => {
+    setSuggestedTags((prev) => prev.filter((t) => t !== tag));
+  };
+
+  const POLISHABLE_TYPES = ["post", "question", "til"];
+  const canPolish =
+    POLISHABLE_TYPES.includes(type) && content.trim().length >= 20;
+
+  const handlePolish = async () => {
+    if (isPolishing || !canPolish) return;
+    setIsPolishing(true);
+
+    setPrePolishSnapshot({ title, content });
+
+    try {
+      const res = await fetch("/api/ai-polish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          content: content.slice(0, 3000),
+          type,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed");
+
+      const data = await res.json();
+      if (data.title) setTitle(data.title);
+      if (data.content) setContent(data.content);
+    } catch {
+      setPrePolishSnapshot(null);
+    } finally {
+      setIsPolishing(false);
+    }
+  };
+
+  const handleUndoPolish = () => {
+    if (!prePolishSnapshot) return;
+    setTitle(prePolishSnapshot.title);
+    setContent(prePolishSnapshot.content);
+    setPrePolishSnapshot(null);
+  };
 
   const updatePollOption = (index, value) => {
     const next = [...pollOptions];
@@ -579,6 +699,33 @@ export default function PostComposer({
                     placeholder="Write your post in markdown..."
                   />
                 </div>
+
+                {/* AI Polish */}
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handlePolish}
+                    disabled={!canPolish || isPolishing}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-accent/20 bg-accent/[0.06] text-[11px] font-mono font-semibold text-accent/80 hover:text-accent hover:bg-accent/[0.12] hover:border-accent/35 transition-all duration-150 disabled:opacity-35 disabled:cursor-not-allowed"
+                  >
+                    {isPolishing ? (
+                      <Loader2 size={12} className="animate-spin" />
+                    ) : (
+                      <Sparkles size={12} />
+                    )}
+                    {isPolishing ? "Polishing..." : "✨ Polish"}
+                  </button>
+                  {prePolishSnapshot && !isPolishing && (
+                    <button
+                      type="button"
+                      onClick={handleUndoPolish}
+                      className="inline-flex items-center gap-1 text-[11px] font-mono text-ivory/40 hover:text-ivory/70 transition-colors"
+                    >
+                      <Undo2 size={11} />
+                      Undo polish
+                    </button>
+                  )}
+                </div>
               </>
             )}
 
@@ -674,6 +821,33 @@ export default function PostComposer({
                     placeholder="What have you tried? Include context, expected behavior, and actual behavior..."
                   />
                 </div>
+
+                {/* AI Polish */}
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handlePolish}
+                    disabled={!canPolish || isPolishing}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-accent/20 bg-accent/[0.06] text-[11px] font-mono font-semibold text-accent/80 hover:text-accent hover:bg-accent/[0.12] hover:border-accent/35 transition-all duration-150 disabled:opacity-35 disabled:cursor-not-allowed"
+                  >
+                    {isPolishing ? (
+                      <Loader2 size={12} className="animate-spin" />
+                    ) : (
+                      <Sparkles size={12} />
+                    )}
+                    {isPolishing ? "Polishing..." : "✨ Polish"}
+                  </button>
+                  {prePolishSnapshot && !isPolishing && (
+                    <button
+                      type="button"
+                      onClick={handleUndoPolish}
+                      className="inline-flex items-center gap-1 text-[11px] font-mono text-ivory/40 hover:text-ivory/70 transition-colors"
+                    >
+                      <Undo2 size={11} />
+                      Undo polish
+                    </button>
+                  )}
+                </div>
               </>
             )}
 
@@ -686,6 +860,33 @@ export default function PostComposer({
                     onChange={setContent}
                     placeholder="Share your new learning in a concise way..."
                   />
+                </div>
+
+                {/* AI Polish */}
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handlePolish}
+                    disabled={!canPolish || isPolishing}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-accent/20 bg-accent/[0.06] text-[11px] font-mono font-semibold text-accent/80 hover:text-accent hover:bg-accent/[0.12] hover:border-accent/35 transition-all duration-150 disabled:opacity-35 disabled:cursor-not-allowed"
+                  >
+                    {isPolishing ? (
+                      <Loader2 size={12} className="animate-spin" />
+                    ) : (
+                      <Sparkles size={12} />
+                    )}
+                    {isPolishing ? "Polishing..." : "✨ Polish"}
+                  </button>
+                  {prePolishSnapshot && !isPolishing && (
+                    <button
+                      type="button"
+                      onClick={handleUndoPolish}
+                      className="inline-flex items-center gap-1 text-[11px] font-mono text-ivory/40 hover:text-ivory/70 transition-colors"
+                    >
+                      <Undo2 size={11} />
+                      Undo polish
+                    </button>
+                  )}
                 </div>
               </>
             )}
@@ -891,6 +1092,62 @@ export default function PostComposer({
                   <div>
                     <FieldLabel>Tags</FieldLabel>
                     <TagInput tags={tags} onChange={setTags} />
+
+                    {/* AI Suggest Tags (resource section) */}
+                    {5 - tags.length > 0 && (
+                      <div className="mt-2.5 space-y-2">
+                        <button
+                          type="button"
+                          onClick={handleSuggestTags}
+                          disabled={isSuggestingTags}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-accent/20 bg-accent/[0.06] text-[11px] font-mono font-semibold text-accent/80 hover:text-accent hover:bg-accent/[0.12] hover:border-accent/35 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          {isSuggestingTags ? (
+                            <Loader2 size={12} className="animate-spin" />
+                          ) : (
+                            <Wand2 size={12} />
+                          )}
+                          {isSuggestingTags ? "Suggesting..." : "Suggest Tags"}
+                        </button>
+
+                        {suggestedTags.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="text-[10px] font-mono text-ivory/25 mr-1">
+                              Suggestions:
+                            </span>
+                            {suggestedTags.map((tag) => (
+                              <button
+                                key={tag}
+                                type="button"
+                                onClick={() => acceptSuggestedTag(tag)}
+                                disabled={tags.length >= 5}
+                                className="group inline-flex items-center gap-1 rounded-full border border-accent/15 bg-accent/[0.06] px-2.5 py-0.5 text-[11px] font-mono font-semibold text-accent/70 hover:bg-accent/15 hover:text-accent hover:border-accent/30 transition-all duration-150 disabled:opacity-30"
+                              >
+                                <Plus size={10} className="opacity-50 group-hover:opacity-100" />
+                                #{tag}
+                                <span
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    dismissSuggestedTag(tag);
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.stopPropagation();
+                                      dismissSuggestedTag(tag);
+                                    }
+                                  }}
+                                  className="ml-0.5 text-ivory/25 hover:text-red-400/70 transition-colors"
+                                >
+                                  ×
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -911,6 +1168,62 @@ export default function PostComposer({
               <div>
                 <FieldLabel>Tags</FieldLabel>
                 <TagInput tags={tags} onChange={setTags} />
+
+                {/* AI Suggest Tags */}
+                {5 - tags.length > 0 && (
+                  <div className="mt-2.5 space-y-2">
+                    <button
+                      type="button"
+                      onClick={handleSuggestTags}
+                      disabled={isSuggestingTags}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-accent/20 bg-accent/[0.06] text-[11px] font-mono font-semibold text-accent/80 hover:text-accent hover:bg-accent/[0.12] hover:border-accent/35 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {isSuggestingTags ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : (
+                        <Wand2 size={12} />
+                      )}
+                      {isSuggestingTags ? "Suggesting..." : "Suggest Tags"}
+                    </button>
+
+                    {suggestedTags.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-[10px] font-mono text-ivory/25 mr-1">
+                          Suggestions:
+                        </span>
+                        {suggestedTags.map((tag) => (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => acceptSuggestedTag(tag)}
+                            disabled={tags.length >= 5}
+                            className="group inline-flex items-center gap-1 rounded-full border border-accent/15 bg-accent/[0.06] px-2.5 py-0.5 text-[11px] font-mono font-semibold text-accent/70 hover:bg-accent/15 hover:text-accent hover:border-accent/30 transition-all duration-150 disabled:opacity-30"
+                          >
+                            <Plus size={10} className="opacity-50 group-hover:opacity-100" />
+                            #{tag}
+                            <span
+                              role="button"
+                              tabIndex={0}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                dismissSuggestedTag(tag);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.stopPropagation();
+                                  dismissSuggestedTag(tag);
+                                }
+                              }}
+                              className="ml-0.5 text-ivory/25 hover:text-red-400/70 transition-colors"
+                            >
+                              ×
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 

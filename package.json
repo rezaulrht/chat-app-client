@@ -9,14 +9,18 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@emoji-mart/data": "^1.2.1",
+    "@emoji-mart/react": "^1.1.1",
     "axios": "^1.13.5",
     "date-fns": "^4.1.0",
+    "emoji-mart": "^5.6.0",
     "emoji-picker-react": "^4.18.0",
     "framer-motion": "^12.35.0",
     "gif-picker-react-klipy": "github:micenx/gif-picker-react-klipy",
     "gsap": "^3.14.2",
     "lucide-react": "^0.575.0",
     "next": "^16.1.6",
+    "openai": "^6.29.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-hook-form": "^7.71.2",

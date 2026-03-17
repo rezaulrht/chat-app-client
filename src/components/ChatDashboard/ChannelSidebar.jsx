@@ -147,8 +147,15 @@ export default function ChannelSidebar({
     <aside className="w-full glass-panel flex flex-col shrink-0 flex-1 min-h-0 overflow-hidden">
       {/* Workspace Header (click to open settings) */}
       <div
-        onClick={() => onSettingsOpen?.()}
-        className="h-13 px-4 flex items-center justify-between border-b border-white/6 hover:bg-white/3 cursor-pointer transition-all duration-300 group relative"
+        onClick={() => {
+          if (workspace?.myRole === "owner" || workspace?.myRole === "admin") {
+            onSettingsOpen?.();
+          }
+        }}
+        className={`h-13 px-4 flex items-center justify-between border-b border-white/6 hover:bg-white/3 transition-all duration-300 group relative ${workspace?.myRole === "owner" || workspace?.myRole === "admin"
+            ? "cursor-pointer"
+            : "cursor-default"
+          }`}
       >
         <div className="flex items-center gap-2 min-w-0">
           {onBack && (
@@ -337,11 +344,10 @@ export default function ChannelSidebar({
                               `/app/workspace/${selectedWorkspaceId}/${mod._id}`,
                             )
                           }
-                          className={`flex items-center gap-2.5 px-2 py-[7px] rounded-xl cursor-pointer group/ch transition-all duration-200 relative ${
-                            isActive
+                          className={`flex items-center gap-2.5 px-2 py-[7px] rounded-xl cursor-pointer group/ch transition-all duration-200 relative ${isActive
                               ? "bg-white/6 text-ivory backdrop-blur-sm"
                               : "hover:bg-white/3 text-ivory/30 hover:text-ivory/60"
-                          }`}
+                            }`}
                         >
                           {isActive && (
                             <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 bg-accent rounded-r-full shadow-[0_0_6px_rgba(0,211,187,0.4)]" />
@@ -423,14 +429,14 @@ export default function ChannelSidebar({
                 </p>
                 {(workspace?.myRole === "owner" ||
                   workspace?.myRole === "admin") && (
-                  <button
-                    onClick={() => onCreateModule?.("General")}
-                    className="flex items-center gap-1.5 mx-auto text-[11px] font-mono text-accent/60 hover:text-accent transition-colors duration-200"
-                  >
-                    <Plus size={12} />
-                    Add a module
-                  </button>
-                )}
+                    <button
+                      onClick={() => onCreateModule?.("General")}
+                      className="flex items-center gap-1.5 mx-auto text-[11px] font-mono text-accent/60 hover:text-accent transition-colors duration-200"
+                    >
+                      <Plus size={12} />
+                      Add a module
+                    </button>
+                  )}
               </div>
             )}
           </div>

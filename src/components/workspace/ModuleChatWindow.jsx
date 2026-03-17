@@ -19,6 +19,7 @@ import {
   CheckCheck,
   Clock,
   Calendar,
+  Paperclip,
 } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 import { useModule } from "@/hooks/useModule";
@@ -26,6 +27,9 @@ import { useWorkspace } from "@/hooks/useWorkspace";
 import { EMOJI_MAP } from "@/utils/emojis";
 import { getGroupInitials, getGroupAvatarColor } from "@/utils/groupAvatar";
 import toast from "react-hot-toast";
+import { useFileUpload } from "@/hooks/useFileUpload";
+import FileAttachmentPreview from "@/components/shared/FileAttachmentPreview";
+import FileAttachmentDisplay from "@/components/shared/FileAttachmentDisplay";
 
 const EmojiPicker = dynamic(() => import("emoji-picker-react"), { ssr: false });
 const GifPicker = dynamic(
@@ -118,6 +122,21 @@ export default function ModuleChatWindow({
   const [showSeenBy, setShowSeenBy] = useState(null); // stores msgId
 
   const bottomRef = useRef(null);
+
+  // File upload
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef(null);
+  const {
+    files: stagedFiles,
+    previews: filePreviews,
+    progress: fileProgress,
+    uploading: fileUploading,
+    errors: fileErrors,
+    selectFiles,
+    uploadFiles,
+    removeFile,
+    reset: resetFiles,
+  } = useFileUpload();
   const reactionPickerRef = useRef(null);
   const emojiPickerRef = useRef(null);
   const gifPickerRef = useRef(null);
@@ -139,7 +158,8 @@ export default function ModuleChatWindow({
     setShowEmojiPicker(false);
     setShowGifPicker(false);
     setShowSeenBy(null);
-  }, [moduleId]);
+    resetFiles();
+  }, [moduleId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Close pickers on outside click
   useEffect(() => {
@@ -293,14 +313,27 @@ export default function ModuleChatWindow({
   // ── Send ──────────────────────────────────────────────────────────────────
   const handleSend = async (e) => {
     e.preventDefault();
-    if (!text.trim()) return;
+    const hasText = text.trim().length > 0;
+    const hasFiles = stagedFiles.length > 0;
+    if (!hasText && !hasFiles) return;
+    if (fileUploading) return;
     if (isAnnouncement && !isAdminOrOwner) return;
 
-    sendMessage({ text: text.trim(), replyTo });
+    let attachments = [];
+    if (hasFiles) {
+      attachments = await uploadFiles();
+      if (fileErrors.some((err) => err !== null)) {
+        toast.error("Some files failed to upload. Remove them and try again.");
+        return;
+      }
+    }
+
+    sendMessage({ text: text.trim(), replyTo, attachments });
     setText("");
     setReplyTo(null);
     setSuggestions([]);
     sendTyping(false);
+    resetFiles();
   };
 
   const scheduleMessage = async () => {
@@ -384,7 +417,22 @@ export default function ModuleChatWindow({
   const canType = !isAnnouncement || isAdminOrOwner;
 
   return (
-    <main className="flex-1 min-w-0 flex flex-col bg-obsidian relative h-full">
+    <main
+      className="flex-1 min-w-0 flex flex-col bg-obsidian relative h-full"
+      onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+      onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setIsDragging(false); }}
+      onDrop={(e) => {
+        e.preventDefault();
+        setIsDragging(false);
+        selectFiles(e.dataTransfer.files);
+      }}
+    >
+      {/* Drag overlay */}
+      {isDragging && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-obsidian/80 border-2 border-dashed border-accent rounded-lg pointer-events-none">
+          <p className="text-accent text-lg font-medium">Drop files here</p>
+        </div>
+      )}
       {/* ── Header ──────────────────────────────────────────────────────────── */}
       <header className="h-14 border-b border-white/6 flex items-center justify-between px-4 bg-obsidian/80 backdrop-blur-sm shrink-0">
         <div className="flex items-center gap-2.5">
@@ -717,6 +765,9 @@ export default function ModuleChatWindow({
                             </div>
                           )}
                           {msg.text}
+                          {msg.attachments?.length > 0 && (
+                            <FileAttachmentDisplay attachments={msg.attachments} />
+                          )}
                         </div>
                       )}
 
@@ -956,6 +1007,15 @@ export default function ModuleChatWindow({
             </div>
           )}
 
+          <FileAttachmentPreview
+            files={stagedFiles}
+            previews={filePreviews}
+            progress={fileProgress}
+            errors={fileErrors}
+            uploading={fileUploading}
+            onRemove={removeFile}
+          />
+
           <div className="bg-slate-surface rounded-2xl flex items-center flex-wrap p-2 gap-1 border border-white/5 focus-within:border-accent/50 transition-all shadow-inner">
             {/* Using Plus icon for consistency with main chat even if we don't have extra tools yet */}
             <button
@@ -964,6 +1024,29 @@ export default function ModuleChatWindow({
               title="More"
             >
               <Plus size={20} />
+            </button>
+
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                selectFiles(e.target.files);
+                e.target.value = "";
+              }}
+            />
+
+            {/* Paperclip button */}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="w-9 h-9 flex items-center justify-center text-ivory/30 hover:text-accent transition-colors"
+              aria-label="Attach files"
+              title="Attach files"
+            >
+              <Paperclip size={18} />
             </button>
 
             <textarea
@@ -1109,9 +1192,9 @@ export default function ModuleChatWindow({
 
             <button
               type="submit"
-              disabled={scheduling || !text.trim()}
+              disabled={scheduling || fileUploading || fileErrors.some((e) => e !== null) || (!text.trim() && stagedFiles.length === 0)}
               title="Send"
-              className={`w-9 h-9 flex items-center justify-center rounded-xl ml-1 transition-all active:scale-95 shadow-lg ${!text.trim() || scheduling
+              className={`w-9 h-9 flex items-center justify-center rounded-xl ml-1 transition-all active:scale-95 shadow-lg ${(scheduling || fileUploading || fileErrors.some((e) => e !== null) || (!text.trim() && stagedFiles.length === 0))
                 ? "bg-slate-700 text-ivory/40 cursor-not-allowed opacity-50"
                 : "bg-accent hover:bg-accent/90 text-black shadow-accent/20"
                 }`}

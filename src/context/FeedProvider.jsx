@@ -21,6 +21,7 @@ export function FeedProvider({ children }) {
   const [composerOpen, setComposerOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState(null);
   const [shareTarget, setShareTarget] = useState(null);
+  const [commentsByPost, setCommentsByPost] = useState({});
   const { user: authUser } = useAuth();
 
   const [userStats, setUserStats] = useState(() => ({
@@ -51,8 +52,48 @@ export function FeedProvider({ children }) {
 
   const normalizePost = useCallback((post) => {
     if (!post || typeof post !== "object") return post;
-    if (post.id && !post._id) return { ...post, _id: post.id };
-    return post;
+    const next = {
+      ...post,
+      _id: post._id || post.id,
+    };
+
+    if (next.commentsCount != null && next.commentCount == null) {
+      next.commentCount = next.commentsCount;
+    }
+    if (next.acceptedComment && !next.acceptedAnswer) {
+      next.acceptedAnswer =
+        typeof next.acceptedComment === "object"
+          ? next.acceptedComment?._id
+          : next.acceptedComment;
+    }
+
+    return next;
+  }, []);
+
+  const flattenComments = useCallback((items) => {
+    if (!Array.isArray(items)) return [];
+
+    const flat = [];
+    for (const item of items) {
+      if (!item) continue;
+      const root = {
+        ...item,
+        replyTo: item.parentComment || null,
+      };
+      flat.push(root);
+
+      if (Array.isArray(item.replies)) {
+        for (const reply of item.replies) {
+          if (!reply) continue;
+          flat.push({
+            ...reply,
+            replyTo: reply.parentComment || item._id,
+          });
+        }
+      }
+    }
+
+    return flat;
   }, []);
 
   const mergePosts = useCallback(
@@ -291,10 +332,10 @@ export function FeedProvider({ children }) {
           prev.map((p) =>
             p._id === id
               ? {
-                  ...p,
-                  reactions: response.data.reactions,
-                  reactionCount: response.data.reactionCount,
-                }
+                ...p,
+                reactions: response.data.reactions,
+                reactionCount: response.data.reactionCount,
+              }
               : p,
           ),
         );
@@ -311,20 +352,119 @@ export function FeedProvider({ children }) {
     [fetchMyStats],
   );
 
-  const voteOnPoll = useCallback(async () => {
-    /* TODO */
-  }, []);
-  const acceptAnswer = useCallback(async () => {
-    /* TODO */
-  }, []);
-  const fetchComments = useCallback(async () => {
-    /* TODO */
-  }, []);
-  const addComment = useCallback(async () => {
-    /* TODO */
-  }, []);
-  const reactToComment = useCallback(async () => {
-    /* TODO */
+  const voteOnPoll = useCallback(
+    async (postId, optionIndex) => {
+      const res = await api.post(`/api/feed/posts/${postId}/poll-vote`, {
+        optionIndex,
+      });
+
+      setPosts((prev) =>
+        prev.map((p) =>
+          p._id === postId ? normalizePost({ ...p, poll: res.data.poll }) : p,
+        ),
+      );
+
+      return res.data;
+    },
+    [normalizePost],
+  );
+
+  const acceptAnswer = useCallback(
+    async (postId, commentId) => {
+      const res = await api.post(`/api/feed/posts/${postId}/accept/${commentId}`);
+
+      setPosts((prev) =>
+        prev.map((p) =>
+          p._id === postId
+            ? normalizePost({
+              ...p,
+              acceptedComment: res.data.acceptedComment,
+              acceptedAnswer: res.data.acceptedComment,
+              status: res.data.status,
+            })
+            : p,
+        ),
+      );
+
+      setCommentsByPost((prev) => {
+        const comments = Array.isArray(prev[postId]) ? prev[postId] : [];
+        const updated = comments.map((c) => ({
+          ...c,
+          isAccepted: String(c._id) === String(res.data.acceptedComment),
+        }));
+        return { ...prev, [postId]: updated };
+      });
+
+      return res.data;
+    },
+    [normalizePost],
+  );
+
+  const fetchComments = useCallback(
+    async (postId, page = 1, limit = 100) => {
+      const res = await api.get("/api/feed/comments", {
+        params: { postId, page, limit },
+      });
+
+      const flat = flattenComments(res.data?.comments || []);
+      setCommentsByPost((prev) => ({ ...prev, [postId]: flat }));
+      return flat;
+    },
+    [flattenComments],
+  );
+
+  const addComment = useCallback(
+    async (postId, payload) => {
+      const res = await api.post("/api/feed/comments", {
+        postId,
+        content: payload?.content,
+        parentCommentId: payload?.replyTo || null,
+      });
+
+      const created = {
+        ...res.data,
+        replyTo: res.data.parentComment || null,
+      };
+
+      setCommentsByPost((prev) => {
+        const existing = Array.isArray(prev[postId]) ? prev[postId] : [];
+        return { ...prev, [postId]: [...existing, created] };
+      });
+
+      setPosts((prev) =>
+        prev.map((p) =>
+          p._id === postId
+            ? normalizePost({
+              ...p,
+              commentsCount: (p.commentsCount ?? p.commentCount ?? 0) + 1,
+            })
+            : p,
+        ),
+      );
+
+      return created;
+    },
+    [normalizePost],
+  );
+
+  const reactToComment = useCallback(async (postId, commentId, emoji) => {
+    const res = await api.post(`/api/feed/comments/${commentId}/react`, { emoji });
+
+    setCommentsByPost((prev) => {
+      const existing = Array.isArray(prev[postId]) ? prev[postId] : [];
+      const updated = existing.map((c) =>
+        c._id === commentId
+          ? {
+            ...c,
+            reactions: res.data.reactions,
+            reactionCount: res.data.reactionCount,
+          }
+          : c,
+      );
+      return { ...prev, [postId]: updated };
+    });
+
+    return res.data;
   }, []);
   const followTag = useCallback(async () => {
     /* TODO */
@@ -474,6 +614,7 @@ export function FeedProvider({ children }) {
   // ── Context value ──────────────────────────────────────────────────────────
   const value = {
     posts,
+    commentsByPost,
     activeTab,
     setActiveTab,
     filters,

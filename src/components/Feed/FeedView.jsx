@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { Edit3, Trash2, X } from "lucide-react";
+import { Edit3, Search, Trash2, X } from "lucide-react";
 import toast from "react-hot-toast";
 import PostCard from "./PostCard";
 import PostDetail from "./PostDetail";
@@ -168,6 +168,9 @@ export default function FeedView() {
     editPost,
     deletePost,
     reactToPost,
+    searchPosts,
+    filters,
+    setFilters,
     voteOnPoll,
     acceptAnswer,
     fetchComments,
@@ -175,14 +178,20 @@ export default function FeedView() {
     reactToComment,
     editComment,
     deleteComment,
+    userStats,
+    followedTags,
   } = useFeed();
 
   const [activePost, setActivePost] = useState(null); // PostDetail view
   const [sharePost, setSharePost] = useState(null); // ShareModal target
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState(null); // null = not searching
+  const [searchLoading, setSearchLoading] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [currentUserId, setCurrentUserId] = useState("");
 
   const searchParams = useSearchParams();
+  const searchTimerRef = useRef(null);
 
   // Auto-open a post when ?post=<id> is in the URL (e.g. from a shared chat link)
   useEffect(() => {
@@ -217,8 +226,9 @@ export default function FeedView() {
   const [isDeletingPost, setIsDeletingPost] = useState(false);
   const loadMoreRef = useRef(null);
 
-  const displayPosts = posts;
-  const isInitialLoading = loading && displayPosts.length === 0;
+  const displayPosts = searchResults !== null ? searchResults : posts;
+  const isInitialLoading =
+    loading && posts.length === 0 && searchResults === null;
   const isLazyLoading = loading && displayPosts.length > 0;
 
   useEffect(() => {
@@ -266,6 +276,44 @@ export default function FeedView() {
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
     setPage(1);
+    setSearchQuery("");
+    setSearchResults(null);
+  };
+
+  const handleTagFilter = (tag) => {
+    if (!tag) return;
+    setSearchQuery("");
+    setSearchResults(null);
+    setFilters((prev) => {
+      const tags = prev.tags ?? [];
+      if (tags.includes(tag)) return prev;
+      return { ...prev, tags: [...tags, tag] };
+    });
+    setPage(1);
+  };
+
+  const handleSearch = (q) => {
+    setSearchQuery(q);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    if (!q.trim()) {
+      setSearchResults(null);
+      setSearchLoading(false);
+      return;
+    }
+    setSearchLoading(true);
+    searchTimerRef.current = setTimeout(async () => {
+      try {
+        const results = await searchPosts(q, {
+          type: filters.type,
+          sort: filters.sort,
+        });
+        setSearchResults(results);
+      } catch {
+        setSearchResults([]);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 400);
   };
 
   const closeComposer = () => {
@@ -328,8 +376,8 @@ export default function FeedView() {
       typeof postOrId === "object" && postOrId?._id
         ? postOrId
         : posts.find((post) => post._id === targetId) ||
-        (activePost?._id === targetId ? activePost : null) ||
-        (editTarget?._id === targetId ? editTarget : null);
+          (activePost?._id === targetId ? activePost : null) ||
+          (editTarget?._id === targetId ? editTarget : null);
 
     if (!targetPost) return;
     setDeleteTarget(targetPost);
@@ -387,9 +435,10 @@ export default function FeedView() {
           typeof data?.commentsCount === "number"
             ? Math.max(0, data.commentsCount)
             : Math.max(
-              0,
-              (prev.commentCount ?? prev.commentsCount ?? 0) - (data?.removedCount ?? 1),
-            );
+                0,
+                (prev.commentCount ?? prev.commentsCount ?? 0) -
+                  (data?.removedCount ?? 1),
+              );
         const acceptedId = prev.acceptedAnswer ?? prev.acceptedComment ?? null;
 
         return {
@@ -397,9 +446,13 @@ export default function FeedView() {
           commentCount: nextCount,
           commentsCount: nextCount,
           acceptedAnswer:
-            String(acceptedId) === String(commentId) ? null : prev.acceptedAnswer,
+            String(acceptedId) === String(commentId)
+              ? null
+              : prev.acceptedAnswer,
           acceptedComment:
-            String(acceptedId) === String(commentId) ? null : prev.acceptedComment,
+            String(acceptedId) === String(commentId)
+              ? null
+              : prev.acceptedComment,
           status:
             String(acceptedId) === String(commentId) ? "open" : prev.status,
         };
@@ -419,7 +472,7 @@ export default function FeedView() {
         const acceptedCommentId =
           typeof data.acceptedComment === "string"
             ? data.acceptedComment
-            : data.acceptedComment?._id ?? null;
+            : (data.acceptedComment?._id ?? null);
         return {
           ...prev,
           acceptedAnswer: acceptedCommentId,
@@ -428,7 +481,9 @@ export default function FeedView() {
         };
       });
     } catch (error) {
-      toast.error(getApiErrorMessage(error, "Failed to update accepted answer"));
+      toast.error(
+        getApiErrorMessage(error, "Failed to update accepted answer"),
+      );
     }
   };
 
@@ -454,6 +509,59 @@ export default function FeedView() {
           </button>
         </div>
 
+        {/* Search bar */}
+        <div className="shrink-0 px-4 pb-3">
+          <div className="relative flex items-center">
+            <Search
+              size={14}
+              className="absolute left-3 text-ivory/30 pointer-events-none"
+            />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              placeholder="Search posts..."
+              className="w-full bg-white/[0.04] ring-1 ring-white/[0.07] focus:ring-accent/30 rounded-xl pl-9 pr-8 py-2 text-[13px] text-ivory/80 placeholder:text-ivory/20 outline-none transition-all font-sans"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery("");
+                  setSearchResults(null);
+                }}
+                className="absolute right-3 text-ivory/30 hover:text-ivory/60 transition-colors"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+          {filters.tags?.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {filters.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/10 border border-accent/20 text-accent text-[11px] font-mono"
+                >
+                  #{tag}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        tags: prev.tags.filter((t) => t !== tag),
+                      }))
+                    }
+                    className="hover:text-white transition-colors"
+                  >
+                    <X size={10} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Tab bar */}
         <div className="shrink-0 flex items-end border-b border-white/[0.05] px-4 overflow-x-auto scrollbar-hide">
           {TABS.map((tab) => (
@@ -461,10 +569,11 @@ export default function FeedView() {
               key={tab.id}
               type="button"
               onClick={() => handleTabChange(tab.id)}
-              className={`shrink-0 whitespace-nowrap px-4 py-2.5 text-[13px] font-display font-semibold border-b-2 transition-all duration-150 -mb-px ${activeTab === tab.id
-                ? "border-accent text-ivory"
-                : "border-transparent text-ivory/40 hover:text-ivory/70"
-                }`}
+              className={`shrink-0 whitespace-nowrap px-4 py-2.5 text-[13px] font-display font-semibold border-b-2 transition-all duration-150 -mb-px ${
+                activeTab === tab.id
+                  ? "border-accent text-ivory"
+                  : "border-transparent text-ivory/40 hover:text-ivory/70"
+              }`}
             >
               {tab.label}
             </button>
@@ -481,7 +590,7 @@ export default function FeedView() {
               onBack={() => setActivePost(null)}
               onReact={(postId, emoji) => reactToPost(postId, emoji)}
               onShare={(p) => setSharePost(p)}
-              onTagClick={() => { }}
+              onTagClick={(tag) => handleTagFilter(tag)}
               onEdit={handleEditPost}
               onDelete={requestDeletePost}
               onVotePoll={handleVotePoll}
@@ -497,6 +606,10 @@ export default function FeedView() {
                 <PostSkeleton key={i} />
               ))}
             </div>
+          ) : searchLoading ? (
+            <div className="flex justify-center py-16">
+              <div className="w-5 h-5 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+            </div>
           ) : displayPosts.length === 0 ? (
             <EmptyFeed />
           ) : (
@@ -509,7 +622,7 @@ export default function FeedView() {
                   onOpen={setActivePost}
                   onReact={(postId, emoji) => reactToPost(postId, emoji)}
                   onShare={setSharePost}
-                  onTagClick={() => { }}
+                  onTagClick={(tag) => handleTagFilter(tag)}
                   onEdit={handleEditPost}
                   onDelete={requestDeletePost}
                 />
@@ -537,7 +650,7 @@ export default function FeedView() {
 
       {/* ── Right sidebar ── */}
       <div className="hidden lg:block w-[220px] shrink-0">
-        <FeedSidebar side="right" onTagFilter={() => { }} />
+        <FeedSidebar side="right" onTagFilter={handleTagFilter} />
       </div>
 
       {/* ── Modals ── */}

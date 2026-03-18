@@ -22,7 +22,7 @@ export default function WorkspaceSidebar({
   const activeId = pathname.startsWith("/app/workspace")
     ? "workspace"
     : pathname.startsWith("/app/discover")
-      ? "discover"
+      ? "workspace"
       : pathname.startsWith("/app/feed")
         ? "feed"
         : "home";

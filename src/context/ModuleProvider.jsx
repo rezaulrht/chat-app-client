@@ -226,7 +226,7 @@ export function ModuleProvider({ children, moduleId, workspaceId }) {
 
   // ── Actions exposed to consumers ─────────────────────────────────────────
   const sendMessage = useCallback(
-    ({ text, gifUrl, replyTo }) => {
+    ({ text, gifUrl, replyTo, attachments = [] }) => {
       if (!socket || !moduleId) return;
 
       const tempId = `temp-${Date.now()}`;
@@ -238,6 +238,7 @@ export function ModuleProvider({ children, moduleId, workspaceId }) {
         text: text || null,
         gifUrl: gifUrl || null,
         replyTo: replyTo || null,
+        attachments,
         createdAt: new Date().toISOString(),
         reactions: {},
         isDeleted: false,
@@ -253,6 +254,7 @@ export function ModuleProvider({ children, moduleId, workspaceId }) {
         text,
         gifUrl,
         replyTo: replyTo?._id || null,
+        attachments,
         tempId,
       });
 

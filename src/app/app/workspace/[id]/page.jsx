@@ -14,6 +14,8 @@ export default function WorkspacePage() {
   const [showSettings, setShowSettings] = useState(false);
   const [showCreateModule, setShowCreateModule] = useState(false);
   const [createModuleCategory, setCreateModuleCategory] = useState("General");
+  const [activeView, setActiveView] = useState("workspace");
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState(id);
 
   return (
     <ProtectedRoute>
@@ -21,8 +23,10 @@ export default function WorkspacePage() {
         {/* Unified Sidebar Area */}
         <div className="hidden md:flex flex-col shrink-0 h-full w-80 overflow-hidden border-r border-white/6">
           <WorkspaceSidebar
-            activeView="workspace"
-            selectedWorkspaceId={id}
+            activeView={activeView}
+            setActiveView={setActiveView}
+            selectedWorkspaceId={selectedWorkspaceId}
+            setSelectedWorkspaceId={setSelectedWorkspaceId}
           />
 
           <div className="flex-1 flex flex-col min-h-0">

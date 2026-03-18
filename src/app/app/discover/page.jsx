@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Search, Globe, Users, ChevronRight, Loader2, ArrowLeft } from "lucide-react";
@@ -15,6 +15,7 @@ export default function DiscoverWorkspacesPage() {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
   const [joiningId, setJoiningId] = useState(null);
+  const joiningRef = useRef(null);
 
   useEffect(() => {
     const fetchDiscover = async () => {
@@ -35,12 +36,15 @@ export default function DiscoverWorkspacesPage() {
   }, [search, discoverWorkspaces]);
 
   const handleJoin = async (workspace) => {
+    if (joiningRef.current === workspace._id || joiningRef.current) return;
+
     // If already joined, just navigate
     if (workspaces.some((w) => w._id === workspace._id)) {
       router.push(`/app/workspace/${workspace._id}`);
       return;
     }
 
+    joiningRef.current = workspace._id;
     setJoiningId(workspace._id);
     try {
       const joined = await joinPublicWorkspace(workspace._id);
@@ -49,6 +53,7 @@ export default function DiscoverWorkspacesPage() {
     } catch (err) {
       toast.error(err?.response?.data?.message || "Failed to join workspace");
     } finally {
+      joiningRef.current = null;
       setJoiningId(null);
     }
   };

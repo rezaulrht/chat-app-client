@@ -30,6 +30,7 @@ import PollMessage from "../PollMessage";
 import { getGroupInitials, getGroupAvatarColor } from "@/utils/groupAvatar";
 import toast from "react-hot-toast";
 import PinIcon from "../icons/PinIcon";
+import ReadReceipts from "../ReadReceipts";
 
 import {
   createScheduledMessage,
@@ -81,7 +82,7 @@ export default function ChatWindow({
 }) {
   const { socket, onlineUsers, typingUsers } = useSocket() || {};
   const { user } = useAuth();
-
+  const isGroup = conversation.type === "group";
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [loadingMessages, setLoadingMessages] = useState(false);
@@ -100,6 +101,9 @@ export default function ChatWindow({
   const [aiReplies, setAiReplies] = useState([]);
   const [loadingAiReplies, setLoadingAiReplies] = useState(false);
   const lastAiRepliesForMsgRef = useRef(null);
+  const prevMessagesLengthRef = useRef(0);
+  const userScrolledUpRef = useRef(false);
+  const scrollContainerRef = useRef(null);
 
   // Poll state
   const [showCreatePoll, setShowCreatePoll] = useState(false);
@@ -208,7 +212,13 @@ export default function ChatWindow({
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [reactionPickerMsgId, showEmojiPicker, showGifPicker, aiMenuOpen, scheduleDropdownOpen]);
+  }, [
+    reactionPickerMsgId,
+    showEmojiPicker,
+    showGifPicker,
+    aiMenuOpen,
+    scheduleDropdownOpen,
+  ]);
 
   const handleEmojiClick = (emojiData) =>
     setText((prev) => prev + emojiData.emoji);
@@ -433,8 +443,10 @@ export default function ChatWindow({
   // Join/leave conversation room (for reactions + other events)
   useEffect(() => {
     if (!socket || !conversation?._id) return;
+    console.log("🔌 Joining conversation room:", conversation._id);
     socket.emit("conversation:join", conversation._id);
-    return () => socket.emit("conversation:leave", conversation._id);
+    return () => console.log("🔌 Leaving conversation room:", conversation._id);
+    socket.emit("conversation:leave", conversation._id);
   }, [socket, conversation?._id]);
 
   // Mark initial loaded messages as seen once per active conversation
@@ -561,6 +573,78 @@ export default function ChatWindow({
         ),
       );
     };
+    const handleReadReceipt = ({ messageId, reader }) => {
+      console.log("📨 Received read receipt:", { messageId, reader });
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (m._id === messageId) {
+            const updated = { ...m };
+            if (!updated.readBy) updated.readBy = [];
+
+            // Check if already exists
+            const exists = updated.readBy.some(
+              (r) => (r.user?._id || r.user) === reader._id,
+            );
+
+            if (!exists) {
+              console.log("✅ Adding read receipt to message:", messageId);
+              updated.readBy.push({
+                user: {
+                  _id: reader._id,
+                  name: reader.name,
+                  avatar: reader.avatar,
+                },
+                readAt: reader.readAt,
+              });
+            } else {
+              console.log("⚠️ Read receipt already exists for:", reader._id); // ✅ Add this
+            }
+
+            return updated;
+          }
+          return m;
+        }),
+      );
+    };
+
+    // ✅ ADD THIS NEW HANDLER for bulk reads
+    const handleBulkRead = ({ conversationId, messageIds, reader }) => {
+      if (conversationId !== conversation?._id) return;
+
+      // ✅ Safety check: Make sure reader exists and has required data
+      if (!reader || !reader._id) {
+        console.warn("Bulk read event received without valid reader data");
+        return;
+      }
+
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (messageIds.includes(m._id)) {
+            const updated = { ...m };
+            if (!updated.readBy) updated.readBy = [];
+
+            // Check if already exists
+            const exists = updated.readBy.some(
+              (r) => (r.user?._id || r.user) === reader._id,
+            );
+
+            if (!exists) {
+              updated.readBy.push({
+                user: {
+                  _id: reader._id,
+                  name: reader.name || "Unknown",
+                  avatar: reader.avatar || null,
+                },
+                readAt: reader.readAt,
+              });
+            }
+
+            return updated;
+          }
+          return m;
+        }),
+      );
+    };
 
     const handleDeleted = ({ messageId }) => {
       if (!messageId) return;
@@ -579,6 +663,8 @@ export default function ChatWindow({
     socket.on("message:pinned", handlePinned);
     socket.on("message:unpinned", handleUnpinned);
     socket.on("poll:updated", handlePollUpdated);
+    socket.on("message:read-receipt", handleReadReceipt);
+    socket.on("messages:bulk-read", handleBulkRead);
 
     return () => {
       socket.off("message:new", handleReceive);
@@ -589,11 +675,44 @@ export default function ChatWindow({
       socket.off("message:pinned", handlePinned);
       socket.off("message:unpinned", handleUnpinned);
       socket.off("poll:updated", handlePollUpdated);
+      socket.off("message:read-receipt", handleReadReceipt);
+      socket.on("messages:bulk-read", handleBulkRead);
     };
   }, [socket, conversation?._id, user?._id, onMessagesSeen]);
 
+  // ✅ Track user scroll position
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const handleScroll = (e) => {
+      const container = e.target;
+      const isAtBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight <
+        100;
+
+      userScrolledUpRef.current = !isAtBottom;
+    };
+
+    const scrollContainer = scrollContainerRef.current;
+    if (scrollContainer) {
+      scrollContainer.addEventListener("scroll", handleScroll);
+    }
+
+    return () => {
+      if (scrollContainer) {
+        scrollContainer.removeEventListener("scroll", handleScroll);
+      }
+    };
+  }, []);
+
+  // ✅ Smart auto-scroll: only for new messages when at bottom
+  useEffect(() => {
+    const isNewMessage = messages.length > prevMessagesLengthRef.current;
+
+    // Only scroll if it's a new message AND user is at bottom
+    if (isNewMessage && !userScrolledUpRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+
+    prevMessagesLengthRef.current = messages.length;
   }, [messages]);
 
   const fetchAiReplies = useCallback(
@@ -650,8 +769,8 @@ export default function ChatWindow({
       console.error(err);
       toast.error(
         err?.response?.data?.error ||
-        err?.response?.data?.message ||
-        "Failed to load scheduled messages",
+          err?.response?.data?.message ||
+          "Failed to load scheduled messages",
       );
     } finally {
       setLoadingScheduled(false);
@@ -708,11 +827,52 @@ export default function ChatWindow({
       console.error(err);
       toast.error(
         err?.response?.data?.error ||
-        err?.response?.data?.message ||
-        "Failed to cancel scheduled message",
+          err?.response?.data?.message ||
+          "Failed to cancel scheduled message",
       );
     }
   };
+  // ✅ Mark messages as read when they come into view (Groups only)
+  useEffect(() => {
+    if (!isGroup || !conversation?._id || !socket) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const toMark = [];
+
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const messageId = entry.target.dataset.messageId;
+            const senderId = entry.target.dataset.senderId;
+
+            // Don't mark own messages
+            if (senderId !== user?._id) {
+              toMark.push(messageId);
+            }
+          }
+        });
+
+        // Bulk mark as read
+        if (toMark.length > 0) {
+          api
+            .post(
+              `/api/chat/conversations/${conversation._id}/messages/read-bulk`,
+              {
+                messageIds: toMark,
+              },
+            )
+            .catch((err) => console.error("Bulk mark read error:", err));
+        }
+      },
+      { threshold: 0.5 }, // 50% visible
+    );
+
+    // Observe all message elements
+    const messageElements = document.querySelectorAll("[data-message-id]");
+    messageElements.forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, [messages, conversation?._id, user?._id, isGroup, socket]);
 
   // Scheduled: create
   const scheduleMessage = async () => {
@@ -767,8 +927,8 @@ export default function ChatWindow({
       console.error(err);
       toast.error(
         err?.response?.data?.error ||
-        err?.response?.data?.message ||
-        "Failed to schedule",
+          err?.response?.data?.message ||
+          "Failed to schedule",
       );
     } finally {
       setScheduling(false);
@@ -917,7 +1077,6 @@ export default function ChatWindow({
     );
   }
 
-  const isGroup = conversation.type === "group";
   const participant = conversation.participant;
   const isParticipantOnline = onlineUsers?.get(participant?._id)?.online;
   const groupMemberCount = isGroup
@@ -925,8 +1084,8 @@ export default function ChatWindow({
     : 0;
   const groupOnlineCount = isGroup
     ? (conversation.participants || []).filter(
-      (p) => onlineUsers?.get(p._id)?.online,
-    ).length
+        (p) => onlineUsers?.get(p._id)?.online,
+      ).length
     : 0;
   const groupAvatarColors = isGroup
     ? getGroupAvatarColor(conversation.name)
@@ -984,10 +1143,11 @@ export default function ChatWindow({
             <>
               <div className="relative">
                 <div
-                  className={`rounded-2xl overflow-hidden ${isParticipantOnline
-                    ? "ring-2 ring-accent/60 ring-offset-1 ring-offset-[#0a0e13]"
-                    : ""
-                    }`}
+                  className={`rounded-2xl overflow-hidden ${
+                    isParticipantOnline
+                      ? "ring-2 ring-accent/60 ring-offset-1 ring-offset-[#0a0e13]"
+                      : ""
+                  }`}
                 >
                   <Image
                     src={
@@ -1002,8 +1162,9 @@ export default function ChatWindow({
                   />
                 </div>
                 <div
-                  className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-obsidian ${isParticipantOnline ? "bg-emerald-400" : "bg-slate-600"
-                    }`}
+                  className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-obsidian ${
+                    isParticipantOnline ? "bg-emerald-400" : "bg-slate-600"
+                  }`}
                 />
               </div>
 
@@ -1062,17 +1223,22 @@ export default function ChatWindow({
           <button
             type="button"
             onClick={isGroup ? onToggleGroupInfo : undefined}
-            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${isGroup && showGroupInfo
-              ? "bg-accent/20 text-accent border border-accent/30"
-              : "bg-white/4 hover:bg-accent/10 hover:text-accent text-ivory/30"
-              }`}
+            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
+              isGroup && showGroupInfo
+                ? "bg-accent/20 text-accent border border-accent/30"
+                : "bg-white/4 hover:bg-accent/10 hover:text-accent text-ivory/30"
+            }`}
           >
             <Info size={16} />
           </button>
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-3 sm:px-5 py-5 flex flex-col gap-3 scrollbar-hide">
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 overflow-y-auto px-3 sm:px-5 py-5 flex flex-col gap-3 scrollbar-hide"
+      >
+        {" "}
         {/* Pinned Messages Drawer */}
         {showPinnedDrawer && pinnedMessages.length > 0 && (
           <div className="sticky top-0 z-40 bg-gradient-to-b from-obsidian via-obsidian to-obsidian/95 backdrop-blur-lg border-b border-amber-500/20 shadow-xl shadow-black/40 mb-4">
@@ -1319,7 +1485,6 @@ export default function ChatWindow({
             <p className="text-ivory/20 text-xs">Loading messages...</p>
           </div>
         )}
-
         {!loadingMessages && messages.length === 0 && (
           <div className="flex flex-col items-center justify-center flex-1 gap-3">
             <div className="w-12 h-12 rounded-3xl bg-accent/10 border border-accent/15 flex items-center justify-center">
@@ -1328,7 +1493,6 @@ export default function ChatWindow({
             <p className="text-ivory/20 text-xs">No messages yet. Say hello!</p>
           </div>
         )}
-
         {(() => {
           // Robust calculation of last message indices for each status
           let lastReadIndex = -1;
@@ -1375,6 +1539,8 @@ export default function ChatWindow({
 
                 <div
                   id={`msg-${msg._id}`}
+                  data-message-id={msg._id}
+                  data-sender-id={msg.sender?._id}
                   className={`flex items-end gap-2 group ${isMe ? "justify-end" : "justify-start"}`}
                   onTouchStart={() => handleTouchStart(msg._id)}
                   onTouchEnd={handleTouchEnd}
@@ -1552,7 +1718,8 @@ export default function ChatWindow({
 
                       <div
                         className={`${isGif ? "p-1" : "p-3.5"} rounded-2xl text-[13px] leading-relaxed relative z-10 
-                        ${editingMessageId === msg._id
+                        ${
+                          editingMessageId === msg._id
                             ? "bg-slate-surface text-ivory border border-accent/50 shadow-2xl shadow-accent/10 rounded-br-none"
                             : isMe
                               ? isGif
@@ -1561,7 +1728,7 @@ export default function ChatWindow({
                               : isGif
                                 ? "bg-transparent"
                                 : "bg-slate-surface text-ivory/80 rounded-bl-none shadow-sm shadow-black/5"
-                          } 
+                        } 
                         ${msg.isOptimistic ? "opacity-60" : ""}`}
                       >
                         {msg.replyTo && (
@@ -1679,7 +1846,7 @@ export default function ChatWindow({
                             emojiStyle="native"
                             width={
                               typeof window !== "undefined" &&
-                                window.innerWidth < 400
+                              window.innerWidth < 400
                                 ? Math.min(window.innerWidth - 32, 300)
                                 : 320
                             }
@@ -1718,11 +1885,13 @@ export default function ChatWindow({
                     {isMe && !msg.isOptimistic && (
                       <div className="flex items-center gap-0.5 px-0.5 mt-0.5">
                         {isGroup ? (
-                          index === lastAnyMeIndex && (
-                            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/6 text-ivory/30 text-[8px] font-medium">
-                              Sent
-                            </span>
-                          )
+                          <ReadReceipts
+                            message={msg}
+                            totalParticipants={
+                              conversation.participants?.length || 0
+                            }
+                            isOwnMessage={true}
+                          />
                         ) : (
                           <>
                             {index === lastReadIndex && (
@@ -2004,10 +2173,11 @@ export default function ChatWindow({
                       setSelectedTone(tone);
                       setCustomTone("");
                     }}
-                    className={`px-3 py-1 text-[11px] rounded-full border transition-all ${selectedTone === tone && !customTone.trim()
-                      ? "bg-accent/20 border-accent/40 text-accent"
-                      : "bg-accent/10 border-accent/20 text-accent/80 hover:bg-accent/20 hover:text-accent"
-                      }`}
+                    className={`px-3 py-1 text-[11px] rounded-full border transition-all ${
+                      selectedTone === tone && !customTone.trim()
+                        ? "bg-accent/20 border-accent/40 text-accent"
+                        : "bg-accent/10 border-accent/20 text-accent/80 hover:bg-accent/20 hover:text-accent"
+                    }`}
                   >
                     {tone}
                   </button>
@@ -2027,10 +2197,11 @@ export default function ChatWindow({
                   type="button"
                   onClick={handleRewrite}
                   disabled={!activeTone || loadingRewrite}
-                  className={`flex items-center gap-1 px-3 py-1 text-[11px] font-bold rounded-full border transition-all ${!activeTone || loadingRewrite
-                    ? "bg-white/5 border-white/10 text-ivory/20 cursor-not-allowed"
-                    : "bg-accent/20 border-accent/40 text-accent hover:bg-accent/30"
-                    }`}
+                  className={`flex items-center gap-1 px-3 py-1 text-[11px] font-bold rounded-full border transition-all ${
+                    !activeTone || loadingRewrite
+                      ? "bg-white/5 border-white/10 text-ivory/20 cursor-not-allowed"
+                      : "bg-accent/20 border-accent/40 text-accent hover:bg-accent/30"
+                  }`}
                 >
                   {loadingRewrite ? (
                     <span className="w-2.5 h-2.5 rounded-full border-2 border-accent border-t-transparent animate-spin" />
@@ -2150,10 +2321,11 @@ export default function ChatWindow({
                 <div
                   key={code}
                   onClick={() => insertEmoji(emoji)}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${i === suggestionIndex
-                    ? "bg-accent/20 text-accent"
-                    : "hover:bg-white/6 text-ivory/40"
-                    }`}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                    i === suggestionIndex
+                      ? "bg-accent/20 text-accent"
+                      : "hover:bg-white/6 text-ivory/40"
+                  }`}
                 >
                   <span className="text-lg">{emoji}</span>
                   <span className="text-xs font-mono">{code}</span>
@@ -2170,10 +2342,11 @@ export default function ChatWindow({
               setShowEmojiPicker(false);
               setScheduleMode(false);
             }}
-            className={`hidden sm:inline-flex px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${showGifPicker
-              ? "bg-accent/20 border-accent/40 text-accent"
-              : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
-              }`}
+            className={`hidden sm:inline-flex px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${
+              showGifPicker
+                ? "bg-accent/20 border-accent/40 text-accent"
+                : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+            }`}
           >
             GIF
           </button>
@@ -2186,12 +2359,13 @@ export default function ChatWindow({
               onClick={() => setAiMenuOpen((v) => !v)}
               title="AI tools"
               aria-label="AI tools"
-              className={`inline-flex items-center gap-1 px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${aiMenuOpen
-                ? "bg-accent/20 border-accent/40 text-accent"
-                : aiReplies.length > 0 || tonePickerOpen
+              className={`inline-flex items-center gap-1 px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${
+                aiMenuOpen
                   ? "bg-accent/20 border-accent/40 text-accent"
-                  : "bg-white/4 border-white/10 text-ivory/30 hover:bg-accent/10 hover:border-accent/30 hover:text-accent"
-                }`}
+                  : aiReplies.length > 0 || tonePickerOpen
+                    ? "bg-accent/20 border-accent/40 text-accent"
+                    : "bg-white/4 border-white/10 text-ivory/30 hover:bg-accent/10 hover:border-accent/30 hover:text-accent"
+              }`}
             >
               ✦ AI
             </button>
@@ -2210,10 +2384,11 @@ export default function ChatWindow({
                 <button
                   type="button"
                   disabled={!text.trim()}
-                  className={`w-full text-left px-3 py-2 text-[11px] transition-colors ${text.trim()
-                    ? "text-ivory/70 hover:bg-white/6 hover:text-ivory"
-                    : "text-ivory/20 opacity-40 cursor-not-allowed"
-                    }`}
+                  className={`w-full text-left px-3 py-2 text-[11px] transition-colors ${
+                    text.trim()
+                      ? "text-ivory/70 hover:bg-white/6 hover:text-ivory"
+                      : "text-ivory/20 opacity-40 cursor-not-allowed"
+                  }`}
                   onClick={() => {
                     if (!text.trim()) return;
                     setAiMenuOpen(false);
@@ -2277,10 +2452,11 @@ export default function ChatWindow({
               setShowEmojiPicker(!showEmojiPicker);
               setShowGifPicker(false);
             }}
-            className={`w-9 h-9 flex items-center justify-center transition-all ${showEmojiPicker
-              ? "text-accent"
-              : "text-ivory/30 hover:text-ivory/60"
-              }`}
+            className={`w-9 h-9 flex items-center justify-center transition-all ${
+              showEmojiPicker
+                ? "text-accent"
+                : "text-ivory/30 hover:text-ivory/60"
+            }`}
             title="Emoji"
             aria-label="Emoji"
           >
@@ -2293,10 +2469,11 @@ export default function ChatWindow({
               <button
                 type="button"
                 onClick={() => setScheduleDropdownOpen((v) => !v)}
-                className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${scheduleDropdownOpen
-                  ? "bg-accent/20 text-accent"
-                  : "text-ivory/30 hover:text-ivory/60"
-                  }`}
+                className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${
+                  scheduleDropdownOpen
+                    ? "bg-accent/20 text-accent"
+                    : "text-ivory/30 hover:text-ivory/60"
+                }`}
                 title="Schedule or view pending"
               >
                 <Clock size={18} />
@@ -2380,10 +2557,11 @@ export default function ChatWindow({
           <button
             type="submit"
             disabled={scheduling || !text.trim()}
-            className={`w-9 h-9 flex items-center justify-center rounded-xl ml-1 transition-all active:scale-95 shadow-lg ${!text.trim() || scheduling
-              ? "bg-slate-700 text-ivory/40 cursor-not-allowed opacity-50"
-              : "bg-accent hover:bg-accent/90 text-black shadow-accent/20"
-              }`}
+            className={`w-9 h-9 flex items-center justify-center rounded-xl ml-1 transition-all active:scale-95 shadow-lg ${
+              !text.trim() || scheduling
+                ? "bg-slate-700 text-ivory/40 cursor-not-allowed opacity-50"
+                : "bg-accent hover:bg-accent/90 text-black shadow-accent/20"
+            }`}
             title="Send"
             aria-label="Send"
           >
@@ -2408,10 +2586,11 @@ export default function ChatWindow({
                 setShowGifPicker(!showGifPicker);
                 setShowEmojiPicker(false);
               }}
-              className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${showGifPicker
-                ? "bg-accent/20 border-accent/40 text-accent"
-                : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
-                }`}
+              className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${
+                showGifPicker
+                  ? "bg-accent/20 border-accent/40 text-accent"
+                  : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+              }`}
             >
               GIF
             </button>
@@ -2422,12 +2601,13 @@ export default function ChatWindow({
                 onClick={() => setAiMenuOpen((v) => !v)}
                 title="AI tools"
                 aria-label="AI tools"
-                className={`inline-flex items-center gap-1 px-2 py-1 text-[10px] font-black rounded-md border transition-all ${aiMenuOpen
-                  ? "bg-accent/20 border-accent/40 text-accent"
-                  : aiReplies.length > 0 || tonePickerOpen
+                className={`inline-flex items-center gap-1 px-2 py-1 text-[10px] font-black rounded-md border transition-all ${
+                  aiMenuOpen
                     ? "bg-accent/20 border-accent/40 text-accent"
-                    : "bg-white/4 border-white/10 text-ivory/30 hover:bg-accent/10 hover:border-accent/30 hover:text-accent"
-                  }`}
+                    : aiReplies.length > 0 || tonePickerOpen
+                      ? "bg-accent/20 border-accent/40 text-accent"
+                      : "bg-white/4 border-white/10 text-ivory/30 hover:bg-accent/10 hover:border-accent/30 hover:text-accent"
+                }`}
               >
                 ✦ AI
               </button>
@@ -2446,10 +2626,11 @@ export default function ChatWindow({
                   <button
                     type="button"
                     disabled={!text.trim()}
-                    className={`w-full text-left px-3 py-2 text-[11px] transition-colors ${text.trim()
-                      ? "text-ivory/70 hover:bg-white/6 hover:text-ivory"
-                      : "text-ivory/20 opacity-40 cursor-not-allowed"
-                      }`}
+                    className={`w-full text-left px-3 py-2 text-[11px] transition-colors ${
+                      text.trim()
+                        ? "text-ivory/70 hover:bg-white/6 hover:text-ivory"
+                        : "text-ivory/20 opacity-40 cursor-not-allowed"
+                    }`}
                     onClick={() => {
                       if (!text.trim()) return;
                       setAiMenuOpen(false);

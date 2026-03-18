@@ -461,6 +461,28 @@ export default function Sidebar({
                 ? getGroupLastMessagePreview(conv.lastMessage, currentUser?._id)
                 : null;
 
+              // DM last-message preview with smart labels for media
+              const dmPreview = (() => {
+                const lm = conv.lastMessage;
+                if (!lm) return "No messages yet";
+                const isMe = lm.sender?._id
+                  ? lm.sender._id.toString() === currentUser?._id
+                  : lm.sender?.toString() === currentUser?._id;
+                const prefix = isMe ? "You" : null;
+                let label;
+                if (lm.gifUrl) {
+                  label = "sent a GIF";
+                } else if (lm.attachments?.length > 0) {
+                  const att = lm.attachments[0];
+                  if (att.resourceType === "image") label = "sent an image";
+                  else if (att.resourceType === "video") label = "sent a video";
+                  else label = "sent a file";
+                } else {
+                  return lm.text || "No messages yet";
+                }
+                return prefix ? `${prefix} ${label}` : label;
+              })();
+
               return (
                 <div key={conv._id} className="relative group px-1">
                   <div
@@ -573,9 +595,7 @@ export default function Sidebar({
                               : "text-ivory/25")
                           }
                         >
-                          {isGroup
-                            ? groupPreview
-                            : conv.lastMessage?.text || "No messages yet"}
+                          {isGroup ? groupPreview : dmPreview}
                         </p>
                         {hasUnread && !conv.isMuted && (
                           <div className="w-[18px] h-[18px] rounded-full bg-accent flex items-center justify-center shadow-[0_0_8px_rgba(0,211,187,0.3)] shrink-0">

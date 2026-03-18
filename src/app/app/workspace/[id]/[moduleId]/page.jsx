@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import WorkspaceSidebar from "@/components/ChatDashboard/WorkspaceSidebar";
 import ChannelSidebar from "@/components/ChatDashboard/ChannelSidebar";
@@ -10,15 +10,24 @@ import MemberListPanel from "@/components/workspace/MemberListPanel";
 import { ModuleProvider } from "@/context/ModuleProvider";
 import ModuleChatWindow from "@/components/workspace/ModuleChatWindow";
 import CreateModuleModal from "@/components/workspace/CreateModuleModal";
+import ModuleSettingsModal from "@/components/workspace/ModuleSettingsModal";
 
 export default function ModulePage() {
   const { id, moduleId } = useParams();
   const router = useRouter();
   const [showSettings, setShowSettings] = useState(false);
-  const [showMembers, setShowMembers] = useState(false);
+  const [showMembers, setShowMembers] = useState(true);
+
+  useEffect(() => {
+    // Close on mobile screens by default
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      setShowMembers(false);
+    }
+  }, []);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showCreateModule, setShowCreateModule] = useState(false);
   const [createModuleCategory, setCreateModuleCategory] = useState("General");
+  const [activeSettingsModuleId, setActiveSettingsModuleId] = useState(null);
 
   const [activeView, setActiveView] = useState("workspace");
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState(id);
@@ -26,8 +35,13 @@ export default function ModulePage() {
   return (
     <ProtectedRoute>
       <div className="flex h-screen w-full bg-obsidian overflow-hidden">
+        {/* ── Mobile Sidebar Overlay */}
+        {isSidebarOpen && (
+          <div className="md:hidden fixed inset-0 z-40 bg-black/50" onClick={() => setIsSidebarOpen(false)} />
+        )}
+        
         {/* ── Left sidebar (nav + channels) */}
-        <div className="hidden md:flex flex-col shrink-0 h-full w-72 overflow-hidden border-r border-white/6">
+        <div className={`${isSidebarOpen ? 'flex absolute inset-y-0 left-0 z-50 bg-obsidian' : 'hidden'} md:static md:flex flex-col shrink-0 h-full w-72 overflow-hidden border-r border-white/6`}>
           <WorkspaceSidebar
             activeView={activeView}
             setActiveView={setActiveView}
@@ -44,6 +58,7 @@ export default function ModulePage() {
                 setCreateModuleCategory(cat || "General");
                 setShowCreateModule(true);
               }}
+              onModuleSettingsOpen={(modId) => setActiveSettingsModuleId(modId)}
             />
           </div>
         </div>
@@ -100,6 +115,15 @@ export default function ModulePage() {
           workspaceId={id}
           defaultCategory={createModuleCategory}
           onClose={() => setShowCreateModule(false)}
+        />
+      )}
+
+      {/* ── Module Settings Modal */}
+      {activeSettingsModuleId && (
+        <ModuleSettingsModal
+          workspaceId={id}
+          moduleId={activeSettingsModuleId}
+          onClose={() => setActiveSettingsModuleId(null)}
         />
       )}
     </ProtectedRoute>

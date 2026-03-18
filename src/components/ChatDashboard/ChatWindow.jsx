@@ -308,7 +308,7 @@ export default function ChatWindow({
       const outsideScheduleMobile =
         !scheduleMobileTriggerRef.current ||
         !scheduleMobileTriggerRef.current.contains(e.target);
-      
+
       if (
         scheduleDropdownOpen &&
         outsideScheduleDesktop &&
@@ -1021,7 +1021,12 @@ export default function ChatWindow({
     setSuggestions([]);
     setReplyTo(null);
     resetFiles();
-    onMessageSent?.(conversation._id, optimistic.text || null, null, attachments);
+    onMessageSent?.(
+      conversation._id,
+      optimistic.text || null,
+      null,
+      attachments,
+    );
   };
 
   if (!conversation) {
@@ -1076,8 +1081,13 @@ export default function ChatWindow({
   return (
     <main
       className="flex-1 min-w-0 flex flex-col bg-obsidian relative h-full"
-      onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-      onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setIsDragging(false); }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setIsDragging(true);
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) setIsDragging(false);
+      }}
       onDrop={(e) => {
         e.preventDefault();
         setIsDragging(false);
@@ -1811,15 +1821,27 @@ export default function ChatWindow({
                             loading="lazy"
                           />
                         ) : (
-                          // ────────────────────────────────────────────────────
-                          // Text Message
-                          // ────────────────────────────────────────────────────
-                          <>
-                            {msg.text}
-                            {msg.attachments?.length > 0 && (
-                              <FileAttachmentDisplay attachments={msg.attachments} />
-                            )}
-                          </>
+                          (() => {
+                            const sharedPost = parseSharedPost(msg.text);
+                            if (sharedPost) {
+                              return (
+                                <SharedPostCard
+                                  parsed={sharedPost}
+                                  isMe={isMe}
+                                />
+                              );
+                            }
+                            return (
+                              <>
+                                {msg.text}
+                                {msg.attachments?.length > 0 && (
+                                  <FileAttachmentDisplay
+                                    attachments={msg.attachments}
+                                  />
+                                )}
+                              </>
+                            );
+                          })()
                         )}
                         <div
                           className={`text-[9px] mt-1.5 opacity-40 text-right ${isGif ? "px-2" : ""} flex items-center justify-end gap-1`}
@@ -2368,6 +2390,7 @@ export default function ChatWindow({
           >
             GIF
           </button>
+
           <div
             ref={aiMenuRefDesktop}
             className="relative hidden sm:inline-flex"
@@ -2522,7 +2545,11 @@ export default function ChatWindow({
                       <input
                         type="datetime-local"
                         value={sendAt}
-                        min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+                        min={new Date(
+                          Date.now() - new Date().getTimezoneOffset() * 60000,
+                        )
+                          .toISOString()
+                          .slice(0, 16)}
                         onChange={(e) => setSendAt(e.target.value)}
                         className="w-full bg-white/4 border border-white/10 rounded-lg px-2.5 py-2 text-xs text-ivory/80 outline-none focus:border-accent/40 transition-colors"
                       />
@@ -2574,11 +2601,20 @@ export default function ChatWindow({
 
           <button
             type="submit"
-            disabled={scheduling || fileUploading || fileErrors.some((e) => e !== null) || (!text.trim() && stagedFiles.length === 0)}
-            className={`w-9 h-9 flex items-center justify-center rounded-xl ml-1 transition-all active:scale-95 shadow-lg ${(scheduling || fileUploading || fileErrors.some((e) => e !== null) || (!text.trim() && stagedFiles.length === 0))
-              ? "bg-slate-700 text-ivory/40 cursor-not-allowed opacity-50"
-              : "bg-accent hover:bg-accent/90 text-black shadow-accent/20"
-              }`}
+            disabled={
+              scheduling ||
+              fileUploading ||
+              fileErrors.some((e) => e !== null) ||
+              (!text.trim() && stagedFiles.length === 0)
+            }
+            className={`w-9 h-9 flex items-center justify-center rounded-xl ml-1 transition-all active:scale-95 shadow-lg ${
+              scheduling ||
+              fileUploading ||
+              fileErrors.some((e) => e !== null) ||
+              (!text.trim() && stagedFiles.length === 0)
+                ? "bg-slate-700 text-ivory/40 cursor-not-allowed opacity-50"
+                : "bg-accent hover:bg-accent/90 text-black shadow-accent/20"
+            }`}
             title="Send"
             aria-label="Send"
           >
@@ -2661,48 +2697,21 @@ export default function ChatWindow({
               )}
             </div>
 
-            {
-              <button
-                type="button"
-                title="View scheduled messages"
-                aria-label="View scheduled messages"
-                onClick={() => {
-                  setShowScheduledPanel((v) => !v);
-                  refreshScheduled();
-                }}
-                className="px-2 py-1 text-[10px] font-black rounded-md border bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
-              >
-                PENDING
-              </button>
-            }
-
-            {
-              <button
-                type="button"
-                title="Schedule message"
-                aria-label="Schedule message"
-                onClick={() => {
-                  setScheduleMode((v) => !v);
-                  setShowScheduledPanel(true);
-                }}
-                className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${
-                  scheduleMode
-                    ? "bg-accent/20 border-accent/40 text-accent"
-                    : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
-                }`}
-              >
-                SCHEDULE
-              </button>
-            }
-
-            {!isGroup && scheduleMode && (
-              <input
-                type="datetime-local"
-                value={sendAt}
-                min={new Date().toISOString().slice(0, 16)}
-                onChange={(e) => setSendAt(e.target.value)}
-                className="flex-1 min-w-0 px-2 py-1 rounded-md bg-accent border border-white/10 text-ivory/80 text-[11px]"
-              />
+            {!isGroup && (
+              <div className="relative inline-flex">
+                <button
+                  type="button"
+                  onClick={() => setScheduleDropdownOpen((v) => !v)}
+                  className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${
+                    scheduleDropdownOpen
+                      ? "bg-accent/20 border-accent/40 text-accent"
+                      : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+                  }`}
+                  title="Schedule or view pending"
+                >
+                  ⏱ Schedule
+                </button>
+              </div>
             )}
           </div>
         </div>

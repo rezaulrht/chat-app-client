@@ -52,21 +52,26 @@ export function FeedProvider({ children }) {
 
   const normalizePost = useCallback((post) => {
     if (!post || typeof post !== "object") return post;
+    const acceptedCommentId =
+      typeof post.acceptedComment === "object"
+        ? post.acceptedComment?._id ?? null
+        : post.acceptedComment ?? null;
+    const acceptedAnswerId =
+      typeof post.acceptedAnswer === "object"
+        ? post.acceptedAnswer?._id ?? null
+        : post.acceptedAnswer ?? null;
+    const normalizedAcceptedId = acceptedCommentId ?? acceptedAnswerId ?? null;
+
     const next = {
       ...post,
       _id: post._id || post.id,
+      acceptedComment: normalizedAcceptedId,
+      acceptedAnswer: normalizedAcceptedId,
     };
 
     if (next.commentsCount != null && next.commentCount == null) {
       next.commentCount = next.commentsCount;
     }
-    if (next.acceptedComment && !next.acceptedAnswer) {
-      next.acceptedAnswer =
-        typeof next.acceptedComment === "object"
-          ? next.acceptedComment?._id
-          : next.acceptedComment;
-    }
-
     return next;
   }, []);
 
@@ -76,18 +81,22 @@ export function FeedProvider({ children }) {
     const flat = [];
     for (const item of items) {
       if (!item) continue;
+      const rootParentId = item.parentComment ? String(item.parentComment) : null;
       const root = {
         ...item,
-        replyTo: item.parentComment || null,
+        replyTo: rootParentId,
       };
       flat.push(root);
 
       if (Array.isArray(item.replies)) {
         for (const reply of item.replies) {
           if (!reply) continue;
+          const replyParentId = reply.parentComment
+            ? String(reply.parentComment)
+            : String(item._id);
           flat.push({
             ...reply,
-            replyTo: reply.parentComment || item._id,
+            replyTo: replyParentId,
           });
         }
       }
@@ -423,7 +432,7 @@ export function FeedProvider({ children }) {
 
       const created = {
         ...res.data,
-        replyTo: res.data.parentComment || null,
+        replyTo: res.data.parentComment ? String(res.data.parentComment) : null,
       };
 
       setCommentsByPost((prev) => {
@@ -477,7 +486,11 @@ export function FeedProvider({ children }) {
           ? {
             ...c,
             ...res.data,
-            replyTo: res.data.parentComment || c.replyTo || null,
+            replyTo: res.data.parentComment
+              ? String(res.data.parentComment)
+              : c.replyTo != null
+                ? String(c.replyTo)
+                : null,
           }
           : c,
       );
@@ -527,16 +540,29 @@ export function FeedProvider({ children }) {
     setPosts((prev) =>
       prev.map((p) =>
         p._id === postId
-          ? normalizePost({
-            ...p,
-            commentsCount:
-              serverCommentsCount != null
-                ? Math.max(0, serverCommentsCount)
-                : Math.max(
-                  0,
-                  (p.commentsCount ?? p.commentCount ?? 0) - deletedCount,
-                ),
-          })
+          ? (() => {
+            const acceptedAnswerId = p.acceptedAnswer == null ? null : String(p.acceptedAnswer);
+            const acceptedCommentId = p.acceptedComment == null ? null : String(p.acceptedComment);
+            const isDeletedAccepted =
+              acceptedAnswerId === normalizedCommentId ||
+              acceptedCommentId === normalizedCommentId;
+
+            const newPost = {
+              ...p,
+              commentsCount:
+                serverCommentsCount != null
+                  ? Math.max(0, serverCommentsCount)
+                  : Math.max(
+                    0,
+                    (p.commentsCount ?? p.commentCount ?? 0) - deletedCount,
+                  ),
+              acceptedAnswer: isDeletedAccepted ? null : p.acceptedAnswer,
+              acceptedComment: isDeletedAccepted ? null : p.acceptedComment,
+              status: isDeletedAccepted ? "open" : p.status,
+            };
+
+            return normalizePost(newPost);
+          })()
           : p,
       ),
     );

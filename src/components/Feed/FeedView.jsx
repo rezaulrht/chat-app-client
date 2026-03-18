@@ -197,7 +197,7 @@ export default function FeedView() {
 
   useEffect(() => {
     if (!activePost?._id) return;
-    fetchComments(activePost._id).catch(() => { });
+    fetchComments(activePost._id);
   }, [activePost?._id, fetchComments]);
 
   useEffect(() => {
@@ -375,10 +375,14 @@ export default function FeedView() {
       const data = await acceptAnswer(postId, commentId);
       setActivePost((prev) => {
         if (!prev || prev._id !== postId) return prev;
+        const acceptedCommentId =
+          typeof data.acceptedComment === "string"
+            ? data.acceptedComment
+            : data.acceptedComment?._id ?? null;
         return {
           ...prev,
-          acceptedAnswer: data.acceptedComment,
-          acceptedComment: data.acceptedComment,
+          acceptedAnswer: acceptedCommentId,
+          acceptedComment: acceptedCommentId,
           status: data.status,
         };
       });

@@ -310,7 +310,7 @@ export default function CommentSection({
   const [text, setText] = useState("");
 
   // Separate top-level vs replies
-  const tops = comments.filter((c) => !c.replyTo && !c.isDeleted);
+  const tops = comments.filter((c) => !c.replyTo);
   const getReplies = (parentId) =>
     comments.filter((c) => c.replyTo === parentId);
 
@@ -364,7 +364,7 @@ export default function CommentSection({
               placeholder={
                 replyTarget
                   ? "Write a reply…"
-                  : "Add a comment… (markdown supported)"
+                  : "Add a comment…"
               }
               rows={2}
               className="flex-1 rounded-2xl bg-white/4 px-3 py-2 text-[13px] text-ivory/80 placeholder:text-ivory/20 outline-none ring-1 ring-white/7 transition-all focus:ring-accent/30 resize-none font-sans"

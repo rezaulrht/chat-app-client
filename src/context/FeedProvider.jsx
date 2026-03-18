@@ -50,6 +50,13 @@ export function FeedProvider({ children }) {
   const socketCtx = useContext(SocketContext);
   const socket = socketCtx?.socket ?? null;
 
+  // Helper to normalize ID values: objects with _id, strings, or null
+  const toId = useCallback((value) => {
+    if (!value) return null;
+    if (typeof value === "object" && value._id) return String(value._id);
+    return String(value);
+  }, []);
+
   const normalizePost = useCallback((post) => {
     if (!post || typeof post !== "object") return post;
     const acceptedCommentId =
@@ -81,7 +88,7 @@ export function FeedProvider({ children }) {
     const flat = [];
     for (const item of items) {
       if (!item) continue;
-      const rootParentId = item.parentComment ? String(item.parentComment) : null;
+      const rootParentId = toId(item.parentComment);
       const root = {
         ...item,
         replyTo: rootParentId,
@@ -91,9 +98,7 @@ export function FeedProvider({ children }) {
       if (Array.isArray(item.replies)) {
         for (const reply of item.replies) {
           if (!reply) continue;
-          const replyParentId = reply.parentComment
-            ? String(reply.parentComment)
-            : String(item._id);
+          const replyParentId = toId(reply.parentComment) || toId(item._id);
           flat.push({
             ...reply,
             replyTo: replyParentId,
@@ -103,7 +108,7 @@ export function FeedProvider({ children }) {
     }
 
     return flat;
-  }, []);
+  }, [toId]);
 
   const mergePosts = useCallback(
     (existing, incoming) => {
@@ -432,7 +437,7 @@ export function FeedProvider({ children }) {
 
       const created = {
         ...res.data,
-        replyTo: res.data.parentComment ? String(res.data.parentComment) : null,
+        replyTo: toId(res.data.parentComment),
       };
 
       setCommentsByPost((prev) => {
@@ -486,11 +491,7 @@ export function FeedProvider({ children }) {
           ? {
             ...c,
             ...res.data,
-            replyTo: res.data.parentComment
-              ? String(res.data.parentComment)
-              : c.replyTo != null
-                ? String(c.replyTo)
-                : null,
+            replyTo: toId(res.data.parentComment),
           }
           : c,
       );
@@ -498,7 +499,7 @@ export function FeedProvider({ children }) {
     });
 
     return res.data;
-  }, []);
+  }, [toId]);
 
   const deleteComment = useCallback(async (postId, commentId) => {
     const normalizedCommentId = String(commentId || "");

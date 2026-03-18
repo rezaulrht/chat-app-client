@@ -176,16 +176,18 @@ function CommentItem({
               </button>
               {menuOpen && (
                 <div className="absolute right-0 top-8 z-20 w-32 rounded-xl glass-card py-1 shadow-xl ring-1 ring-white/8">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      onReply?.(comment);
-                    }}
-                    className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] text-ivory/60 hover:bg-white/5 hover:text-ivory"
-                  >
-                    <CornerDownRight size={11} /> Reply
-                  </button>
+                  {!comment.replyTo && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onReply?.(comment);
+                      }}
+                      className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] text-ivory/60 hover:bg-white/5 hover:text-ivory"
+                    >
+                      <CornerDownRight size={11} /> Reply
+                    </button>
+                  )}
                   {isOwn && (
                     <>
                       <button
@@ -217,14 +219,16 @@ function CommentItem({
           </div>
 
           <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 pl-2 text-[11px] font-semibold text-ivory/34">
-            <button
-              type="button"
-              onClick={() => onReply?.(comment)}
-              className="transition-colors hover:text-ivory/62"
-              disabled={isEditing}
-            >
-              Reply
-            </button>
+            {!comment.replyTo && (
+              <button
+                type="button"
+                onClick={() => onReply?.(comment)}
+                className="transition-colors hover:text-ivory/62"
+                disabled={isEditing}
+              >
+                Reply
+              </button>
+            )}
             {isQuestionAuthor && !isAccepted && depth === 0 && (
               <button
                 type="button"
@@ -321,19 +325,26 @@ export default function CommentSection({
     return new Date(a.createdAt) - new Date(b.createdAt);
   });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!text.trim()) return;
-    onAddComment?.({ content: text, replyTo: replyTarget?._id ?? null });
-    setText("");
-    setReplyTarget(null);
+    try {
+      await onAddComment?.({ content: text, replyTo: replyTarget?._id ?? null });
+      setText("");
+      setReplyTarget(null);
+    } catch (error) {
+      // Error is handled by parent; draft remains for retry
+      throw error;
+    }
   };
+
+  const visibleCommentCount = comments.filter((c) => !c.isDeleted).length;
 
   return (
     <div className="flex flex-col gap-4">
       <h4 className="text-[12px] font-mono font-bold uppercase tracking-[0.12em] text-ivory/30">
-        {comments.filter((c) => !c.isDeleted).length} Comment
-        {comments.length !== 1 ? "s" : ""}
+        {visibleCommentCount} Comment
+        {visibleCommentCount !== 1 ? "s" : ""}
       </h4>
 
       <form onSubmit={handleSubmit} className="flex gap-3 rounded-2xl bg-white/4 px-3 py-3 ring-1 ring-white/7">

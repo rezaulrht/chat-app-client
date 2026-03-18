@@ -197,7 +197,14 @@ export default function FeedView() {
 
   useEffect(() => {
     if (!activePost?._id) return;
-    fetchComments(activePost._id);
+    (async () => {
+      try {
+        await fetchComments(activePost._id);
+      } catch (error) {
+        console.error("Failed to fetch comments:", error);
+        // UI will show empty array or error state via commentsByPost
+      }
+    })();
   }, [activePost?._id, fetchComments]);
 
   useEffect(() => {

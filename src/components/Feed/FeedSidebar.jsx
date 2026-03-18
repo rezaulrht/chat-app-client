@@ -11,8 +11,30 @@ import {
   Trophy,
   UserPlus,
   UserCheck,
+  HelpCircle,
+  Code2,
+  Lightbulb,
+  BookOpen,
+  Star,
+  BarChart2,
+  Hash,
 } from "lucide-react";
 import useFeed from "@/hooks/useFeed";
+
+// ── Post type browse ──────────────────────────────────────────────────────────
+const POST_TYPES = [
+  { type: "question", icon: HelpCircle, label: "Q&A", color: "text-blue-400" },
+  { type: "snippet", icon: Code2, label: "Snippets", color: "text-purple-400" },
+  { type: "til", icon: Lightbulb, label: "TIL", color: "text-yellow-400" },
+  { type: "showcase", icon: Star, label: "Showcase", color: "text-pink-400" },
+  {
+    type: "resource",
+    icon: BookOpen,
+    label: "Resources",
+    color: "text-emerald-400",
+  },
+  { type: "poll", icon: BarChart2, label: "Polls", color: "text-orange-400" },
+];
 
 // ── ContributorRow ────────────────────────────────────────────────────────────
 function ContributorRow({ contributor }) {
@@ -65,7 +87,7 @@ export default function FeedSidebar({
   followedTags = [],
   onTagFilter,
 }) {
-  const { followTag, getTopContributors } = useFeed();
+  const { followTag, getTopContributors, setFilters, setPage } = useFeed();
 
   // ── Right sidebar state ───────────────────────────────────────────────────
   const [trendingTags, setTrendingTags] = useState([]);
@@ -243,7 +265,7 @@ export default function FeedSidebar({
       </div>
 
       {/* Top Contributors */}
-      <div className="px-4 py-5">
+      <div className="px-4 py-5 border-b border-white/[0.06]">
         <div className="flex items-center gap-2 mb-4">
           <Trophy size={14} className="text-amber-400/80" />
           <h3 className="font-display font-bold text-ivory text-[14px]">
@@ -261,6 +283,37 @@ export default function FeedSidebar({
             ))}
           </div>
         )}
+      </div>
+
+      {/* Browse by Type */}
+      <div className="px-4 py-5">
+        <div className="flex items-center gap-2 mb-4">
+          <Hash size={14} className="text-ivory/40" />
+          <h3 className="font-display font-bold text-ivory text-[14px]">
+            Browse by Type
+          </h3>
+        </div>
+        <div className="flex flex-col gap-1">
+          {POST_TYPES.map(({ type, icon: Icon, label, color }) => (
+            <button
+              key={type}
+              type="button"
+              onClick={() => {
+                setFilters?.((p) => ({ ...p, type }));
+                setPage?.(1);
+              }}
+              className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-white/[0.04] transition-all group text-left"
+            >
+              <Icon
+                size={13}
+                className={`${color} opacity-60 group-hover:opacity-100 transition-opacity shrink-0`}
+              />
+              <span className="text-[12px] font-display font-medium text-ivory/40 group-hover:text-ivory/80 transition-colors">
+                {label}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
     </aside>
   );

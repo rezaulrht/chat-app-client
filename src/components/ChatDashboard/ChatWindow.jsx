@@ -7,7 +7,6 @@ import {
   Phone,
   Video,
   Info,
-  Plus,
   Smile,
   Send,
   X,
@@ -1698,16 +1697,6 @@ export default function ChatWindow({
         />
 
         <div className="bg-slate-surface rounded-2xl flex items-center flex-wrap p-2 gap-1 border border-white/5 focus-within:border-accent/50 transition-all shadow-inner">
-          <button
-            type="button"
-            className="w-9 h-9 flex items-center justify-center text-ivory/30 hover:text-accent transition-colors"
-            title="More"
-            aria-label="More"
-            onClick={() => setShowExtraTools && setShowExtraTools((v) => !v)}
-          >
-            <Plus size={20} />
-          </button>
-
           {/* Hidden file input */}
           <input
             ref={fileInputRef}

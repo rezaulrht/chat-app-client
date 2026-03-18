@@ -31,6 +31,7 @@ export default function ChannelSidebar({
   activeModuleId,
   onSettingsOpen, // () => void — opens WorkspaceSettingsPanel
   onCreateModule, // () => void — opens CreateModuleModal (later by Member 6)
+  onModuleSettingsOpen, // (moduleId) => void — opens ModuleSettingsModal
 }) {
   const { user: currentUser, logout } = useAuth();
   const {
@@ -148,14 +149,9 @@ export default function ChannelSidebar({
       {/* Workspace Header (click to open settings) */}
       <div
         onClick={() => {
-          if (workspace?.myRole === "owner" || workspace?.myRole === "admin") {
-            onSettingsOpen?.();
-          }
+          onSettingsOpen?.();
         }}
-        className={`h-13 px-4 flex items-center justify-between border-b border-white/6 hover:bg-white/3 transition-all duration-300 group relative ${workspace?.myRole === "owner" || workspace?.myRole === "admin"
-            ? "cursor-pointer"
-            : "cursor-default"
-          }`}
+        className={`h-13 px-4 flex items-center justify-between border-b border-white/6 hover:bg-white/3 transition-all duration-300 group relative cursor-pointer`}
       >
         <div className="flex items-center gap-2 min-w-0">
           {onBack && (
@@ -374,6 +370,18 @@ export default function ChannelSidebar({
                             <span className="text-[10px] font-bold font-mono bg-accent/20 text-accent rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
                               {mod.unreadCount > 99 ? "99+" : mod.unreadCount}
                             </span>
+                          )}
+                          
+                          {isAdminOrOwner && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onModuleSettingsOpen?.(mod._id);
+                              }}
+                              className="text-ivory/20 hover:text-accent opacity-0 group-hover/ch:opacity-100 transition-all rounded p-1 hover:bg-white/5 absolute right-2"
+                            >
+                              <Settings size={13} />
+                            </button>
                           )}
                         </div>
                       );

@@ -144,6 +144,7 @@ export default function ChatDashboard() {
                   lastMessage: {
                     text: msg.text,
                     gifUrl: msg.gifUrl,
+                    attachments: msg.attachments || [],
                     // Keep populated sender object for group last-message preview
                     sender: msg.sender || null,
                     timestamp: msg.createdAt,
@@ -287,7 +288,7 @@ export default function ChatDashboard() {
 
   // Called by ChatWindow when a message is sent — update sidebar's lastMessage
   const handleMessageSent = useCallback(
-    (conversationId, text, gifUrl = null) => {
+    (conversationId, text, gifUrl = null, attachments = []) => {
       setConversations((prev) => {
         const updated = prev.map((c) =>
           c._id === conversationId
@@ -297,6 +298,7 @@ export default function ChatDashboard() {
                   ...c.lastMessage,
                   text,
                   gifUrl,
+                  attachments,
                   timestamp: new Date().toISOString(),
                 },
                 updatedAt: new Date().toISOString(),

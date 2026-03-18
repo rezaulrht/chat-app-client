@@ -21,6 +21,7 @@ export function FeedProvider({ children }) {
   const [composerOpen, setComposerOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState(null);
   const [shareTarget, setShareTarget] = useState(null);
+  const [commentsByPost, setCommentsByPost] = useState({});
   const { user: authUser } = useAuth();
 
   const [userStats, setUserStats] = useState(() => ({
@@ -49,11 +50,65 @@ export function FeedProvider({ children }) {
   const socketCtx = useContext(SocketContext);
   const socket = socketCtx?.socket ?? null;
 
+  // Helper to normalize ID values: objects with _id, strings, or null
+  const toId = useCallback((value) => {
+    if (!value) return null;
+    if (typeof value === "object" && value._id) return String(value._id);
+    return String(value);
+  }, []);
+
   const normalizePost = useCallback((post) => {
     if (!post || typeof post !== "object") return post;
-    if (post.id && !post._id) return { ...post, _id: post.id };
-    return post;
+    const acceptedCommentId =
+      typeof post.acceptedComment === "object"
+        ? post.acceptedComment?._id ?? null
+        : post.acceptedComment ?? null;
+    const acceptedAnswerId =
+      typeof post.acceptedAnswer === "object"
+        ? post.acceptedAnswer?._id ?? null
+        : post.acceptedAnswer ?? null;
+    const normalizedAcceptedId = acceptedCommentId ?? acceptedAnswerId ?? null;
+
+    const next = {
+      ...post,
+      _id: post._id || post.id,
+      acceptedComment: normalizedAcceptedId,
+      acceptedAnswer: normalizedAcceptedId,
+    };
+
+    if (next.commentsCount != null && next.commentCount == null) {
+      next.commentCount = next.commentsCount;
+    }
+    return next;
   }, []);
+
+  const flattenComments = useCallback((items) => {
+    if (!Array.isArray(items)) return [];
+
+    const flat = [];
+    for (const item of items) {
+      if (!item) continue;
+      const rootParentId = toId(item.parentComment);
+      const root = {
+        ...item,
+        replyTo: rootParentId,
+      };
+      flat.push(root);
+
+      if (Array.isArray(item.replies)) {
+        for (const reply of item.replies) {
+          if (!reply) continue;
+          const replyParentId = toId(reply.parentComment) || toId(item._id);
+          flat.push({
+            ...reply,
+            replyTo: replyParentId,
+          });
+        }
+      }
+    }
+
+    return flat;
+  }, [toId]);
 
   const mergePosts = useCallback(
     (existing, incoming) => {
@@ -291,10 +346,10 @@ export function FeedProvider({ children }) {
           prev.map((p) =>
             p._id === id
               ? {
-                  ...p,
-                  reactions: response.data.reactions,
-                  reactionCount: response.data.reactionCount,
-                }
+                ...p,
+                reactions: response.data.reactions,
+                reactionCount: response.data.reactionCount,
+              }
               : p,
           ),
         );
@@ -311,21 +366,217 @@ export function FeedProvider({ children }) {
     [fetchMyStats],
   );
 
-  const voteOnPoll = useCallback(async () => {
-    /* TODO */
+  const voteOnPoll = useCallback(
+    async (postId, optionIndex) => {
+      const res = await api.post(`/api/feed/posts/${postId}/poll-vote`, {
+        optionIndex,
+      });
+
+      setPosts((prev) =>
+        prev.map((p) =>
+          p._id === postId ? normalizePost({ ...p, poll: res.data.poll }) : p,
+        ),
+      );
+
+      return res.data;
+    },
+    [normalizePost],
+  );
+
+  const acceptAnswer = useCallback(
+    async (postId, commentId) => {
+      const res = await api.post(`/api/feed/posts/${postId}/accept/${commentId}`);
+
+      setPosts((prev) =>
+        prev.map((p) =>
+          p._id === postId
+            ? normalizePost({
+              ...p,
+              acceptedComment: res.data.acceptedComment,
+              acceptedAnswer: res.data.acceptedComment,
+              status: res.data.status,
+            })
+            : p,
+        ),
+      );
+
+      setCommentsByPost((prev) => {
+        const comments = Array.isArray(prev[postId]) ? prev[postId] : [];
+        const updated = comments.map((c) => ({
+          ...c,
+          isAccepted: String(c._id) === String(res.data.acceptedComment),
+        }));
+        return { ...prev, [postId]: updated };
+      });
+
+      return res.data;
+    },
+    [normalizePost],
+  );
+
+  const fetchComments = useCallback(
+    async (postId, page = 1, limit = 100) => {
+      const res = await api.get("/api/feed/comments", {
+        params: { postId, page, limit },
+      });
+
+      const flat = flattenComments(res.data?.comments || []);
+      setCommentsByPost((prev) => ({ ...prev, [postId]: flat }));
+      return flat;
+    },
+    [flattenComments],
+  );
+
+  const addComment = useCallback(
+    async (postId, payload) => {
+      const res = await api.post("/api/feed/comments", {
+        postId,
+        content: payload?.content,
+        parentCommentId: payload?.replyTo || null,
+      });
+
+      const created = {
+        ...res.data,
+        replyTo: toId(res.data.parentComment),
+      };
+
+      setCommentsByPost((prev) => {
+        const existing = Array.isArray(prev[postId]) ? prev[postId] : [];
+        return { ...prev, [postId]: [...existing, created] };
+      });
+
+      setPosts((prev) =>
+        prev.map((p) =>
+          p._id === postId
+            ? normalizePost({
+              ...p,
+              commentsCount: (p.commentsCount ?? p.commentCount ?? 0) + 1,
+            })
+            : p,
+        ),
+      );
+
+      return created;
+    },
+    [normalizePost],
+  );
+
+  const reactToComment = useCallback(async (postId, commentId, emoji) => {
+    const res = await api.post(`/api/feed/comments/${commentId}/react`, { emoji });
+
+    setCommentsByPost((prev) => {
+      const existing = Array.isArray(prev[postId]) ? prev[postId] : [];
+      const updated = existing.map((c) =>
+        c._id === commentId
+          ? {
+            ...c,
+            reactions: res.data.reactions,
+            reactionCount: res.data.reactionCount,
+          }
+          : c,
+      );
+      return { ...prev, [postId]: updated };
+    });
+
+    return res.data;
   }, []);
-  const acceptAnswer = useCallback(async () => {
-    /* TODO */
-  }, []);
-  const fetchComments = useCallback(async () => {
-    /* TODO */
-  }, []);
-  const addComment = useCallback(async () => {
-    /* TODO */
-  }, []);
-  const reactToComment = useCallback(async () => {
-    /* TODO */
-  }, []);
+
+  const editComment = useCallback(async (postId, commentId, content) => {
+    const res = await api.patch(`/api/feed/comments/${commentId}`, { content });
+
+    setCommentsByPost((prev) => {
+      const existing = Array.isArray(prev[postId]) ? prev[postId] : [];
+      const updated = existing.map((c) =>
+        c._id === commentId
+          ? {
+            ...c,
+            ...res.data,
+            replyTo: toId(res.data.parentComment),
+          }
+          : c,
+      );
+      return { ...prev, [postId]: updated };
+    });
+
+    return res.data;
+  }, [toId]);
+
+  const deleteComment = useCallback(async (postId, commentId) => {
+    const normalizedCommentId = String(commentId || "");
+    if (!normalizedCommentId) {
+      throw new Error("Invalid comment ID");
+    }
+
+    const existing = Array.isArray(commentsByPost[postId])
+      ? commentsByPost[postId]
+      : [];
+    const removedIds = new Set([normalizedCommentId]);
+
+    for (const comment of existing) {
+      const parentId = comment.replyTo ?? comment.parentComment ?? null;
+      if (String(parentId) === normalizedCommentId) {
+        removedIds.add(String(comment._id));
+      }
+    }
+
+    const removedCount = removedIds.size;
+
+    const res = await api.delete(`/api/feed/comments/${normalizedCommentId}`);
+
+    setCommentsByPost((prev) => {
+      const current = Array.isArray(prev[postId]) ? prev[postId] : [];
+      const updated = current.filter((c) => !removedIds.has(String(c._id)));
+      return { ...prev, [postId]: updated };
+    });
+
+    const serverCommentsCount =
+      typeof res.data?.commentsCount === "number"
+        ? res.data.commentsCount
+        : null;
+    const deletedCount =
+      typeof res.data?.deletedCount === "number"
+        ? res.data.deletedCount
+        : removedCount;
+
+    setPosts((prev) =>
+      prev.map((p) =>
+        p._id === postId
+          ? (() => {
+            const acceptedAnswerId = p.acceptedAnswer == null ? null : String(p.acceptedAnswer);
+            const acceptedCommentId = p.acceptedComment == null ? null : String(p.acceptedComment);
+            const isDeletedAccepted =
+              acceptedAnswerId === normalizedCommentId ||
+              acceptedCommentId === normalizedCommentId;
+
+            const newPost = {
+              ...p,
+              commentsCount:
+                serverCommentsCount != null
+                  ? Math.max(0, serverCommentsCount)
+                  : Math.max(
+                    0,
+                    (p.commentsCount ?? p.commentCount ?? 0) - deletedCount,
+                  ),
+              acceptedAnswer: isDeletedAccepted ? null : p.acceptedAnswer,
+              acceptedComment: isDeletedAccepted ? null : p.acceptedComment,
+              status: isDeletedAccepted ? "open" : p.status,
+            };
+
+            return normalizePost(newPost);
+          })()
+          : p,
+      ),
+    );
+
+    return {
+      removedCount: deletedCount,
+      commentsCount:
+        serverCommentsCount != null
+          ? Math.max(0, serverCommentsCount)
+          : undefined,
+    };
+  }, [commentsByPost, normalizePost]);
+
   const followTag = useCallback(async () => {
     /* TODO */
   }, []);
@@ -474,6 +725,7 @@ export function FeedProvider({ children }) {
   // ── Context value ──────────────────────────────────────────────────────────
   const value = {
     posts,
+    commentsByPost,
     activeTab,
     setActiveTab,
     filters,
@@ -505,6 +757,8 @@ export function FeedProvider({ children }) {
     fetchComments,
     addComment,
     reactToComment,
+    editComment,
+    deleteComment,
     followTag,
     searchPosts,
     // Social actions

@@ -128,12 +128,13 @@ export function WorkspaceProvider({ children }) {
   }, []);
 
   const deleteWorkspace = useCallback(async (id) => {
+    if (socket) socket.emit("workspace:leave", id);
     await apiDeleteWorkspace(id);
     setWorkspaces((prev) => prev.filter((w) => w._id !== id));
     setModulesCache((prev) => { const n = { ...prev }; delete n[id]; return n; });
     setMembersCache((prev) => { const n = { ...prev }; delete n[id]; return n; });
     fetchedWorkspaceIds.current.delete(id);
-  }, []);
+  }, [socket]);
 
   // ── Discover + Public Join ────────────────────────────────────────────────
   const discoverWorkspaces = useCallback(async (query = "", limit = 20) => {
@@ -193,22 +194,26 @@ export function WorkspaceProvider({ children }) {
   }, []);
 
   const leaveWorkspace = useCallback(async (workspaceId) => {
+    if (socket) socket.emit("workspace:leave", workspaceId);
     await api.post(`/api/workspaces/${workspaceId}/leave`);
     setWorkspaces((prev) => prev.filter((w) => w._id !== workspaceId));
     setModulesCache((prev) => { const n = { ...prev }; delete n[workspaceId]; return n; });
     setMembersCache((prev) => { const n = { ...prev }; delete n[workspaceId]; return n; });
     fetchedWorkspaceIds.current.delete(workspaceId);
-  }, []);
+  }, [socket]);
 
   // ── Roles CRUD ────────────────────────────────────────────────────────────
   const createRole = useCallback(async (workspaceId, data) => {
     const role = await apiCreateRole(workspaceId, data);
     setWorkspaces((prev) =>
-      prev.map((w) =>
-        w._id === workspaceId
-          ? { ...w, roles: [...(w.roles || []), role] }
-          : w,
-      ),
+      prev.map((w) => {
+        if (w._id === workspaceId) {
+          const exists = (w.roles || []).some(r => r._id === role._id);
+          if (exists) return w;
+          return { ...w, roles: [...(w.roles || []), role] };
+        }
+        return w;
+      })
     );
     return role;
   }, []);
@@ -483,11 +488,14 @@ export function WorkspaceProvider({ children }) {
     // Custom role created/updated/deleted
     const onCustomRoleCreated = ({ workspaceId, role }) => {
       setWorkspaces((prev) =>
-        prev.map((w) =>
-          w._id === workspaceId
-            ? { ...w, roles: [...(w.roles || []), role] }
-            : w,
-        ),
+        prev.map((w) => {
+          if (w._id === workspaceId) {
+            const exists = (w.roles || []).some((r) => r._id === role._id);
+            if (exists) return w;
+            return { ...w, roles: [...(w.roles || []), role] };
+          }
+          return w;
+        })
       );
     };
     const onCustomRoleUpdated = ({ workspaceId, role }) => {
@@ -507,6 +515,16 @@ export function WorkspaceProvider({ children }) {
             : w,
         ),
       );
+      setMembersCache((prev) => {
+        if (!prev[workspaceId]) return prev;
+        return {
+          ...prev,
+          [workspaceId]: prev[workspaceId].map((m) => ({
+            ...m,
+            roleIds: (m.roleIds || []).filter((id) => id !== roleId),
+          })),
+        };
+      });
     };
 
     const onMemberRolesUpdated = ({ workspaceId, targetUserId, roleIds }) => {

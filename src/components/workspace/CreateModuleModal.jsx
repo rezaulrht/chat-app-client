@@ -83,13 +83,35 @@ export default function CreateModuleModal({
     e.preventDefault();
     if (!canSubmit) return;
     setSubmitting(true);
+    
+    // If private, we need to deny VIEW_CHANNEL to members by default,
+    // but the backend computePermissions doesn't have an @everyone role yet.
+    // However, if we just send `permissionOverrides` with the allowed roles explicitly ALLOWING,
+    // we still need a way to DENY base members.
+    // Actually, in our computePermissions, if `isPrivate` is true, does it matter?
+    // Let's rely on the backend passing `isPrivate` down, but actually we need to
+    // modify the payload to include permissionOverrides for the selected roles.
+    
+    // We will build permissionOverrides:
+    const overrides = [];
+    if (isPrivate) {
+      allowedRoles.forEach((roleId) => {
+        overrides.push({
+          targetId: roleId,
+          targetType: "role",
+          allow: ["VIEW_CHANNEL"],
+          deny: []
+        });
+      });
+    }
+
     try {
       const mod = await createModule(workspaceId, {
         name: slug,
         type,
         category,
-        isPrivate,
-        allowedRoles: isPrivate ? allowedRoles : [],
+        isPrivate, // We still send isPrivate so UI can show the Lock icon
+        permissionOverrides: overrides,
       });
       toast.success(`#${mod.name} created!`);
       onClose();

@@ -1,8 +1,12 @@
-/* eslint-disable @next/next/no-img-element */
-import React from "react";
+"use client";
+import React, { useEffect, useRef } from "react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+gsap.registerPlugin(ScrollTrigger);
 
 const ACCENT = "#00d3bb";
-const DEEP = "#12121a";
+const DEEP   = "#12121a";
 
 const team = [
   {
@@ -26,10 +30,38 @@ const team = [
 ];
 
 const TeamSection = () => {
+  const sectionRef = useRef(null);
+
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      /* Heading fade in */
+      gsap.fromTo(
+        sectionRef.current?.querySelector(".team-head"),
+        { opacity: 0, y: 28, filter: "blur(5px)" },
+        {
+          opacity: 1, y: 0, filter: "blur(0px)", duration: 0.75, ease: "power3.out",
+          scrollTrigger: { trigger: sectionRef.current, start: "top 78%" },
+        }
+      );
+
+      /* Cards stagger slide up */
+      gsap.fromTo(
+        sectionRef.current?.querySelectorAll(".team-card"),
+        { opacity: 0, y: 55, scale: 0.95 },
+        {
+          opacity: 1, y: 0, scale: 1,
+          duration: 0.8, stagger: 0.15, ease: "power3.out",
+          scrollTrigger: { trigger: sectionRef.current, start: "top 72%" },
+        }
+      );
+    });
+    return () => ctx.revert();
+  }, []);
+
   return (
-    <section className="bg-obsidian text-ivory py-24 px-6">
+    <section ref={sectionRef} className="bg-obsidian text-ivory py-24 px-6">
       <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-20">
+        <div className="team-head text-center mb-20">
           <h2 className="font-display text-4xl md:text-6xl font-bold mb-6 tracking-[-0.02em]">
             The minds behind <span className="font-serif italic text-accent">ConvoX</span>
           </h2>
@@ -40,8 +72,9 @@ const TeamSection = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           {team.map((member, index) => (
-            <div key={index} className="group">
+            <div key={index} className="team-card group">
               <div className="relative aspect-square overflow-hidden rounded-3xl mb-8 border border-white/[0.05]" style={{ background: DEEP }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={member.image}
                   alt={member.name}
@@ -57,9 +90,7 @@ const TeamSection = () => {
                 <p className="text-xs font-bold uppercase tracking-widest font-mono" style={{ color: ACCENT }}>
                   {member.role}
                 </p>
-                <p className="text-ivory/40 text-sm leading-relaxed pt-2 font-light">
-                  {member.bio}
-                </p>
+                <p className="text-ivory/40 text-sm leading-relaxed pt-2 font-light">{member.bio}</p>
               </div>
             </div>
           ))}

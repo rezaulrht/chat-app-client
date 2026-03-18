@@ -32,6 +32,11 @@ export default function GroupInfoPanel({
   const [editName, setEditName] = useState(conversation?.name || "");
   const [savingName, setSavingName] = useState(false);
 
+  /* ── NEW: Edit group description ── */
+  const [editingDesc, setEditingDesc] = useState(false);
+  const [editDesc, setEditDesc] = useState(conversation?.description || "");
+  const [savingDesc, setSavingDesc] = useState(false);
+
   /* ── Add members ── */
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -65,7 +70,8 @@ export default function GroupInfoPanel({
   /* Sync editName when conversation changes */
   useEffect(() => {
     setEditName(conversation?.name || "");
-  }, [conversation?.name]);
+    setEditDesc(conversation?.description || "");
+  }, [conversation?.name, conversation?.description]);
 
   /* ── User search ── */
   const handleSearchChange = (e) => {
@@ -202,6 +208,29 @@ export default function GroupInfoPanel({
     }
   };
 
+  const handleSaveDescription = async () => {
+    const trimmed = editDesc.trim();
+    if (trimmed === conversation?.description) {
+      setEditingDesc(false);
+      return;
+    }
+    setSavingDesc(true);
+    try {
+      const res = await api.patch(`/api/chat/conversations/${convId}/info`, {
+        description: trimmed,
+      });
+      onConversationUpdate?.(res.data);
+      toast.success("Description updated");
+      setEditingDesc(false);
+    } catch (err) {
+      toast.error(
+        err?.response?.data?.message || "Failed to update description",
+      );
+    } finally {
+      setSavingDesc(false);
+    }
+  };
+
   return (
     <aside className="w-full sm:w-80 shrink-0 flex flex-col h-full glass-panel overflow-hidden">
       {/* ── Panel header ── */}
@@ -301,6 +330,72 @@ export default function GroupInfoPanel({
           <p className="text-[11px] font-mono text-ivory/25 uppercase tracking-[0.15em] relative z-10">
             {members.length} member{members.length !== 1 ? "s" : ""}
           </p>
+        </div>
+
+        {/* ── Group Description (NEW) ── */}
+        <div className="px-5 py-6 border-b border-white/[0.06]">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-ivory/25">
+              Description
+            </p>
+            {amAdmin && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (editingDesc) {
+                    // Cancelling edit - reset to original
+                    setEditDesc(group.description || "");
+                  }
+                  setEditingDesc(!editingDesc);
+                }}
+                className="..."
+              >
+                {editingDesc ? "Cancel" : "Edit"}
+              </button>
+            )}
+          </div>
+
+          {editingDesc ? (
+            <div className="space-y-2">
+              <textarea
+                value={editDesc}
+                onChange={(e) => setEditDesc(e.target.value)}
+                maxLength={500}
+                rows={4}
+                className="w-full glass-card text-ivory text-sm p-3 rounded-xl border border-accent/30 focus:outline-none resize-y min-h-[100px]"
+                placeholder="Write a short description about this group..."
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => {
+                    setEditingDesc(false);
+                    setEditDesc(conversation?.description || "");
+                  }}
+                  className="px-4 py-1.5 text-xs text-ivory/50 hover:text-ivory"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveDescription}
+                  disabled={savingDesc}
+                  className="px-4 py-1.5 text-xs bg-accent text-black font-medium rounded-xl disabled:opacity-50"
+                >
+                  {savingDesc ? "Saving..." : "Save"}
+                </button>
+              </div>
+              <p className="text-[10px] text-right text-ivory/30">
+                {editDesc.length}/500
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-ivory/60 leading-relaxed">
+              {conversation?.description || (
+                <span className="italic text-ivory/30">
+                  No description yet.
+                </span>
+              )}
+            </p>
+          )}
         </div>
 
         {/* ── Add members (admin only) ── */}

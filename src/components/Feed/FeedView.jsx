@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { Edit3, Trash2, X } from "lucide-react";
 import toast from "react-hot-toast";
 import PostCard from "./PostCard";
@@ -9,6 +10,7 @@ import PostComposer from "./PostComposer";
 import ShareModal from "./ShareModal";
 import FeedSidebar from "./FeedSidebar";
 import useFeed from "@/hooks/useFeed";
+import api from "@/app/api/Axios";
 
 // ── Tab definitions ───────────────────────────────────────────────────────────
 const TABS = [
@@ -179,6 +181,38 @@ export default function FeedView() {
   const [sharePost, setSharePost] = useState(null); // ShareModal target
   const [editTarget, setEditTarget] = useState(null);
   const [currentUserId, setCurrentUserId] = useState("");
+
+  const searchParams = useSearchParams();
+
+  // Auto-open a post when ?post=<id> is in the URL (e.g. from a shared chat link)
+  useEffect(() => {
+    const postId = searchParams?.get("post");
+    if (!postId) return;
+
+    let cancelled = false;
+
+    const openPost = async () => {
+      // 1. Try local posts array first (fast path)
+      const found = posts?.find((p) => p._id === postId);
+      if (found) {
+        if (!cancelled) setActivePost(found);
+        return;
+      }
+
+      // 2. Fetch from backend if not loaded yet (e.g. older post, different page)
+      try {
+        const res = await api.get(`/api/feed/posts/${postId}`);
+        if (!cancelled && res.data) setActivePost(res.data);
+      } catch (err) {
+        console.error("FeedView: failed to fetch shared post", err);
+      }
+    };
+
+    openPost();
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams, posts]);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [isDeletingPost, setIsDeletingPost] = useState(false);
   const loadMoreRef = useRef(null);

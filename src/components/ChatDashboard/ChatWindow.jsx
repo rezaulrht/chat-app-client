@@ -27,8 +27,11 @@ import useAuth from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import { EMOJI_MAP } from "@/utils/emojis";
 import { formatLastSeen } from "@/utils/formatLastSeen";
+import CreatePollModal from "../CreatePollModal";
+import PollMessage from "../PollMessage";
 import { getGroupInitials, getGroupAvatarColor } from "@/utils/groupAvatar";
 import toast from "react-hot-toast";
+import PinIcon from "../icons/PinIcon";
 
 import {
   createScheduledMessage,
@@ -190,6 +193,14 @@ export default function ChatWindow({
   const [aiReplies, setAiReplies] = useState([]);
   const [loadingAiReplies, setLoadingAiReplies] = useState(false);
   const lastAiRepliesForMsgRef = useRef(null);
+
+  // Poll state
+  const [showCreatePoll, setShowCreatePoll] = useState(false);
+
+  // Message pinning state
+  const [pinnedMessages, setPinnedMessages] = useState([]);
+  const [showPinnedDrawer, setShowPinnedDrawer] = useState(false);
+  const [loadingPins, setLoadingPins] = useState(false);
 
   // Tone rewrite state
   const [aiMenuOpen, setAiMenuOpen] = useState(false);
@@ -356,6 +367,26 @@ export default function ChatWindow({
       setSuggestions([]);
     }
   };
+  // useEffect to fetch pinned messages when conversation changes
+  useEffect(() => {
+    if (!conversation?._id) return;
+
+    const fetchPinnedMessages = async () => {
+      setLoadingPins(true);
+      try {
+        const res = await api.get(
+          `/api/chat/conversations/${conversation._id}/pins`,
+        );
+        setPinnedMessages(res.data.pinnedMessages || []);
+      } catch (err) {
+        console.error("Failed to fetch pinned messages:", err);
+      } finally {
+        setLoadingPins(false);
+      }
+    };
+
+    fetchPinnedMessages();
+  }, [conversation?._id]);
 
   const handleKeyDown = (e) => {
     if (suggestions.length > 0) {
@@ -536,16 +567,46 @@ export default function ChatWindow({
   useEffect(() => {
     if (!socket) return;
 
+    const handlePinned = ({ conversationId: cId, pinnedMessages: pins }) => {
+      if (cId !== conversation?._id) return;
+      setPinnedMessages(pins || []);
+    };
+
+    const handleUnpinned = ({ conversationId: cId, pinnedMessages: pins }) => {
+      if (cId !== conversation?._id) return;
+      setPinnedMessages(pins || []);
+    };
     const handleReceive = (msg) => {
-      if (msg.conversationId !== conversation?._id) return;
+      console.log(
+        "📨 message:new received:",
+        msg._id,
+        msg.text?.substring(0, 30),
+      );
+
+      if (msg.conversationId !== conversation?._id) {
+        console.log("❌ Wrong conversation - ignoring");
+        return;
+      }
 
       setMessages((prev) => {
+        // ✅ CRITICAL: Check if this exact message already exists
+        const alreadyExists = prev.some((m) => m._id === msg._id);
+        if (alreadyExists) {
+          console.log("⚠️ Message already exists, skipping:", msg._id);
+          return prev;
+        }
+
+        // Check for optimistic message to replace (for regular messages)
         const optimisticIndex = prev.findIndex((m) => m._id === msg.tempId);
         if (optimisticIndex !== -1) {
+          console.log("🔄 Replacing optimistic message");
           const updated = [...prev];
           updated[optimisticIndex] = msg;
           return updated;
         }
+
+        // Add new message
+        console.log("✅ Adding new message:", msg._id);
         return [...prev, msg];
       });
 
@@ -574,6 +635,12 @@ export default function ChatWindow({
           }
           return m;
         }),
+      );
+    };
+    // poll update handler for optimistic UI when voting or creating poll
+    const handlePollUpdated = ({ messageId, poll }) => {
+      setMessages((prev) =>
+        prev.map((m) => (m._id === messageId ? { ...m, poll } : m)),
       );
     };
 
@@ -608,6 +675,9 @@ export default function ChatWindow({
     socket.on("message:reacted", handleReacted);
     socket.on("message:edited", handleEdited);
     socket.on("message:deleted", handleDeleted);
+    socket.on("message:pinned", handlePinned);
+    socket.on("message:unpinned", handleUnpinned);
+    socket.on("poll:updated", handlePollUpdated);
 
     return () => {
       socket.off("message:new", handleReceive);
@@ -615,6 +685,9 @@ export default function ChatWindow({
       socket.off("message:reacted", handleReacted);
       socket.off("message:edited", handleEdited);
       socket.off("message:deleted", handleDeleted);
+      socket.off("message:pinned", handlePinned);
+      socket.off("message:unpinned", handleUnpinned);
+      socket.off("poll:updated", handlePollUpdated);
     };
   }, [socket, conversation?._id, user?._id, onMessagesSeen]);
 
@@ -800,6 +873,67 @@ export default function ChatWindow({
       setScheduling(false);
     }
   };
+  // Pin/Unpin handlers
+  const handlePinMessage = async (messageId) => {
+    if (!conversation?._id) return;
+
+    try {
+      await api.post(
+        `/api/chat/conversations/${conversation._id}/messages/${messageId}/pin`,
+      );
+      toast.success("📌 Message pinned");
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to pin message");
+    }
+  };
+
+  const handleUnpinMessage = async (messageId) => {
+    if (!conversation?._id) return;
+
+    try {
+      await api.delete(
+        `/api/chat/conversations/${conversation._id}/messages/${messageId}/pin`,
+      );
+      toast.success("Message unpinned");
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to unpin message");
+    }
+  };
+  // ──────────────────────────────────────────────────────────
+  // Poll handlers
+  // ──────────────────────────────────────────────────────────
+
+  const handlePollCreated = (pollMessage) => {
+    console.log("📊 Poll created:", pollMessage._id);
+
+    // ✅ Check if already exists before adding
+    setMessages((prev) => {
+      const alreadyExists = prev.some((m) => m._id === pollMessage._id);
+      if (alreadyExists) {
+        console.log("⚠️ Poll already in messages, not adding again");
+        return prev;
+      }
+      console.log("✅ Adding poll optimistically");
+      return [...prev, pollMessage];
+    });
+
+    setShowCreatePoll(false);
+  };
+  // ✅ Remove duplicates if they somehow get in
+  useEffect(() => {
+    setMessages((prev) => {
+      const seen = new Set();
+      const unique = prev.filter((msg) => {
+        if (seen.has(msg._id)) {
+          console.warn("Removing duplicate message:", msg._id);
+          return false;
+        }
+        seen.add(msg._id);
+        return true;
+      });
+      return unique;
+    });
+  }, [conversation?._id]);
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -1005,6 +1139,27 @@ export default function ChatWindow({
           <button className="w-8 h-8 rounded-xl bg-white/4 hover:bg-accent/10 hover:text-accent flex items-center justify-center text-ivory/30 transition-all">
             <Video size={16} />
           </button>
+
+          {/* Pinned Messages Button */}
+          {pinnedMessages.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowPinnedDrawer(!showPinnedDrawer)}
+              className={`relative w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
+                showPinnedDrawer
+                  ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                  : "bg-white/4 hover:bg-amber-500/10 hover:text-amber-400 text-ivory/30"
+              }`}
+              title="View pinned messages"
+              aria-label="View pinned messages"
+            >
+              <PinIcon size={14} className="text-amber-400" />
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-black text-[9px] font-bold rounded-full flex items-center justify-center">
+                {pinnedMessages.length}
+              </span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={isGroup ? onToggleGroupInfo : undefined}
@@ -1020,6 +1175,246 @@ export default function ChatWindow({
       </header>
 
       <div className="flex-1 overflow-y-auto px-3 sm:px-5 py-5 flex flex-col gap-3 scrollbar-hide">
+        {/* Pinned Messages Drawer */}
+        {showPinnedDrawer && pinnedMessages.length > 0 && (
+          <div className="sticky top-0 z-40 bg-gradient-to-b from-obsidian via-obsidian to-obsidian/95 backdrop-blur-lg border-b border-amber-500/20 shadow-xl shadow-black/40 mb-4">
+            <div className="p-3 sm:p-4">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center">
+                    <PinIcon size={14} className="text-amber-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-amber-400">
+                      Pinned Messages
+                    </h3>
+                    <p className="text-[10px] text-ivory/30">
+                      {pinnedMessages.length} message
+                      {pinnedMessages.length !== 1 ? "s" : ""} pinned
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowPinnedDrawer(false)}
+                  className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-ivory/40 hover:text-ivory/80 transition-all"
+                  title="Close pinned messages"
+                  aria-label="Close pinned messages"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              {/* Pinned Messages List */}
+              {loadingPins ? (
+                <div className="flex items-center justify-center gap-2 py-4">
+                  <div className="w-4 h-4 rounded-full border-2 border-amber-400 border-t-transparent animate-spin" />
+                  <p className="text-xs text-ivory/30">
+                    Loading pinned messages...
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-60 overflow-y-auto scrollbar-hide">
+                  {pinnedMessages.map((pinned, idx) => {
+                    const msg = pinned.messageId;
+                    if (!msg) return null;
+
+                    const isPinnedByMe =
+                      pinned.pinnedBy === user?._id ||
+                      pinned.pinnedBy?._id === user?._id;
+
+                    return (
+                      <div
+                        key={msg._id || idx}
+                        className="group relative bg-slate-surface/50 hover:bg-slate-surface border border-white/5 hover:border-amber-500/20 rounded-xl p-3 transition-all"
+                      >
+                        {/* Message Content */}
+                        <div className="flex items-start gap-2">
+                          {/* Sender Avatar (for groups) */}
+                          {isGroup && msg.sender && (
+                            <div className="w-7 h-7 rounded-lg shrink-0 overflow-hidden">
+                              {msg.sender.avatar ? (
+                                <Image
+                                  src={msg.sender.avatar}
+                                  width={28}
+                                  height={28}
+                                  className="rounded-lg object-cover"
+                                  alt={msg.sender.name || ""}
+                                  unoptimized
+                                />
+                              ) : (
+                                <div
+                                  className="w-7 h-7 rounded-lg flex items-center justify-center text-[9px] font-bold"
+                                  style={{
+                                    background: getGroupAvatarColor(
+                                      msg.sender.name || "",
+                                    ).bg,
+                                    color: getGroupAvatarColor(
+                                      msg.sender.name || "",
+                                    ).text,
+                                  }}
+                                >
+                                  {getGroupInitials(msg.sender.name || "?")}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          <div className="flex-1 min-w-0">
+                            {/* Sender Name */}
+                            {isGroup && msg.sender && (
+                              <p className="text-[11px] font-bold text-accent mb-1">
+                                {msg.sender.name || "Unknown"}
+                              </p>
+                            )}
+
+                            {/* Message Text */}
+                            {msg.gifUrl ? (
+                              <img
+                                src={msg.gifUrl}
+                                alt="GIF"
+                                className="max-w-40 rounded-lg"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <p className="text-[13px] text-ivory/80 leading-relaxed break-words line-clamp-3">
+                                {msg.text}
+                              </p>
+                            )}
+
+                            {/* Timestamp & Pinned By */}
+                            <div className="flex items-center gap-2 mt-1.5">
+                              <span className="text-[9px] text-ivory/20">
+                                {new Date(msg.createdAt).toLocaleString([], {
+                                  month: "short",
+                                  day: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </span>
+                              <span className="text-[9px] text-amber-400/60">
+                                • Pinned by {isPinnedByMe ? "you" : "admin"}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Unpin Button */}
+                          {(() => {
+                            const canUnpin = isGroup
+                              ? conversation.admins?.some(
+                                  (adminId) =>
+                                    adminId === user?._id ||
+                                    adminId._id === user?._id,
+                                )
+                              : true;
+
+                            if (!canUnpin) return null;
+
+                            return (
+                              <button
+                                type="button"
+                                onClick={() => handleUnpinMessage(msg._id)}
+                                className="shrink-0 w-7 h-7 rounded-lg bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-500/30 flex items-center justify-center text-ivory/30 hover:text-red-400 transition-all opacity-0 group-hover:opacity-100"
+                                title="Unpin message"
+                                aria-label="Unpin message"
+                              >
+                                <X size={12} />
+                              </button>
+                            );
+                          })()}
+                        </div>
+
+                        {/* Jump to Message Button (optional) */}
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const msgElement = document.getElementById(
+                              `msg-${msg._id}`,
+                            );
+
+                            if (msgElement) {
+                              // Message already in DOM - scroll to it
+                              msgElement.scrollIntoView({
+                                behavior: "smooth",
+                                block: "center",
+                              });
+                              msgElement.classList.add("animate-pulse");
+                              setTimeout(() => {
+                                msgElement.classList.remove("animate-pulse");
+                              }, 2000);
+                            } else {
+                              // Message not in current view - try to load it
+                              try {
+                                toast.loading("Loading message...", {
+                                  id: `jump-${msg._id}`,
+                                });
+
+                                // Fetch all messages from conversation
+                                const response = await api.get(
+                                  `/api/chat/messages/${conversation._id}`,
+                                );
+                                const allMessages = response.data || [];
+
+                                // Check if target message exists
+                                const messageExists = allMessages.some(
+                                  (m) => m._id === msg._id,
+                                );
+
+                                if (messageExists) {
+                                  // Update messages state with full conversation history
+                                  setMessages(allMessages);
+
+                                  toast.dismiss(`jump-${msg._id}`);
+
+                                  // Wait for DOM to update, then scroll to message
+                                  setTimeout(() => {
+                                    const element = document.getElementById(
+                                      `msg-${msg._id}`,
+                                    );
+                                    if (element) {
+                                      element.scrollIntoView({
+                                        behavior: "smooth",
+                                        block: "center",
+                                      });
+                                      element.classList.add("animate-pulse");
+                                      setTimeout(() => {
+                                        element.classList.remove(
+                                          "animate-pulse",
+                                        );
+                                      }, 2000);
+                                      toast.success("Message found!");
+                                    } else {
+                                      toast.error(
+                                        "Message could not be displayed",
+                                      );
+                                    }
+                                  }, 300);
+                                } else {
+                                  toast.dismiss(`jump-${msg._id}`);
+                                  toast.error(
+                                    "Message not found or has been deleted",
+                                  );
+                                }
+                              } catch (err) {
+                                toast.dismiss(`jump-${msg._id}`);
+                                toast.error("Failed to load message");
+                                console.error("Jump to message error:", err);
+                              }
+                            }
+                          }}
+                          className="absolute bottom-2 right-2 px-2 py-1 rounded-md bg-accent/10 hover:bg-accent/20 border border-accent/20 text-accent text-[9px] font-bold opacity-0 group-hover:opacity-100 transition-all"
+                        >
+                          Jump to message →
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         {loadingMessages && (
           <div className="flex items-center justify-center gap-2 mt-8">
             <div className="w-4 h-4 rounded-full border-2 border-accent border-t-transparent animate-spin" />
@@ -1081,6 +1476,7 @@ export default function ChatWindow({
                 )}
 
                 <div
+                  id={`msg-${msg._id}`}
                   className={`flex items-end gap-2 group ${isMe ? "justify-end" : "justify-start"}`}
                   onTouchStart={() => handleTouchStart(msg._id)}
                   onTouchEnd={handleTouchEnd}
@@ -1171,6 +1567,59 @@ export default function ChatWindow({
                           >
                             <Reply size={14} />
                           </button>
+                          {/* Pin/Unpin button */}
+
+                          {/* Pin/Unpin button - ADD THIS AFTER REPLY BUTTON */}
+                          {(() => {
+                            const isPinned = pinnedMessages.some(
+                              (pm) =>
+                                pm.messageId?._id === msg._id ||
+                                pm.messageId === msg._id,
+                            );
+
+                            // Everyone can pin
+                            const canPin = true;
+
+                            // Only admins can unpin (in groups)
+                            const canUnpin = isGroup
+                              ? conversation.admins?.some(
+                                  (adminId) =>
+                                    adminId === user?._id ||
+                                    adminId._id === user?._id,
+                                )
+                              : true;
+
+                            // Show button if: not pinned OR (pinned and can unpin)
+                            const showButton =
+                              !isPinned || (isPinned && canUnpin);
+
+                            if (!showButton) return null;
+
+                            return (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (isPinned) {
+                                    handleUnpinMessage(msg._id);
+                                  } else {
+                                    handlePinMessage(msg._id);
+                                  }
+                                  setLongPressedMsgId(null);
+                                }}
+                                className={`p-1.5 rounded-md transition-all duration-150 ${
+                                  isPinned
+                                    ? "text-amber-400 hover:text-amber-300 hover:bg-amber-500/20"
+                                    : "text-ivory/40 hover:text-amber-400 hover:bg-amber-500/10"
+                                }`}
+                                title={
+                                  isPinned ? "Unpin message" : "Pin message"
+                                }
+                              >
+                                <PinIcon size={14} className="text-amber-400" />
+                              </button>
+                            );
+                          })()}
                           {isMe && !msg.isOptimistic && !msg.isDeleted && (
                             <>
                               <div className="w-px h-5 bg-white/6 mx-0.5" />
@@ -1233,6 +1682,9 @@ export default function ChatWindow({
                             This message was deleted
                           </p>
                         ) : editingMessageId === msg._id ? (
+                          // ────────────────────────────────────────────────────
+                          // Edit UI
+                          // ────────────────────────────────────────────────────
                           <div className="flex flex-col gap-3 w-full min-w-70">
                             <div className="flex items-center gap-2 text-accent text-[10px] font-bold uppercase tracking-wider">
                               <span className="w-1 h-3 bg-accent rounded-full" />
@@ -1283,7 +1735,18 @@ export default function ChatWindow({
                               </div>
                             </div>
                           </div>
+                        ) : msg.poll &&
+                          msg.poll.question &&
+                          msg.poll.options &&
+                          msg.poll.options.length > 0 ? (
+                          // ────────────────────────────────────────────────────
+                          // ✅ Poll Message - Only if valid poll data exists
+                          // ────────────────────────────────────────────────────
+                          <PollMessage message={msg} />
                         ) : isGif ? (
+                          // ────────────────────────────────────────────────────
+                          // GIF Message
+                          // ────────────────────────────────────────────────────
                           <img
                             src={msg.gifUrl}
                             alt="GIF"
@@ -1291,18 +1754,10 @@ export default function ChatWindow({
                             loading="lazy"
                           />
                         ) : (
-                          (() => {
-                            const sharedPost = parseSharedPost(msg.text);
-                            if (sharedPost) {
-                              return (
-                                <SharedPostCard
-                                  parsed={sharedPost}
-                                  isMe={isMe}
-                                />
-                              );
-                            }
-                            return msg.text;
-                          })()
+                          // ────────────────────────────────────────────────────
+                          // Text Message
+                          // ────────────────────────────────────────────────────
+                          msg.text
                         )}
                         <div
                           className={`text-[9px] mt-1.5 opacity-40 text-right ${isGif ? "px-2" : ""} flex items-center justify-end gap-1`}
@@ -1757,6 +2212,34 @@ export default function ChatWindow({
             <Plus size={20} />
           </button>
 
+          {/* Poll Button */}
+          {isGroup && (
+            <button
+              type="button"
+              onClick={() => setShowCreatePoll(true)}
+              className="w-9 h-9 flex items-center justify-center text-ivory/30 hover:text-accent transition-colors"
+              title="Create Poll"
+              aria-label="Create Poll"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="3" y="3" width="7" height="7" />
+                <rect x="14" y="3" width="7" height="7" />
+                <rect x="14" y="14" width="7" height="7" />
+                <rect x="3" y="14" width="7" height="7" />
+              </svg>
+            </button>
+          )}
+
+          {/* ✅ SINGLE Input Field */}
           <input
             className="flex-1 min-w-0 bg-transparent outline-none text-sm text-ivory/80 px-3 placeholder:text-ivory/20"
             placeholder="Type a message..."
@@ -1765,6 +2248,7 @@ export default function ChatWindow({
             onKeyDown={handleKeyDown}
           />
 
+          {/* Emoji suggestions dropdown */}
           {suggestions.length > 0 && (
             <div className="absolute bottom-20 left-2 sm:left-10 bg-deep/95 backdrop-blur-md border border-white/6 rounded-xl p-1 shadow-2xl z-50 min-w-37.5 max-w-[calc(100vw-2rem)]">
               {suggestions.map(([code, emoji], i) => (
@@ -1784,6 +2268,7 @@ export default function ChatWindow({
             </div>
           )}
 
+          {/* GIF, AI, Schedule buttons... */}
           <button
             type="button"
             onClick={() => {
@@ -1799,7 +2284,6 @@ export default function ChatWindow({
           >
             GIF
           </button>
-
           <div
             ref={aiMenuRefDesktop}
             className="relative hidden sm:inline-flex"
@@ -1851,6 +2335,50 @@ export default function ChatWindow({
               </div>
             )}
           </div>
+
+          {
+            <button
+              type="button"
+              title="View scheduled messages"
+              aria-label="View scheduled messages"
+              onClick={() => {
+                setShowScheduledPanel((v) => !v);
+                refreshScheduled();
+              }}
+              className="hidden sm:inline-flex px-2 py-1 mx-1 text-[10px] font-black rounded-md border bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+            >
+              PENDING
+            </button>
+          }
+
+          {
+            <button
+              type="button"
+              title="Schedule message"
+              aria-label="Schedule message"
+              onClick={() => {
+                setScheduleMode((v) => !v);
+                setShowScheduledPanel(true);
+              }}
+              className={`hidden sm:inline-flex px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${
+                scheduleMode
+                  ? "bg-accent/20 border-accent/40 text-accent"
+                  : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+              }`}
+            >
+              SCHEDULE
+            </button>
+          }
+
+          {scheduleMode && (
+            <input
+              type="datetime-local"
+              value={sendAt}
+              min={new Date().toISOString().slice(0, 16)}
+              onChange={(e) => setSendAt(e.target.value)}
+              className="flex-1 min-w-0 px-2 py-1 rounded-md bg-accent border border-white/10 text-ivory/80 text-[11px]"
+            />
+          )}
 
           <button
             type="button"
@@ -1976,6 +2504,16 @@ export default function ChatWindow({
 
           {/* Mobile-only expanded toolbar row */}
           <div className="sm:hidden w-full flex items-center gap-1 pt-1 border-t border-white/5 mt-1">
+            {/* ✅ Poll Button (Mobile - Groups only) */}
+            {isGroup && (
+              <button
+                type="button"
+                onClick={() => setShowCreatePoll(true)}
+                className="px-2 py-1 text-[10px] font-black rounded-md border bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60 transition-all"
+              >
+                📊 POLL
+              </button>
+            )}
             <button
               type="button"
               onClick={() => {
@@ -2040,25 +2578,60 @@ export default function ChatWindow({
               )}
             </div>
 
-            {!isGroup && (
-              <div className="relative inline-flex">
-                <button
-                  type="button"
-                  onClick={() => setScheduleDropdownOpen((v) => !v)}
-                  className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${
-                    scheduleDropdownOpen
-                      ? "bg-accent/20 border-accent/40 text-accent"
-                      : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
-                  }`}
-                  title="Schedule or view pending"
-                >
-                  ⏱ Schedule
-                </button>
-              </div>
+            {
+              <button
+                type="button"
+                title="View scheduled messages"
+                aria-label="View scheduled messages"
+                onClick={() => {
+                  setShowScheduledPanel((v) => !v);
+                  refreshScheduled();
+                }}
+                className="px-2 py-1 text-[10px] font-black rounded-md border bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+              >
+                PENDING
+              </button>
+            }
+
+            {
+              <button
+                type="button"
+                title="Schedule message"
+                aria-label="Schedule message"
+                onClick={() => {
+                  setScheduleMode((v) => !v);
+                  setShowScheduledPanel(true);
+                }}
+                className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${
+                  scheduleMode
+                    ? "bg-accent/20 border-accent/40 text-accent"
+                    : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+                }`}
+              >
+                SCHEDULE
+              </button>
+            }
+
+            {!isGroup && scheduleMode && (
+              <input
+                type="datetime-local"
+                value={sendAt}
+                min={new Date().toISOString().slice(0, 16)}
+                onChange={(e) => setSendAt(e.target.value)}
+                className="flex-1 min-w-0 px-2 py-1 rounded-md bg-accent border border-white/10 text-ivory/80 text-[11px]"
+              />
             )}
           </div>
         </div>
       </form>
+      {/* ✅ Create Poll Modal */}
+      {showCreatePoll && (
+        <CreatePollModal
+          conversation={conversation}
+          onClose={() => setShowCreatePoll(false)}
+          onPollCreated={handlePollCreated}
+        />
+      )}
     </main>
   );
 }

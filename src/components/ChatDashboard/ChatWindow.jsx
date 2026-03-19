@@ -35,6 +35,7 @@ import { useFileUpload } from "@/hooks/useFileUpload";
 import FileAttachmentPreview from "@/components/shared/FileAttachmentPreview";
 import FileAttachmentDisplay from "@/components/shared/FileAttachmentDisplay";
 import PinIcon from "../icons/PinIcon";
+import ReadReceipts from "../ReadReceipts";
 
 import {
   createScheduledMessage,
@@ -177,7 +178,7 @@ export default function ChatWindow({
 }) {
   const { socket, onlineUsers, typingUsers } = useSocket() || {};
   const { user } = useAuth();
-
+  const isGroup = conversation.type === "group";
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [loadingMessages, setLoadingMessages] = useState(false);
@@ -196,6 +197,9 @@ export default function ChatWindow({
   const [aiReplies, setAiReplies] = useState([]);
   const [loadingAiReplies, setLoadingAiReplies] = useState(false);
   const lastAiRepliesForMsgRef = useRef(null);
+  const prevMessagesLengthRef = useRef(0);
+  const userScrolledUpRef = useRef(false);
+  const scrollContainerRef = useRef(null);
 
   // Poll state
   const [showCreatePoll, setShowCreatePoll] = useState(false);
@@ -560,8 +564,10 @@ export default function ChatWindow({
   // Join/leave conversation room (for reactions + other events)
   useEffect(() => {
     if (!socket || !conversation?._id) return;
+    console.log("🔌 Joining conversation room:", conversation._id);
     socket.emit("conversation:join", conversation._id);
-    return () => socket.emit("conversation:leave", conversation._id);
+    return () => console.log("🔌 Leaving conversation room:", conversation._id);
+    socket.emit("conversation:leave", conversation._id);
   }, [socket, conversation?._id]);
 
   // Mark initial loaded messages as seen once per active conversation
@@ -688,6 +694,78 @@ export default function ChatWindow({
         ),
       );
     };
+    const handleReadReceipt = ({ messageId, reader }) => {
+      console.log("📨 Received read receipt:", { messageId, reader });
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (m._id === messageId) {
+            const updated = { ...m };
+            if (!updated.readBy) updated.readBy = [];
+
+            // Check if already exists
+            const exists = updated.readBy.some(
+              (r) => (r.user?._id || r.user) === reader._id,
+            );
+
+            if (!exists) {
+              console.log("✅ Adding read receipt to message:", messageId);
+              updated.readBy.push({
+                user: {
+                  _id: reader._id,
+                  name: reader.name,
+                  avatar: reader.avatar,
+                },
+                readAt: reader.readAt,
+              });
+            } else {
+              console.log("⚠️ Read receipt already exists for:", reader._id); // ✅ Add this
+            }
+
+            return updated;
+          }
+          return m;
+        }),
+      );
+    };
+
+    // ✅ ADD THIS NEW HANDLER for bulk reads
+    const handleBulkRead = ({ conversationId, messageIds, reader }) => {
+      if (conversationId !== conversation?._id) return;
+
+      // ✅ Safety check: Make sure reader exists and has required data
+      if (!reader || !reader._id) {
+        console.warn("Bulk read event received without valid reader data");
+        return;
+      }
+
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (messageIds.includes(m._id)) {
+            const updated = { ...m };
+            if (!updated.readBy) updated.readBy = [];
+
+            // Check if already exists
+            const exists = updated.readBy.some(
+              (r) => (r.user?._id || r.user) === reader._id,
+            );
+
+            if (!exists) {
+              updated.readBy.push({
+                user: {
+                  _id: reader._id,
+                  name: reader.name || "Unknown",
+                  avatar: reader.avatar || null,
+                },
+                readAt: reader.readAt,
+              });
+            }
+
+            return updated;
+          }
+          return m;
+        }),
+      );
+    };
 
     const handleDeleted = ({ messageId }) => {
       if (!messageId) return;
@@ -706,6 +784,8 @@ export default function ChatWindow({
     socket.on("message:pinned", handlePinned);
     socket.on("message:unpinned", handleUnpinned);
     socket.on("poll:updated", handlePollUpdated);
+    socket.on("message:read-receipt", handleReadReceipt);
+    socket.on("messages:bulk-read", handleBulkRead);
 
     return () => {
       socket.off("message:new", handleReceive);
@@ -716,11 +796,44 @@ export default function ChatWindow({
       socket.off("message:pinned", handlePinned);
       socket.off("message:unpinned", handleUnpinned);
       socket.off("poll:updated", handlePollUpdated);
+      socket.off("message:read-receipt", handleReadReceipt);
+      socket.on("messages:bulk-read", handleBulkRead);
     };
   }, [socket, conversation?._id, user?._id, onMessagesSeen]);
 
+  // ✅ Track user scroll position
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const handleScroll = (e) => {
+      const container = e.target;
+      const isAtBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight <
+        100;
+
+      userScrolledUpRef.current = !isAtBottom;
+    };
+
+    const scrollContainer = scrollContainerRef.current;
+    if (scrollContainer) {
+      scrollContainer.addEventListener("scroll", handleScroll);
+    }
+
+    return () => {
+      if (scrollContainer) {
+        scrollContainer.removeEventListener("scroll", handleScroll);
+      }
+    };
+  }, []);
+
+  // ✅ Smart auto-scroll: only for new messages when at bottom
+  useEffect(() => {
+    const isNewMessage = messages.length > prevMessagesLengthRef.current;
+
+    // Only scroll if it's a new message AND user is at bottom
+    if (isNewMessage && !userScrolledUpRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+
+    prevMessagesLengthRef.current = messages.length;
   }, [messages]);
 
   const fetchAiReplies = useCallback(
@@ -840,6 +953,47 @@ export default function ChatWindow({
       );
     }
   };
+  // ✅ Mark messages as read when they come into view (Groups only)
+  useEffect(() => {
+    if (!isGroup || !conversation?._id || !socket) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const toMark = [];
+
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const messageId = entry.target.dataset.messageId;
+            const senderId = entry.target.dataset.senderId;
+
+            // Don't mark own messages
+            if (senderId !== user?._id) {
+              toMark.push(messageId);
+            }
+          }
+        });
+
+        // Bulk mark as read
+        if (toMark.length > 0) {
+          api
+            .post(
+              `/api/chat/conversations/${conversation._id}/messages/read-bulk`,
+              {
+                messageIds: toMark,
+              },
+            )
+            .catch((err) => console.error("Bulk mark read error:", err));
+        }
+      },
+      { threshold: 0.5 }, // 50% visible
+    );
+
+    // Observe all message elements
+    const messageElements = document.querySelectorAll("[data-message-id]");
+    messageElements.forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, [messages, conversation?._id, user?._id, isGroup, socket]);
 
   // Scheduled: create
   const scheduleMessage = async () => {
@@ -1063,7 +1217,6 @@ export default function ChatWindow({
     );
   }
 
-  const isGroup = conversation.type === "group";
   const participant = conversation.participant;
   const isParticipantOnline = onlineUsers?.get(participant?._id)?.online;
   const groupMemberCount = isGroup
@@ -1241,7 +1394,11 @@ export default function ChatWindow({
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-3 sm:px-5 py-5 flex flex-col gap-3 scrollbar-hide">
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 overflow-y-auto px-3 sm:px-5 py-5 flex flex-col gap-3 scrollbar-hide"
+      >
+        {" "}
         {/* Pinned Messages Drawer */}
         {showPinnedDrawer && pinnedMessages.length > 0 && (
           <div className="sticky top-0 z-40 bg-gradient-to-b from-obsidian via-obsidian to-obsidian/95 backdrop-blur-lg border-b border-amber-500/20 shadow-xl shadow-black/40 mb-4">
@@ -1488,7 +1645,6 @@ export default function ChatWindow({
             <p className="text-ivory/20 text-xs">Loading messages...</p>
           </div>
         )}
-
         {!loadingMessages && messages.length === 0 && (
           <div className="flex flex-col items-center justify-center flex-1 gap-3">
             <div className="w-12 h-12 rounded-3xl bg-accent/10 border border-accent/15 flex items-center justify-center">
@@ -1497,7 +1653,6 @@ export default function ChatWindow({
             <p className="text-ivory/20 text-xs">No messages yet. Say hello!</p>
           </div>
         )}
-
         {(() => {
           // Robust calculation of last message indices for each status
           let lastReadIndex = -1;
@@ -1544,6 +1699,8 @@ export default function ChatWindow({
 
                 <div
                   id={`msg-${msg._id}`}
+                  data-message-id={msg._id}
+                  data-sender-id={msg.sender?._id}
                   className={`flex items-end gap-2 group ${isMe ? "justify-end" : "justify-start"}`}
                   onTouchStart={() => handleTouchStart(msg._id)}
                   onTouchEnd={handleTouchEnd}
@@ -1905,11 +2062,13 @@ export default function ChatWindow({
                     {isMe && !msg.isOptimistic && (
                       <div className="flex items-center gap-0.5 px-0.5 mt-0.5">
                         {isGroup ? (
-                          index === lastAnyMeIndex && (
-                            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/6 text-ivory/30 text-[8px] font-medium">
-                              Sent
-                            </span>
-                          )
+                          <ReadReceipts
+                            message={msg}
+                            totalParticipants={
+                              conversation.participants?.length || 0
+                            }
+                            isOwnMessage={true}
+                          />
                         ) : (
                           <>
                             {index === lastReadIndex && (

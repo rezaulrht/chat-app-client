@@ -24,6 +24,7 @@ import useAuth from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import toast from "react-hot-toast";
 import UserProfileModal from "@/components/profile/UserProfileModal";
+import VoiceChannelStrip from "@/components/calls/VoiceChannelStrip";
 
 export default function ChannelSidebar({
   selectedWorkspaceId,
@@ -328,6 +329,16 @@ export default function ChannelSidebar({
                   {/* Module Items */}
                   <div className="space-y-px">
                     {group.modules.map((mod) => {
+                      if (mod.type === "voice" || mod.isVoiceChannel) {
+                        return (
+                          <VoiceChannelStrip
+                            key={mod._id}
+                            module={mod}
+                            workspaceId={selectedWorkspaceId}
+                          />
+                        );
+                      }
+
                       const isActive = mod._id === activeModuleId;
                       const isAnnouncement = mod.type === "announcement";
                       const Icon = isAnnouncement ? Megaphone : Hash;

@@ -12,7 +12,7 @@ export const useLiveKit = (roomName, identity) => {
     if (!roomName || !identity) return;
 
     try {
-      const { data } = await api.post("/calls/token", { roomName });
+      const { data } = await api.post("/api/calls/token", { roomName });
 
       const newRoom = new Room({
         adaptiveStream: true,

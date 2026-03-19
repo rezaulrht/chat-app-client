@@ -1190,7 +1190,7 @@ export default function ChatWindow({
 
   const handleStartCall = async (callType) => {
     try {
-      const { data } = await api.post("/calls/initiate", {
+      const { data } = await api.post("/api/calls/initiate", {
         conversationId: conversation._id,
         callType,
       });
@@ -2015,7 +2015,7 @@ export default function ChatWindow({
                               </div>
                             </div>
                           </div>
-                        ) : msg.callLog ? (
+                        ) : msg.callLog?.status ? (
                           // ────────────────────────────────────────────────────
                           // ✅ Call Log Message
                           // ────────────────────────────────────────────────────

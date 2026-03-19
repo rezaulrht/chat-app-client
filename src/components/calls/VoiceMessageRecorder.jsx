@@ -25,7 +25,7 @@ export default function VoiceMessageRecorder({ onSend }) {
       const formData = new FormData();
       formData.append("audio", audioBlob, "voice-message.webm");
 
-      const { data } = await api.post("/calls/voice-message", formData, {
+      const { data } = await api.post("/api/calls/voice-message", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 

@@ -61,12 +61,12 @@ export function FeedProvider({ children }) {
     if (!post || typeof post !== "object") return post;
     const acceptedCommentId =
       typeof post.acceptedComment === "object"
-        ? post.acceptedComment?._id ?? null
-        : post.acceptedComment ?? null;
+        ? (post.acceptedComment?._id ?? null)
+        : (post.acceptedComment ?? null);
     const acceptedAnswerId =
       typeof post.acceptedAnswer === "object"
-        ? post.acceptedAnswer?._id ?? null
-        : post.acceptedAnswer ?? null;
+        ? (post.acceptedAnswer?._id ?? null)
+        : (post.acceptedAnswer ?? null);
     const normalizedAcceptedId = acceptedCommentId ?? acceptedAnswerId ?? null;
 
     const next = {
@@ -82,33 +82,36 @@ export function FeedProvider({ children }) {
     return next;
   }, []);
 
-  const flattenComments = useCallback((items) => {
-    if (!Array.isArray(items)) return [];
+  const flattenComments = useCallback(
+    (items) => {
+      if (!Array.isArray(items)) return [];
 
-    const flat = [];
-    for (const item of items) {
-      if (!item) continue;
-      const rootParentId = toId(item.parentComment);
-      const root = {
-        ...item,
-        replyTo: rootParentId,
-      };
-      flat.push(root);
+      const flat = [];
+      for (const item of items) {
+        if (!item) continue;
+        const rootParentId = toId(item.parentComment);
+        const root = {
+          ...item,
+          replyTo: rootParentId,
+        };
+        flat.push(root);
 
-      if (Array.isArray(item.replies)) {
-        for (const reply of item.replies) {
-          if (!reply) continue;
-          const replyParentId = toId(reply.parentComment) || toId(item._id);
-          flat.push({
-            ...reply,
-            replyTo: replyParentId,
-          });
+        if (Array.isArray(item.replies)) {
+          for (const reply of item.replies) {
+            if (!reply) continue;
+            const replyParentId = toId(reply.parentComment) || toId(item._id);
+            flat.push({
+              ...reply,
+              replyTo: replyParentId,
+            });
+          }
         }
       }
-    }
 
-    return flat;
-  }, [toId]);
+      return flat;
+    },
+    [toId],
+  );
 
   const mergePosts = useCallback(
     (existing, incoming) => {
@@ -346,10 +349,10 @@ export function FeedProvider({ children }) {
           prev.map((p) =>
             p._id === id
               ? {
-                ...p,
-                reactions: response.data.reactions,
-                reactionCount: response.data.reactionCount,
-              }
+                  ...p,
+                  reactions: response.data.reactions,
+                  reactionCount: response.data.reactionCount,
+                }
               : p,
           ),
         );
@@ -385,17 +388,19 @@ export function FeedProvider({ children }) {
 
   const acceptAnswer = useCallback(
     async (postId, commentId) => {
-      const res = await api.post(`/api/feed/posts/${postId}/accept/${commentId}`);
+      const res = await api.post(
+        `/api/feed/posts/${postId}/accept/${commentId}`,
+      );
 
       setPosts((prev) =>
         prev.map((p) =>
           p._id === postId
             ? normalizePost({
-              ...p,
-              acceptedComment: res.data.acceptedComment,
-              acceptedAnswer: res.data.acceptedComment,
-              status: res.data.status,
-            })
+                ...p,
+                acceptedComment: res.data.acceptedComment,
+                acceptedAnswer: res.data.acceptedComment,
+                status: res.data.status,
+              })
             : p,
         ),
       );
@@ -449,9 +454,9 @@ export function FeedProvider({ children }) {
         prev.map((p) =>
           p._id === postId
             ? normalizePost({
-              ...p,
-              commentsCount: (p.commentsCount ?? p.commentCount ?? 0) + 1,
-            })
+                ...p,
+                commentsCount: (p.commentsCount ?? p.commentCount ?? 0) + 1,
+              })
             : p,
         ),
       );
@@ -462,17 +467,19 @@ export function FeedProvider({ children }) {
   );
 
   const reactToComment = useCallback(async (postId, commentId, emoji) => {
-    const res = await api.post(`/api/feed/comments/${commentId}/react`, { emoji });
+    const res = await api.post(`/api/feed/comments/${commentId}/react`, {
+      emoji,
+    });
 
     setCommentsByPost((prev) => {
       const existing = Array.isArray(prev[postId]) ? prev[postId] : [];
       const updated = existing.map((c) =>
         c._id === commentId
           ? {
-            ...c,
-            reactions: res.data.reactions,
-            reactionCount: res.data.reactionCount,
-          }
+              ...c,
+              reactions: res.data.reactions,
+              reactionCount: res.data.reactionCount,
+            }
           : c,
       );
       return { ...prev, [postId]: updated };
@@ -481,108 +488,168 @@ export function FeedProvider({ children }) {
     return res.data;
   }, []);
 
-  const editComment = useCallback(async (postId, commentId, content) => {
-    const res = await api.patch(`/api/feed/comments/${commentId}`, { content });
+  const editComment = useCallback(
+    async (postId, commentId, content) => {
+      const res = await api.patch(`/api/feed/comments/${commentId}`, {
+        content,
+      });
 
-    setCommentsByPost((prev) => {
-      const existing = Array.isArray(prev[postId]) ? prev[postId] : [];
-      const updated = existing.map((c) =>
-        c._id === commentId
-          ? {
-            ...c,
-            ...res.data,
-            replyTo: toId(res.data.parentComment),
-          }
-          : c,
-      );
-      return { ...prev, [postId]: updated };
-    });
+      setCommentsByPost((prev) => {
+        const existing = Array.isArray(prev[postId]) ? prev[postId] : [];
+        const updated = existing.map((c) =>
+          c._id === commentId
+            ? {
+                ...c,
+                ...res.data,
+                replyTo: toId(res.data.parentComment),
+              }
+            : c,
+        );
+        return { ...prev, [postId]: updated };
+      });
 
-    return res.data;
-  }, [toId]);
+      return res.data;
+    },
+    [toId],
+  );
 
-  const deleteComment = useCallback(async (postId, commentId) => {
-    const normalizedCommentId = String(commentId || "");
-    if (!normalizedCommentId) {
-      throw new Error("Invalid comment ID");
-    }
-
-    const existing = Array.isArray(commentsByPost[postId])
-      ? commentsByPost[postId]
-      : [];
-    const removedIds = new Set([normalizedCommentId]);
-
-    for (const comment of existing) {
-      const parentId = comment.replyTo ?? comment.parentComment ?? null;
-      if (String(parentId) === normalizedCommentId) {
-        removedIds.add(String(comment._id));
+  const deleteComment = useCallback(
+    async (postId, commentId) => {
+      const normalizedCommentId = String(commentId || "");
+      if (!normalizedCommentId) {
+        throw new Error("Invalid comment ID");
       }
-    }
 
-    const removedCount = removedIds.size;
+      const existing = Array.isArray(commentsByPost[postId])
+        ? commentsByPost[postId]
+        : [];
+      const removedIds = new Set([normalizedCommentId]);
 
-    const res = await api.delete(`/api/feed/comments/${normalizedCommentId}`);
+      for (const comment of existing) {
+        const parentId = comment.replyTo ?? comment.parentComment ?? null;
+        if (String(parentId) === normalizedCommentId) {
+          removedIds.add(String(comment._id));
+        }
+      }
 
-    setCommentsByPost((prev) => {
-      const current = Array.isArray(prev[postId]) ? prev[postId] : [];
-      const updated = current.filter((c) => !removedIds.has(String(c._id)));
-      return { ...prev, [postId]: updated };
-    });
+      const removedCount = removedIds.size;
 
-    const serverCommentsCount =
-      typeof res.data?.commentsCount === "number"
-        ? res.data.commentsCount
-        : null;
-    const deletedCount =
-      typeof res.data?.deletedCount === "number"
-        ? res.data.deletedCount
-        : removedCount;
+      const res = await api.delete(`/api/feed/comments/${normalizedCommentId}`);
 
-    setPosts((prev) =>
-      prev.map((p) =>
-        p._id === postId
-          ? (() => {
-            const acceptedAnswerId = p.acceptedAnswer == null ? null : String(p.acceptedAnswer);
-            const acceptedCommentId = p.acceptedComment == null ? null : String(p.acceptedComment);
-            const isDeletedAccepted =
-              acceptedAnswerId === normalizedCommentId ||
-              acceptedCommentId === normalizedCommentId;
+      setCommentsByPost((prev) => {
+        const current = Array.isArray(prev[postId]) ? prev[postId] : [];
+        const updated = current.filter((c) => !removedIds.has(String(c._id)));
+        return { ...prev, [postId]: updated };
+      });
 
-            const newPost = {
-              ...p,
-              commentsCount:
-                serverCommentsCount != null
-                  ? Math.max(0, serverCommentsCount)
-                  : Math.max(
-                    0,
-                    (p.commentsCount ?? p.commentCount ?? 0) - deletedCount,
-                  ),
-              acceptedAnswer: isDeletedAccepted ? null : p.acceptedAnswer,
-              acceptedComment: isDeletedAccepted ? null : p.acceptedComment,
-              status: isDeletedAccepted ? "open" : p.status,
-            };
+      const serverCommentsCount =
+        typeof res.data?.commentsCount === "number"
+          ? res.data.commentsCount
+          : null;
+      const deletedCount =
+        typeof res.data?.deletedCount === "number"
+          ? res.data.deletedCount
+          : removedCount;
 
-            return normalizePost(newPost);
-          })()
-          : p,
-      ),
-    );
+      setPosts((prev) =>
+        prev.map((p) =>
+          p._id === postId
+            ? (() => {
+                const acceptedAnswerId =
+                  p.acceptedAnswer == null ? null : String(p.acceptedAnswer);
+                const acceptedCommentId =
+                  p.acceptedComment == null ? null : String(p.acceptedComment);
+                const isDeletedAccepted =
+                  acceptedAnswerId === normalizedCommentId ||
+                  acceptedCommentId === normalizedCommentId;
 
-    return {
-      removedCount: deletedCount,
-      commentsCount:
-        serverCommentsCount != null
-          ? Math.max(0, serverCommentsCount)
-          : undefined,
-    };
-  }, [commentsByPost, normalizePost]);
+                const newPost = {
+                  ...p,
+                  commentsCount:
+                    serverCommentsCount != null
+                      ? Math.max(0, serverCommentsCount)
+                      : Math.max(
+                          0,
+                          (p.commentsCount ?? p.commentCount ?? 0) -
+                            deletedCount,
+                        ),
+                  acceptedAnswer: isDeletedAccepted ? null : p.acceptedAnswer,
+                  acceptedComment: isDeletedAccepted ? null : p.acceptedComment,
+                  status: isDeletedAccepted ? "open" : p.status,
+                };
 
-  const followTag = useCallback(async () => {
-    /* TODO */
-  }, []);
-  const searchPosts = useCallback(async () => {
-    /* TODO */
-  }, []);
+                return normalizePost(newPost);
+              })()
+            : p,
+        ),
+      );
+
+      return {
+        removedCount: deletedCount,
+        commentsCount:
+          serverCommentsCount != null
+            ? Math.max(0, serverCommentsCount)
+            : undefined,
+      };
+    },
+    [commentsByPost, normalizePost],
+  );
+
+  const followTag = useCallback(
+    async (tag) => {
+      if (!tag) return;
+      const isFollowing = (userStats.followedTags ?? []).includes(tag);
+      // Optimistic update
+      setUserStats((prev) => {
+        const tags = prev.followedTags ?? [];
+        return {
+          ...prev,
+          followedTags: isFollowing
+            ? tags.filter((t) => t !== tag)
+            : [...tags, tag],
+        };
+      });
+      try {
+        await api.post(`/api/feed/tags/${encodeURIComponent(tag)}/follow`);
+      } catch (err) {
+        // Revert on failure
+        setUserStats((prev) => {
+          const tags = prev.followedTags ?? [];
+          return {
+            ...prev,
+            followedTags: isFollowing
+              ? [...tags, tag]
+              : tags.filter((t) => t !== tag),
+          };
+        });
+        console.error("followTag error:", err.message);
+      }
+    },
+    [userStats.followedTags],
+  );
+  const searchPosts = useCallback(
+    async (q, { type, sort } = {}) => {
+      if (!q?.trim()) return [];
+      try {
+        const res = await api.get("/api/feed/search", {
+          params: {
+            q: q.trim(),
+            type: type && type !== "all" ? type : undefined,
+            sort: sort || "latest",
+          },
+        });
+        return Array.isArray(res.data?.posts)
+          ? res.data.posts.map(normalizePost)
+          : Array.isArray(res.data)
+            ? res.data.map(normalizePost)
+            : [];
+      } catch (err) {
+        console.error("searchPosts error:", err.message);
+        return [];
+      }
+    },
+    [normalizePost],
+  );
 
   // ── Social actions ─────────────────────────────────────────────────────────
 

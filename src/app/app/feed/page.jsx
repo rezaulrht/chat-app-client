@@ -1,4 +1,5 @@
 "use client";
+import { useCallback } from "react";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import WorkspaceSidebar from "@/components/ChatDashboard/WorkspaceSidebar";
 import MobileBottomNav from "@/components/ChatDashboard/MobileBottomNav";
@@ -19,26 +20,47 @@ function ConnectedLeftSidebar({ onTagFilter }) {
   );
 }
 
+function FeedPageInner() {
+  const { setFilters, setPage } = useFeed();
+
+  const handleTagFilter = useCallback(
+    (tag) => {
+      if (!tag) return;
+      setFilters((prev) => {
+        const tags = prev.tags ?? [];
+        if (tags.includes(tag)) return prev;
+        return { ...prev, tags: [...tags, tag] };
+      });
+      setPage(1);
+    },
+    [setFilters, setPage],
+  );
+
+  return (
+    <div className="flex h-screen w-full bg-obsidian overflow-hidden">
+      {/* App nav + left sidebar */}
+      <div className="hidden xl:flex flex-col shrink-0 h-full w-[320px] border-r border-white/[0.06]">
+        <WorkspaceSidebar />
+        <div className="flex-1 min-h-0 overflow-hidden border-t border-white/[0.04]">
+          <ConnectedLeftSidebar onTagFilter={handleTagFilter} />
+        </div>
+      </div>
+
+      {/* Feed — handles its own three-column layout */}
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col pb-[72px] xl:pb-0">
+        <FeedView />
+      </div>
+
+      <MobileBottomNav />
+    </div>
+  );
+}
+
 export default function FeedPage() {
   return (
     <ProtectedRoute>
       <FeedProvider>
-        <div className="flex h-screen w-full bg-obsidian overflow-hidden">
-          {/* App nav tabs */}
-          <div className="hidden xl:flex flex-col shrink-0 h-full w-[320px] border-r border-white/[0.06]">
-            <WorkspaceSidebar />
-            <div className="flex-1 min-h-0 overflow-hidden border-t border-white/[0.04]">
-              <ConnectedLeftSidebar onTagFilter={() => {}} />
-            </div>
-          </div>
-
-          {/* Feed — handles its own three-column layout */}
-          <div className="flex-1 min-h-0 overflow-hidden flex flex-col pb-[72px] xl:pb-0">
-            <FeedView />
-          </div>
-
-          <MobileBottomNav />
-        </div>
+        <FeedPageInner />
       </FeedProvider>
     </ProtectedRoute>
   );

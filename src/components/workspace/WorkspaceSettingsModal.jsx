@@ -121,7 +121,7 @@ function OverviewTab({ workspace, onUpdate }) {
             {/* Banner */}
             <div className="h-40 w-full rounded-2xl bg-white/4 border border-white/8 overflow-hidden relative group/banner shadow-inner">
               <div 
-                className="w-full h-full bg-gradient-to-br from-accent/20 via-accent/5 to-transparent bg-cover bg-center transition-transform duration-500 group-hover/banner:scale-105"
+                className="w-full h-full bg-linear-to-br from-accent/20 via-accent/5 to-transparent bg-cover bg-center transition-transform duration-500 group-hover/banner:scale-105"
                 style={bannerUrl ? { backgroundImage: `url(${bannerUrl})` } : {}}
               />
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/banner:opacity-100 transition-opacity flex items-center justify-center gap-3">
@@ -146,7 +146,7 @@ function OverviewTab({ workspace, onUpdate }) {
             {/* Avatar Overlay */}
             <div className="absolute -bottom-8 left-8 flex items-end gap-5">
               <div className="relative group/avatar">
-                <div className="w-24 h-24 rounded-[32px] bg-obsidian border-[4px] border-obsidian shadow-2xl overflow-hidden flex items-center justify-center ring-1 ring-white/10">
+                <div className="w-24 h-24 rounded-4xl bg-obsidian border-4 border-obsidian shadow-2xl overflow-hidden flex items-center justify-center ring-1 ring-white/6">
                   {uploadingAvatar ? (
                     <Loader2 size={24} className="animate-spin text-accent" />
                   ) : avatarUrl ? (
@@ -155,7 +155,7 @@ function OverviewTab({ workspace, onUpdate }) {
                     <span className="text-3xl font-bold text-accent/40">{workspace?.name?.[0]?.toUpperCase()}</span>
                   )}
                 </div>
-                <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/avatar:opacity-100 transition-opacity cursor-pointer rounded-[32px]">
+                <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/avatar:opacity-100 transition-opacity cursor-pointer rounded-4xl">
                   <Camera size={18} className="text-white" />
                   <input type="file" className="hidden" accept="image/*" onChange={handleAvatarUpload} disabled={uploadingAvatar} />
                 </label>
@@ -605,7 +605,7 @@ function MembersTab({ workspace, members, currentUser, onUpdateMemberRole, onRem
               <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/3 transition-colors">
                 {/* Avatar */}
                 <div className="relative shrink-0">
-                  <div className="w-10 h-10 rounded-2xl overflow-hidden ring-1 ring-white/[0.06] bg-accent/5 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-2xl overflow-hidden ring-1 ring-white/6 bg-accent/5 flex items-center justify-center">
                     <Image
                       src={m.user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.user?.name}`}
                       width={40} height={40} alt={m.user?.name || ""} className="rounded-2xl object-cover w-full h-full" unoptimized
@@ -784,7 +784,7 @@ function InvitesTab({ workspace, onGenerateInvite, onRevokeInvite }) {
 
       {/* Workspace card preview */}
       <div className="p-4 rounded-2xl bg-white/3 border border-white/8 flex items-center gap-3">
-        <div className="w-12 h-12 rounded-xl overflow-hidden ring-1 ring-white/[0.06] shrink-0 bg-accent/10 flex items-center justify-center">
+        <div className="w-12 h-12 rounded-xl overflow-hidden ring-1 ring-white/6 shrink-0 bg-accent/10 flex items-center justify-center">
           {workspace?.avatar ? (
             <Image src={workspace.avatar} width={48} height={48} alt="" className="rounded-xl object-cover" unoptimized />
           ) : (
@@ -979,14 +979,14 @@ export default function WorkspaceSettingsModal({ workspaceId, onClose }) {
   if (!workspace) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center">
+    <div className="fixed inset-0 z-100 flex items-center justify-center">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative w-full max-w-3xl h-[88vh] max-h-[720px] bg-[#0e0e17] rounded-3xl shadow-2xl shadow-black/60 flex overflow-hidden ring-1 ring-white/6 mx-4">
+      <div className="relative w-full max-w-3xl h-[88vh] max-h-180 bg-[#0e0e17] rounded-3xl shadow-2xl shadow-black/60 flex overflow-hidden ring-1 ring-white/6 mx-4">
         {/* ── Left nav */}
-        <nav className="w-52 shrink-0 border-r border-white/6 bg-white/[0.015] flex flex-col py-4 overflow-y-auto scrollbar-hide">
+        <nav className="w-52 shrink-0 border-r border-white/6 bg-white/1.5 flex flex-col py-4 overflow-y-auto scrollbar-hide">
           <div className="px-4 mb-5">
             <p className="text-[10px] font-mono font-bold text-ivory/25 uppercase tracking-widest">Settings</p>
             <p className="text-[13px] font-display font-bold text-ivory/70 mt-1 truncate">{workspace.name}</p>

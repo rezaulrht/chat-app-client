@@ -118,7 +118,7 @@ export default function DiscoverWorkspacesPage() {
                 <p className="text-[12px] font-mono text-ivory/30">Loading communities...</p>
               </div>
             ) : results.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-center border border-white/4 border-dashed rounded-3xl bg-white/[0.01]">
+              <div className="flex flex-col items-center justify-center py-20 text-center border border-white/4 border-dashed rounded-3xl bg-white/1">
                 <Globe size={48} className="text-ivory/10 mb-4" />
                 <h3 className="text-[16px] font-display font-bold text-ivory/70 mb-2">No communities found</h3>
                 <p className="text-[13px] font-mono text-ivory/30 max-w-sm">
@@ -145,9 +145,9 @@ export default function DiscoverWorkspacesPage() {
                             style={{ backgroundImage: `url(${ws.banner})` }}
                           />
                         ) : (
-                          <div className="absolute inset-0 bg-gradient-to-br from-accent/10 to-transparent" />
+                          <div className="absolute inset-0 bg-linear-to-br from-accent/10 to-transparent" />
                         )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-obsidian/80 to-transparent" />
+                        <div className="absolute inset-0 bg-linear-to-t from-obsidian/80 to-transparent" />
                         
                         {/* Avatar pushing up */}
                         <div className="absolute -bottom-6 left-5 w-14 h-14 rounded-2xl bg-obsidian p-1 shadow-xl">

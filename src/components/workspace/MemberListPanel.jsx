@@ -42,7 +42,7 @@ function MemberRow({ member, roles, isOnline, onProfileClick }) {
       {/* Avatar */}
       <div className="relative shrink-0">
         <div
-          className={`w-8 h-8 rounded-xl overflow-hidden ring-1 ring-white/[0.06] transition-all ${
+          className={`w-8 h-8 rounded-xl overflow-hidden ring-1 ring-white/6 transition-all ${
             isOnline
               ? "group-hover:ring-accent/30"
               : "opacity-85 group-hover:opacity-100"
@@ -66,7 +66,7 @@ function MemberRow({ member, roles, isOnline, onProfileClick }) {
         </div>
         {/* Online dot */}
         <div
-          className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-[2px] border-[#0e0e17] transition-colors ${
+          className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#0e0e17] transition-colors ${
             isOnline
               ? "bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.5)]"
               : "bg-white/15"

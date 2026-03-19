@@ -20,6 +20,10 @@ import {
   Clock,
   Calendar,
   Paperclip,
+  MessageSquare,
+  Pin,
+  PinOff,
+  Search,
 } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 import { useModule } from "@/hooks/useModule";
@@ -30,6 +34,10 @@ import toast from "react-hot-toast";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import FileAttachmentPreview from "@/components/shared/FileAttachmentPreview";
 import FileAttachmentDisplay from "@/components/shared/FileAttachmentDisplay";
+import ThreadPanel from "./ThreadPanel";
+import PinnedMessagesPanel from "./PinnedMessagesPanel";
+import ModuleSearchPanel from "./ModuleSearchPanel";
+import "./Mention.css";
 
 const EmojiPicker = dynamic(() => import("emoji-picker-react"), { ssr: false });
 const GifPicker = dynamic(
@@ -75,7 +83,7 @@ export default function ModuleChatWindow({
   showMembers,
 }) {
   const { user } = useAuth();
-  const { workspaces, modulesCache } = useWorkspace();
+  const { workspaces, modulesCache, membersCache, fetchWorkspaceMembers } = useWorkspace();
   const {
     messages,
     loading,
@@ -88,6 +96,7 @@ export default function ModuleChatWindow({
     reactToMessage,
     editMessage,
     deleteMessage,
+    pinMessage,
   } = useModule();
 
   const workspace = workspaces.find((w) => w._id === workspaceId);
@@ -108,6 +117,11 @@ export default function ModuleChatWindow({
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [longPressedMsgId, setLongPressedMsgId] = useState(null);
+
+  // Panels
+  const [activeThreadMessage, setActiveThreadMessage] = useState(null);
+  const [showPinnedPanel, setShowPinnedPanel] = useState(false);
+  const [showSearchPanel, setShowSearchPanel] = useState(false);
 
   // Scheduled messages
   const [scheduleDropdownOpen, setScheduleDropdownOpen] = useState(false);
@@ -148,6 +162,7 @@ export default function ModuleChatWindow({
     removeFile,
     reset: resetFiles,
   } = useFileUpload();
+  const inputRef = useRef(null);
   const reactionPickerRef = useRef(null);
   const emojiPickerRef = useRef(null);
   const gifPickerRef = useRef(null);
@@ -173,6 +188,11 @@ export default function ModuleChatWindow({
     setShowSeenBy(null);
     resetFiles();
   }, [moduleId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch members if not present
+  useEffect(() => {
+    if (workspaceId) fetchWorkspaceMembers(workspaceId);
+  }, [workspaceId, fetchWorkspaceMembers]);
 
   // Close pickers on outside click
   useEffect(() => {
@@ -246,17 +266,177 @@ export default function ModuleChatWindow({
     if (longPressTimer.current) clearTimeout(longPressTimer.current);
   }, []);
 
-  // ── Text change + typing + emoji autocomplete ─────────────────────────────
-  const handleTextChange = (e) => {
-    let val = e.target.value;
-    const lastWord = val.split(" ").pop();
-    if (EMOJI_MAP[lastWord]) val = val.replace(lastWord, EMOJI_MAP[lastWord]);
+  // ── Render Mentions ───────────────────────────────────────────────────────
+  const renderMessageText = (text, mentions, mentionData = []) => {
+    if (!text) return null;
+    if (!mentions || mentions.length === 0) return text;
+
+    const resolvedMentions = mentions.map((m) => {
+      const id = typeof m === "object" ? m._id || m.id : m;
+      const allMembers = membersCache?.[workspaceId] || [];
+      const member = allMembers.find((mem) => {
+        const mUserId = mem.user?._id || mem.user?.id || mem.user;
+        return String(mUserId) === String(id);
+      }) || workspace?.members?.find((mem) => {
+        const mUserId = mem.user?._id || mem.user?.id || mem.user;
+        return String(mUserId) === String(id);
+      });
+      
+      const smuggled = (mentionData || []).find(d => String(d.id || d._id) === String(id));
+      const name = (typeof m === "object" ? m.name : null) || smuggled?.name || member?.user?.name;
+      const avatar = (typeof m === "object" ? m.avatar : null) || smuggled?.avatar || member?.user?.avatar;
+
+      return {
+        id,
+        name,
+        avatar,
+        member,
+      };
+    }).filter((m) => m.name);
+
+    if (resolvedMentions.length === 0) return text;
+
+    const sorted = [...resolvedMentions].sort((a, b) => b.name.length - a.name.length);
+    const regexSource = sorted.map((m) => `@${m.name.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}`).join("|");
+    const regex = new RegExp(`(${regexSource})`, "g");
+
+    const parts = text.split(regex);
+
+    return parts.map((part, i) => {
+      if (part.startsWith("@")) {
+        const mention = sorted.find((m) => `@${m.name}` === part);
+        if (mention) {
+          return (
+            <span
+              key={`${mention.id}-${i}`}
+              className="inline-flex items-center gap-1 bg-[#5865f2]/20 text-white font-semibold px-1 py-0.5 mx-px rounded shadow-sm border border-[#5865f2]/30"
+            >
+              <Image
+                src={
+                  mention.avatar ||
+                  `https://api.dicebear.com/7.x/avataaars/svg?seed=${mention.name}`
+                }
+                alt=""
+                width={14}
+                height={14}
+                className="w-3.5 h-3.5 rounded-full object-cover shrink-0"
+                unoptimized
+              />
+              {part}
+            </span>
+          );
+        }
+      }
+      return part;
+    });
+  };
+
+  const parseMessage = (el) => {
+    if (!el) return { text: "", mentions: [] };
+    const mentions = [];
+    let text = "";
+
+    const processNode = (node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        text += node.textContent;
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        if (node.classList.contains("mention")) {
+          mentions.push({
+            id: node.dataset.id,
+            name: node.textContent.replace(/^@/, ""),
+            avatar: node.querySelector("img")?.src
+          });
+          text += node.textContent;
+        } else if (node.nodeName === "BR") {
+          text += "\n";
+        } else {
+          node.childNodes.forEach(processNode);
+          if (node.nodeName === "DIV" || node.nodeName === "P") {
+            if (!text.endsWith("\n") && node.nextSibling) text += "\n";
+          }
+        }
+      }
+    };
+
+    el.childNodes.forEach(processNode);
+    return { text, mentions };
+  };
+
+  const insertMention = (suggestion) => {
+    if (!inputRef.current) return;
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return;
+    const range = selection.getRangeAt(0);
+
+    const textNode = range.startContainer;
+    if (textNode.nodeType !== Node.TEXT_NODE) return;
+
+    const content = textNode.textContent;
+    const offset = range.startOffset;
+    const textBefore = content.slice(0, offset);
+    const mentionMatch = textBefore.match(/@([a-zA-Z0-9_\s]*)$/);
+
+    if (mentionMatch) {
+      const start = mentionMatch.index;
+      range.setStart(textNode, start);
+      range.deleteContents();
+
+      const span = document.createElement("span");
+      span.className = "mention";
+      span.contentEditable = "false";
+      span.dataset.id = suggestion.user?._id || suggestion.key;
+      
+      const img = document.createElement("img");
+      img.src = suggestion.user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${suggestion.value}`;
+      img.alt = "";
+      span.appendChild(img);
+      
+      const nameText = document.createTextNode(`@${suggestion.value}`);
+      span.appendChild(nameText);
+
+      range.insertNode(span);
+
+      const space = document.createTextNode("\u00A0"); 
+      span.after(space);
+
+      range.setStartAfter(space);
+      range.setEndAfter(space);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      
+      const parsed = parseMessage(inputRef.current);
+      setText(parsed.text);
+      setSuggestions([]);
+      sendTyping(parsed.text.trim().length > 0);
+    }
+  };
+
+  // ── Text change + typing + emoji/mention autocomplete ─────────────────────
+  const handleInput = (e) => {
+    const el = e.currentTarget;
+    const parsed = parseMessage(el);
+    const val = parsed.text;
     setText(val);
     sendTyping(val.trim().length > 0);
 
-    const match = val.match(/:([a-zA-Z0-9_]*)$/);
-    if (match) {
-      const q = match[1].toLowerCase();
+    // Suggestion logic for contenteditable
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return;
+    const range = selection.getRangeAt(0);
+    const textNode = range.startContainer;
+    if (textNode.nodeType !== Node.TEXT_NODE) {
+      setSuggestions([]);
+      return;
+    }
+
+    const content = textNode.textContent;
+    const offset = range.startOffset;
+    const textBeforeCursor = content.slice(0, offset);
+
+    // 1. Check for emoji autocomplete (simplified for now, or use similar logic)
+    const emojiMatch = textBeforeCursor.match(/:([a-zA-Z0-9_]*)$/);
+    if (emojiMatch) {
+      const q = emojiMatch[1].toLowerCase();
       const filtered = Object.entries(EMOJI_MAP)
         .filter(([code]) => {
           const name = code.slice(1, -1);
@@ -265,21 +445,99 @@ export default function ModuleChatWindow({
           );
         })
         .sort(([a], [b]) => a.localeCompare(b))
+        .map(([code, emoji]) => ({ type: 'emoji', key: code, value: emoji }))
         .slice(0, 8);
       setSuggestions(filtered);
       setSuggestionIndex(0);
-    } else {
+      return;
+    }
+
+    // 2. Check for @mentions
+    const mentionMatch = textBeforeCursor.match(/@([a-zA-Z0-9_\s]*)$/);
+
+    if (mentionMatch) {
+      const query = mentionMatch[1].toLowerCase();
+      const availableMembers = membersCache?.[workspaceId] || [];
+      const currentMentions = parsed.mentions.map(m => typeof m === 'object' ? m.id : m);
+      
+      const filtered = availableMembers
+        .filter(
+          (m) =>
+            m.user &&
+            m.user._id.toString() !== user?._id?.toString() &&
+            !currentMentions.includes(m.user._id.toString()) &&
+            m.user.name.toLowerCase().startsWith(query)
+        )
+        .map(m => ({ type: 'mention', key: m.user._id, value: m.user.name, user: m.user }))
+        .slice(0, 10);
+      
+      if (filtered.length > 0) {
+        setSuggestions(filtered);
+        setSuggestionIndex(0);
+        return;
+      }
+    }
+
+    setSuggestions([]);
+  };
+
+  const insertEmoji = (suggestion) => {
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return;
+    const range = selection.getRangeAt(0);
+    const textNode = range.startContainer;
+    if (textNode.nodeType !== Node.TEXT_NODE) return;
+
+    const content = textNode.textContent;
+    const offset = range.startOffset;
+    const textBefore = content.slice(0, offset);
+    const emojiMatch = textBefore.match(/:[a-zA-Z0-9_]*$/);
+
+    if (emojiMatch) {
+      const start = emojiMatch.index;
+      range.setStart(textNode, start);
+      range.deleteContents();
+      const emojiNode = document.createTextNode(suggestion.value);
+      range.insertNode(emojiNode);
+      range.setStartAfter(emojiNode);
+      range.setEndAfter(emojiNode);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      
+      const parsed = parseMessage(inputRef.current);
+      setText(parsed.text);
       setSuggestions([]);
     }
   };
 
-  const insertEmoji = (emoji) => {
-    setText((prev) => {
-      const match = prev.match(/:[a-zA-Z0-9_]*$/);
-      if (!match) return prev + emoji;
-      return prev.slice(0, match.index) + emoji;
-    });
-    setSuggestions([]);
+  const insertSuggestion = (suggestion) => {
+    if (suggestion.type === 'emoji') {
+      insertEmoji(suggestion);
+    } else if (suggestion.type === 'mention') {
+      insertMention(suggestion);
+    }
+  };
+
+  const insertTextAtCursor = (textToInsert) => {
+    if (!inputRef.current) return;
+    inputRef.current.focus();
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return;
+    const range = selection.getRangeAt(0);
+    range.deleteContents();
+    const textNode = document.createTextNode(textToInsert);
+    range.insertNode(textNode);
+    range.setStartAfter(textNode);
+    range.setEndAfter(textNode);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    
+    const parsed = parseMessage(inputRef.current);
+    setText(parsed.text);
+  };
+
+  const renderInputHighlighter = (val) => {
+    return null; // No longer needed with contenteditable
   };
 
   const handleKeyDown = (e) => {
@@ -292,12 +550,15 @@ export default function ModuleChatWindow({
         setSuggestionIndex(
           (p) => (p - 1 + suggestions.length) % suggestions.length,
         );
-      } else if (e.key === "Enter") {
+      } else if (e.key === "Enter" || e.key === "Tab") {
         e.preventDefault();
-        insertEmoji(suggestions[suggestionIndex][1]);
+        insertSuggestion(suggestions[suggestionIndex]);
       } else if (e.key === "Escape") {
         setSuggestions([]);
       }
+    } else if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend(e);
     }
   };
 
@@ -336,7 +597,8 @@ export default function ModuleChatWindow({
   // ── Send ──────────────────────────────────────────────────────────────────
   const handleSend = async (e) => {
     e.preventDefault();
-    const hasText = text.trim().length > 0;
+    const parsed = parseMessage(inputRef.current);
+    const hasText = parsed.text.trim().length > 0;
     const hasFiles = stagedFiles.length > 0;
     if (!hasText && !hasFiles) return;
     if (fileUploading) return;
@@ -351,8 +613,10 @@ export default function ModuleChatWindow({
       }
     }
 
-    sendMessage({ text: text.trim(), replyTo, attachments });
+    const mentionIds = parsed.mentions.map(m => typeof m === 'object' ? m.id : m);
+    sendMessage({ text: parsed.text.trim(), replyTo, attachments, mentions: mentionIds });
     setText("");
+    if (inputRef.current) inputRef.current.innerHTML = "";
     setReplyTo(null);
     setSuggestions([]);
     sendTyping(false);
@@ -499,7 +763,7 @@ export default function ModuleChatWindow({
         </div>
         <div className="text-center space-y-1.5">
           <h2 className="text-ivory font-display font-bold">Select a module</h2>
-          <p className="text-ivory/30 text-sm max-w-[220px]">
+          <p className="text-ivory/30 text-sm max-w-55">
             Choose a module from the sidebar to start chatting
           </p>
         </div>
@@ -553,17 +817,52 @@ export default function ModuleChatWindow({
             </p>
           </div>
         </div>
-        {/* Members toggle */}
-        <button
-          onClick={onToggleMembers}
-          title="Toggle member list"
-          className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${showMembers
-            ? "bg-accent/15 text-accent"
-            : "text-ivory/25 hover:text-ivory/60 hover:bg-white/6"
-            }`}
-        >
-          <Users size={16} />
-        </button>
+        {/* Header Right Actions */}
+        <div className="flex items-center gap-1.5">
+          {/* Search toggle */}
+          <button
+            onClick={() => {
+              setShowSearchPanel((p) => !p);
+              setShowPinnedPanel(false);
+              setActiveThreadMessage(null);
+            }}
+            title="Search in module"
+            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${showSearchPanel
+              ? "bg-accent/15 text-accent"
+              : "text-ivory/25 hover:text-ivory/60 hover:bg-white/6"
+              }`}
+          >
+            <Search size={16} />
+          </button>
+
+          {/* Pinned Messages toggle */}
+          <button
+            onClick={() => {
+              setShowPinnedPanel((p) => !p);
+              setShowSearchPanel(false);
+              setActiveThreadMessage(null); // Close thread if opening pins
+            }}
+            title="Pinned messages"
+            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${showPinnedPanel
+              ? "bg-accent/15 text-accent"
+              : "text-ivory/25 hover:text-ivory/60 hover:bg-white/6"
+              }`}
+          >
+            <Pin size={16} />
+          </button>
+          
+          {/* Members toggle */}
+          <button
+            onClick={onToggleMembers}
+            title="Toggle member list"
+            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${showMembers
+              ? "bg-accent/15 text-accent"
+              : "text-ivory/25 hover:text-ivory/60 hover:bg-white/6"
+              }`}
+          >
+            <Users size={16} />
+          </button>
+        </div>
       </header>
 
       {/* ── Message List ──────────────────────────────────────────────────────── */}
@@ -730,10 +1029,24 @@ export default function ModuleChatWindow({
                               setLongPressedMsgId(null);
                             }}
                             className="p-1.5 rounded-md text-ivory/40 hover:text-accent hover:bg-white/6 transition-all"
+                            title="React"
                           >
                             <Smile size={14} />
                           </button>
-                          {/* Reply */}
+                          {/* Thread Reply */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveThreadMessage(msg);
+                              setLongPressedMsgId(null);
+                            }}
+                            className="p-1.5 rounded-md text-ivory/40 hover:text-accent hover:bg-white/6 transition-all"
+                            title="Reply in thread"
+                          >
+                            <MessageSquare size={14} />
+                          </button>
+                          {/* Inline Reply */}
                           <button
                             type="button"
                             onClick={() => {
@@ -741,6 +1054,7 @@ export default function ModuleChatWindow({
                               setLongPressedMsgId(null);
                             }}
                             className="p-1.5 rounded-md text-ivory/40 hover:text-accent hover:bg-white/6 transition-all"
+                            title="Quote reply"
                           >
                             <Reply size={14} />
                           </button>
@@ -757,6 +1071,7 @@ export default function ModuleChatWindow({
                                   setLongPressedMsgId(null);
                                 }}
                                 className="p-1.5 rounded-md text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 transition-all"
+                                title="Edit"
                               >
                                 <Pencil size={14} />
                               </button>
@@ -768,8 +1083,28 @@ export default function ModuleChatWindow({
                                   setLongPressedMsgId(null);
                                 }}
                                 className="p-1.5 rounded-md text-red-400 hover:text-red-300 hover:bg-red-500/20 transition-all"
+                                title="Delete for everyone"
                               >
                                 <Trash2 size={14} />
+                              </button>
+                            </>
+                          )}
+
+                          {/* Pin / Unpin (admin/owner only) */}
+                          {isAdminOrOwner && (
+                            <>
+                              <div className="w-px h-5 bg-white/6 mx-0.5" />
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  pinMessage(msg._id);
+                                  setLongPressedMsgId(null);
+                                }}
+                                className={`p-1.5 rounded-md transition-all ${msg.isPinned ? "text-accent hover:text-accent hover:bg-white/6" : "text-ivory/40 hover:text-accent hover:bg-white/6"}`}
+                                title={msg.isPinned ? "Unpin message" : "Pin message"}
+                              >
+                                {msg.isPinned ? <PinOff size={14} /> : <Pin size={14} />}
                               </button>
                             </>
                           )}
@@ -861,14 +1196,28 @@ export default function ModuleChatWindow({
                               <p className="font-bold mb-0.5 text-accent/70">
                                 {msg.replyTo.sender?.name || "Member"}
                               </p>
-                              {msg.replyTo.text}
+                              {msg.replyTo.text || "Attachment"}
                             </div>
                           )}
-                          {msg.text}
+                          {renderMessageText(msg.text, msg.mentions, msg.mentionData)}
                           {msg.attachments?.length > 0 && (
                             <FileAttachmentDisplay attachments={msg.attachments} />
                           )}
                         </div>
+                      )}
+
+                      {/* Reply Count Indicator */}
+                      {msg.replyCount > 0 && !msg.isDeleted && !editingId && (
+                        <button
+                          onClick={() => setActiveThreadMessage(msg)}
+                          className="mt-1 flex items-center gap-1.5 px-2 py-1 rounded border border-transparent hover:border-accent/30 hover:bg-accent/10 text-[11px] font-bold text-accent/80 hover:text-accent transition-colors w-fit"
+                        >
+                          <MessageSquare size={12} />
+                          {msg.replyCount} {msg.replyCount === 1 ? "reply" : "replies"}
+                          <span className="text-[9px] font-mono font-normal opacity-60 ml-0.5">
+                            Last reply at {new Date(msg.lastReplyAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </button>
                       )}
 
                       {/* Reaction pills */}
@@ -1003,20 +1352,33 @@ export default function ModuleChatWindow({
           onSubmit={handleSend}
           className="p-4 relative z-20 bg-obsidian/80 backdrop-blur-sm border-t border-white/5"
         >
-          {/* Emoji autocomplete suggestions */}
+          {/* Auto-complete suggestions */}
           {suggestions.length > 0 && (
-            <div className="absolute bottom-full left-2 sm:left-10 bg-deep/95 backdrop-blur-md border border-white/6 rounded-xl p-1 shadow-2xl z-50 min-w-37.5 max-w-[calc(100vw-2rem)] mb-2">
-              {suggestions.map(([code, emoji], i) => (
+            <div className="absolute bottom-full left-2 sm:left-10 bg-deep/95 backdrop-blur-md border border-white/6 rounded-xl p-1 shadow-2xl z-50 min-w-48 max-w-[calc(100vw-2rem)] mb-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+              {suggestions.map((suggestion, i) => (
                 <div
-                  key={code}
-                  onClick={() => insertEmoji(emoji)}
+                  key={suggestion.key}
+                  onClick={() => insertSuggestion(suggestion)}
                   className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${i === suggestionIndex
                     ? "bg-accent/20 text-accent"
-                    : "hover:bg-white/6 text-ivory/40"
+                    : "hover:bg-white/6 text-ivory/60 hover:text-ivory"
                     }`}
                 >
-                  <span className="text-lg">{emoji}</span>
-                  <span className="text-xs font-mono">{code}</span>
+                  {suggestion.type === 'emoji' ? (
+                    <>
+                      <span className="text-lg leading-none">{suggestion.value}</span>
+                      <span className="text-xs font-mono">{suggestion.key}</span>
+                    </>
+                  ) : (
+                    <>
+                      <img
+                        src={suggestion.user.avatar || "/avatar.png"}
+                        alt={suggestion.value}
+                        className="w-5 h-5 rounded-full object-cover"
+                      />
+                      <span className="text-sm font-medium">{suggestion.value}</span>
+                    </>
+                  )}
                 </div>
               ))}
             </div>
@@ -1030,7 +1392,7 @@ export default function ModuleChatWindow({
             >
               <EmojiPicker
                 onEmojiClick={(data) => {
-                  setText((p) => p + data.emoji);
+                  insertTextAtCursor(data.emoji);
                   setShowEmojiPicker(false);
                 }}
                 theme="dark"
@@ -1117,11 +1479,12 @@ export default function ModuleChatWindow({
           />
 
           <div className="bg-slate-surface rounded-2xl flex items-center flex-wrap p-2 gap-1 border border-white/5 focus-within:border-accent/50 transition-all shadow-inner">
-            {/* Using Plus icon for consistency with main chat even if we don't have extra tools yet */}
             <button
               type="button"
+              onClick={() => fileInputRef.current?.click()}
               className="w-9 h-9 flex items-center justify-center text-ivory/30 hover:text-accent transition-colors"
-              title="More"
+              title="Upload files"
+              aria-label="Upload files"
             >
               <Plus size={20} />
             </button>
@@ -1138,40 +1501,31 @@ export default function ModuleChatWindow({
               }}
             />
 
-            {/* Paperclip button */}
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="w-9 h-9 flex items-center justify-center text-ivory/30 hover:text-accent transition-colors"
-              aria-label="Attach files"
-              title="Attach files"
-            >
-              <Paperclip size={18} />
-            </button>
-
-            <textarea
-              className="flex-1 min-w-0 bg-transparent outline-none text-sm text-ivory/80 px-3 placeholder:text-ivory/20 resize-none py-2 scrollbar-hide max-h-32"
-              placeholder={
-                isAnnouncement
-                  ? `Post an announcement in #${activeModule.name}...`
-                  : `Message #${activeModule.name}`
-              }
-              value={text}
-              onChange={handleTextChange}
-              onKeyDown={(e) => {
-                handleKeyDown(e);
-                if (e.key === "Enter" && !e.shiftKey && !suggestions.length) {
+            <div className="flex-1 relative min-w-0">
+              <div
+                ref={inputRef}
+                className="w-full bg-transparent outline-none text-sm caret-white px-3 py-2 placeholder:text-ivory/20 transition-colors relative z-10 border-none message-input-rich"
+                contentEditable={canType}
+                onInput={handleInput}
+                onPaste={(e) => {
                   e.preventDefault();
-                  handleSend(e);
+                  const text = e.clipboardData.getData("text/plain");
+                  insertTextAtCursor(text);
+                }}
+                onKeyDown={(e) => {
+                  handleKeyDown(e);
+                  if (e.key === "Enter" && !e.shiftKey && !suggestions.length) {
+                    e.preventDefault();
+                    handleSend(e);
+                  }
+                }}
+                placeholder={
+                  isAnnouncement
+                    ? `Post an announcement in #${activeModule.name}...`
+                    : `Message #${activeModule.name}`
                 }
-              }}
-              rows={1}
-              onInput={(e) => {
-                e.target.style.height = "auto";
-                e.target.style.height =
-                  Math.min(e.target.scrollHeight, 128) + "px";
-              }}
-            />
+              />
+            </div>
 
             <button
               type="button"
@@ -1434,6 +1788,36 @@ export default function ModuleChatWindow({
             Only admins and owners can post in announcement modules
           </p>
         </div>
+      )}
+
+      {/* Thread Panel */}
+      {activeThreadMessage && (
+        <ThreadPanel
+          moduleId={moduleId}
+          workspaceId={workspaceId}
+          workspace={workspace}
+          parentMessage={activeThreadMessage}
+          onClose={() => setActiveThreadMessage(null)}
+        />
+      )}
+
+      {/* Pinned Messages Panel */}
+      {showPinnedPanel && (
+        <PinnedMessagesPanel
+          moduleId={moduleId}
+          workspaceId={workspaceId}
+          workspace={workspace}
+          onClose={() => setShowPinnedPanel(false)}
+        />
+      )}
+
+      {/* Search Panel */}
+      {showSearchPanel && (
+        <ModuleSearchPanel
+          moduleId={moduleId}
+          workspace={workspace}
+          onClose={() => setShowSearchPanel(false)}
+        />
       )}
     </main>
   );

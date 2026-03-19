@@ -11,7 +11,8 @@ export const CallProvider = ({ children }) => {
   const [isMinimized, setIsMinimized] = useState(false);
 
   const startCall = useCallback((callData) => {
-    setActiveCall(callData);
+    // Store call info but mark as pending — don't connect to LiveKit until accepted
+    setActiveCall({ ...callData, pending: true });
     setIsMinimized(false);
   }, []);
 
@@ -30,12 +31,15 @@ export const CallProvider = ({ children }) => {
   );
 
   const acceptCall = useCallback(() => {
+    console.log("[CallProvider] acceptCall, incomingCall:", incomingCall);
     if (incomingCall) {
-      setActiveCall(incomingCall);
+      // Emit accepted to server so initiator gets notified and both connect simultaneously
+      socket?.emit("call:accepted", { callId: incomingCall.callId });
+      setActiveCall(incomingCall); // callee connects immediately (pending=false since it came from call:incoming)
       setIncomingCall(null);
       setIsMinimized(false);
     }
-  }, [incomingCall]);
+  }, [incomingCall, socket]);
 
   const declineCall = useCallback(() => setIncomingCall(null), []);
   const minimizeCall = useCallback(() => setIsMinimized(true), []);
@@ -46,7 +50,15 @@ export const CallProvider = ({ children }) => {
     if (!socket) return;
 
     const handleIncoming = (data) => {
+      console.log("[CallProvider] call:incoming received", data);
       if (!activeCall) setIncomingCall(data);
+    };
+
+    const handleAccepted = ({ callId, roomName, callType }) => {
+      // Callee accepted — caller can now connect to LiveKit
+      setActiveCall((prev) =>
+        prev?.callId === callId ? { ...prev, roomName, callType, pending: false } : prev
+      );
     };
 
     const handleEnded = () => {
@@ -56,10 +68,12 @@ export const CallProvider = ({ children }) => {
     };
 
     socket.on("call:incoming", handleIncoming);
+    socket.on("call:accepted", handleAccepted);
     socket.on("call:ended", handleEnded);
 
     return () => {
       socket.off("call:incoming", handleIncoming);
+      socket.off("call:accepted", handleAccepted);
       socket.off("call:ended", handleEnded);
     };
   }, [socket, activeCall]);

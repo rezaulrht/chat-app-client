@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import { MessageCircle, Home } from "lucide-react";
 
 import Sidebar from "./SidebarChats";
@@ -15,10 +14,6 @@ import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
 import { sortConversations } from "@/utils/sortConversations";
 import toast from "react-hot-toast";
-import IncomingCallNotification from "@/components/calls/IncomingCallNotification";
-import FloatingCallBar from "@/components/calls/FloatingCallBar";
-
-const CallModal = dynamic(() => import("@/components/calls/CallModal"), { ssr: false });
 
 export default function ChatDashboard() {
   const [conversations, setConversations] = useState([]);
@@ -401,7 +396,6 @@ export default function ChatDashboard() {
   }
 
   return (
-    <>
     <div className="flex flex-col md:flex-row h-screen w-full bg-obsidian overflow-hidden font-sans relative">
       {/* Mobile Backdrops */}
       {(isSidebarOpen ||
@@ -480,11 +474,5 @@ export default function ChatDashboard() {
         )}
       </div>
     </div>
-
-      {/* Call overlays */}
-      <IncomingCallNotification />
-      <CallModal />
-      <FloatingCallBar />
-    </>
   );
 }

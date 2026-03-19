@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Mic, MicOff, Video, VideoOff, PhoneOff, Minimize2 } from "lucide-react";
 import { useCall } from "@/hooks/useCall";
 import { useLiveKit } from "@/hooks/useLiveKit";
@@ -14,18 +14,28 @@ export default function CallModal() {
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(activeCall?.callType === "audio");
 
-  const { room, isConnected, connect, disconnect, participants } = useLiveKit(
-    activeCall?.roomName,
-    user?._id
-  );
+  const { room, isConnected, connect, disconnect, participants } = useLiveKit();
 
+  const hasConnected = useRef(false);
   useEffect(() => {
-    if (activeCall && !isConnected) connect();
-  }, [activeCall, isConnected, connect]);
+    console.log("[CallModal] activeCall changed:", activeCall?.roomName, "pending:", activeCall?.pending, "hasConnected:", hasConnected.current);
+    if (activeCall?.roomName && !activeCall.pending && !hasConnected.current) {
+      hasConnected.current = true;
+      connect(activeCall.roomName, activeCall.callType);
+    }
+    if (!activeCall) {
+      hasConnected.current = false;
+    }
+    return () => {
+      // In strict mode this runs between double-mounts — disconnect cancels in-progress connect
+      // On real unmount (page nav) this cleans up the room
+    };
+  }, [activeCall?.roomName, activeCall?.pending]);
 
   const handleEndCall = async () => {
     socket?.emit("call:ended", { callId: activeCall.callId });
     await disconnect();
+    hasConnected.current = false;
     endCall();
   };
 
@@ -75,10 +85,10 @@ export default function CallModal() {
                 className="relative bg-slate-700 rounded-lg overflow-hidden flex items-center justify-center min-h-32"
               >
                 <div className="w-20 h-20 rounded-full bg-slate-600 flex items-center justify-center text-3xl font-bold text-ivory">
-                  {participant.identity?.[0]?.toUpperCase()}
+                  {(participant.name || participant.identity)?.[0]?.toUpperCase()}
                 </div>
                 <div className="absolute bottom-2 left-2 bg-black/50 px-2 py-1 rounded text-xs">
-                  {participant.identity}
+                  {participant.name || participant.identity}
                 </div>
               </div>
             ))

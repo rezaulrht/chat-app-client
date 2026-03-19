@@ -90,9 +90,7 @@ export default function IncomingCallNotification() {
         </div>
       </div>
 
-      <audio ref={audioRef} loop>
-        <source src="/sounds/ringtone.mp3" type="audio/mpeg" />
-      </audio>
+      <audio ref={audioRef} src="/sounds/ringtone.mp3" loop autoPlay />
     </>
   );
 }

@@ -1,55 +1,31 @@
 import { useState, useEffect, useCallback } from "react";
-import { Room, RoomEvent } from "livekit-client";
 import api from "@/app/api/Axios";
+import { connectRoom, disconnectRoom, getRoom, getParticipants, onRoomStateChange } from "@/lib/livekitRoom";
 
-export const useLiveKit = (roomName, identity) => {
-  const [room, setRoom] = useState(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [error, setError] = useState(null);
-  const [participants, setParticipants] = useState([]);
-
-  const connect = useCallback(async () => {
-    if (!roomName || !identity) return;
-
-    try {
-      const { data } = await api.post("/api/calls/token", { roomName });
-
-      const newRoom = new Room({
-        adaptiveStream: true,
-        dynacast: true,
-      });
-
-      newRoom.on(RoomEvent.Connected, () => setIsConnected(true));
-      newRoom.on(RoomEvent.Disconnected, () => setIsConnected(false));
-      newRoom.on(RoomEvent.ParticipantConnected, (p) =>
-        setParticipants((prev) => [...prev, p])
-      );
-      newRoom.on(RoomEvent.ParticipantDisconnected, (p) =>
-        setParticipants((prev) => prev.filter((x) => x.sid !== p.sid))
-      );
-
-      await newRoom.connect(data.url, data.token);
-      setRoom(newRoom);
-    } catch (err) {
-      console.error("Failed to connect to LiveKit:", err);
-      setError(err.message);
-    }
-  }, [roomName, identity]);
-
-  const disconnect = useCallback(async () => {
-    if (room) {
-      await room.disconnect();
-      setRoom(null);
-      setIsConnected(false);
-      setParticipants([]);
-    }
-  }, [room]);
+export const useLiveKit = () => {
+  const [room, setRoom] = useState(getRoom());
+  const [participants, setParticipants] = useState(getParticipants());
+  const [isConnected, setIsConnected] = useState(!!getRoom());
 
   useEffect(() => {
-    return () => {
-      disconnect();
-    };
-  }, [disconnect]);
+    const unsub = onRoomStateChange(() => {
+      const r = getRoom();
+      setRoom(r);
+      setIsConnected(!!r);
+      setParticipants(getParticipants());
+    });
+    return unsub;
+  }, []);
 
-  return { room, isConnected, error, participants, connect, disconnect };
+  const connect = useCallback(async (roomName, callType = "audio") => {
+    if (!roomName) return;
+    const { data } = await api.post("/api/calls/token", { roomName });
+    await connectRoom(data.url, data.token, callType);
+  }, []);
+
+  const disconnect = useCallback(async () => {
+    await disconnectRoom();
+  }, []);
+
+  return { room, isConnected, participants, connect, disconnect };
 };

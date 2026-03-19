@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { CallContext } from "./CallContext";
+import { useSocket } from "@/hooks/useSocket";
 
 export const CallProvider = ({ children }) => {
+  const { socket } = useSocket() || {};
   const [activeCall, setActiveCall] = useState(null);
   const [incomingCall, setIncomingCall] = useState(null);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -38,6 +40,29 @@ export const CallProvider = ({ children }) => {
   const declineCall = useCallback(() => setIncomingCall(null), []);
   const minimizeCall = useCallback(() => setIsMinimized(true), []);
   const maximizeCall = useCallback(() => setIsMinimized(false), []);
+
+  // Register call socket listeners
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleIncoming = (data) => {
+      if (!activeCall) setIncomingCall(data);
+    };
+
+    const handleEnded = () => {
+      setActiveCall(null);
+      setIncomingCall(null);
+      setIsMinimized(false);
+    };
+
+    socket.on("call:incoming", handleIncoming);
+    socket.on("call:ended", handleEnded);
+
+    return () => {
+      socket.off("call:incoming", handleIncoming);
+      socket.off("call:ended", handleEnded);
+    };
+  }, [socket, activeCall]);
 
   return (
     <CallContext.Provider

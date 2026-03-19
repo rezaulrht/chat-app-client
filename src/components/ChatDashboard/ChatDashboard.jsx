@@ -14,6 +14,9 @@ import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
 import { sortConversations } from "@/utils/sortConversations";
 import toast from "react-hot-toast";
+import IncomingCallNotification from "@/components/calls/IncomingCallNotification";
+import CallModal from "@/components/calls/CallModal";
+import FloatingCallBar from "@/components/calls/FloatingCallBar";
 
 export default function ChatDashboard() {
   const [conversations, setConversations] = useState([]);
@@ -474,5 +477,10 @@ export default function ChatDashboard() {
         )}
       </div>
     </div>
+
+    {/* Call overlays */}
+    <IncomingCallNotification />
+    <CallModal />
+    <FloatingCallBar />
   );
 }

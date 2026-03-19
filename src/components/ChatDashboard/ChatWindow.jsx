@@ -38,6 +38,8 @@ import PinIcon from "../icons/PinIcon";
 import ReadReceipts from "../ReadReceipts";
 import VoiceMessageRecorder from "@/components/calls/VoiceMessageRecorder";
 import VoiceMessagePlayer from "@/components/calls/VoiceMessagePlayer";
+import CallLogMessage from "@/components/calls/CallLogMessage";
+import { useCall } from "@/hooks/useCall";
 
 import {
   createScheduledMessage,
@@ -180,6 +182,7 @@ export default function ChatWindow({
 }) {
   const { socket, onlineUsers, typingUsers } = useSocket() || {};
   const { user } = useAuth();
+  const { startCall } = useCall();
   const isGroup = conversation.type === "group";
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
@@ -1185,6 +1188,24 @@ export default function ChatWindow({
     );
   };
 
+  const handleStartCall = async (callType) => {
+    try {
+      const { data } = await api.post("/calls/initiate", {
+        conversationId: conversation._id,
+        callType,
+      });
+      startCall({
+        callId: data.callId,
+        roomName: data.roomName,
+        callType: data.callType,
+        conversationId: conversation._id,
+      });
+    } catch (error) {
+      console.error("Failed to start call:", error);
+      toast.error("Failed to start call");
+    }
+  };
+
   const handleSendVoiceMessage = (attachment) => {
     if (!conversation || !socket) return;
     const tempId = `temp-${Date.now()}`;
@@ -1380,10 +1401,18 @@ export default function ChatWindow({
         </div>
 
         <div className="flex gap-1">
-          <button className="w-8 h-8 rounded-xl bg-white/4 hover:bg-accent/10 hover:text-accent flex items-center justify-center text-ivory/30 transition-all">
+          <button
+            onClick={() => handleStartCall("audio")}
+            className="w-8 h-8 rounded-xl bg-white/4 hover:bg-accent/10 hover:text-accent flex items-center justify-center text-ivory/30 transition-all"
+            title="Start audio call"
+          >
             <Phone size={16} />
           </button>
-          <button className="w-8 h-8 rounded-xl bg-white/4 hover:bg-accent/10 hover:text-accent flex items-center justify-center text-ivory/30 transition-all">
+          <button
+            onClick={() => handleStartCall("video")}
+            className="w-8 h-8 rounded-xl bg-white/4 hover:bg-accent/10 hover:text-accent flex items-center justify-center text-ivory/30 transition-all"
+            title="Start video call"
+          >
             <Video size={16} />
           </button>
 
@@ -1986,6 +2015,14 @@ export default function ChatWindow({
                               </div>
                             </div>
                           </div>
+                        ) : msg.callLog ? (
+                          // ────────────────────────────────────────────────────
+                          // ✅ Call Log Message
+                          // ────────────────────────────────────────────────────
+                          <CallLogMessage
+                            callLog={msg.callLog}
+                            isMe={msg.sender?._id === user?._id || msg.sender === user?._id}
+                          />
                         ) : msg.poll &&
                           msg.poll.question &&
                           msg.poll.options &&

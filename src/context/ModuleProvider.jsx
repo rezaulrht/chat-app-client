@@ -133,11 +133,25 @@ export function ModuleProvider({ children, moduleId, workspaceId }) {
       if (String(msg.moduleId) !== String(moduleId)) return;
 
       setMessages((prev) => {
-        // Replace optimistic placeholder if tempId matches
-        const optimisticIdx = prev.findIndex((m) => m._id === msg.tempId);
+        // 1. Exact match by tempId
+        let optimisticIdx = prev.findIndex((m) => m._id === msg.tempId || (m.tempId && m.tempId === msg.tempId));
+        
+        // 2. Fuzzy match fallback (if server stripped tempId)
+        if (optimisticIdx === -1 && String(msg.sender?._id) === String(user?._id)) {
+          optimisticIdx = prev.findIndex((m) => 
+            m.isOptimistic && 
+            m.text === msg.text && 
+            !prev.some(other => other._id === msg._id) // Ensure we don't accidentally replace if it's already there
+          );
+        }
+
         if (optimisticIdx !== -1) {
           const updated = [...prev];
-          updated[optimisticIdx] = msg;
+          // Keep local mentionData if server didn't provide it
+          updated[optimisticIdx] = { 
+            ...msg, 
+            mentionData: msg.mentionData || updated[optimisticIdx].mentionData 
+          };
           return updated;
         }
         // Deduplicate by _id
@@ -183,40 +197,62 @@ export function ModuleProvider({ children, moduleId, workspaceId }) {
       }
     };
 
-    const onTypingStart = ({ userId, userName, moduleId: mid }) => {
+    const onTypingUpdate = ({ userId, isTyping, userName, moduleId: mid }) => {
       if (mid !== moduleId || userId === user?._id) return;
-      setTypingUsers((prev) => {
-        if (prev.find((u) => u._id === userId)) return prev;
-        return [...prev, { _id: userId, name: userName }];
-      });
-      // Auto-clear after 4 seconds in case stop event is missed
-      clearTimeout(typingTimers.current[userId]);
-      typingTimers.current[userId] = setTimeout(() => {
+      if (isTyping) {
+        setTypingUsers((prev) => {
+          if (prev.find((u) => u._id === userId)) return prev;
+          return [...prev, { _id: userId, name: userName }];
+        });
+        // Auto-clear
+        clearTimeout(typingTimers.current[userId]);
+        typingTimers.current[userId] = setTimeout(() => {
+          setTypingUsers((prev) => prev.filter((u) => u._id !== userId));
+        }, 4000);
+      } else {
+        clearTimeout(typingTimers.current[userId]);
+        delete typingTimers.current[userId];
         setTypingUsers((prev) => prev.filter((u) => u._id !== userId));
-      }, 4000);
+      }
     };
 
-    const onTypingStop = ({ userId, moduleId: mid }) => {
-      if (mid !== moduleId) return;
-      clearTimeout(typingTimers.current[userId]);
-      delete typingTimers.current[userId];
-      setTypingUsers((prev) => prev.filter((u) => u._id !== userId));
+    const onPinned = ({ messageId, moduleId: mid, isPinned, pinnedBy, pinnedAt, unpinnedBy }) => {
+      if (String(mid) !== String(moduleId)) return;
+      setMessages((prev) =>
+        prev.map((m) =>
+          String(m._id) === String(messageId)
+            ? { ...m, isPinned, pinnedBy: isPinned ? pinnedBy : null, pinnedAt: isPinned ? pinnedAt : null }
+            : m
+        )
+      );
+    };
+
+    const onThreadUpdate = ({ messageId, replyCount, lastReplyAt }) => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          String(m._id) === String(messageId)
+            ? { ...m, replyCount, lastReplyAt }
+            : m
+        )
+      );
     };
 
     socket.on("module:message:new", onNewMessage);
     socket.on("module:message:reacted", onReacted);
     socket.on("module:message:edited", onEdited);
     socket.on("module:message:deleted", onDeleted);
-    socket.on("module:typing:start", onTypingStart);
-    socket.on("module:typing:stop", onTypingStop);
+    socket.on("module:typing:update", onTypingUpdate);
+    socket.on("module:message:pinned", onPinned);
+    socket.on("module:message:thread:update", onThreadUpdate);
 
     return () => {
       socket.off("module:message:new", onNewMessage);
       socket.off("module:message:reacted", onReacted);
       socket.off("module:message:edited", onEdited);
       socket.off("module:message:deleted", onDeleted);
-      socket.off("module:typing:start", onTypingStart);
-      socket.off("module:typing:stop", onTypingStop);
+      socket.off("module:typing:update", onTypingUpdate);
+      socket.off("module:message:pinned", onPinned);
+      socket.off("module:message:thread:update", onThreadUpdate);
 
       // Clean up all typing timers for this module
       Object.values(typingTimers.current).forEach(clearTimeout);
@@ -226,8 +262,11 @@ export function ModuleProvider({ children, moduleId, workspaceId }) {
 
   // ── Actions exposed to consumers ─────────────────────────────────────────
   const sendMessage = useCallback(
-    ({ text, gifUrl, replyTo, attachments = [] }) => {
+    ({ text, gifUrl, replyTo, attachments = [], mentions = [] }) => {
       if (!socket || !moduleId) return;
+
+      const mentionIds = mentions.map(m => typeof m === 'object' ? (m.id || m._id) : m);
+      const mentionData = mentions.map(m => typeof m === 'object' ? m : null).filter(Boolean);
 
       const tempId = `temp-${Date.now()}`;
       const optimistic = {
@@ -239,6 +278,8 @@ export function ModuleProvider({ children, moduleId, workspaceId }) {
         gifUrl: gifUrl || null,
         replyTo: replyTo || null,
         attachments,
+        mentions: mentions, // Keep objects for immediate rendering
+        mentionData,
         createdAt: new Date().toISOString(),
         reactions: {},
         isDeleted: false,
@@ -255,7 +296,13 @@ export function ModuleProvider({ children, moduleId, workspaceId }) {
         gifUrl,
         replyTo: replyTo?._id || null,
         attachments,
+        mentions: mentionIds,
+        mentionData,
         tempId,
+      }, (response) => {
+        if (response?.success && response?.message) {
+          setMessages(prev => prev.map(m => (m._id === tempId || m.tempId === tempId) ? response.message : m));
+        }
       });
 
       // Stop typing indicator
@@ -314,6 +361,17 @@ export function ModuleProvider({ children, moduleId, workspaceId }) {
     [socket, moduleId, workspaceId],
   );
 
+  const pinMessage = useCallback(
+    (messageId) => {
+      if (!socket) return;
+      socket.emit("module:message:pin", {
+        moduleId,
+        messageId,
+      });
+    },
+    [socket, moduleId]
+  );
+
   const loadMore = useCallback(() => {
     if (hasMore && !loading) fetchMessages(page + 1);
   }, [hasMore, loading, fetchMessages, page]);
@@ -330,6 +388,7 @@ export function ModuleProvider({ children, moduleId, workspaceId }) {
     reactToMessage,
     editMessage,
     deleteMessage,
+    pinMessage,
   };
 
   return (

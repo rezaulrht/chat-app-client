@@ -35,6 +35,7 @@ import { useFileUpload } from "@/hooks/useFileUpload";
 import FileAttachmentPreview from "@/components/shared/FileAttachmentPreview";
 import FileAttachmentDisplay from "@/components/shared/FileAttachmentDisplay";
 import PinIcon from "../icons/PinIcon";
+import "@/components/workspace/Mention.css";
 
 import {
   createScheduledMessage,
@@ -237,6 +238,8 @@ export default function ChatWindow({
   const [longPressedMsgId, setLongPressedMsgId] = useState(null);
   const longPressTimerRef = useRef(null);
 
+  const inputRef = useRef(null);
+
   const handleTouchStart = useCallback((msgId) => {
     longPressTimerRef.current = setTimeout(() => {
       setLongPressedMsgId(msgId);
@@ -339,22 +342,206 @@ export default function ChatWindow({
   const handleEmojiClick = (emojiData) =>
     setText((prev) => prev + emojiData.emoji);
 
-  const insertEmoji = (emoji) => {
-    setText((prev) => {
-      const match = prev.match(/:[a-zA-Z0-9_]*$/);
-      if (!match) return prev + emoji;
-      return prev.slice(0, match.index) + emoji;
-    });
-    setSuggestions([]);
+  const insertTextAtCursor = (textToInsert) => {
+    if (!inputRef.current) return;
+    inputRef.current.focus();
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return;
+    const range = selection.getRangeAt(0);
+    range.deleteContents();
+    const textNode = document.createTextNode(textToInsert);
+    range.insertNode(textNode);
+    range.setStartAfter(textNode);
+    range.setEndAfter(textNode);
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    const parsed = parseMessage(inputRef.current);
+    setText(parsed.text);
   };
 
-  const handleTextChange = (e) => {
-    let val = e.target.value;
+  const renderMessageText = (text, mentions, mentionData = []) => {
+    if (!text) return null;
+    if (!mentions || mentions.length === 0) return text;
 
-    // replace :code: with emoji if exact lastWord
-    const lastWord = val.split(" ").pop();
-    if (EMOJI_MAP[lastWord]) val = val.replace(lastWord, EMOJI_MAP[lastWord]);
+    const participants = conversation.participants || [];
+    const resolvedMentions = mentions
+      .map((m) => {
+        const id = typeof m === "object" ? m._id || m.id : m;
+        const participant = participants.find((p) => String(p._id) === String(id));
+        const smuggled = (mentionData || []).find(d => String(d.id || d._id) === String(id));
+        const name = (typeof m === "object" ? m.name : null) || smuggled?.name || participant?.name;
+        const avatar = (typeof m === "object" ? m.avatar : null) || smuggled?.avatar || participant?.avatar;
+        
+        return {
+          id,
+          name,
+          avatar,
+          participant,
+        };
+      })
+      .filter((m) => m.name);
 
+    if (resolvedMentions.length === 0) return text;
+
+    const sorted = [...resolvedMentions].sort((a, b) => b.name.length - a.name.length);
+    const regexSource = sorted.map((m) => `@${m.name.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}`).join("|");
+    const regex = new RegExp(`(${regexSource})`, "g");
+
+    const parts = text.split(regex);
+
+    return parts.map((part, i) => {
+      if (part.startsWith("@")) {
+        const mention = sorted.find((m) => `@${m.name}` === part);
+        if (mention) {
+          return (
+            <span
+              key={`${mention.id}-${i}`}
+              className="inline-flex items-center gap-1 bg-[#5865f2]/20 text-white font-semibold px-1 py-0.5 mx-px rounded shadow-sm border border-[#5865f2]/30"
+            >
+              <Image
+                src={
+                  mention.avatar ||
+                  `https://api.dicebear.com/7.x/avataaars/svg?seed=${mention.name}`
+                }
+                alt=""
+                width={14}
+                height={14}
+                className="w-3.5 h-3.5 rounded-full object-cover shrink-0"
+                unoptimized
+              />
+              {part}
+            </span>
+          );
+        }
+      }
+      return part;
+    });
+  };
+
+  const parseMessage = (el) => {
+    if (!el) return { text: "", mentions: [] };
+    const mentions = [];
+    let text = "";
+
+    const processNode = (node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        text += node.textContent;
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        if (node.classList.contains("mention")) {
+          mentions.push({
+            id: node.dataset.id,
+            name: node.textContent.replace(/^@/, ""),
+            avatar: node.querySelector("img")?.src
+          });
+          text += node.textContent;
+        } else if (node.nodeName === "BR") {
+          text += "\n";
+        } else {
+          node.childNodes.forEach(processNode);
+          if (node.nodeName === "DIV" || node.nodeName === "P") {
+            if (!text.endsWith("\n") && node.nextSibling) text += "\n";
+          }
+        }
+      }
+    };
+
+    el.childNodes.forEach(processNode);
+    return { text, mentions };
+  };
+
+  const insertMention = (suggestion) => {
+    if (!inputRef.current) return;
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return;
+    const range = selection.getRangeAt(0);
+
+    const textNode = range.startContainer;
+    if (textNode.nodeType !== Node.TEXT_NODE) return;
+
+    const content = textNode.textContent;
+    const offset = range.startOffset;
+    const textBefore = content.slice(0, offset);
+    const mentionMatch = textBefore.match(/@([a-zA-Z0-9_\s]*)$/);
+
+    if (mentionMatch) {
+      const start = mentionMatch.index;
+      range.setStart(textNode, start);
+      range.deleteContents();
+
+      const span = document.createElement("span");
+      span.className = "mention";
+      span.contentEditable = "false";
+      span.dataset.id = suggestion.user?._id || suggestion.key;
+
+      const img = document.createElement("img");
+      img.src =
+        suggestion.user?.avatar ||
+        `https://api.dicebear.com/7.x/avataaars/svg?seed=${suggestion.value}`;
+      img.alt = "";
+      span.appendChild(img);
+
+      const nameText = document.createTextNode(`@${suggestion.value}`);
+      span.appendChild(nameText);
+
+      range.insertNode(span);
+
+      const space = document.createTextNode("\u00A0");
+      span.after(space);
+
+      range.setStartAfter(space);
+      range.setEndAfter(space);
+      selection.removeAllRanges();
+      selection.addRange(range);
+
+      const parsed = parseMessage(inputRef.current);
+      setText(parsed.text);
+      setSuggestions([]);
+    }
+  };
+
+  const insertEmoji = (emoji) => {
+    if (!inputRef.current) return;
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return;
+    const range = selection.getRangeAt(0);
+    const textNode = range.startContainer;
+    if (textNode.nodeType !== Node.TEXT_NODE) return;
+
+    const content = textNode.textContent;
+    const offset = range.startOffset;
+    const textBefore = content.slice(0, offset);
+    const emojiMatch = textBefore.match(/:([a-zA-Z0-9_]*)$/);
+
+    if (emojiMatch) {
+      const start = emojiMatch.index;
+      range.setStart(textNode, start);
+      range.deleteContents();
+      const emojiNode = document.createTextNode(emoji);
+      range.insertNode(emojiNode);
+      range.setStartAfter(emojiNode);
+      range.setEndAfter(emojiNode);
+      selection.removeAllRanges();
+      selection.addRange(range);
+
+      const parsed = parseMessage(inputRef.current);
+      setText(parsed.text);
+      setSuggestions([]);
+    }
+  };
+
+  const insertSuggestion = (suggestion) => {
+    if (suggestion.type === "emoji") {
+      insertEmoji(suggestion.value);
+    } else if (suggestion.type === "mention") {
+      insertMention(suggestion);
+    }
+  };
+
+  const handleInput = (e) => {
+    const el = e.currentTarget;
+    const parsed = parseMessage(el);
+    const val = parsed.text;
     setText(val);
 
     // typing indicator
@@ -373,10 +560,24 @@ export default function ChatWindow({
       }
     }
 
-    // suggestions for :xxx
-    const match = val.match(/:([a-zA-Z0-9_]*)$/);
-    if (match) {
-      const query = match[1].toLowerCase();
+    // suggestions
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return;
+    const range = selection.getRangeAt(0);
+    const textNode = range.startContainer;
+    if (textNode.nodeType !== Node.TEXT_NODE) {
+      setSuggestions([]);
+      return;
+    }
+
+    const content = textNode.textContent;
+    const offset = range.startOffset;
+    const textBeforeCursor = content.slice(0, offset);
+
+    // 1. Emoji match
+    const emojiMatch = textBeforeCursor.match(/:([a-zA-Z0-9_]*)$/);
+    if (emojiMatch) {
+      const query = emojiMatch[1].toLowerCase();
       const filtered = Object.entries(EMOJI_MAP)
         .filter(([code]) => {
           const name = code.slice(1, -1);
@@ -385,15 +586,59 @@ export default function ChatWindow({
             name.split("_").some((w) => w.startsWith(query))
           );
         })
-        .sort(([a], [b]) => a.localeCompare(b))
-        .slice(0, 8);
+      if (filtered.length > 0) {
+        setSuggestions(filtered);
+        setSuggestionIndex(0);
+        return;
+      }
+    }
+    // 2. Mention match
+    const mentionMatch = textBeforeCursor.match(/@([a-zA-Z0-9_\s]*)$/);
+    if (mentionMatch) {
+      const query = mentionMatch[1].toLowerCase();
+      const participants = conversation.participants || [];
+      const currentMentions = parsed.mentions.map(m => typeof m === 'object' ? m.id : m);
+      
+      const filtered = participants
+        .filter(
+          (p) =>
+            p._id.toString() !== user?._id?.toString() &&
+            !currentMentions.includes(p._id.toString()) &&
+            p.name.toLowerCase().startsWith(query)
+        )
+        .map(p => ({ type: 'mention', key: p._id, value: p.name, user: p }))
+        .slice(0, 10);
 
-      setSuggestions(filtered);
-      setSuggestionIndex(0);
-    } else {
-      setSuggestions([]);
+      if (filtered.length > 0) {
+        setSuggestions(filtered);
+        setSuggestionIndex(0);
+        return;
+      }
+    }
+
+    setSuggestions([]);
+  };
+
+  const handleKeyDown = (e) => {
+    if (suggestions.length > 0) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setSuggestionIndex((prev) => (prev + 1) % suggestions.length);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSuggestionIndex((prev) => (prev - 1 + suggestions.length) % suggestions.length);
+      } else if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        insertSuggestion(suggestions[suggestionIndex]);
+      } else if (e.key === "Escape") {
+        setSuggestions([]);
+      }
+    } else if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend(e);
     }
   };
+
   // useEffect to fetch pinned messages when conversation changes
   useEffect(() => {
     if (!conversation?._id) return;
@@ -415,24 +660,6 @@ export default function ChatWindow({
     fetchPinnedMessages();
   }, [conversation?._id]);
 
-  const handleKeyDown = (e) => {
-    if (suggestions.length > 0) {
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        setSuggestionIndex((prev) => (prev + 1) % suggestions.length);
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        setSuggestionIndex(
-          (prev) => (prev - 1 + suggestions.length) % suggestions.length,
-        );
-      } else if (e.key === "Enter") {
-        e.preventDefault();
-        insertEmoji(suggestions[suggestionIndex][1]);
-      } else if (e.key === "Escape") {
-        setSuggestions([]);
-      }
-    }
-  };
 
   const toggleReaction = useCallback(
     (msgId, emoji) => {
@@ -625,11 +852,25 @@ export default function ChatWindow({
         }
 
         // Check for optimistic message to replace (for regular messages)
-        const optimisticIndex = prev.findIndex((m) => m._id === msg.tempId);
+        let optimisticIndex = prev.findIndex((m) => m._id === msg.tempId || (m.tempId && m.tempId === msg.tempId));
+        
+        // Fuzzy match fallback (if server stripped tempId)
+        if (optimisticIndex === -1 && String(msg.sender?._id) === String(user?._id)) {
+          optimisticIndex = prev.findIndex(m => 
+            m.isOptimistic && 
+            m.text === msg.text &&
+            !prev.some(other => other._id === msg._id)
+          );
+        }
+
         if (optimisticIndex !== -1) {
           console.log("🔄 Replacing optimistic message");
           const updated = [...prev];
-          updated[optimisticIndex] = msg;
+          // Preserve local mentionData if needed
+          updated[optimisticIndex] = { 
+            ...msg, 
+            mentionData: msg.mentionData || updated[optimisticIndex].mentionData 
+          };
           return updated;
         }
 
@@ -964,12 +1205,13 @@ export default function ChatWindow({
   }, [conversation?._id]);
 
   const handleSend = async (e) => {
-    e.preventDefault();
-    const hasText = text.trim().length > 0;
+    const hasContent = (inputRef.current?.textContent?.trim().length || 0) > 0;
     const hasFiles = stagedFiles.length > 0;
-    if (!hasText && !hasFiles) return;
+    if (!hasContent && !hasFiles) return;
     if (!conversation || !socket) return;
     if (fileUploading) return;
+
+    const parsed = parseMessage(inputRef.current);
 
     let attachments = [];
     if (hasFiles) {
@@ -981,14 +1223,17 @@ export default function ChatWindow({
     }
 
     const tempId = `temp-${Date.now()}`;
+    const mentionData = parsed.mentions.map(m => typeof m === 'object' ? m : null).filter(Boolean);
     const optimistic = {
       _id: tempId,
       conversationId: conversation._id,
       sender: { _id: user?._id, name: user?.name },
-      text: text.trim(),
+      text: parsed.text.trim(),
+      mentions: parsed.mentions,
+      mentionData,
       attachments,
       createdAt: new Date().toISOString(),
-      status: "sent",
+      status: "sending",
       isOptimistic: true,
       replyTo,
     };
@@ -1013,14 +1258,22 @@ export default function ChatWindow({
       conversationId: conversation._id,
       ...(isGrp ? {} : { receiverId: conversation.participant?._id }),
       text: optimistic.text,
+      mentions: optimistic.mentions.map(m => typeof m === 'object' ? m.id : m),
+      mentionData,
       tempId,
       replyTo: replyTo?._id || null,
       attachments,
+    }, (response) => {
+      // Callback from server if implemented
+      if (response?.success && response?.message) {
+        setMessages(prev => prev.map(m => m._id === tempId ? response.message : m));
+      }
     });
 
     setSuggestions([]);
     setReplyTo(null);
     resetFiles();
+    if (inputRef.current) inputRef.current.innerHTML = "";
     onMessageSent?.(
       conversation._id,
       optimistic.text || null,
@@ -1244,7 +1497,7 @@ export default function ChatWindow({
       <div className="flex-1 overflow-y-auto px-3 sm:px-5 py-5 flex flex-col gap-3 scrollbar-hide">
         {/* Pinned Messages Drawer */}
         {showPinnedDrawer && pinnedMessages.length > 0 && (
-          <div className="sticky top-0 z-40 bg-gradient-to-b from-obsidian via-obsidian to-obsidian/95 backdrop-blur-lg border-b border-amber-500/20 shadow-xl shadow-black/40 mb-4">
+          <div className="sticky top-0 z-40 bg-linear-to-b from-obsidian via-obsidian to-obsidian/95 backdrop-blur-lg border-b border-amber-500/20 shadow-xl shadow-black/40 mb-4">
             <div className="p-3 sm:p-4">
               {/* Header */}
               <div className="flex items-center justify-between mb-3">
@@ -1345,9 +1598,9 @@ export default function ChatWindow({
                                 loading="lazy"
                               />
                             ) : (
-                              <p className="text-[13px] text-ivory/80 leading-relaxed break-words line-clamp-3">
-                                {msg.text}
-                              </p>
+                                <p className="text-[13px] text-ivory/80 leading-relaxed break-words line-clamp-3">
+                                  {renderMessageText(msg.text, msg.mentions)}
+                                </p>
                             )}
 
                             {/* Timestamp & Pinned By */}
@@ -1831,10 +2084,10 @@ export default function ChatWindow({
                                 />
                               );
                             }
-                            return (
-                              <>
-                                {msg.text}
-                                {msg.attachments?.length > 0 && (
+                              return (
+                                <>
+                                  {renderMessageText(msg.text, msg.mentions)}
+                                  {msg.attachments?.length > 0 && (
                                   <FileAttachmentDisplay
                                     attachments={msg.attachments}
                                   />
@@ -2209,7 +2462,7 @@ export default function ChatWindow({
                   }}
                   maxLength={30}
                   placeholder="Custom tone..."
-                  className="px-2 py-1 text-[11px] rounded-full bg-white/5 border border-white/10 text-ivory/60 placeholder:text-ivory/20 outline-none focus:border-accent/30 max-w-[120px]"
+                  className="px-2 py-1 text-[11px] rounded-full bg-white/5 border border-white/10 text-ivory/60 placeholder:text-ivory/20 outline-none focus:border-accent/30 max-w-30"
                 />
                 <button
                   type="button"
@@ -2263,7 +2516,7 @@ export default function ChatWindow({
                         key={i}
                         type="button"
                         onClick={() => setText(reply)}
-                        className="px-3 py-1 text-[11px] rounded-full bg-accent/10 border border-accent/20 text-accent/80 hover:bg-accent/20 hover:text-accent transition-all max-w-[180px] truncate"
+                        className="px-3 py-1 text-[11px] rounded-full bg-accent/10 border border-accent/20 text-accent/80 hover:bg-accent/20 hover:text-accent transition-all max-w-45 truncate"
                         title={reply}
                       >
                         {reply}
@@ -2345,14 +2598,25 @@ export default function ChatWindow({
             </button>
           )}
 
-          {/* ✅ SINGLE Input Field */}
-          <input
-            className="flex-1 min-w-0 bg-transparent outline-none text-sm text-ivory/80 px-3 placeholder:text-ivory/20"
-            placeholder="Type a message..."
-            value={text}
-            onChange={handleTextChange}
-            onKeyDown={handleKeyDown}
-          />
+          <div className="flex-1 relative min-w-0">
+            <div
+              ref={inputRef}
+              className="w-full bg-transparent outline-none text-sm text-ivory/80 px-3 placeholder:text-ivory/20 min-h-5 max-h-37.5 overflow-y-auto whitespace-pre-wrap wrap-break-word empty:before:content-[attr(placeholder)] empty:before:text-ivory/20"
+              contentEditable="true"
+              placeholder="Type a message..."
+              onInput={handleInput}
+              onKeyDown={handleKeyDown}
+              onPaste={(e) => {
+                e.preventDefault();
+                const text = e.clipboardData.getData("text/plain");
+                const selection = window.getSelection();
+                if (!selection.rangeCount) return;
+                selection.getRangeAt(0).insertNode(document.createTextNode(text));
+                selection.collapseToEnd();
+                handleInput({ currentTarget: inputRef.current });
+              }}
+            />
+          </div>
 
           {/* Emoji suggestions dropdown */}
           {suggestions.length > 0 && (

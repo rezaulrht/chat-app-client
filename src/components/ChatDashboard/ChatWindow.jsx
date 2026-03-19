@@ -36,6 +36,8 @@ import FileAttachmentPreview from "@/components/shared/FileAttachmentPreview";
 import FileAttachmentDisplay from "@/components/shared/FileAttachmentDisplay";
 import PinIcon from "../icons/PinIcon";
 import ReadReceipts from "../ReadReceipts";
+import VoiceMessageRecorder from "@/components/calls/VoiceMessageRecorder";
+import VoiceMessagePlayer from "@/components/calls/VoiceMessagePlayer";
 
 import {
   createScheduledMessage,
@@ -1183,6 +1185,31 @@ export default function ChatWindow({
     );
   };
 
+  const handleSendVoiceMessage = (attachment) => {
+    if (!conversation || !socket) return;
+    const tempId = `temp-${Date.now()}`;
+    const isGrp = conversation.type === "group";
+    const optimistic = {
+      _id: tempId,
+      conversationId: conversation._id,
+      sender: { _id: user?._id, name: user?.name },
+      text: "",
+      attachments: [attachment],
+      createdAt: new Date().toISOString(),
+      status: "sent",
+      isOptimistic: true,
+    };
+    setMessages((prev) => [...prev, optimistic]);
+    socket.emit("message:send", {
+      conversationId: conversation._id,
+      ...(isGrp ? {} : { receiverId: conversation.participant?._id }),
+      text: "",
+      tempId,
+      attachments: [attachment],
+    });
+    onMessageSent?.(conversation._id, null, null, [attachment]);
+  };
+
   if (!conversation) {
     return (
       <div className="flex-1 bg-obsidian flex flex-col items-center justify-center gap-6 p-6">
@@ -1991,9 +2018,15 @@ export default function ChatWindow({
                             return (
                               <>
                                 {msg.text}
-                                {msg.attachments?.length > 0 && (
+                                {/* Voice Message */}
+                                {msg.attachments?.some((att) => att.resourceType === "audio") && (
+                                  <VoiceMessagePlayer
+                                    url={msg.attachments.find((att) => att.resourceType === "audio").url}
+                                  />
+                                )}
+                                {msg.attachments?.filter((att) => att.resourceType !== "audio").length > 0 && (
                                   <FileAttachmentDisplay
-                                    attachments={msg.attachments}
+                                    attachments={msg.attachments.filter((att) => att.resourceType !== "audio")}
                                   />
                                 )}
                               </>
@@ -2757,6 +2790,9 @@ export default function ChatWindow({
               )}
             </div>
           )}
+
+          {/* Voice Message Recorder */}
+          <VoiceMessageRecorder onSend={handleSendVoiceMessage} />
 
           <button
             type="submit"

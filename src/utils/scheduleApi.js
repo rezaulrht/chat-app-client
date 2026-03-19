@@ -18,8 +18,12 @@ export async function createScheduledMessage({
   return res.data;
 }
 
-export async function listScheduledMessages({ conversationId, moduleId }) {
-  const queryParam = conversationId ? `conversationId=${conversationId}` : `moduleId=${moduleId}`;
+export async function listScheduledMessages({ conversationId, moduleId, workspaceId }) {
+  let queryParam = "";
+  if (conversationId) queryParam = `conversationId=${conversationId}`;
+  else if (moduleId) queryParam = `moduleId=${moduleId}`;
+  else if (workspaceId) queryParam = `workspaceId=${workspaceId}`;
+  
   const res = await api.get(`/api/messages/scheduled?${queryParam}`);
   return res.data;
 }

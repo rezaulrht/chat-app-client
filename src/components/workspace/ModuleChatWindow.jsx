@@ -118,6 +118,17 @@ export default function ModuleChatWindow({
   const [loadingScheduled, setLoadingScheduled] = useState(false);
   const [scheduling, setScheduling] = useState(false);
 
+  // AI features
+  const [aiReplies, setAiReplies] = useState([]);
+  const [loadingAiReplies, setLoadingAiReplies] = useState(false);
+  const [aiMenuOpen, setAiMenuOpen] = useState(false);
+  const [tonePickerOpen, setTonePickerOpen] = useState(false);
+  const [selectedTone, setSelectedTone] = useState("");
+  const [customTone, setCustomTone] = useState("");
+  const [loadingRewrite, setLoadingRewrite] = useState(false);
+  const [rewritePreview, setRewritePreview] = useState(null);
+  const [originalText, setOriginalText] = useState("");
+
   // Read Receipts Popover
   const [showSeenBy, setShowSeenBy] = useState(null); // stores msgId
 
@@ -142,6 +153,8 @@ export default function ModuleChatWindow({
   const gifPickerRef = useRef(null);
   const longPressTimer = useRef(null);
   const scheduleDropdownRef = useRef(null);
+  const aiMenuRefDesktop = useRef(null);
+  const aiMenuRefMobile = useRef(null);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -197,6 +210,15 @@ export default function ModuleChatWindow({
       ) {
         setScheduleDropdownOpen(false);
       }
+      // Close AI menu on outside click
+      if (
+        aiMenuRefDesktop.current &&
+        !aiMenuRefDesktop.current.contains(e.target) &&
+        aiMenuRefMobile.current &&
+        !aiMenuRefMobile.current.contains(e.target)
+      ) {
+        setAiMenuOpen(false);
+      }
     };
     if (
       reactionPickerMsgId ||
@@ -204,12 +226,13 @@ export default function ModuleChatWindow({
       showGifPicker ||
       longPressedMsgId ||
       showSeenBy ||
-      scheduleDropdownOpen
+      scheduleDropdownOpen ||
+      aiMenuOpen
     ) {
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [reactionPickerMsgId, showEmojiPicker, showGifPicker, longPressedMsgId, showSeenBy, scheduleDropdownOpen]);
+  }, [reactionPickerMsgId, showEmojiPicker, showGifPicker, longPressedMsgId, showSeenBy, scheduleDropdownOpen, aiMenuOpen]);
 
   // ── Long-press (mobile) ───────────────────────────────────────────────────
   const handleTouchStart = useCallback((msgId) => {
@@ -369,6 +392,83 @@ export default function ModuleChatWindow({
       setScheduling(false);
     }
   };
+
+  // ── AI Features ───────────────────────────────────────────────────────────
+  const fetchAiReplies = useCallback(
+    async (messagesList) => {
+      const visible = messagesList
+        .filter((m) => !m.isDeleted && m.text?.trim())
+        .slice(-12);
+
+      if (visible.length === 0) return;
+
+      const lastMsg = visible[visible.length - 1];
+
+      setLoadingAiReplies(true);
+      setAiReplies([]);
+
+      try {
+        const context = visible.map((m) => ({
+          text: m.text,
+          isMe: (m.sender?._id ?? m.sender) === user?._id,
+        }));
+
+        const res = await fetch("/api/ai-reply", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: context,
+            latestMessage: lastMsg.text,
+          }),
+        });
+
+        const data = await res.json();
+        if (Array.isArray(data.suggestions) && data.suggestions.length > 0) {
+          setAiReplies(data.suggestions.slice(0, 3));
+        }
+      } catch (err) {
+        console.error("[AI] fetchAiReplies error:", err);
+      } finally {
+        setLoadingAiReplies(false);
+      }
+    },
+    [user?._id],
+  );
+
+  const handleAiButton = useCallback(() => {
+    const visible = messages.filter(
+      (m) => !m.isDeleted && m.text?.trim(),
+    );
+    fetchAiReplies(visible);
+  }, [messages, fetchAiReplies]);
+
+  const activeTone = customTone.trim() || selectedTone;
+
+  const handleRewrite = useCallback(async () => {
+    if (!activeTone || !text.trim() || loadingRewrite) return;
+
+    setOriginalText(text);
+    setLoadingRewrite(true);
+    setRewritePreview(null);
+
+    try {
+      const res = await fetch("/api/ai-rewrite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: text.slice(0, 2000), tone: activeTone }),
+      });
+      const data = await res.json();
+      if (data.rewrite?.trim()) {
+        setRewritePreview(data.rewrite.trim());
+      } else {
+        toast.error("Failed to rewrite message");
+      }
+    } catch {
+      toast.error("Failed to rewrite message");
+    } finally {
+      setLoadingRewrite(false);
+    }
+  }, [text, activeTone, loadingRewrite]);
 
   // ── GIF ───────────────────────────────────────────────────────────────────
   const handleGifClick = (gif) => {
@@ -1102,6 +1202,54 @@ export default function ModuleChatWindow({
               <Smile size={20} />
             </button>
 
+            {/* AI Button - Desktop */}
+            <div ref={aiMenuRefDesktop} className="relative hidden sm:inline-flex">
+              <button
+                type="button"
+                onClick={() => setAiMenuOpen((v) => !v)}
+                title="AI tools"
+                aria-label="AI tools"
+                className={`inline-flex items-center gap-1 px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${aiMenuOpen
+                  ? "bg-accent/20 border-accent/40 text-accent"
+                  : aiReplies.length > 0 || tonePickerOpen
+                    ? "bg-accent/20 border-accent/40 text-accent"
+                    : "bg-white/4 border-white/10 text-ivory/30 hover:bg-accent/10 hover:border-accent/30 hover:text-accent"
+                  }`}
+              >
+                ✦ AI
+              </button>
+              {aiMenuOpen && (
+                <div className="absolute bottom-full mb-1 right-0 w-44 bg-deep border border-white/10 rounded-lg shadow-lg overflow-hidden z-50">
+                  <button
+                    type="button"
+                    className="w-full text-left px-3 py-2 text-[11px] text-ivory/70 hover:bg-white/6 hover:text-ivory transition-colors"
+                    onClick={() => {
+                      setAiMenuOpen(false);
+                      handleAiButton();
+                    }}
+                  >
+                    Reply suggestions
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!text.trim()}
+                    className={`w-full text-left px-3 py-2 text-[11px] transition-colors ${text.trim()
+                      ? "text-ivory/70 hover:bg-white/6 hover:text-ivory"
+                      : "text-ivory/20 opacity-40 cursor-not-allowed"
+                      }`}
+                    onClick={() => {
+                      if (!text.trim()) return;
+                      setAiMenuOpen(false);
+                      setAiReplies([]);
+                      setTonePickerOpen(true);
+                    }}
+                  >
+                    Rewrite tone
+                  </button>
+                </div>
+              )}
+            </div>
+
             {/* Schedule Dropdown */}
             <div ref={scheduleDropdownRef} className="relative inline-flex">
               <button
@@ -1217,6 +1365,54 @@ export default function ModuleChatWindow({
               >
                 GIF
               </button>
+
+              {/* AI Button - Mobile */}
+              <div ref={aiMenuRefMobile} className="relative inline-flex">
+                <button
+                  type="button"
+                  onClick={() => setAiMenuOpen((v) => !v)}
+                  title="AI tools"
+                  aria-label="AI tools"
+                  className={`inline-flex items-center gap-1 px-2 py-1 text-[10px] font-black rounded-md border transition-all ${aiMenuOpen
+                    ? "bg-accent/20 border-accent/40 text-accent"
+                    : aiReplies.length > 0 || tonePickerOpen
+                      ? "bg-accent/20 border-accent/40 text-accent"
+                      : "bg-white/4 border-white/10 text-ivory/30 hover:bg-accent/10 hover:border-accent/30 hover:text-accent"
+                    }`}
+                >
+                  ✦ AI
+                </button>
+                {aiMenuOpen && (
+                  <div className="absolute bottom-full mb-1 right-0 w-44 bg-deep border border-white/10 rounded-lg shadow-lg overflow-hidden z-50">
+                    <button
+                      type="button"
+                      className="w-full text-left px-3 py-2 text-[11px] text-ivory/70 hover:bg-white/6 hover:text-ivory transition-colors"
+                      onClick={() => {
+                        setAiMenuOpen(false);
+                        handleAiButton();
+                      }}
+                    >
+                      Reply suggestions
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!text.trim()}
+                      className={`w-full text-left px-3 py-2 text-[11px] transition-colors ${text.trim()
+                        ? "text-ivory/70 hover:bg-white/6 hover:text-ivory"
+                        : "text-ivory/20 opacity-40 cursor-not-allowed"
+                        }`}
+                      onClick={() => {
+                        if (!text.trim()) return;
+                        setAiMenuOpen(false);
+                        setAiReplies([]);
+                        setTonePickerOpen(true);
+                      }}
+                    >
+                      Rewrite tone
+                    </button>
+                  </div>
+                )}
+              </div>
 
               <button
                 type="button"

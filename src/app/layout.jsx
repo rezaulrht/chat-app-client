@@ -9,6 +9,7 @@ import Providers from "@/components/Providers";
 import { Toaster } from "react-hot-toast";
 import { SocketProvider } from "@/context/SocketProvider";
 import { WorkspaceProvider } from "@/context/WorkspaceProvider";
+import { CallProvider } from "@/context/CallProvider";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -51,7 +52,9 @@ export default function RootLayout({ children }) {
           {/* Auth, other global stuff */}
           {/* Socket first, then Workspace (because Workspace uses useSocket) */}
           <SocketProvider>
-            <WorkspaceProvider>{children}</WorkspaceProvider>
+            <CallProvider>
+              <WorkspaceProvider>{children}</WorkspaceProvider>
+            </CallProvider>
           </SocketProvider>
         </Providers>
         <Toaster

@@ -399,6 +399,7 @@ export default function ChatDashboard() {
   }
 
   return (
+    <>
     <div className="flex flex-col md:flex-row h-screen w-full bg-obsidian overflow-hidden font-sans relative">
       {/* Mobile Backdrops */}
       {(isSidebarOpen ||
@@ -478,9 +479,10 @@ export default function ChatDashboard() {
       </div>
     </div>
 
-    {/* Call overlays */}
-    <IncomingCallNotification />
-    <CallModal />
-    <FloatingCallBar />
+      {/* Call overlays */}
+      <IncomingCallNotification />
+      <CallModal />
+      <FloatingCallBar />
+    </>
   );
 }

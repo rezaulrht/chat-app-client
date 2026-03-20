@@ -53,7 +53,7 @@ export default function CallModal() {
     }
   };
 
-  if (!activeCall || isMinimized) return null;
+  if (!activeCall || isMinimized || activeCall.isVoiceChannel) return null;
 
   return (
     <div className="fixed inset-0 bg-obsidian z-50 flex flex-col">

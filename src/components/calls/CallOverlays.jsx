@@ -5,7 +5,6 @@ import IncomingCallNotification from "./IncomingCallNotification";
 import FloatingCallBar from "./FloatingCallBar";
 
 const CallModal = dynamic(() => import("./CallModal"), { ssr: false });
-
 export default function CallOverlays() {
   return (
     <>

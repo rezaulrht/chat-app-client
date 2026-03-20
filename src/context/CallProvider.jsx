@@ -11,8 +11,8 @@ export const CallProvider = ({ children }) => {
   const [isMinimized, setIsMinimized] = useState(false);
 
   const startCall = useCallback((callData) => {
-    // Store call info but mark as pending — don't connect to LiveKit until accepted
-    setActiveCall({ ...callData, pending: true });
+    // Voice channels connect immediately; regular calls wait for acceptance
+    setActiveCall({ ...callData, pending: callData.isVoiceChannel ? false : true });
     setIsMinimized(false);
   }, []);
 

@@ -25,6 +25,7 @@ import { useWorkspace } from "@/hooks/useWorkspace";
 import toast from "react-hot-toast";
 import UserProfileModal from "@/components/profile/UserProfileModal";
 import VoiceChannelStrip from "@/components/calls/VoiceChannelStrip";
+import VoiceChannelBar from "@/components/calls/VoiceChannelBar";
 
 export default function ChannelSidebar({
   selectedWorkspaceId,
@@ -466,6 +467,9 @@ export default function ChannelSidebar({
       {showProfile && (
         <UserProfileModal onClose={() => setShowProfile(false)} />
       )}
+
+      {/* Voice Channel Bar — shown above status bar when in a voice channel */}
+      <VoiceChannelBar />
 
       {/* User Status Bar (bottom) */}
       <div className="mx-2 mb-2 p-2.5 glass-card rounded-2xl flex items-center gap-2.5">

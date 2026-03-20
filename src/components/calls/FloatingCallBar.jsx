@@ -17,7 +17,7 @@ export default function FloatingCallBar() {
     return () => clearInterval(interval);
   }, [activeCall]);
 
-  if (!activeCall || !isMinimized) return null;
+  if (!activeCall || !isMinimized || activeCall.isVoiceChannel) return null;
 
   const formatDuration = (seconds) => {
     const mins = Math.floor(seconds / 60);

@@ -29,6 +29,9 @@ export default function VoiceChannelStrip({ module, workspaceId }) {
       roomName: `workspace-${workspaceId}-module-${module._id}`,
       callType: "audio",
       isVoiceChannel: true,
+      moduleId: module._id,
+      moduleName: module.name,
+      workspaceId,
     });
     setIsJoined(true);
   };

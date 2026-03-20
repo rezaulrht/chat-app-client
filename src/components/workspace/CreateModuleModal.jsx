@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { Hash, Megaphone, Lock, X, Loader2, Check, Shield } from "lucide-react";
+import { Hash, Megaphone, Lock, X, Loader2, Check, Shield, Volume2 } from "lucide-react";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import toast from "react-hot-toast";
 
@@ -18,6 +18,12 @@ const MODULE_TYPES = [
     label: "Announcement",
     icon: Megaphone,
     description: "Admins post, members read",
+  },
+  {
+    value: "voice",
+    label: "Voice",
+    icon: Volume2,
+    description: "Voice channel for live audio",
   },
 ];
 
@@ -162,7 +168,7 @@ export default function CreateModuleModal({
             <label className="text-[11px] font-mono font-bold text-ivory/40 uppercase tracking-wider">
               Type
             </label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {MODULE_TYPES.map(({ value, label, icon: Icon, description }) => (
                 <button
                   key={value}

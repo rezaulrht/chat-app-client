@@ -45,7 +45,7 @@ export default function VoiceChannelBar() {
     if (!activeCall) {
       hasConnected.current = false;
     }
-  }, [activeCall?.roomName, activeCall?.isVoiceChannel]);
+  }, [activeCall?.roomName, activeCall?.isVoiceChannel, connect]);
 
   const handleDisconnect = async () => {
     if (activeCall?.moduleId && activeCall?.workspaceId) {

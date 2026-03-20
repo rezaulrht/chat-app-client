@@ -23,12 +23,8 @@ export function getRoom() {
 }
 
 export async function connectRoom(url, token, callType = "audio") {
-  if (room || connecting) {
-    console.log("[LiveKit] already connected/connecting, skipping");
-    return;
-  }
+  if (room || connecting) return;
   connecting = true;
-  console.log("[LiveKit] connecting, callType:", callType);
 
   try {
     const newRoom = new Room({
@@ -39,29 +35,15 @@ export async function connectRoom(url, token, callType = "audio") {
       },
     });
 
-    newRoom.on(RoomEvent.Connected, () => {
-      console.log("[LiveKit] connected");
-      notify();
-    });
-    newRoom.on(RoomEvent.Disconnected, (reason) => {
-      console.log("[LiveKit] disconnected, reason:", reason);
+    newRoom.on(RoomEvent.Connected, () => notify());
+    newRoom.on(RoomEvent.Disconnected, () => {
       room = null;
       notify();
     });
-    newRoom.on(RoomEvent.ConnectionStateChanged, (s) => {
-      console.log("[LiveKit] state:", s);
-      notify();
-    });
-    newRoom.on(RoomEvent.ParticipantConnected, (p) => {
-      console.log("[LiveKit] participant joined:", p.identity);
-      notify();
-    });
-    newRoom.on(RoomEvent.ParticipantDisconnected, (p) => {
-      console.log("[LiveKit] participant left:", p.identity);
-      notify();
-    });
+    newRoom.on(RoomEvent.ConnectionStateChanged, () => notify());
+    newRoom.on(RoomEvent.ParticipantConnected, () => notify());
+    newRoom.on(RoomEvent.ParticipantDisconnected, () => notify());
     newRoom.on(RoomEvent.TrackSubscribed, (track, _pub, participant) => {
-      console.log("[LiveKit] track subscribed:", track.kind, "from", participant.identity);
       if (track.kind === Track.Kind.Audio) {
         try {
           // Guard against the race where a track event fires after the participant has left
@@ -81,17 +63,14 @@ export async function connectRoom(url, token, callType = "audio") {
     });
 
     await newRoom.connect(url, token, { autoSubscribe: true });
-    console.log("[LiveKit] connect() resolved, remote participants:", newRoom.remoteParticipants.size);
 
     room = newRoom;
     notify();
 
     await newRoom.localParticipant.setMicrophoneEnabled(true);
-    console.log("[LiveKit] mic enabled");
 
     if (callType === "video") {
       await newRoom.localParticipant.setCameraEnabled(true);
-      console.log("[LiveKit] camera enabled");
     }
 
     notify();
@@ -109,10 +88,7 @@ export async function disconnectRoom() {
   const r = room;
   room = null;
   connecting = false;
-  if (r) {
-    await r.disconnect();
-    console.log("[LiveKit] disconnected");
-  }
+  if (r) await r.disconnect();
   notify();
 }
 

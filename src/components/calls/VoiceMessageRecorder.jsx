@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Mic, X, Send, Loader2 } from "lucide-react";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import api from "@/app/api/Axios";
@@ -76,23 +76,7 @@ export default function VoiceMessageRecorder({ onSend }) {
 
   if (audioBlob) {
     return (
-      <div className="flex items-center gap-2 px-3 py-2 bg-slate-surface rounded-lg">
-        <audio src={URL.createObjectURL(audioBlob)} controls className="flex-1" />
-        <button
-          onClick={cancelRecording}
-          className="p-1 hover:bg-slate-700 rounded"
-          disabled={uploading}
-        >
-          <X className="w-5 h-5" />
-        </button>
-        <button
-          onClick={handleSend}
-          className="p-1 bg-accent hover:bg-accent/80 rounded disabled:opacity-50"
-          disabled={uploading}
-        >
-          {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-        </button>
-      </div>
+      <AudioBlobPreview audioBlob={audioBlob} uploading={uploading} onCancel={cancelRecording} onSend={handleSend} />
     );
   }
 
@@ -104,5 +88,35 @@ export default function VoiceMessageRecorder({ onSend }) {
     >
       <Mic className="w-5 h-5" />
     </button>
+  );
+}
+
+function AudioBlobPreview({ audioBlob, uploading, onCancel, onSend }) {
+  const [objectUrl, setObjectUrl] = useState(null);
+
+  useEffect(() => {
+    const url = URL.createObjectURL(audioBlob);
+    setObjectUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [audioBlob]);
+
+  return (
+    <div className="flex items-center gap-2 px-3 py-2 bg-slate-surface rounded-lg">
+      <audio src={objectUrl} controls className="flex-1" />
+      <button
+        onClick={onCancel}
+        className="p-1 hover:bg-slate-700 rounded"
+        disabled={uploading}
+      >
+        <X className="w-5 h-5" />
+      </button>
+      <button
+        onClick={onSend}
+        className="p-1 bg-accent hover:bg-accent/80 rounded disabled:opacity-50"
+        disabled={uploading}
+      >
+        {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+      </button>
+    </div>
   );
 }

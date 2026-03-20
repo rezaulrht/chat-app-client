@@ -38,7 +38,12 @@ export const useVoiceRecorder = () => {
       timerRef.current = setInterval(() => {
         setDuration((prev) => {
           if (prev >= 120) {
-            stopRecording();
+            // Call stop directly on the ref to avoid stale closure on isRecording
+            if (mediaRecorderRef.current) {
+              mediaRecorderRef.current.stop();
+              setIsRecording(false);
+              clearInterval(timerRef.current);
+            }
             return 120;
           }
           return prev + 1;

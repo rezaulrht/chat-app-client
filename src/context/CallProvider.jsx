@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { CallContext } from "./CallContext";
 import { useSocket } from "@/hooks/useSocket";
 
@@ -9,6 +9,8 @@ export const CallProvider = ({ children }) => {
   const [activeCall, setActiveCall] = useState(null);
   const [incomingCall, setIncomingCall] = useState(null);
   const [isMinimized, setIsMinimized] = useState(false);
+  const activeCallRef = useRef(activeCall);
+  useEffect(() => { activeCallRef.current = activeCall; }, [activeCall]);
 
   const startCall = useCallback((callData) => {
     // Voice channels connect immediately; regular calls wait for acceptance
@@ -31,7 +33,6 @@ export const CallProvider = ({ children }) => {
   );
 
   const acceptCall = useCallback(() => {
-    console.log("[CallProvider] acceptCall, incomingCall:", incomingCall);
     if (incomingCall) {
       // Emit accepted to server so initiator gets notified and both connect simultaneously
       socket?.emit("call:accepted", { callId: incomingCall.callId });
@@ -50,8 +51,7 @@ export const CallProvider = ({ children }) => {
     if (!socket) return;
 
     const handleIncoming = (data) => {
-      console.log("[CallProvider] call:incoming received", data);
-      if (!activeCall) setIncomingCall(data);
+      if (!activeCallRef.current) setIncomingCall(data);
     };
 
     const handleAccepted = ({ callId, roomName, callType }) => {
@@ -76,7 +76,7 @@ export const CallProvider = ({ children }) => {
       socket.off("call:accepted", handleAccepted);
       socket.off("call:ended", handleEnded);
     };
-  }, [socket, activeCall]);
+  }, [socket]);
 
   return (
     <CallContext.Provider

@@ -27,7 +27,7 @@ export default function IncomingCallNotification() {
       }
       clearTimeout(timeoutRef.current);
     };
-  }, [incomingCall]);
+  }, [incomingCall, declineCall]);
 
   if (!incomingCall) return null;
 

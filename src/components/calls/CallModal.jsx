@@ -12,13 +12,16 @@ export default function CallModal() {
   const { socket } = useSocket();
   const { user } = useAuth();
   const [isMuted, setIsMuted] = useState(false);
-  const [isVideoOff, setIsVideoOff] = useState(activeCall?.callType === "audio");
+  const [isVideoOff, setIsVideoOff] = useState(false);
+
+  useEffect(() => {
+    setIsVideoOff(activeCall?.callType === "audio");
+  }, [activeCall?.callType]);
 
   const { room, isConnected, connect, disconnect, participants } = useLiveKit();
 
   const hasConnected = useRef(false);
   useEffect(() => {
-    console.log("[CallModal] activeCall changed:", activeCall?.roomName, "pending:", activeCall?.pending, "hasConnected:", hasConnected.current);
     if (activeCall?.roomName && !activeCall.pending && !hasConnected.current) {
       hasConnected.current = true;
       connect(activeCall.roomName, activeCall.callType);
@@ -30,7 +33,7 @@ export default function CallModal() {
       // In strict mode this runs between double-mounts — disconnect cancels in-progress connect
       // On real unmount (page nav) this cleans up the room
     };
-  }, [activeCall?.roomName, activeCall?.pending]);
+  }, [activeCall?.roomName, activeCall?.pending, connect]);
 
   const handleEndCall = async () => {
     socket?.emit("call:ended", { callId: activeCall.callId });

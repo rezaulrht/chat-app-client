@@ -1,4 +1,9 @@
-import { Room, RoomEvent, Track } from "livekit-client";
+import { Room, RoomEvent, Track, setLogLevel } from "livekit-client";
+
+// Suppress LiveKit SDK's internal race-condition error that fires when a
+// TrackPublished signal arrives after the remote participant has already left.
+// This is harmless noise from the SDK and cannot be prevented at app level.
+setLogLevel("warn");
 
 let room = null;
 let connecting = false;
@@ -58,9 +63,15 @@ export async function connectRoom(url, token, callType = "audio") {
     newRoom.on(RoomEvent.TrackSubscribed, (track, _pub, participant) => {
       console.log("[LiveKit] track subscribed:", track.kind, "from", participant.identity);
       if (track.kind === Track.Kind.Audio) {
-        const el = track.attach();
-        el.dataset.livekitParticipant = participant.sid;
-        document.body.appendChild(el);
+        try {
+          // Guard against the race where a track event fires after the participant has left
+          if (!newRoom.remoteParticipants.has(participant.identity)) return;
+          const el = track.attach();
+          el.dataset.livekitParticipant = participant.sid;
+          document.body.appendChild(el);
+        } catch (err) {
+          console.warn("[LiveKit] track attach skipped (participant may have left):", err.message);
+        }
       }
     });
     newRoom.on(RoomEvent.TrackUnsubscribed, (track) => {

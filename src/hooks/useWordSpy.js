@@ -2,16 +2,17 @@
 import { useEffect, useContext } from "react";
 import { SocketContext } from "@/context/SocketContext";
 import useWordSpyStore from "@/stores/wordSpyStore";
+import toast from "react-hot-toast";
 
 /**
  * Registers all wordspy:* socket listeners and returns action emitters.
  * For reactive state, use useWordSpyStore() directly in components.
  */
 const useWordSpy = () => {
-  const socket = useContext(SocketContext);
+  const { socket } = useContext(SocketContext);
   const {
     setGameState, setPhase, setMyWord,
-    setHintProgress, setHints, setRevealData, setError,
+    setHintProgress, setHints, setRevealData, setError, reset,
   } = useWordSpyStore();
 
   useEffect(() => {
@@ -24,6 +25,10 @@ const useWordSpy = () => {
     const onHintsReveal = ({ hints }) => setHints(hints);
     const onReveal = (data) => setRevealData(data);
     const onError = ({ message }) => setError(message);
+    const onDisbanded = ({ message }) => {
+      reset();
+      toast(message, { icon: "🚪" });
+    };
 
     socket.on("wordspy:room:update", onRoomUpdate);
     socket.on("wordspy:phase:change", onPhaseChange);
@@ -32,6 +37,7 @@ const useWordSpy = () => {
     socket.on("wordspy:hints:reveal", onHintsReveal);
     socket.on("wordspy:reveal", onReveal);
     socket.on("wordspy:error", onError);
+    socket.on("wordspy:disbanded", onDisbanded);
 
     return () => {
       socket.off("wordspy:room:update", onRoomUpdate);
@@ -41,6 +47,7 @@ const useWordSpy = () => {
       socket.off("wordspy:hints:reveal", onHintsReveal);
       socket.off("wordspy:reveal", onReveal);
       socket.off("wordspy:error", onError);
+      socket.off("wordspy:disbanded", onDisbanded);
     };
   }, [socket]);
 
@@ -48,8 +55,8 @@ const useWordSpy = () => {
   const joinGame = (moduleId, workspaceId) =>
     socket?.emit("wordspy:join", { moduleId, workspaceId });
 
-  const startGame = (category, difficulty, maxRounds) =>
-    socket?.emit("wordspy:start", { category, difficulty, maxRounds });
+  const startGame = (moduleId, category, difficulty, maxRounds) =>
+    socket?.emit("wordspy:start", { moduleId, category, difficulty, maxRounds });
 
   const submitHint = (hint) =>
     socket?.emit("wordspy:hint:submit", { hint });
@@ -61,7 +68,9 @@ const useWordSpy = () => {
 
   const endGame = () => socket?.emit("wordspy:end:game", {});
 
-  return { joinGame, startGame, submitHint, submitVote, nextRound, endGame };
+  const disbandRoom = () => socket?.emit("wordspy:disband", {});
+
+  return { joinGame, startGame, submitHint, submitVote, nextRound, endGame, disbandRoom };
 };
 
 export default useWordSpy;

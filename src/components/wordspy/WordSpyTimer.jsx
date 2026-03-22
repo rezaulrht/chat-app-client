@@ -29,7 +29,7 @@ const WordSpyTimer = ({ phaseEndsAt, totalDurationMs }) => {
     <div className="w-full flex items-center gap-3">
       <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
         <div
-          className={`h-full rounded-full transition-all duration-250 ${isUrgent ? "bg-red-500" : "bg-violet-500"}`}
+          className={`h-full rounded-full transition-all duration-250 ${isUrgent ? "bg-red-500" : "bg-accent"}`}
           style={{ width: `${pct}%` }}
         />
       </div>

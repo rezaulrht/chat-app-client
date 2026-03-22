@@ -183,6 +183,15 @@ export default function ChatWindow({
   const { socket, onlineUsers, typingUsers } = useSocket() || {};
   const { user } = useAuth();
   const { startCall } = useCall();
+
+  if (!conversation) {
+    return (
+      <div className="flex flex-1 items-center justify-center h-full text-gray-400">
+        Select a conversation to start chatting
+      </div>
+    );
+  }
+
   const isGroup = conversation.type === "group";
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");

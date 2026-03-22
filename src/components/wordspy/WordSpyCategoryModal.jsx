@@ -20,7 +20,7 @@ const WordSpyCategoryModal = ({ onStart, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="bg-[#1a1a2e] border border-white/10 rounded-2xl p-6 w-full max-w-md mx-4">
+      <div className="bg-slate-surface border border-white/10 rounded-2xl p-6 w-full max-w-md mx-4">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-white font-semibold text-lg">Set Up Round</h2>
           <button onClick={onClose} className="text-white/40 hover:text-white"><X size={20} /></button>
@@ -32,7 +32,7 @@ const WordSpyCategoryModal = ({ onStart, onClose }) => {
               value={category}
               onChange={(e) => { setCategory(e.target.value); setError(""); }}
               placeholder='e.g. "Fruits", "US Presidents", "90s Bollywood songs"'
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder:text-white/30 focus:outline-none focus:border-violet-500 text-sm"
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder:text-white/30 focus:outline-none focus:border-accent text-sm"
               maxLength={100}
             />
           </div>
@@ -42,7 +42,7 @@ const WordSpyCategoryModal = ({ onStart, onClose }) => {
               {["easy", "medium", "hard"].map((d) => (
                 <button key={d} onClick={() => setDifficulty(d)}
                   className={`flex-1 py-2 rounded-lg text-sm capitalize font-medium transition-colors ${
-                    difficulty === d ? "bg-violet-600 text-white" : "bg-white/5 text-white/50 hover:bg-white/10"
+                    difficulty === d ? "bg-accent text-obsidian" : "bg-white/5 text-white/50 hover:bg-white/10"
                   }`}>
                   {d}
                 </button>
@@ -61,7 +61,7 @@ const WordSpyCategoryModal = ({ onStart, onClose }) => {
           </div>
           {error && <p className="text-red-400 text-sm">{error}</p>}
           <button onClick={handleStart}
-            className="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white font-semibold rounded-xl transition-colors">
+            className="w-full py-3 bg-accent hover:bg-accent/80 text-obsidian font-semibold rounded-xl transition-colors">
             Start Game
           </button>
         </div>

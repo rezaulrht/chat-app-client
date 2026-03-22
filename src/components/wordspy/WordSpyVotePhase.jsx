@@ -38,14 +38,18 @@ const WordSpyVotePhase = ({ onSubmitVote }) => {
           <button key={String(p.userId)} onClick={() => handleVote(p.userId)}
             className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${
               voted === String(p.userId)
-                ? "border-violet-500 bg-violet-600/20 text-white"
+                ? "border-accent bg-accent/10 text-white"
                 : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:bg-white/10"
             }`}>
-            <div className="w-8 h-8 rounded-full bg-violet-600/20 flex items-center justify-center text-xs text-violet-300 flex-shrink-0">
-              {p.displayName?.[0]?.toUpperCase()}
-            </div>
+            {p.avatar ? (
+              <img src={p.avatar} alt={p.displayName} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-xs text-accent flex-shrink-0">
+                {p.displayName?.[0]?.toUpperCase()}
+              </div>
+            )}
             <span className="text-sm font-medium">{p.displayName}</span>
-            {voted === String(p.userId) && <span className="ml-auto text-violet-400 text-xs">Your vote</span>}
+            {voted === String(p.userId) && <span className="ml-auto text-accent text-xs">Your vote</span>}
           </button>
         ))}
       </div>

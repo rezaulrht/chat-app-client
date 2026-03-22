@@ -1,9 +1,13 @@
 "use client";
 import { Trophy } from "lucide-react";
 import useWordSpyStore from "@/stores/wordSpyStore";
+import useAuth from "@/hooks/useAuth";
 
-const WordSpyResults = ({ onPlayAgain }) => {
-  const { revealData, players } = useWordSpyStore();
+const WordSpyResults = ({ onPlayAgain, onDisband }) => {
+  const { revealData, players, hostId } = useWordSpyStore();
+  const { user } = useAuth();
+  const myId = String(user?._id || user?.id || "");
+  const isHost = myId === String(hostId);
 
   const scores = revealData?.scores
     ?? players.map((p) => ({ userId: p.userId, displayName: p.displayName, score: p.score }));
@@ -23,14 +27,22 @@ const WordSpyResults = ({ onPlayAgain }) => {
           <div key={String(s.userId)} className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/10">
             <span className="text-white/30 font-mono text-sm w-5">#{i + 1}</span>
             <span className="text-white text-sm flex-1">{s.displayName}</span>
-            <span className="text-violet-300 font-mono font-bold">{s.score}</span>
+            <span className="text-accent font-mono font-bold">{s.score}</span>
           </div>
         ))}
       </div>
-      <button onClick={onPlayAgain}
-        className="px-8 py-3 bg-violet-600 hover:bg-violet-700 text-white font-semibold rounded-xl">
-        Play Again
-      </button>
+      <div className="flex gap-3">
+        <button onClick={onPlayAgain}
+          className="px-8 py-3 bg-accent hover:bg-accent/80 text-obsidian font-semibold rounded-xl">
+          Play Again
+        </button>
+        {isHost && (
+          <button onClick={onDisband}
+            className="px-6 py-3 bg-white/5 hover:bg-red-500/10 border border-white/10 hover:border-red-500/30 text-white/40 hover:text-red-400 font-medium rounded-xl text-sm transition-colors">
+            Disband
+          </button>
+        )}
+      </div>
     </div>
   );
 };

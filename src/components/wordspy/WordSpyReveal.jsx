@@ -17,12 +17,37 @@ const WordSpyReveal = ({ onNextRound, onEndGame }) => {
     </div>
   );
 
-  const { aiReveal, impostorName, realWord, impostorWord, correct, scores } = revealData;
+  const { aiReveal, impostorId, impostorName, realWord, impostorWord, correct, scores } = revealData;
+  const isImpostor = myId === String(impostorId);
+
+  // Four distinct outcome messages based on role + result
+  const outcomeConfig = (() => {
+    if (isImpostor && !correct) return {
+      text: "Masterful deception — you fooled them all!",
+      color: "text-green-400",
+      border: "border-green-500/30 bg-green-500/10",
+    };
+    if (isImpostor && correct) return {
+      text: "Busted! They saw right through you.",
+      color: "text-red-400",
+      border: "border-red-500/30 bg-red-500/10",
+    };
+    if (!isImpostor && correct) return {
+      text: "Sharp eyes — the crowd caught the spy!",
+      color: "text-green-400",
+      border: "border-green-500/30 bg-green-500/10",
+    };
+    return {
+      text: "The impostor fooled everyone. Better luck next round!",
+      color: "text-red-400",
+      border: "border-red-500/30 bg-red-500/10",
+    };
+  })();
 
   return (
     <div className="flex flex-col h-full p-6 gap-5 overflow-y-auto">
       <div className="text-center">
-        <p className="text-violet-400 text-xs uppercase tracking-widest mb-1">Round {round} Reveal</p>
+        <p className="text-accent text-xs uppercase tracking-widest mb-1">Round {round} Reveal</p>
         <h2 className="text-white font-bold text-xl">The Verdict</h2>
       </div>
       <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-sm text-white/70 leading-relaxed whitespace-pre-wrap">
@@ -30,19 +55,19 @@ const WordSpyReveal = ({ onNextRound, onEndGame }) => {
       </div>
       {!revealed ? (
         <button onClick={() => setRevealed(true)}
-          className="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white font-semibold rounded-xl">
+          className="w-full py-3 bg-accent hover:bg-accent/80 text-obsidian font-semibold rounded-xl">
           Reveal the Impostor
         </button>
       ) : (
-        <div className={`p-4 rounded-2xl border text-center ${correct ? "border-green-500/30 bg-green-500/10" : "border-red-500/30 bg-red-500/10"}`}>
+        <div className={`p-4 rounded-2xl border text-center ${outcomeConfig.border}`}>
           <p className="text-white/50 text-xs mb-1">The impostor was</p>
           <p className="text-2xl font-black text-white">{impostorName}</p>
           <p className="text-white/40 text-sm mt-1">
             Their word: <span className="text-white font-medium">{impostorWord}</span>
             {" · "}Real word: <span className="text-white font-medium">{realWord}</span>
           </p>
-          <p className={`mt-3 text-sm font-semibold ${correct ? "text-green-400" : "text-red-400"}`}>
-            {correct ? "Crowd was correct!" : "Impostor fooled everyone!"}
+          <p className={`mt-3 text-sm font-semibold ${outcomeConfig.color}`}>
+            {outcomeConfig.text}
           </p>
         </div>
       )}
@@ -52,7 +77,7 @@ const WordSpyReveal = ({ onNextRound, onEndGame }) => {
           {[...scores].sort((a, b) => b.score - a.score).map((s) => (
             <div key={String(s.userId)} className="flex items-center gap-3">
               <span className="text-white/70 text-sm flex-1">{s.displayName}</span>
-              <span className="text-violet-300 font-mono text-sm">{s.score} pts</span>
+              <span className="text-accent font-mono text-sm">{s.score} pts</span>
             </div>
           ))}
         </div>
@@ -61,7 +86,7 @@ const WordSpyReveal = ({ onNextRound, onEndGame }) => {
         <div className="flex gap-3 mt-auto">
           {round < maxRounds && (
             <button onClick={onNextRound}
-              className="flex-1 py-2.5 bg-violet-600 hover:bg-violet-700 text-white font-semibold rounded-xl text-sm">
+              className="flex-1 py-2.5 bg-accent hover:bg-accent/80 text-obsidian font-semibold rounded-xl text-sm">
               Next Round ({round}/{maxRounds})
             </button>
           )}

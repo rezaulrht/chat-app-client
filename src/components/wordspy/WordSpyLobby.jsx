@@ -5,7 +5,7 @@ import WordSpyCategoryModal from "./WordSpyCategoryModal";
 import useWordSpyStore from "@/stores/wordSpyStore";
 import useAuth from "@/hooks/useAuth";
 
-const WordSpyLobby = ({ onStart }) => {
+const WordSpyLobby = ({ onStart, onDisband }) => {
   const { players, hostId, error } = useWordSpyStore();
   const { user } = useAuth();
   const [showModal, setShowModal] = useState(false);
@@ -30,9 +30,13 @@ const WordSpyLobby = ({ onStart }) => {
         <div className="space-y-2">
           {players.map((p) => (
             <div key={String(p.userId)} className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-violet-600/30 flex items-center justify-center text-xs text-violet-300 font-bold flex-shrink-0">
-                {p.displayName?.[0]?.toUpperCase() || "?"}
-              </div>
+              {p.avatar ? (
+                <img src={p.avatar} alt={p.displayName} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-xs text-accent font-bold flex-shrink-0">
+                  {p.displayName?.[0]?.toUpperCase() || "?"}
+                </div>
+              )}
               <span className="text-white text-sm flex-1">{p.displayName}</span>
               {String(p.userId) === String(hostId) && <Crown size={14} className="text-yellow-400" />}
               {p.isConnected ? <Wifi size={12} className="text-green-400" /> : <WifiOff size={12} className="text-white/20" />}
@@ -42,10 +46,16 @@ const WordSpyLobby = ({ onStart }) => {
       </div>
       {error && <p className="text-red-400 text-sm text-center">{error}</p>}
       {isHost ? (
-        <button onClick={() => setShowModal(true)} disabled={!canStart}
-          className="px-8 py-3 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors">
-          {canStart ? "Start Game" : `Waiting for players (${connectedCount}/3)...`}
-        </button>
+        <div className="flex flex-col items-center gap-3 w-full max-w-sm">
+          <button onClick={() => setShowModal(true)} disabled={!canStart}
+            className="w-full px-8 py-3 bg-accent hover:bg-accent/80 disabled:opacity-40 disabled:cursor-not-allowed text-obsidian font-semibold rounded-xl transition-colors">
+            {canStart ? "Start Game" : `Waiting for players (${connectedCount}/3)...`}
+          </button>
+          <button onClick={onDisband}
+            className="w-full px-8 py-2.5 bg-white/5 hover:bg-red-500/10 border border-white/10 hover:border-red-500/30 text-white/40 hover:text-red-400 font-medium rounded-xl text-sm transition-colors">
+            Disband Room
+          </button>
+        </div>
       ) : (
         <p className="text-white/40 text-sm">Waiting for host to start...</p>
       )}

@@ -10,7 +10,7 @@ import WordSpyReveal from "./WordSpyReveal";
 import WordSpyResults from "./WordSpyResults";
 
 const WordSpyGame = ({ moduleId, workspaceId }) => {
-  const { joinGame, startGame, submitHint, submitVote, nextRound, endGame } = useWordSpy();
+  const { joinGame, startGame, submitHint, submitVote, nextRound, endGame, disbandRoom } = useWordSpy();
   // Get reactive state directly from store (not from useWordSpy return)
   const phase = useWordSpyStore((s) => s.phase);
   const reset = useWordSpyStore((s) => s.reset);
@@ -24,7 +24,9 @@ const WordSpyGame = ({ moduleId, workspaceId }) => {
     joinGame(moduleId, workspaceId);
   };
 
-  if (!phase || phase === "lobby") return <WordSpyLobby onStart={startGame} />;
+  const handleStart = (category, difficulty, maxRounds) => startGame(moduleId, category, difficulty, maxRounds);
+
+  if (!phase || phase === "lobby") return <WordSpyLobby onStart={handleStart} onDisband={disbandRoom} />;
   if (phase === "word_assign") return (
     <div className="flex items-center justify-center h-full">
       <p className="text-white/40 text-sm animate-pulse">Generating words...</p>
@@ -34,7 +36,7 @@ const WordSpyGame = ({ moduleId, workspaceId }) => {
   if (phase === "hint") return <WordSpyHintPhase onSubmitHint={submitHint} />;
   if (phase === "vote") return <WordSpyVotePhase onSubmitVote={submitVote} />;
   if (phase === "reveal") return <WordSpyReveal onNextRound={nextRound} onEndGame={endGame} />;
-  if (phase === "results") return <WordSpyResults onPlayAgain={handlePlayAgain} />;
+  if (phase === "results") return <WordSpyResults onPlayAgain={handlePlayAgain} onDisband={disbandRoom} />;
   return null;
 };
 

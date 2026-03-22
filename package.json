@@ -11,6 +11,7 @@
   "dependencies": {
     "@emoji-mart/data": "^1.2.1",
     "@emoji-mart/react": "^1.1.1",
+    "@livekit/components-react": "^2.9.20",
     "axios": "^1.13.5",
     "date-fns": "^4.1.0",
     "emoji-mart": "^5.6.0",
@@ -19,6 +20,7 @@
     "gif-picker-react-klipy": "github:micenx/gif-picker-react-klipy",
     "gsap": "^3.14.2",
     "lenis": "^1.3.18",
+    "livekit-client": "^2.17.3",
     "lucide-react": "^0.575.0",
     "next": "^16.1.6",
     "openai": "^6.29.0",

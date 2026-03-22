@@ -14,6 +14,18 @@ const ROLE_COLORS = [
   "#5b5b8f", "#00d3bb",
 ];
 
+const AVAILABLE_PERMISSIONS = [
+  { id: "ADMINISTRATOR", label: "Administrator", desc: "Bypasses all other permissions. Grants full access to the workspace." },
+  { id: "MANAGE_WORKSPACE", label: "Manage Workspace", desc: "Allows editing the workspace name, description, avatar, and banner." },
+  { id: "MANAGE_ROLES", label: "Manage Roles", desc: "Allows creating, editing, and deleting custom roles." },
+  { id: "MANAGE_CHANNELS", label: "Manage Channels", desc: "Allows creating, editing, reordering, and deleting channels." },
+  { id: "KICK_MEMBERS", label: "Kick Members", desc: "Allows removing other members from the workspace." },
+  { id: "CREATE_INVITES", label: "Create Invites", desc: "Allows generating invite links for new members." },
+  { id: "MANAGE_MESSAGES", label: "Manage Messages", desc: "Allows deleting messages sent by others, and posting in announcement channels." },
+  { id: "SEND_MESSAGES", label: "Send Messages", desc: "Allows members to send messages in text channels." },
+  { id: "VIEW_CHANNEL", label: "View Channels", desc: "Allows members to view and read channels." },
+];
+
 function RoleBadge({ color, name, small = false }) {
   return (
     <span
@@ -299,7 +311,7 @@ function SettingsInput({ label, value, onChange, placeholder }) {
 
 function RoleItem({ 
   role, editingId, editName, setEditName, editColor, setEditColor, 
-  editIsHoisted, setEditIsHoisted, handleUpdate, handleDelete, setEditingId, saving 
+  editIsHoisted, setEditIsHoisted, editPermissions, setEditPermissions, handleUpdate, handleDelete, setEditingId, saving 
 }) {
   const isEditing = editingId === role._id;
 
@@ -336,6 +348,46 @@ function RoleItem({
               Hoist role above others
             </label>
           </div>
+
+          {/* Permissions Selection (Edit) */}
+          <div className="mt-4 border-t border-white/10 pt-4 space-y-3">
+            <p className="text-[10px] font-mono font-bold text-ivory/40 uppercase tracking-widest">
+              Permissions
+            </p>
+            <div className="grid grid-cols-1 gap-2">
+              {AVAILABLE_PERMISSIONS.map((perm) => {
+                const hasPerm = editPermissions.includes(perm.id);
+                return (
+                  <label
+                    key={perm.id}
+                    className="flex items-start gap-3 p-2 rounded-xl hover:bg-white/5 cursor-pointer"
+                  >
+                    <div
+                      className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${hasPerm ? "bg-accent border-accent text-deep" : "bg-transparent border-ivory/20"}`}
+                    >
+                      {hasPerm && <Check size={12} strokeWidth={3} />}
+                    </div>
+                    <input
+                      type="checkbox"
+                      className="hidden"
+                      checked={hasPerm}
+                      onChange={(e) => {
+                        if (e.target.checked)
+                          setEditPermissions((prev) => [...prev, perm.id]);
+                        else
+                          setEditPermissions((prev) => prev.filter((p) => p !== perm.id));
+                      }}
+                    />
+                    <div>
+                      <p className="text-[12px] font-bold text-ivory/90">{perm.label}</p>
+                      <p className="text-[11px] text-ivory/50 leading-tight mt-0.5">{perm.desc}</p>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="flex gap-2">
             <button onClick={() => handleUpdate(role._id)} disabled={saving}
               className="flex-1 py-1.5 bg-accent hover:bg-accent/90 text-black rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1">
@@ -357,6 +409,7 @@ function RoleItem({
                 setEditName(role.name); 
                 setEditColor(role.color); 
                 setEditIsHoisted(role.isHoisted || false); 
+                setEditPermissions(role.permissions || []);
               }}
               className="p-1.5 rounded-lg text-ivory/25 hover:text-accent hover:bg-accent/10 transition-all">
               <Pencil size={12} />
@@ -379,11 +432,13 @@ function RolesTab({ workspace, onCreateRole, onUpdateRole, onDeleteRole }) {
   const [newName, setNewName] = useState("");
   const [newColor, setNewColor] = useState(ROLE_COLORS[10]);
   const [newIsHoisted, setNewIsHoisted] = useState(false);
+  const [newPermissions, setNewPermissions] = useState([]);
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState("");
   const [editColor, setEditColor] = useState("");
   const [editIsHoisted, setEditIsHoisted] = useState(false);
+  const [editPermissions, setEditPermissions] = useState([]);
   const [saving, setSaving] = useState(false);
 
   const roles = workspace?.roles || [];
@@ -392,10 +447,11 @@ function RolesTab({ workspace, onCreateRole, onUpdateRole, onDeleteRole }) {
     if (!newName.trim()) return;
     setCreating(true);
     try {
-      await onCreateRole({ name: newName.trim(), color: newColor, isHoisted: newIsHoisted });
+      await onCreateRole({ name: newName.trim(), color: newColor, isHoisted: newIsHoisted, permissions: newPermissions });
       setNewName("");
       setNewColor(ROLE_COLORS[10]);
       setNewIsHoisted(false);
+      setNewPermissions([]);
       toast.success("Role created!");
     } catch { toast.error("Failed to create role"); }
     finally { setCreating(false); }
@@ -405,7 +461,7 @@ function RolesTab({ workspace, onCreateRole, onUpdateRole, onDeleteRole }) {
     if (!editName.trim()) return;
     setSaving(true);
     try {
-      await onUpdateRole(roleId, { name: editName.trim(), color: editColor, isHoisted: editIsHoisted });
+      await onUpdateRole(roleId, { name: editName.trim(), color: editColor, isHoisted: editIsHoisted, permissions: editPermissions });
       setEditingId(null);
       toast.success("Role updated!");
     } catch { toast.error("Failed to update role"); }
@@ -463,10 +519,11 @@ function RolesTab({ workspace, onCreateRole, onUpdateRole, onDeleteRole }) {
                     setEditColor={setEditColor}
                     editIsHoisted={editIsHoisted}
                     setEditIsHoisted={setEditIsHoisted}
+                    editPermissions={editPermissions}
+                    setEditPermissions={setEditPermissions}
                     handleUpdate={handleUpdate}
                     handleDelete={handleDelete}
                     setEditingId={setEditingId}
-                    setEditIsHoistedState={setEditIsHoisted}
                     saving={saving}
                   />
                 ))}
@@ -491,6 +548,8 @@ function RolesTab({ workspace, onCreateRole, onUpdateRole, onDeleteRole }) {
                     setEditColor={setEditColor}
                     editIsHoisted={editIsHoisted}
                     setEditIsHoisted={setEditIsHoisted}
+                    editPermissions={editPermissions}
+                    setEditPermissions={setEditPermissions}
                     handleUpdate={handleUpdate}
                     handleDelete={handleDelete}
                     setEditingId={setEditingId}
@@ -534,7 +593,53 @@ function RolesTab({ workspace, onCreateRole, onUpdateRole, onDeleteRole }) {
             Hoist role above others
           </label>
         </div>
-        <div className="flex items-center gap-3 pt-2">
+
+        {/* Permissions Selection (Create) */}
+        <div className="mt-4 border-t border-white/5 pt-4 space-y-3">
+          <p className="text-[10px] font-mono font-bold text-ivory/40 uppercase tracking-widest">
+            Base Permissions
+          </p>
+          <div className="grid grid-cols-1 gap-2">
+            {AVAILABLE_PERMISSIONS.map((perm) => {
+              const hasPerm = newPermissions.includes(perm.id);
+              return (
+                <label
+                  key={perm.id}
+                  className="flex items-start gap-3 p-2 rounded-xl hover:bg-white/5 cursor-pointer"
+                >
+                  <div
+                    className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${hasPerm ? "bg-accent border-accent text-deep" : "bg-transparent border-ivory/20"}`}
+                  >
+                    {hasPerm && <Check size={12} strokeWidth={3} />}
+                  </div>
+                  <input
+                    type="checkbox"
+                    className="hidden"
+                    checked={hasPerm}
+                    onChange={(e) => {
+                      if (e.target.checked)
+                        setNewPermissions((prev) => [...prev, perm.id]);
+                      else
+                        setNewPermissions((prev) =>
+                          prev.filter((p) => p !== perm.id),
+                        );
+                    }}
+                  />
+                  <div>
+                    <p className="text-[12px] font-bold text-ivory/90">
+                      {perm.label}
+                    </p>
+                    <p className="text-[11px] text-ivory/50 leading-tight mt-0.5">
+                      {perm.desc}
+                    </p>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 pt-2 mt-4 border-t border-white/5 pt-4">
           <RoleBadge color={newColor} name={newName || "Preview"} />
           <button
             onClick={handleCreate}

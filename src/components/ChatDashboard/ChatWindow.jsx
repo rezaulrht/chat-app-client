@@ -372,6 +372,7 @@ export default function ChatWindow({
 
     const parsed = parseMessage(inputRef.current);
     setText(parsed.text);
+    handleInput({ currentTarget: inputRef.current });
   };
 
   const renderMessageText = (text, mentions, mentionData = []) => {
@@ -1369,6 +1370,7 @@ export default function ChatWindow({
   }, [conversation?._id]);
 
   const handleSend = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
     const hasContent = (inputRef.current?.textContent?.trim().length || 0) > 0;
     const hasFiles = stagedFiles.length > 0;
     if (!hasContent && !hasFiles) return;

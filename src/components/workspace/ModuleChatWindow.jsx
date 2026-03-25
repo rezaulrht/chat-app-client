@@ -190,6 +190,7 @@ export default function ModuleChatWindow({
   // Reset input state when module changes
   useEffect(() => {
     setText("");
+    if (inputRef.current) inputRef.current.innerHTML = "";
     setReplyTo(null);
     setEditingId(null);
     setSuggestions([]);
@@ -264,6 +265,20 @@ export default function ModuleChatWindow({
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [reactionPickerMsgId, showEmojiPicker, showGifPicker, longPressedMsgId, showSeenBy, scheduleDropdownOpen, aiMenuOpen]);
+
+  // ── Jump to message (from panels) ────────────────────────────────────────
+  const handleJumpToMessage = useCallback((messageId) => {
+    setShowPinnedPanel(false);
+    setShowSearchPanel(false);
+    setTimeout(() => {
+      const el = document.querySelector(`[data-message-id="${messageId}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("ring-1", "ring-accent/50");
+        setTimeout(() => el.classList.remove("ring-1", "ring-accent/50"), 2000);
+      }
+    }, 50);
+  }, []);
 
   // ── Long-press (mobile) ───────────────────────────────────────────────────
   const handleTouchStart = useCallback((msgId) => {
@@ -542,9 +557,10 @@ export default function ModuleChatWindow({
     range.setEndAfter(textNode);
     selection.removeAllRanges();
     selection.addRange(range);
-    
+
     const parsed = parseMessage(inputRef.current);
     setText(parsed.text);
+    handleInput({ currentTarget: inputRef.current });
   };
 
   const renderInputHighlighter = (val) => {
@@ -656,6 +672,7 @@ export default function ModuleChatWindow({
       });
       toast.success("✅ Message scheduled!");
       setText("");
+      if (inputRef.current) inputRef.current.innerHTML = "";
       setSendAt("");
       refreshScheduled();
       setShowScheduledPanel(true);
@@ -978,6 +995,7 @@ export default function ModuleChatWindow({
                 )}
 
                 <div
+                  data-message-id={msg._id}
                   className="flex items-start gap-2.5 group"
                   onTouchStart={() => handleTouchStart(msg._id)}
                   onTouchEnd={handleTouchEnd}
@@ -1839,6 +1857,7 @@ export default function ModuleChatWindow({
           workspaceId={workspaceId}
           workspace={workspace}
           onClose={() => setShowPinnedPanel(false)}
+          onJumpToMessage={handleJumpToMessage}
         />
       )}
 
@@ -1848,6 +1867,7 @@ export default function ModuleChatWindow({
           moduleId={moduleId}
           workspace={workspace}
           onClose={() => setShowSearchPanel(false)}
+          onJumpToMessage={handleJumpToMessage}
         />
       )}
     </main>

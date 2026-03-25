@@ -3,8 +3,10 @@
  * Upload images to ImgBB and get their URLs
  */
 
-// Using ImgBB free API key - consider moving to .env
-const IMGBB_API_KEY = process.env.NEXT_PUBLIC_IMGBB_API_KEY || "9e8f0e8e0e8e0e8e";
+const IMGBB_API_KEY = process.env.NEXT_PUBLIC_IMGBB_API_KEY;
+if (!IMGBB_API_KEY) {
+  throw new Error("Missing NEXT_PUBLIC_IMGBB_API_KEY environment variable");
+}
 
 /**
  * Upload an image file to ImgBB

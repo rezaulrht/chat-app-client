@@ -306,7 +306,7 @@ export function ModuleProvider({ children, moduleId, workspaceId }) {
       });
 
       // Stop typing indicator
-      socket.emit("module:typing:stop", { moduleId, workspaceId });
+      socket.emit("module:typing:update", { moduleId, workspaceId, userId: user?._id, userName: user?.name, isTyping: false });
     },
     [socket, moduleId, workspaceId, user],
   );
@@ -314,12 +314,15 @@ export function ModuleProvider({ children, moduleId, workspaceId }) {
   const sendTyping = useCallback(
     (isTyping) => {
       if (!socket || !moduleId) return;
-      socket.emit(isTyping ? "module:typing:start" : "module:typing:stop", {
+      socket.emit("module:typing:update", {
         moduleId,
         workspaceId,
+        userId: user?._id,
+        userName: user?.name,
+        isTyping,
       });
     },
-    [socket, moduleId, workspaceId],
+    [socket, moduleId, workspaceId, user],
   );
 
   const reactToMessage = useCallback(

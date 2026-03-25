@@ -1,0 +1,39 @@
+.mention {
+  background: rgba(88, 101, 242, 0.15);
+  color: #5865f2;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  user-select: none;
+  border: 1px solid rgba(88, 101, 242, 0.3);
+  margin: 0 2px;
+  vertical-align: baseline;
+}
+
+.mention img {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* Contenteditable placeholder */
+[contenteditable="true"]:empty:before {
+  content: attr(placeholder);
+  color: rgba(250, 248, 245, 0.2);
+  pointer-events: none;
+  display: block;
+}
+
+/* Ensure contenteditable looks like an input */
+.message-input-rich {
+  min-height: 1.25rem;
+  max-height: 8rem;
+  overflow-y: auto;
+  word-break: break-word;
+  white-space: pre-wrap;
+  outline: none;
+}

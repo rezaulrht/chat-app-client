@@ -7,6 +7,8 @@ import useAuth from "@/hooks/useAuth";
 import useIsAdmin from "@/hooks/useIsAdmin";
 import MemberProfileModal from "@/components/workspace/MemberProfileModal";
 import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
+import api from "@/app/api/Axios";
 
 function RoleBadge({ color, name }) {
   return (
@@ -138,10 +140,16 @@ export default function MemberListPanel({
 
   const closeContextMenu = useCallback(() => setContextMenu(null), []);
 
-  const handleMessage = useCallback((userId) => {
-    // Placeholder: wire to DM feature when available
-    toast("DM feature coming soon");
-  }, []);
+  const router = useRouter();
+
+  const handleMessage = useCallback(async (userId) => {
+    try {
+      await api.post("/api/chat/conversations", { participantId: userId });
+      router.push("/app");
+    } catch {
+      toast.error("Could not open conversation");
+    }
+  }, [router]);
 
   useEffect(() => {
     if (workspaceId) fetchWorkspaceMembers(workspaceId);

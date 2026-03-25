@@ -24,6 +24,7 @@ import {
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
+import { useCall } from "@/hooks/useCall";
 import { useRouter } from "next/navigation";
 import { EMOJI_MAP } from "@/utils/emojis";
 import { formatLastSeen } from "@/utils/formatLastSeen";

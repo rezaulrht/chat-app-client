@@ -142,9 +142,9 @@ export default function CreateModuleModal({
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
       {/* Modal */}
-      <div className="relative w-full max-w-md bg-obsidian border border-white/[0.08] rounded-2xl shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-md bg-obsidian border border-white/8 rounded-2xl shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/[0.06]">
+        <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/6">
           <div>
             <h2 className="text-ivory font-display font-bold text-[15px]">
               Create Module
@@ -156,7 +156,7 @@ export default function CreateModuleModal({
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-xl flex items-center justify-center text-ivory/25 hover:text-ivory hover:bg-white/[0.06] transition-all"
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-ivory/25 hover:text-ivory hover:bg-white/6 transition-all"
           >
             <X size={16} />
           </button>
@@ -177,7 +177,7 @@ export default function CreateModuleModal({
                   className={`flex flex-col items-start gap-1.5 p-3 rounded-xl border transition-all text-left ${
                     type === value
                       ? "bg-accent/10 border-accent/40 text-ivory"
-                      : "bg-white/[0.03] border-white/[0.06] text-ivory/50 hover:border-white/[0.12] hover:text-ivory/70"
+                      : "bg-white/3 border-white/6 text-ivory/50 hover:border-white/12 hover:text-ivory/70"
                   }`}
                 >
                   <Icon
@@ -202,7 +202,7 @@ export default function CreateModuleModal({
             <label className="text-[11px] font-mono font-bold text-ivory/40 uppercase tracking-wider">
               Name
             </label>
-            <div className="flex items-center gap-2 bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2.5 focus-within:border-accent/30 transition-all">
+            <div className="flex items-center gap-2 bg-white/4 border border-white/6 rounded-xl px-3 py-2.5 focus-within:border-accent/30 transition-all">
               <Hash size={14} className="text-ivory/20 shrink-0" />
               <input
                 type="text"
@@ -228,7 +228,7 @@ export default function CreateModuleModal({
               Category
             </label>
             <select
-              className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2.5 text-ivory text-[13px] font-mono outline-none focus:border-accent/30 transition-all appearance-none cursor-pointer"
+              className="w-full bg-white/4 border border-white/6 rounded-xl px-3 py-2.5 text-ivory text-[13px] font-mono outline-none focus:border-accent/30 transition-all appearance-none cursor-pointer"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
             >
@@ -241,7 +241,7 @@ export default function CreateModuleModal({
           </div>
 
           {/* Private toggle */}
-          <div className="flex items-center justify-between bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-3">
+          <div className="flex items-center justify-between bg-white/3 border border-white/6 rounded-xl px-4 py-3">
             <div className="flex items-center gap-2.5">
               <Lock size={15} className="text-ivory/30" />
               <div>
@@ -263,7 +263,7 @@ export default function CreateModuleModal({
               className={`relative w-10 h-5 rounded-full border transition-all ${
                 isPrivate
                   ? "bg-accent/30 border-accent/40"
-                  : "bg-white/[0.06] border-white/[0.10]"
+                  : "bg-white/6 border-white/10"
               }`}
             >
               <span
@@ -323,7 +323,7 @@ export default function CreateModuleModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-2.5 rounded-xl text-[12px] font-mono font-bold text-ivory/30 hover:text-ivory bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] transition-all"
+              className="flex-1 py-2.5 rounded-xl text-[12px] font-mono font-bold text-ivory/30 hover:text-ivory bg-white/3 hover:bg-white/6 border border-white/6 transition-all"
             >
               Cancel
             </button>

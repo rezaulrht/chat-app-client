@@ -43,7 +43,7 @@ export default function WorkspaceListPage() {
                   <button
                     key={ws._id}
                     onClick={() => router.push(`/app/workspace/${ws._id}`)}
-                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/4 active:bg-white/[0.08] transition-all duration-150 group"
+                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/4 active:bg-white/8 transition-all duration-150 group"
                   >
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-display font-bold text-white/80 transition-all group-hover:shadow-lg bg-accent/10 border border-accent/20">
                       {ws.avatar ? (
@@ -91,7 +91,7 @@ export default function WorkspaceListPage() {
             </div>
 
             {/* User Status Bar (bottom) */}
-            <div className="h-14 glass-card mx-2 mb-2 rounded-xl px-3 flex items-center gap-2.5 group/user shrink-0 ring-1 ring-white/[0.04]">
+            <div className="h-14 glass-card mx-2 mb-2 rounded-xl px-3 flex items-center gap-2.5 group/user shrink-0 ring-1 ring-white/4">
               <div className="relative shrink-0 cursor-pointer group/avatar">
                 <div className="w-8 h-8 rounded-xl overflow-hidden ring-1 ring-white/6 group-hover/avatar:ring-accent/30 transition-all duration-200 shadow-[0_0_12px_rgba(0,211,187,0.05)]">
                   <img

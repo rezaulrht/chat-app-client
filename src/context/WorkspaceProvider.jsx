@@ -39,6 +39,8 @@ const apiBanMember = (wsId, targetUserId) =>
   api.post(`/api/workspaces/${wsId}/members/${targetUserId}/ban`);
 const apiUnbanMember = (wsId, targetUserId) =>
   api.delete(`/api/workspaces/${wsId}/members/${targetUserId}/ban`);
+const apiGetBannedUsers = (wsId) =>
+  api.get(`/api/workspaces/${wsId}/bans`).then((r) => r.data);
 
 // Role API
 const apiCreateRole = (wsId, data) =>
@@ -372,6 +374,10 @@ export function WorkspaceProvider({ children }) {
     await apiUnbanMember(workspaceId, userId);
   }, []);
 
+  const getBannedUsers = useCallback(async (workspaceId) => {
+    return apiGetBannedUsers(workspaceId);
+  }, []);
+
   // ── Socket: workspace + module live events ────────────────────────────────
   useEffect(() => {
     if (!socket) return;
@@ -666,6 +672,7 @@ export function WorkspaceProvider({ children }) {
     updateMemberRole,
     banMember,
     unbanMember,
+    getBannedUsers,
   };
 
   return (

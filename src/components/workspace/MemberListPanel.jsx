@@ -144,8 +144,8 @@ export default function MemberListPanel({
 
   const handleMessage = useCallback(async (userId) => {
     try {
-      await api.post("/api/chat/conversations", { participantId: userId });
-      router.push("/app");
+      const res = await api.post("/api/chat/conversations", { participantId: userId });
+      router.push(`/app?conv=${res.data._id}`);
     } catch {
       toast.error("Could not open conversation");
     }

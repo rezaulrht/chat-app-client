@@ -1,30 +1,67 @@
 "use client";
+import { useCallback } from "react";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import WorkspaceSidebar from "@/components/ChatDashboard/WorkspaceSidebar";
-import FeedView from "@/components/ChatDashboard/FeedView";
+import MobileBottomNav from "@/components/ChatDashboard/MobileBottomNav";
+import FeedView from "@/components/Feed/FeedView";
+import FeedSidebar from "@/components/Feed/FeedSidebar";
+import { FeedProvider } from "@/context/FeedProvider";
+import useFeed from "@/hooks/useFeed";
+
+function ConnectedLeftSidebar({ onTagFilter }) {
+  const { userStats, followedTags } = useFeed();
+  return (
+    <FeedSidebar
+      side="left"
+      userStats={userStats}
+      followedTags={followedTags}
+      onTagFilter={onTagFilter}
+    />
+  );
+}
+
+function FeedPageInner() {
+  const { setFilters, setPage } = useFeed();
+
+  const handleTagFilter = useCallback(
+    (tag) => {
+      if (!tag) return;
+      setFilters((prev) => {
+        const tags = prev.tags ?? [];
+        if (tags.includes(tag)) return prev;
+        return { ...prev, tags: [...tags, tag] };
+      });
+      setPage(1);
+    },
+    [setFilters, setPage],
+  );
+
+  return (
+    <div className="flex h-screen w-full bg-obsidian overflow-hidden">
+      {/* App nav + left sidebar */}
+      <div className="hidden xl:flex flex-col shrink-0 h-full w-[320px] border-r border-white/[0.06]">
+        <WorkspaceSidebar />
+        <div className="flex-1 min-h-0 overflow-hidden border-t border-white/[0.04]">
+          <ConnectedLeftSidebar onTagFilter={handleTagFilter} />
+        </div>
+      </div>
+
+      {/* Feed — handles its own three-column layout */}
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col pb-[72px] xl:pb-0">
+        <FeedView />
+      </div>
+
+      <MobileBottomNav />
+    </div>
+  );
+}
 
 export default function FeedPage() {
   return (
     <ProtectedRoute>
-      <div className="flex h-screen w-full bg-obsidian overflow-hidden">
-        {/* Unified Sidebar Area */}
-        <div className="hidden md:flex flex-col shrink-0 h-full w-80 overflow-hidden border-r border-white/6">
-          <WorkspaceSidebar />
-          <div className="flex-1 overflow-y-auto p-4">
-             <div className="px-1 py-1">
-                <div className="w-0.5 h-3 rounded-full bg-accent/30 mb-2" />
-                <p className="text-[10px] font-mono font-bold tracking-[0.15em] text-ivory/25 uppercase">
-                  Feed Controls
-                </p>
-             </div>
-          </div>
-        </div>
-
-        {/* Main Content Area */}
-        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
-          <FeedView />
-        </div>
-      </div>
+      <FeedProvider>
+        <FeedPageInner />
+      </FeedProvider>
     </ProtectedRoute>
   );
 }

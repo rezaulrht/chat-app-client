@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
+import api from "@/app/api/Axios";
 import Image from "next/image";
 import Link from "next/link";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
@@ -30,7 +32,9 @@ import {
   Sparkles,
   Globe,
   ChevronRight,
+  Rss,
 } from "lucide-react";
+import PostCard from "@/components/Feed/PostCard";
 
 // ── Role badge helper ───────────────────────────────────────────────────────
 function RoleBadge({ role }) {
@@ -112,7 +116,54 @@ function ProfilePage() {
   // UI state
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPw, setSavingPw] = useState(false);
-  const [activeSection, setActiveSection] = useState("edit"); // "edit" | "security"
+  const searchParams = useSearchParams();
+  const [activeSection, setActiveSection] = useState(
+    searchParams?.get("tab") === "posts" ? "posts" : "edit",
+  );
+  const [activePost, setActivePost] = useState(null);
+
+  // ── My posts (real API) ───────────────────────────────────────────────
+  const [myPosts, setMyPosts] = useState([]);
+  const [myPostsLoading, setMyPostsLoading] = useState(false);
+  const [myPostsPage, setMyPostsPage] = useState(1);
+  const [myPostsHasMore, setMyPostsHasMore] = useState(false);
+
+  const [myPostsError, setMyPostsError] = useState(false);
+  const [myPostsLoaded, setMyPostsLoaded] = useState(false);
+
+  const loadMyPosts = useCallback(
+    async (page = 1) => {
+      const userId = user?._id || user?.id;
+      if (!userId) return false;
+      setMyPostsLoading(true);
+      setMyPostsError(false);
+      try {
+        const res = await api.get(`/api/feed/users/${userId}/posts`, {
+          params: { page, limit: 20 },
+        });
+        const incoming = res.data.posts || [];
+        if (page === 1) setMyPosts(incoming);
+        else setMyPosts((prev) => [...prev, ...incoming]);
+        setMyPostsHasMore(res.data.hasMore ?? false);
+        setMyPostsLoaded(true);
+        return true;
+      } catch (err) {
+        console.error("loadMyPosts error:", err.message);
+        setMyPostsError(true);
+        return false;
+      } finally {
+        setMyPostsLoading(false);
+      }
+    },
+    [user],
+  );
+
+  useEffect(() => {
+    if (activeSection === "posts") {
+      setMyPostsPage(1);
+      loadMyPosts(1);
+    }
+  }, [activeSection, loadMyPosts]);
 
   // ── Avatar picker ─────────────────────────────────────────────────────
   const handleAvatarChange = (e) => {
@@ -331,14 +382,16 @@ function ProfilePage() {
           ))}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div
+          className={`grid gap-6 ${activeSection === "posts" ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"}`}
+        >
           {/* ════════════════════════════════════════════════════════════ */}
           {/* LEFT COLUMN                                                  */}
           {/* ════════════════════════════════════════════════════════════ */}
           <div className="space-y-4">
             {/* Section tabs */}
             <div className="flex gap-1 p-1 bg-white/[0.03] rounded-xl border border-white/[0.06]">
-              {["edit", ...(isLocal ? ["security"] : [])].map((s) => (
+              {["edit", ...(isLocal ? ["security"] : []), "posts"].map((s) => (
                 <button
                   key={s}
                   onClick={() => setActiveSection(s)}
@@ -348,7 +401,11 @@ function ProfilePage() {
                       : "text-ivory/25 hover:text-ivory/50"
                   }`}
                 >
-                  {s === "edit" ? "Edit Profile" : "Security"}
+                  {s === "edit"
+                    ? "Edit Profile"
+                    : s === "security"
+                      ? "Security"
+                      : "My Posts"}
                 </button>
               ))}
             </div>
@@ -461,6 +518,81 @@ function ProfilePage() {
                     "Save Changes"
                   )}
                 </button>
+              </div>
+            )}
+
+            {/* ── My Posts Section ── */}
+            {activeSection === "posts" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-ivory/25 flex items-center gap-1.5">
+                    <Rss size={10} className="text-accent/50" />
+                    Published Posts
+                    <span className="ml-1 px-1.5 py-0.5 rounded-full bg-accent/10 text-accent text-[9px] font-mono">
+                      {myPosts.length}
+                    </span>
+                  </h2>
+                </div>
+
+                {myPostsLoading && myPosts.length === 0 ? (
+                  <div className="flex justify-center py-10">
+                    <span className="text-accent/40 text-[12px] font-mono animate-pulse">
+                      Loading posts...
+                    </span>
+                  </div>
+                ) : myPostsError ? (
+                  <div className="glass-card rounded-2xl border border-white/[0.08] p-10 flex flex-col items-center justify-center gap-3 text-center">
+                    <p className="text-red-400/50 text-[13px] font-mono">
+                      Failed to load posts
+                    </p>
+                    <button
+                      onClick={() => loadMyPosts(1)}
+                      className="text-accent text-[12px] font-mono hover:underline"
+                    >
+                      Try again
+                    </button>
+                  </div>
+                ) : myPostsLoaded && myPosts.length === 0 ? (
+                  <div className="glass-card rounded-2xl border border-white/[0.08] p-10 flex flex-col items-center justify-center gap-3 text-center">
+                    <Rss size={28} className="text-ivory/10" />
+                    <p className="text-ivory/25 text-[13px] font-mono">
+                      No posts yet
+                    </p>
+                    <p className="text-ivory/15 text-[11px] font-mono max-w-xs">
+                      Share your knowledge — write articles, snippets, or ask
+                      questions in the Feed.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {myPosts.map((post) => (
+                      <PostCard
+                        key={post._id}
+                        post={post}
+                        currentUserId={user?._id || user?.id || "me"}
+                        onOpen={() => setActivePost(post)}
+                        onReact={() => {}}
+                        onShare={() => {}}
+                        onTagClick={() => {}}
+                        onEdit={() => {}}
+                        onDelete={() => {}}
+                      />
+                    ))}
+                    {myPostsHasMore && (
+                      <button
+                        onClick={async () => {
+                          const next = myPostsPage + 1;
+                          const ok = await loadMyPosts(next);
+                          if (ok) setMyPostsPage(next);
+                        }}
+                        disabled={myPostsLoading}
+                        className="w-full py-2 text-[11px] font-mono text-ivory/25 hover:text-ivory/50 transition-colors"
+                      >
+                        {myPostsLoading ? "Loading..." : "Load more"}
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
@@ -579,132 +711,137 @@ function ProfilePage() {
           </div>
 
           {/* ════════════════════════════════════════════════════════════ */}
-          {/* RIGHT COLUMN                                                 */}
+          {/* RIGHT COLUMN (hidden when browsing own posts)               */}
           {/* ════════════════════════════════════════════════════════════ */}
-          <div className="space-y-4">
-            {/* ── Account Details ── */}
-            <div className="glass-card rounded-2xl border border-white/[0.08] p-5 space-y-3">
-              <h2 className="text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-ivory/25 flex items-center gap-1.5 mb-3">
-                <Shield size={10} className="text-accent/50" />
-                Account Details
-              </h2>
-
-              {[
-                {
-                  icon: Mail,
-                  label: "Email",
-                  value: user?.email,
-                  extra: user?.isVerified ? (
-                    <span className="inline-flex items-center gap-1 text-[9px] font-mono text-emerald-400">
-                      <CheckCircle2 size={9} />
-                      verified
-                    </span>
-                  ) : (
-                    <span className="text-[9px] font-mono text-amber-400/70">
-                      unverified
-                    </span>
-                  ),
-                },
-                {
-                  icon: ProviderIcon,
-                  label: "Sign-in method",
-                  value: providerLabel,
-                },
-                {
-                  icon: Calendar,
-                  label: "Member since",
-                  value: memberSince,
-                },
-                {
-                  icon: Globe,
-                  label: "Account type",
-                  value:
-                    user?.provider === "local"
-                      ? "Local account"
-                      : `OAuth — ${providerLabel}`,
-                },
-                {
-                  icon: User,
-                  label: "User ID",
-                  value: user?.id ? `…${user.id.slice(-8)}` : "—",
-                  mono: true,
-                },
-              ].map(({ icon: Icon, label, value, extra, mono }) => (
-                <div
-                  key={label}
-                  className="flex items-start gap-3 py-2.5 border-b border-white/[0.04] last:border-0"
-                >
-                  <div className="w-7 h-7 rounded-lg bg-white/[0.04] flex items-center justify-center shrink-0 mt-0.5">
-                    <Icon size={12} className="text-ivory/25" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[9px] font-mono text-ivory/20 uppercase tracking-wider mb-0.5">
-                      {label}
-                    </p>
-                    <p
-                      className={`text-[12px] text-ivory/60 truncate ${mono ? "font-mono" : ""}`}
-                    >
-                      {value}
-                    </p>
-                    {extra && <div className="mt-0.5">{extra}</div>}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* ── My Workspaces ── */}
-            <div className="glass-card rounded-2xl border border-white/[0.08] p-5">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-ivory/25 flex items-center gap-1.5">
-                  <Building2 size={10} className="text-accent/50" />
-                  My Workspaces
-                  <span className="ml-1 px-1.5 py-0.5 rounded-full bg-accent/10 text-accent text-[9px] font-mono">
-                    {workspaceCount}
-                  </span>
+          {activeSection !== "posts" && (
+            <div className="space-y-4">
+              {/* ── Account Details ── */}
+              <div className="glass-card rounded-2xl border border-white/[0.08] p-5 space-y-3">
+                <h2 className="text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-ivory/25 flex items-center gap-1.5 mb-3">
+                  <Shield size={10} className="text-accent/50" />
+                  Account Details
                 </h2>
-                <Link
-                  href="/app"
-                  className="text-[10px] font-mono text-ivory/25 hover:text-accent transition-colors flex items-center gap-0.5"
-                >
-                  Open app <ChevronRight size={10} />
-                </Link>
+
+                {[
+                  {
+                    icon: Mail,
+                    label: "Email",
+                    value: user?.email,
+                    extra: user?.isVerified ? (
+                      <span className="inline-flex items-center gap-1 text-[9px] font-mono text-emerald-400">
+                        <CheckCircle2 size={9} />
+                        verified
+                      </span>
+                    ) : (
+                      <span className="text-[9px] font-mono text-amber-400/70">
+                        unverified
+                      </span>
+                    ),
+                  },
+                  {
+                    icon: ProviderIcon,
+                    label: "Sign-in method",
+                    value: providerLabel,
+                  },
+                  {
+                    icon: Calendar,
+                    label: "Member since",
+                    value: memberSince,
+                  },
+                  {
+                    icon: Globe,
+                    label: "Account type",
+                    value:
+                      user?.provider === "local"
+                        ? "Local account"
+                        : `OAuth — ${providerLabel}`,
+                  },
+                  {
+                    icon: User,
+                    label: "User ID",
+                    value: user?.id ? `…${user.id.slice(-8)}` : "—",
+                    mono: true,
+                  },
+                ].map(({ icon: Icon, label, value, extra, mono }) => (
+                  <div
+                    key={label}
+                    className="flex items-start gap-3 py-2.5 border-b border-white/[0.04] last:border-0"
+                  >
+                    <div className="w-7 h-7 rounded-lg bg-white/[0.04] flex items-center justify-center shrink-0 mt-0.5">
+                      <Icon size={12} className="text-ivory/25" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[9px] font-mono text-ivory/20 uppercase tracking-wider mb-0.5">
+                        {label}
+                      </p>
+                      <p
+                        className={`text-[12px] text-ivory/60 truncate ${mono ? "font-mono" : ""}`}
+                      >
+                        {value}
+                      </p>
+                      {extra && <div className="mt-0.5">{extra}</div>}
+                    </div>
+                  </div>
+                ))}
               </div>
 
-              {workspaces?.length === 0 ? (
-                <div className="text-center py-6">
-                  <Building2 size={24} className="mx-auto text-ivory/10 mb-2" />
-                  <p className="text-ivory/20 text-[11px] font-mono">
-                    No workspaces yet
-                  </p>
+              {/* ── My Workspaces ── */}
+              <div className="glass-card rounded-2xl border border-white/[0.08] p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-ivory/25 flex items-center gap-1.5">
+                    <Building2 size={10} className="text-accent/50" />
+                    My Workspaces
+                    <span className="ml-1 px-1.5 py-0.5 rounded-full bg-accent/10 text-accent text-[9px] font-mono">
+                      {workspaceCount}
+                    </span>
+                  </h2>
+                  <Link
+                    href="/app"
+                    className="text-[10px] font-mono text-ivory/25 hover:text-accent transition-colors flex items-center gap-0.5"
+                  >
+                    Open app <ChevronRight size={10} />
+                  </Link>
                 </div>
-              ) : (
-                <div className="space-y-2 max-h-72 overflow-y-auto scrollbar-hide">
-                  {workspaces.map((ws) => (
-                    <div
-                      key={ws._id}
-                      className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/[0.03] transition-colors duration-150 group"
-                    >
-                      {/* Workspace avatar */}
-                      <div className="w-8 h-8 rounded-xl bg-linear-to-br from-accent/20 to-accent/5 border border-white/[0.08] flex items-center justify-center shrink-0 text-[11px] font-display font-bold text-accent/60">
-                        {ws.name?.charAt(0)?.toUpperCase()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[12px] font-display font-bold text-ivory/70 truncate">
-                          {ws.name}
-                        </p>
-                        {ws.description && (
-                          <p className="text-[10px] font-mono text-ivory/25 truncate mt-0.5">
-                            {ws.description}
+
+                {workspaces?.length === 0 ? (
+                  <div className="text-center py-6">
+                    <Building2
+                      size={24}
+                      className="mx-auto text-ivory/10 mb-2"
+                    />
+                    <p className="text-ivory/20 text-[11px] font-mono">
+                      No workspaces yet
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-72 overflow-y-auto scrollbar-hide">
+                    {workspaces.map((ws) => (
+                      <div
+                        key={ws._id}
+                        className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/[0.03] transition-colors duration-150 group"
+                      >
+                        {/* Workspace avatar */}
+                        <div className="w-8 h-8 rounded-xl bg-linear-to-br from-accent/20 to-accent/5 border border-white/[0.08] flex items-center justify-center shrink-0 text-[11px] font-display font-bold text-accent/60">
+                          {ws.name?.charAt(0)?.toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[12px] font-display font-bold text-ivory/70 truncate">
+                            {ws.name}
                           </p>
-                        )}
+                          {ws.description && (
+                            <p className="text-[10px] font-mono text-ivory/25 truncate mt-0.5">
+                              {ws.description}
+                            </p>
+                          )}
+                        </div>
+                        <RoleBadge role={ws.myRole} />
                       </div>
-                      <RoleBadge role={ws.myRole} />
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

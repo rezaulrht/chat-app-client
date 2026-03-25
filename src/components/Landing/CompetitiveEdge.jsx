@@ -52,13 +52,12 @@ export default function CompetitiveEdge() {
   useEffect(() => {
     const ctx = gsap.context(() => {
       gsap.fromTo(
-        ".edge-card",
+        ".edge-card-wrap",
         { x: -40, opacity: 0 },
         {
           x: 0,
           opacity: 1,
           duration: 0.7,
-          stagger: 0.12,
           ease: "power3.out",
           scrollTrigger: { trigger: sectionRef.current, start: "top 70%" },
         },
@@ -109,41 +108,46 @@ export default function CompetitiveEdge() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
           {/* Left: Differentiators */}
-          <div className="space-y-5">
-            <h3 className="font-display text-xl font-bold text-ivory mb-2">
+          <div
+            className="edge-card-wrap rounded-3xl border border-white/[0.06] p-8 flex flex-col justify-between gap-6"
+            style={{ background: DEEP }}
+          >
+            <h3 className="font-display text-xl font-bold text-ivory">
               Why We&apos;re Different
             </h3>
-            {differentiators.map((item, i) => {
-              const Icon = item.icon;
-              return (
-                <motion.div
-                  key={i}
-                  whileHover={{ borderColor: item.color + "40" }}
-                  className="edge-card flex gap-5 p-6 rounded-2xl border border-white/[0.05] group transition-colors"
-                  style={{ background: DEEP }}
-                >
-                  <div
-                    className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300 group-hover:scale-110"
-                    style={{
-                      background: item.color + "15",
-                      border: "1px solid " + item.color + "25",
-                    }}
+            <div className="flex flex-col gap-5 flex-1">
+              {differentiators.map((item, i) => {
+                const Icon = item.icon;
+                return (
+                  <motion.div
+                    key={i}
+                    whileHover={{ borderColor: item.color + "40" }}
+                    className="edge-card flex gap-4 p-5 rounded-2xl border border-white/[0.05] group transition-colors"
+                    style={{ background: "rgba(255,255,255,0.02)" }}
                   >
-                    <Icon size={20} style={{ color: item.color }} />
-                  </div>
-                  <div>
-                    <h4 className="font-display font-bold text-lg text-ivory mb-1">
-                      {item.title}
-                    </h4>
-                    <p className="text-ivory/40 text-sm leading-relaxed">
-                      {item.description}
-                    </p>
-                  </div>
-                </motion.div>
-              );
-            })}
+                    <div
+                      className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300 group-hover:scale-110"
+                      style={{
+                        background: item.color + "15",
+                        border: "1px solid " + item.color + "25",
+                      }}
+                    >
+                      <Icon size={19} style={{ color: item.color }} />
+                    </div>
+                    <div>
+                      <h4 className="font-display font-bold text-base text-ivory mb-1">
+                        {item.title}
+                      </h4>
+                      <p className="text-ivory/40 text-sm leading-relaxed">
+                        {item.description}
+                      </p>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
           </div>
 
           {/* Right: Comparison Table */}
@@ -163,35 +167,30 @@ export default function CompetitiveEdge() {
             </h3>
 
             <div className="space-y-0 relative z-10 overflow-x-auto -mx-2 px-2">
-              <div className="grid grid-cols-3 pb-4 border-b border-white/[0.05] font-mono text-[10px] uppercase tracking-widest font-bold min-w-[320px]">
-                <div className="text-ivory/30">Feature</div>
-                <div className="text-center" style={{ color: ACCENT }}>
-                  ConvoX
-                </div>
-                <div className="text-center text-ivory/30">Others</div>
+              <div className="flex items-center pb-4 border-b border-white/[0.05] font-mono text-[10px] uppercase tracking-widest font-bold">
+                <div className="flex-1 text-ivory/30">Feature</div>
+                <div className="w-20 shrink-0 text-center" style={{ color: ACCENT }}>ConvoX</div>
+                <div className="w-16 shrink-0 text-center text-ivory/30">Others</div>
               </div>
 
               {comparison.map((row, i) => (
                 <div
                   key={i}
-                  className="grid grid-cols-3 py-4 items-center border-b border-white/[0.03] last:border-0 min-w-[320px]"
+                  className="flex items-center py-4 border-b border-white/[0.03] last:border-0"
                 >
-                  <div className="text-xs sm:text-sm font-medium text-ivory/60">
+                  <div className="flex-1 min-w-0 text-xs sm:text-sm font-medium text-ivory/60 pr-3">
                     {row.feature}
                   </div>
-                  <div className="text-center flex justify-center">
+                  <div className="w-20 shrink-0 flex justify-center">
                     {typeof row.convoX === "boolean" ? (
                       <Check size={18} style={{ color: ACCENT }} />
                     ) : (
-                      <span
-                        className="text-sm font-bold font-mono"
-                        style={{ color: ACCENT }}
-                      >
+                      <span className="text-sm font-bold font-mono" style={{ color: ACCENT }}>
                         {row.convoX}
                       </span>
                     )}
                   </div>
-                  <div className="text-center flex justify-center">
+                  <div className="w-16 shrink-0 flex justify-center">
                     {typeof row.traditional === "boolean" ? (
                       row.traditional ? (
                         <Check size={18} className="text-ivory/20" />

@@ -93,8 +93,6 @@ export function getMemberRole(conv, userId) {
 export function getGroupLastMessagePreview(lastMessage, currentUserId) {
   if (!lastMessage) return "No messages yet";
 
-  const content = lastMessage.gifUrl ? "GIF" : lastMessage.text || "";
-
   // Resolve sender identity
   const senderId =
     typeof lastMessage.sender === "object"
@@ -104,14 +102,29 @@ export function getGroupLastMessagePreview(lastMessage, currentUserId) {
   const senderName =
     typeof lastMessage.sender === "object" ? lastMessage.sender?.name : null;
 
-  if (!senderId) return content || "No messages yet";
+  const isMe = senderId === currentUserId;
+  const prefix = isMe
+    ? "You"
+    : senderName
+      ? senderName.split(" ")[0]
+      : null;
 
-  const prefix =
-    senderId === currentUserId
-      ? "You"
-      : senderName
-        ? senderName.split(" ")[0] // first name only
-        : null;
+  // Determine content label
+  let content;
+  if (lastMessage.gifUrl) {
+    content = "sent a GIF";
+  } else if (lastMessage.attachments?.length > 0) {
+    const att = lastMessage.attachments[0];
+    if (att.resourceType === "image") content = "sent an image";
+    else if (att.resourceType === "video") content = "sent a video";
+    else content = "sent a file";
+  } else {
+    content = lastMessage.text || "";
+    // Plain text — use old "Prefix: text" style
+    if (!senderId) return content || "No messages yet";
+    return prefix ? `${prefix}: ${content}` : content || "No messages yet";
+  }
 
-  return prefix ? `${prefix}: ${content}` : content || "No messages yet";
+  if (!senderId) return content;
+  return prefix ? `${prefix} ${content}` : content;
 }

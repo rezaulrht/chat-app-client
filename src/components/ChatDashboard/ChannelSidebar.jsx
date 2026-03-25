@@ -24,6 +24,8 @@ import useAuth from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import toast from "react-hot-toast";
 import UserProfileModal from "@/components/profile/UserProfileModal";
+import VoiceChannelStrip from "@/components/calls/VoiceChannelStrip";
+import VoiceChannelBar from "@/components/calls/VoiceChannelBar";
 
 export default function ChannelSidebar({
   selectedWorkspaceId,
@@ -31,6 +33,7 @@ export default function ChannelSidebar({
   activeModuleId,
   onSettingsOpen, // () => void — opens WorkspaceSettingsPanel
   onCreateModule, // () => void — opens CreateModuleModal (later by Member 6)
+  onModuleSettingsOpen, // (moduleId) => void — opens ModuleSettingsModal
 }) {
   const { user: currentUser, logout } = useAuth();
   const {
@@ -147,8 +150,10 @@ export default function ChannelSidebar({
     <aside className="w-full glass-panel flex flex-col shrink-0 flex-1 min-h-0 overflow-hidden">
       {/* Workspace Header (click to open settings) */}
       <div
-        onClick={() => onSettingsOpen?.()}
-        className="h-13 px-4 flex items-center justify-between border-b border-white/6 hover:bg-white/3 cursor-pointer transition-all duration-300 group relative"
+        onClick={() => {
+          onSettingsOpen?.();
+        }}
+        className={`h-13 px-4 flex items-center justify-between border-b border-white/6 hover:bg-white/3 transition-all duration-300 group relative cursor-pointer`}
       >
         <div className="flex items-center gap-2 min-w-0">
           {onBack && (
@@ -325,6 +330,16 @@ export default function ChannelSidebar({
                   {/* Module Items */}
                   <div className="space-y-px">
                     {group.modules.map((mod) => {
+                      if (mod.type === "voice" || mod.isVoiceChannel) {
+                        return (
+                          <VoiceChannelStrip
+                            key={mod._id}
+                            module={mod}
+                            workspaceId={selectedWorkspaceId}
+                          />
+                        );
+                      }
+
                       const isActive = mod._id === activeModuleId;
                       const isAnnouncement = mod.type === "announcement";
                       const Icon = isAnnouncement ? Megaphone : Hash;
@@ -337,11 +352,10 @@ export default function ChannelSidebar({
                               `/app/workspace/${selectedWorkspaceId}/${mod._id}`,
                             )
                           }
-                          className={`flex items-center gap-2.5 px-2 py-[7px] rounded-xl cursor-pointer group/ch transition-all duration-200 relative ${
-                            isActive
+                          className={`flex items-center gap-2.5 px-2 py-[7px] rounded-xl cursor-pointer group/ch transition-all duration-200 relative ${isActive
                               ? "bg-white/6 text-ivory backdrop-blur-sm"
                               : "hover:bg-white/3 text-ivory/30 hover:text-ivory/60"
-                          }`}
+                            }`}
                         >
                           {isActive && (
                             <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 bg-accent rounded-r-full shadow-[0_0_6px_rgba(0,211,187,0.4)]" />
@@ -368,6 +382,18 @@ export default function ChannelSidebar({
                             <span className="text-[10px] font-bold font-mono bg-accent/20 text-accent rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
                               {mod.unreadCount > 99 ? "99+" : mod.unreadCount}
                             </span>
+                          )}
+                          
+                          {isAdminOrOwner && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onModuleSettingsOpen?.(mod._id);
+                              }}
+                              className="text-ivory/20 hover:text-accent opacity-0 group-hover/ch:opacity-100 transition-all rounded p-1 hover:bg-white/5 absolute right-2"
+                            >
+                              <Settings size={13} />
+                            </button>
                           )}
                         </div>
                       );
@@ -423,14 +449,14 @@ export default function ChannelSidebar({
                 </p>
                 {(workspace?.myRole === "owner" ||
                   workspace?.myRole === "admin") && (
-                  <button
-                    onClick={() => onCreateModule?.("General")}
-                    className="flex items-center gap-1.5 mx-auto text-[11px] font-mono text-accent/60 hover:text-accent transition-colors duration-200"
-                  >
-                    <Plus size={12} />
-                    Add a module
-                  </button>
-                )}
+                    <button
+                      onClick={() => onCreateModule?.("General")}
+                      className="flex items-center gap-1.5 mx-auto text-[11px] font-mono text-accent/60 hover:text-accent transition-colors duration-200"
+                    >
+                      <Plus size={12} />
+                      Add a module
+                    </button>
+                  )}
               </div>
             )}
           </div>
@@ -441,6 +467,9 @@ export default function ChannelSidebar({
       {showProfile && (
         <UserProfileModal onClose={() => setShowProfile(false)} />
       )}
+
+      {/* Voice Channel Bar — shown above status bar when in a voice channel */}
+      <VoiceChannelBar />
 
       {/* User Status Bar (bottom) */}
       <div className="mx-2 mb-2 p-2.5 glass-card rounded-2xl flex items-center gap-2.5">

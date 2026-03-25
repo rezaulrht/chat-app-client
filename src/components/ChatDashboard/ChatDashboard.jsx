@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { MessageCircle, Home } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 
 import Sidebar from "./SidebarChats";
 import ChatWindow from "./ChatWindow";
@@ -16,6 +17,9 @@ import { sortConversations } from "@/utils/sortConversations";
 import toast from "react-hot-toast";
 
 export default function ChatDashboard() {
+  const searchParams = useSearchParams();
+  const initialConvId = searchParams.get("conv");
+
   const [conversations, setConversations] = useState([]);
   const [activeConversationId, setActiveConversationId] = useState(null);
   const [loadingConversations, setLoadingConversations] = useState(true);
@@ -55,7 +59,8 @@ export default function ChatDashboard() {
         }
 
         if (sorted.length > 0) {
-          setActiveConversationId(sorted[0]._id);
+          const target = initialConvId && sorted.find((c) => c._id === initialConvId);
+          setActiveConversationId(target ? target._id : sorted[0]._id);
         }
       } catch (err) {
         console.error("Failed to fetch conversations:", err);

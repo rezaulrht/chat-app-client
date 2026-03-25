@@ -10,6 +10,7 @@ import { Toaster } from "react-hot-toast";
 import { SocketProvider } from "@/context/SocketProvider";
 import { WorkspaceProvider } from "@/context/WorkspaceProvider";
 import { CallProvider } from "@/context/CallProvider";
+import { FeedProvider } from "@/context/FeedProvider";
 import CallOverlays from "@/components/calls/CallOverlays";
 
 const inter = Inter({
@@ -55,7 +56,11 @@ export default function RootLayout({ children }) {
           <SocketProvider>
             <CallProvider>
               <CallOverlays />
-              <WorkspaceProvider>{children}</WorkspaceProvider>
+              {/* WorkspaceProvider wraps everything workspace-related */}
+              <WorkspaceProvider>
+                {/* FeedProvider wraps everything so Profile modals etc work */}
+                <FeedProvider>{children}</FeedProvider>
+              </WorkspaceProvider>
             </CallProvider>
           </SocketProvider>
         </Providers>

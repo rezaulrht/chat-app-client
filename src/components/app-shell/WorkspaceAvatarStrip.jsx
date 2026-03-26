@@ -34,6 +34,7 @@ export default function WorkspaceAvatarStrip({ activeWorkspaceId, modules = [], 
                   key={ws._id}
                   onClick={() => router.push(`/app/workspace/${ws._id}`)}
                   className="flex flex-col items-center gap-1 shrink-0 group"
+                  aria-label={ws.name}
                 >
                   <div
                     className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-display font-bold transition-all ${
@@ -45,7 +46,7 @@ export default function WorkspaceAvatarStrip({ activeWorkspaceId, modules = [], 
                     {ws.avatar ? (
                       <img src={ws.avatar} alt={ws.name} className="w-full h-full rounded-xl object-cover" />
                     ) : (
-                      ws.name[0].toUpperCase()
+                      (ws.name?.[0] ?? "?").toUpperCase()
                     )}
                   </div>
                   {isActive && (

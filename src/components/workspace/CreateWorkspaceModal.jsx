@@ -186,7 +186,12 @@ export default function CreateWorkspaceModal({ trigger = null }) {
     <>
       {/* Trigger: custom element or default button */}
       {trigger ? (
-        React.cloneElement(trigger, { onClick: () => setIsOpen(true) })
+        React.cloneElement(trigger, {
+          onClick: (e) => {
+            trigger.props.onClick?.(e);
+            setIsOpen(true);
+          },
+        })
       ) : (
         <button
           onClick={() => setIsOpen(true)}

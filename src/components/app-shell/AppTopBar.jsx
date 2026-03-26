@@ -3,11 +3,12 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, ChevronLeft, User, LogOut, MessageCircle, Compass, Layers } from "lucide-react";
+import { Menu, ChevronLeft, User, LogOut, MessageCircle, Compass, Layers, Home } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 import { useAppShell } from "./AppShellContext";
 
 const TABS = [
+  { id: "landing",   label: "Home",      href: "/",              icon: Home },
   { id: "home",      label: "Chats",     href: "/app",           icon: MessageCircle },
   { id: "feed",      label: "Feed",      href: "/app/feed",      icon: Compass },
   { id: "workspace", label: "Workspace", href: "/app/workspace", icon: Layers },
@@ -16,7 +17,8 @@ const TABS = [
 function getActiveTab(pathname) {
   if (pathname.startsWith("/app/workspace") || pathname.startsWith("/app/discover")) return "workspace";
   if (pathname.startsWith("/app/feed")) return "feed";
-  return "home";
+  if (pathname.startsWith("/app")) return "home";
+  return "landing";
 }
 
 export default function AppTopBar() {
@@ -104,14 +106,6 @@ export default function AppTopBar() {
       </div>
 
       <div className="flex-1" />
-
-      {/* Go to site — desktop only */}
-      <Link
-        href="/"
-        className="hidden lg:flex items-center px-3 py-1.5 rounded-lg text-[11px] font-display font-bold text-accent/60 hover:text-accent bg-accent/[0.06] border border-accent/[0.12] hover:bg-accent/[0.1] transition-all"
-      >
-        Go to site
-      </Link>
 
       {/* Feed: compose button — mobile only (desktop has compose in the Feed sidebar) */}
       {isFeed && (

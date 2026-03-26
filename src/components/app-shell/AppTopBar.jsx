@@ -3,14 +3,14 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, ChevronLeft, User, LogOut } from "lucide-react";
+import { Menu, ChevronLeft, User, LogOut, MessageCircle, Compass, Layers } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 import { useAppShell } from "./AppShellContext";
 
 const TABS = [
-  { id: "home",      label: "Chats",  href: "/app" },
-  { id: "feed",      label: "Feed",   href: "/app/feed" },
-  { id: "workspace", label: "Spaces", href: "/app/workspace" },
+  { id: "home",      label: "Chats",     href: "/app",           icon: MessageCircle },
+  { id: "feed",      label: "Feed",      href: "/app/feed",      icon: Compass },
+  { id: "workspace", label: "Workspace", href: "/app/workspace", icon: Layers },
 ];
 
 function getActiveTab(pathname) {
@@ -84,19 +84,20 @@ export default function AppTopBar() {
 
       {/* Nav pills — centered absolutely (desktop/tablet only) */}
       <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-0.5 p-1 rounded-xl bg-white/[0.03] border border-white/[0.04]">
-        {TABS.map((tab) => {
-          const isActive = activeTab === tab.id;
+        {TABS.map(({ id, label, href, icon: Icon }) => {
+          const isActive = activeTab === id;
           return (
             <Link
-              key={tab.id}
-              href={tab.href}
-              className={`px-4 py-1.5 rounded-lg text-[11px] font-display font-bold tracking-wide transition-all duration-200 ${
+              key={id}
+              href={href}
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[11px] font-display font-bold tracking-wide transition-all duration-200 ${
                 isActive
                   ? "bg-accent/10 border border-accent/[0.18] text-accent"
                   : "text-ivory/30 hover:text-ivory/60 hover:bg-white/[0.04]"
               }`}
             >
-              {tab.label}
+              <Icon size={12} />
+              {label}
             </Link>
           );
         })}

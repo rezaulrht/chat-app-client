@@ -4,13 +4,13 @@ import Image from "next/image";
 import { LogOut } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 
-export default function AppSidebar({ label, children, className = "" }) {
+export default function AppSidebar({ label, children, className = "", style = {} }) {
   const { user, logout } = useAuth();
 
   return (
     <div
       className={`hidden md:flex flex-col shrink-0 h-full border-r border-white/[0.06] bg-deep overflow-hidden ${className}`}
-      style={{ width: "var(--sidebar-width, 320px)" }}
+      style={{ width: "var(--sidebar-width, 320px)", ...style }}
     >
       {/* Section label */}
       {label && (

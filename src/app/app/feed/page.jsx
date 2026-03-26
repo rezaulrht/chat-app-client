@@ -54,7 +54,7 @@ function FeedPageInner() {
         >
           <div className="absolute inset-0 bg-black/60" />
           <div
-            className="absolute left-0 top-12 md:top-14 bottom-16 w-72 bg-deep border-r border-accent/[0.12] flex flex-col overflow-hidden"
+            className="absolute left-0 top-12 bottom-16 w-72 bg-deep border-r border-accent/[0.12] flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="h-px" style={{ background: "linear-gradient(90deg, rgba(0,211,187,0.5), rgba(162,139,250,0.3), transparent)" }} />
@@ -90,7 +90,8 @@ function FeedPageInner() {
         </div>
 
         {/* Feed */}
-        <div className="flex-1 min-h-0 overflow-hidden flex flex-col pb-[72px] md:pb-0">
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+          {/* TODO: wire feedType into FeedView filter logic — currently FeedView ignores this prop */}
           <FeedView feedType={feedType} />
         </div>
       </div>

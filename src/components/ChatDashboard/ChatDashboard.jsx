@@ -9,7 +9,7 @@ import { useSearchParams } from "next/navigation";
 import Sidebar from "./SidebarChats";
 import ChatWindow from "./ChatWindow";
 import GroupInfoPanel from "./GroupInfoPanel";
-import WorkspaceSidebar from "./WorkspaceSidebar";
+import AppSidebar from "@/components/app-shell/AppSidebar";
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
@@ -379,7 +379,7 @@ export default function ChatDashboard() {
 
   if (loadingConversations) {
     return (
-      <div className="flex h-screen w-full bg-obsidian items-center justify-center flex-col gap-6 relative overflow-hidden">
+      <div className="flex h-full w-full bg-obsidian items-center justify-center flex-col gap-6 relative overflow-hidden">
         {/* Ambient glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-accent/5 blur-[120px] rounded-full pointer-events-none" />
         <div className="relative z-10 flex flex-col items-center gap-5">
@@ -401,7 +401,7 @@ export default function ChatDashboard() {
   }
 
   return (
-    <div className="flex flex-col md:flex-row h-screen w-full bg-obsidian overflow-hidden font-sans relative">
+    <div className="flex flex-col md:flex-row h-full w-full bg-obsidian overflow-hidden font-sans relative">
       {/* Mobile Backdrops */}
       {(isSidebarOpen ||
         (showGroupInfo && activeConversation?.type === "group")) && (
@@ -417,11 +417,7 @@ export default function ChatDashboard() {
       {/* Main row: sidebar + content (fills remaining height above bottom nav) */}
       <div className="flex flex-1 min-h-0 w-full">
         {/* ═══ Desktop: Unified Sidebar ═══ */}
-        <div className="hidden md:flex flex-col shrink-0 h-full w-80 overflow-hidden border-r border-white/6">
-          {/* Tab Navigation Header */}
-          <WorkspaceSidebar />
-
-          {/* Chats Tab → Conversation List */}
+        <AppSidebar label="Direct Messages" className="w-80">
           <Sidebar
             conversations={conversations}
             activeConversationId={activeConversationId}
@@ -432,7 +428,7 @@ export default function ChatDashboard() {
             onNewConversation={handleNewConversation}
             onConversationUpdate={handleConversationUpdate}
           />
-        </div>
+        </AppSidebar>
 
         {/* ═══ Mobile: Slide-in Sidebar ═══ */}
         <div

@@ -1,7 +1,6 @@
 "use client";
 import { useCallback, useState } from "react";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
-import MobileBottomNav from "@/components/ChatDashboard/MobileBottomNav";
 import FeedView from "@/components/Feed/FeedView";
 import FeedSidebar from "@/components/Feed/FeedSidebar";
 import { FeedProvider } from "@/context/FeedProvider";
@@ -95,8 +94,6 @@ function FeedPageInner() {
           <FeedView feedType={feedType} />
         </div>
       </div>
-
-      <MobileBottomNav />
     </div>
   );
 }

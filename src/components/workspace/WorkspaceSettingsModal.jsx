@@ -1223,15 +1223,15 @@ export default function WorkspaceSettingsModal({ workspaceId, onClose }) {
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative w-full max-w-3xl h-[88vh] max-h-180 bg-[#0e0e17] rounded-3xl shadow-2xl shadow-black/60 flex overflow-hidden ring-1 ring-white/6 mx-4">
-        {/* ── Left nav */}
-        <nav className="w-52 shrink-0 border-r border-white/6 bg-white/1.5 flex flex-col py-4 overflow-y-auto scrollbar-hide">
-          <div className="px-4 mb-5">
+      <div className="relative w-full md:max-w-3xl h-[100dvh] md:h-[88vh] md:max-h-[720px] bg-[#0e0e17] md:rounded-3xl shadow-2xl shadow-black/60 flex flex-col md:flex-row overflow-hidden ring-1 ring-white/6 md:mx-4">
+        {/* ── Nav: horizontal tabs on mobile, vertical sidebar on desktop */}
+        <nav className="shrink-0 border-b border-white/6 md:border-b-0 md:border-r md:w-52 bg-white/[0.015] flex flex-row md:flex-col md:py-4 overflow-x-auto md:overflow-x-hidden md:overflow-y-auto scrollbar-hide">
+          <div className="hidden md:block px-4 mb-5">
             <p className="text-[10px] font-mono font-bold text-ivory/25 uppercase tracking-widest">Settings</p>
             <p className="text-[13px] font-display font-bold text-ivory/70 mt-1 truncate">{workspace.name}</p>
           </div>
 
-          <div className="flex-1 space-y-0.5 px-2">
+          <div className="flex flex-row md:flex-col md:space-y-0.5 md:flex-1 px-2 py-2 md:py-0 gap-1 md:gap-0">
             {TABS.map((tab) => {
               const Icon = tab.Icon;
               const isActive = activeTab === tab.id;
@@ -1242,7 +1242,7 @@ export default function WorkspaceSettingsModal({ workspaceId, onClose }) {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12px] font-medium transition-all ${isActive
+                  className={`shrink-0 md:w-full flex items-center gap-2 md:gap-2.5 px-3 py-2 rounded-xl text-[12px] font-medium transition-all ${isActive
                     ? "bg-accent/12 text-accent"
                     : tab.id === "danger"
                       ? "text-red-400/50 hover:text-red-400 hover:bg-red-500/8"
@@ -1250,8 +1250,8 @@ export default function WorkspaceSettingsModal({ workspaceId, onClose }) {
                     }`}
                 >
                   <Icon size={14} />
-                  {tab.label}
-                  {isActive && <ChevronRight size={11} className="ml-auto" />}
+                  <span className="whitespace-nowrap">{tab.label}</span>
+                  {isActive && <ChevronRight size={11} className="ml-auto hidden md:block" />}
                 </button>
               );
             })}
@@ -1259,9 +1259,9 @@ export default function WorkspaceSettingsModal({ workspaceId, onClose }) {
         </nav>
 
         {/* ── Content */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden min-h-0">
           {/* Header */}
-          <div className="h-14 px-6 flex items-center justify-between border-b border-white/6 shrink-0">
+          <div className="h-14 px-4 md:px-6 flex items-center justify-between border-b border-white/6 shrink-0">
             <h2 className="text-[15px] font-display font-bold text-ivory">
               {TABS.find((t) => t.id === activeTab)?.label}
             </h2>
@@ -1271,7 +1271,7 @@ export default function WorkspaceSettingsModal({ workspaceId, onClose }) {
           </div>
 
           {/* Scrollable content */}
-          <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 scrollbar-hide">
             {activeTab === "overview" && (
               <OverviewTab workspace={workspace} onUpdate={(d) => updateWorkspace(workspaceId, d)} />
             )}

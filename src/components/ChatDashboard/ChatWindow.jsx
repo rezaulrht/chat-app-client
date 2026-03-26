@@ -1521,12 +1521,7 @@ export default function ChatWindow({
       )}
       <header className="h-17 border-b border-white/5 flex justify-between items-center px-3 sm:px-5 bg-obsidian/80 backdrop-blur-sm shrink-0">
         <div className="flex items-center gap-3">
-          <button
-            onClick={toggleSidebar}
-            className="md:hidden w-8 h-8 rounded-xl bg-white/4 flex items-center justify-center text-ivory/30 hover:text-ivory transition-colors"
-          >
-            <Menu size={18} />
-          </button>
+          {/* Hamburger removed — AppTopBar handles mobile sidebar toggle */}
           {isGroup ? (
             <>
               <div className="w-10 h-10 rounded-2xl shrink-0 overflow-hidden">

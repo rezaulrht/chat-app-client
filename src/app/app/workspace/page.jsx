@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation";
 import { Layers, Loader2, Compass } from "lucide-react";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import AppSidebar from "@/components/app-shell/AppSidebar";
-import WorkspaceAvatarStrip from "@/components/app-shell/WorkspaceAvatarStrip";
+import MobileWorkspaceSidebar from "@/components/app-shell/MobileWorkspaceSidebar";
 import CreateWorkspaceModal from "@/components/workspace/CreateWorkspaceModal";
 import { useWorkspace } from "@/hooks/useWorkspace";
 
@@ -64,8 +64,8 @@ export default function WorkspaceListPage() {
           </div>
         </AppSidebar>
 
-        {/* Mobile: always-visible avatar strip */}
-        <WorkspaceAvatarStrip activeWorkspaceId={null} />
+        {/* Mobile: workspace avatars + placeholder */}
+        <MobileWorkspaceSidebar activeWorkspaceId={null} />
 
         {/* Desktop: empty state */}
         <div className="hidden md:flex flex-1 items-center justify-center">

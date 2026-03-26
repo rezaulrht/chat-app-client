@@ -10,6 +10,7 @@ import Sidebar from "./SidebarChats";
 import ChatWindow from "./ChatWindow";
 import GroupInfoPanel from "./GroupInfoPanel";
 import AppSidebar from "@/components/app-shell/AppSidebar";
+import { useAppShell } from "@/components/app-shell/AppShellContext";
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
@@ -28,8 +29,8 @@ export default function ChatDashboard() {
   const { socket, fetchLastSeenTimes } = useSocket() || {};
   const { user } = useAuth(); // ← New (for self-message check)
 
-  // Responsive sidebar states
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  // Responsive sidebar state — driven by AppTopBar hamburger via context
+  const { isSidebarOpen, setIsSidebarOpen } = useAppShell();
 
   // Refs to avoid stale closures in socket handlers
   const conversationsRef = useRef([]);

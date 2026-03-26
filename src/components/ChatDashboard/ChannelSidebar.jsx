@@ -1,6 +1,5 @@
 "use client";
 import React, { useEffect, useMemo } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   Hash,
@@ -18,7 +17,6 @@ import {
   MoreHorizontal,
   Pencil,
   Trash2,
-  LogOut,
 } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
@@ -35,7 +33,7 @@ export default function ChannelSidebar({
   onCreateModule, // () => void — opens CreateModuleModal (later by Member 6)
   onModuleSettingsOpen, // (moduleId) => void — opens ModuleSettingsModal
 }) {
-  const { user: currentUser, logout } = useAuth();
+  const { user: currentUser } = useAuth();
   const {
     modulesCache,
     loadingModules,
@@ -471,58 +469,6 @@ export default function ChannelSidebar({
       {/* Voice Channel Bar — shown above status bar when in a voice channel */}
       <VoiceChannelBar />
 
-      {/* User Status Bar (bottom) */}
-      <div className="mx-2 mb-2 p-2.5 glass-card rounded-2xl flex items-center gap-2.5">
-        <div
-          onClick={() => setShowProfile(true)}
-          className="relative shrink-0 cursor-pointer group/av"
-        >
-          {/* TODO: restore avatar overlay presence dot once socket presence is wired */}
-          <div className="w-8 h-8 rounded-xl overflow-hidden ring-1 ring-white/6 group-hover/av:ring-accent/40 transition-all duration-300">
-            <Image
-              src={
-                currentUser?.avatar ||
-                `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser?.name}`
-              }
-              width={32}
-              height={32}
-              className="rounded-xl"
-              alt="avatar"
-              unoptimized
-            />
-          </div>
-          <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-deep bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
-        </div>
-        <div
-          onClick={() => setShowProfile(true)}
-          className="flex-1 min-w-0 cursor-pointer group/u"
-        >
-          <p className="text-ivory text-[13px] font-display font-bold truncate leading-tight group-hover/u:text-accent transition-colors duration-200 hover:underline decoration-accent/40 underline-offset-2">
-            {currentUser?.name?.split(" ")[0]}
-          </p>
-          <p className="text-ivory/20 text-[10px] truncate leading-tight flex items-center gap-1 font-mono">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_4px_rgba(52,211,153,0.4)]" />
-            Online
-          </p>
-        </div>
-
-        <div className="flex items-center gap-0.5 opacity-40 group-hover/user:opacity-80 transition-opacity">
-          <button
-            onClick={() => onSettingsOpen?.()}
-            className="p-1.5 rounded-lg hover:bg-white/6 text-ivory/40 hover:text-ivory/60 transition-all duration-200"
-            title="Workspace Settings"
-          >
-            <Settings size={15} />
-          </button>
-          <button
-            onClick={() => logout()}
-            className="p-1.5 rounded-lg hover:bg-white/6 text-ivory/40 hover:text-ivory/60 transition-all duration-200"
-            title="Logout"
-          >
-            <LogOut size={15} />
-          </button>
-        </div>
-      </div>
     </aside>
   );
 }

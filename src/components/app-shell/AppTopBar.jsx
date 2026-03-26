@@ -1,9 +1,9 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, ChevronLeft } from "lucide-react";
+import { Menu, ChevronLeft, User, LogOut } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 import { useAppShell } from "./AppShellContext";
 
@@ -22,12 +22,26 @@ function getActiveTab(pathname) {
 export default function AppTopBar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { setIsSidebarOpen, backNav } = useAppShell();
   const activeTab = getActiveTab(pathname);
   const isFeed = pathname.startsWith("/app/feed");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const dropdownRef = useRef(null);
+
   useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    if (!dropdownOpen) return;
+    function handleClick(e) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [dropdownOpen]);
 
   return (
     <header className="h-12 md:h-14 shrink-0 flex items-center px-4 gap-3 bg-deep/95 backdrop-blur-xl border-b border-white/[0.06] relative z-40">
@@ -109,25 +123,53 @@ export default function AppTopBar() {
         </Link>
       )}
 
-      {/* Avatar */}
+      {/* Profile button + dropdown */}
       {mounted && user && (
-        <Link
-          href="/profile"
-          className="relative shrink-0 group/avatar"
-          title="My Profile"
-        >
-          <div className="w-7 h-7 rounded-xl overflow-hidden ring-1 ring-white/[0.08] group-hover/avatar:ring-accent/40 transition-all">
+        <div className="relative shrink-0" ref={dropdownRef}>
+          <button
+            onClick={() => setDropdownOpen((v) => !v)}
+            className="relative w-8 h-8 rounded-xl overflow-hidden ring-1 ring-white/[0.08] hover:ring-accent/40 transition-all"
+            aria-label="Profile menu"
+          >
             <Image
               src={user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name || "user"}`}
-              width={28}
-              height={28}
+              width={32}
+              height={32}
               className="w-full h-full object-cover"
               alt="avatar"
               unoptimized
             />
-          </div>
-          <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-deep bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
-        </Link>
+            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-deep bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
+          </button>
+
+          {dropdownOpen && (
+            <div className="absolute right-0 top-full mt-2 w-52 glass-card rounded-2xl border border-white/[0.08] shadow-[0_16px_48px_rgba(0,0,0,0.4)] overflow-hidden z-50">
+              {/* User info */}
+              <div className="px-4 py-3 border-b border-white/[0.06]">
+                <p className="text-ivory text-[13px] font-display font-bold truncate">{user.name}</p>
+                <p className="text-ivory/30 text-[11px] font-mono truncate mt-0.5">{user.email}</p>
+              </div>
+              {/* Actions */}
+              <div className="p-1.5 flex flex-col gap-0.5">
+                <Link
+                  href="/profile"
+                  onClick={() => setDropdownOpen(false)}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-ivory/70 hover:text-ivory hover:bg-white/[0.05] transition-all text-[13px] font-display font-semibold"
+                >
+                  <User size={14} className="text-ivory/40" />
+                  My Profile
+                </Link>
+                <button
+                  onClick={() => { setDropdownOpen(false); logout(); }}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-ivory/70 hover:text-red-400 hover:bg-red-500/[0.08] transition-all text-[13px] font-display font-semibold w-full text-left"
+                >
+                  <LogOut size={14} className="text-ivory/40 group-hover:text-red-400" />
+                  Logout
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </header>
   );

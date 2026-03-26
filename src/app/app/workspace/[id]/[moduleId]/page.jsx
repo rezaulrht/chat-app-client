@@ -11,6 +11,7 @@ import ModuleChatWindow from "@/components/workspace/ModuleChatWindow";
 import CreateModuleModal from "@/components/workspace/CreateModuleModal";
 import ModuleSettingsModal from "@/components/workspace/ModuleSettingsModal";
 import AppSidebar from "@/components/app-shell/AppSidebar";
+import MobileWorkspaceSidebar from "@/components/app-shell/MobileWorkspaceSidebar";
 import { useAppShell } from "@/components/app-shell/AppShellContext";
 
 export default function ModulePage() {
@@ -55,7 +56,7 @@ export default function ModulePage() {
           />
         </AppSidebar>
 
-        {/* Mobile: slide-in overlay (opened by hamburger in ModuleChatWindow or AppTopBar) */}
+        {/* Mobile: slide-in overlay (opened by AppTopBar hamburger) */}
         {isSidebarOpen && (
           <div className="md:hidden fixed inset-0 z-50" onClick={() => setIsSidebarOpen(false)}>
             <div className="absolute inset-0 bg-black/60" />
@@ -63,11 +64,10 @@ export default function ModulePage() {
               className="absolute left-0 top-12 bottom-16 w-72 bg-deep border-r border-accent/[0.12] flex flex-col overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="h-px shrink-0" style={{ background: "linear-gradient(90deg, rgba(0,211,187,0.5), rgba(162,139,250,0.3), transparent)" }} />
-              <ChannelSidebar
-                selectedWorkspaceId={id}
+              <MobileWorkspaceSidebar
+                activeWorkspaceId={id}
                 activeModuleId={moduleId}
-                onBack={() => { router.push("/app/workspace"); setIsSidebarOpen(false); }}
+                onClose={() => setIsSidebarOpen(false)}
                 onSettingsOpen={() => { setShowSettings(true); setIsSidebarOpen(false); }}
                 onCreateModule={(cat) => {
                   setCreateModuleCategory(cat || "General");

@@ -848,6 +848,8 @@ function ProfilePage() {
   );
 }
 
+export { ProfilePage };
+
 export default function Page() {
   return (
     <ProtectedRoute>

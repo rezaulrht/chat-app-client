@@ -7,7 +7,8 @@ import ChannelSidebar from "@/components/ChatDashboard/ChannelSidebar";
 import WorkspaceSettingsModal from "@/components/workspace/WorkspaceSettingsModal";
 import CreateModuleModal from "@/components/workspace/CreateModuleModal";
 import AppSidebar from "@/components/app-shell/AppSidebar";
-import WorkspaceAvatarStrip from "@/components/app-shell/WorkspaceAvatarStrip";
+import MobileWorkspaceSidebar from "@/components/app-shell/MobileWorkspaceSidebar";
+import ModuleSettingsModal from "@/components/workspace/ModuleSettingsModal";
 
 export default function WorkspacePage() {
   const { id } = useParams();
@@ -15,6 +16,7 @@ export default function WorkspacePage() {
   const [showSettings, setShowSettings] = useState(false);
   const [showCreateModule, setShowCreateModule] = useState(false);
   const [createModuleCategory, setCreateModuleCategory] = useState("General");
+  const [activeSettingsModuleId, setActiveSettingsModuleId] = useState(null);
 
   return (
     <ProtectedRoute>
@@ -32,10 +34,18 @@ export default function WorkspacePage() {
           />
         </AppSidebar>
 
-        {/* Mobile: always-visible workspace avatar strip */}
-        <WorkspaceAvatarStrip activeWorkspaceId={id} />
+        {/* Mobile: workspace avatars + channel sidebar */}
+        <MobileWorkspaceSidebar
+          activeWorkspaceId={id}
+          onSettingsOpen={() => setShowSettings(true)}
+          onModuleSettingsOpen={(modId) => setActiveSettingsModuleId(modId)}
+          onCreateModule={(cat) => {
+            setCreateModuleCategory(cat || "General");
+            setShowCreateModule(true);
+          }}
+        />
 
-        {/* Desktop: empty state (hidden on mobile since WorkspaceAvatarStrip fills the space) */}
+        {/* Desktop: empty state (hidden on mobile since MobileWorkspaceSidebar fills the space) */}
         <div className="hidden md:flex flex-1 flex-col min-h-0 relative">
           <div className="flex-1 flex items-center justify-center h-full">
             <div className="text-center space-y-3">
@@ -45,15 +55,23 @@ export default function WorkspacePage() {
               </p>
             </div>
           </div>
-
-          {showSettings && (
-            <WorkspaceSettingsModal
-              workspaceId={id}
-              onClose={() => setShowSettings(false)}
-            />
-          )}
         </div>
       </div>
+
+      {showSettings && (
+        <WorkspaceSettingsModal
+          workspaceId={id}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
+
+      {activeSettingsModuleId && (
+        <ModuleSettingsModal
+          moduleId={activeSettingsModuleId}
+          workspaceId={id}
+          onClose={() => setActiveSettingsModuleId(null)}
+        />
+      )}
 
       {showCreateModule && (
         <CreateModuleModal

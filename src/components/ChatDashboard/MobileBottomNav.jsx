@@ -8,13 +8,13 @@ const NAV_ITEMS = [
   { id: "feed", label: "Feed", href: "/app/feed", icon: Compass },
   { id: "chats", label: "Chats", href: "/app", icon: MessageCircle },
   { id: "spaces", label: "Spaces", href: "/app/workspace", icon: Layers },
-  { id: "profile", label: "Profile", href: "/profile", icon: User },
+  { id: "profile", label: "Profile", href: "/app/profile", icon: User },
 ];
 
 function getActiveId(pathname) {
   if (pathname.startsWith("/app/feed")) return "feed";
   if (pathname.startsWith("/app/workspace")) return "spaces";
-  if (pathname.startsWith("/profile")) return "profile";
+  if (pathname.startsWith("/app/profile")) return "profile";
   if (pathname.startsWith("/app")) return "chats";
   return "";
 }

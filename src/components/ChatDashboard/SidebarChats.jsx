@@ -698,53 +698,6 @@ export default function Sidebar({
           </div>
         </div>
 
-        {/* ── User Status Bar ── */}
-        <div className="h-14 glass-card mx-2 mb-2 rounded-xl px-3 flex items-center gap-2.5 group/user shrink-0 ring-1 ring-white/[0.04]">
-          <div
-            onClick={() => setShowProfile(true)}
-            className="relative shrink-0 cursor-pointer group/avatar"
-          >
-            <div className="w-8 h-8 rounded-xl overflow-hidden ring-1 ring-white/[0.06] group-hover/avatar:ring-accent/30 transition-all duration-200 shadow-[0_0_12px_rgba(0,211,187,0.05)]">
-              <Image
-                src={
-                  currentUser?.avatar ||
-                  `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser?.name}`
-                }
-                width={32}
-                height={32}
-                className="rounded-xl"
-                alt="avatar"
-                unoptimized
-              />
-            </div>
-            <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-deep bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
-          </div>
-
-          <div
-            onClick={() => setShowProfile(true)}
-            className="flex-1 min-w-0 cursor-pointer overflow-hidden"
-          >
-            <p className="text-ivory text-[13px] font-display font-bold truncate leading-tight group-hover/user:text-accent transition-colors duration-200 hover:underline decoration-accent/40 underline-offset-2">
-              {currentUser?.name?.split(" ")[0]}
-            </p>
-            <p className="text-ivory/20 text-[10px] truncate leading-tight flex items-center gap-1 font-mono">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_4px_rgba(52,211,153,0.4)]" />
-              Online
-            </p>
-          </div>
-
-          <div className="flex items-center gap-0.5 opacity-40 group-hover/user:opacity-80 transition-opacity">
-            <button
-              onClick={() => {
-                window.location.href = "/";
-              }}
-              className="p-1.5 rounded-lg hover:bg-white/[0.06] text-ivory/40 hover:text-ivory/60 transition-all duration-200"
-              title="Logout"
-            >
-              <LogOut size={15} />
-            </button>
-          </div>
-        </div>
       </aside>
 
       {/* ── New Chat Modal ── */}

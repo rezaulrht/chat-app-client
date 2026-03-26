@@ -17,7 +17,7 @@ import { useAppShell } from "@/components/app-shell/AppShellContext";
 export default function ModulePage() {
   const { id, moduleId } = useParams();
   const router = useRouter();
-  const { isSidebarOpen, setIsSidebarOpen, setBackNav } = useAppShell();
+  const { isSidebarOpen, setIsSidebarOpen } = useAppShell();
   const [showSettings, setShowSettings] = useState(false);
   const [showMembers, setShowMembers] = useState(true);
 
@@ -32,11 +32,6 @@ export default function ModulePage() {
   const [createModuleCategory, setCreateModuleCategory] = useState("General");
   const [activeSettingsModuleId, setActiveSettingsModuleId] = useState(null);
 
-  // Set back navigation in AppTopBar on mobile (shows "‹ Modules" instead of hamburger)
-  useEffect(() => {
-    setBackNav({ label: "Modules", href: `/app/workspace/${id}` });
-    return () => setBackNav(null); // clear on unmount
-  }, [id, setBackNav]);
 
   return (
     <ProtectedRoute>

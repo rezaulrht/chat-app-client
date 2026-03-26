@@ -29,7 +29,7 @@ export default function MobileWorkspaceSidebar({
       />
 
       {/* Horizontal workspace avatars */}
-      <div className="h-[72px] flex items-center gap-2.5 px-3 border-b border-white/[0.04] overflow-x-auto shrink-0 scrollbar-none">
+      <div className="flex items-start gap-2.5 px-3 py-2.5 border-b border-white/[0.04] overflow-x-auto shrink-0 scrollbar-none">
         {loadingWorkspaces ? (
           <Loader2 size={16} className="text-accent/40 animate-spin mx-auto" />
         ) : (
@@ -43,7 +43,7 @@ export default function MobileWorkspaceSidebar({
                     router.push(`/app/workspace/${ws._id}`);
                     onClose?.();
                   }}
-                  className="flex flex-col items-center gap-1 shrink-0 group"
+                  className="flex flex-col items-center gap-1 shrink-0 group justify-start"
                   aria-label={ws.name}
                 >
                   <div

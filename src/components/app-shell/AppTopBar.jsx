@@ -77,17 +77,17 @@ export default function AppTopBar() {
         {TABS.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
-            <button
+            <Link
               key={tab.id}
-              onClick={() => router.push(tab.href)}
+              href={tab.href}
               className={`px-3 py-1.5 rounded-lg text-[11px] font-display font-bold tracking-wide transition-all duration-200 ${
                 isActive
-                  ? "bg-accent/10 border border-accent/18 text-accent"
+                  ? "bg-accent/10 border border-accent/[0.18] text-accent"
                   : "text-ivory/30 hover:text-ivory/60 hover:bg-white/[0.04]"
               }`}
             >
               {tab.label}
-            </button>
+            </Link>
           );
         })}
       </div>

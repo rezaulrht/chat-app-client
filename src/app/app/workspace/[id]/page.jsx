@@ -3,10 +3,12 @@ import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { Hash } from "lucide-react";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
-import WorkspaceSidebar from "@/components/ChatDashboard/WorkspaceSidebar";
 import ChannelSidebar from "@/components/ChatDashboard/ChannelSidebar";
 import WorkspaceSettingsModal from "@/components/workspace/WorkspaceSettingsModal";
 import CreateModuleModal from "@/components/workspace/CreateModuleModal";
+import AppSidebar from "@/components/app-shell/AppSidebar";
+import MobileWorkspaceSidebar from "@/components/app-shell/MobileWorkspaceSidebar";
+import ModuleSettingsModal from "@/components/workspace/ModuleSettingsModal";
 
 export default function WorkspacePage() {
   const { id } = useParams();
@@ -14,37 +16,37 @@ export default function WorkspacePage() {
   const [showSettings, setShowSettings] = useState(false);
   const [showCreateModule, setShowCreateModule] = useState(false);
   const [createModuleCategory, setCreateModuleCategory] = useState("General");
-  const [activeView, setActiveView] = useState("workspace");
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState(id);
+  const [activeSettingsModuleId, setActiveSettingsModuleId] = useState(null);
 
   return (
     <ProtectedRoute>
-      <div className="flex h-screen w-full bg-obsidian overflow-hidden">
-        {/* Unified Sidebar Area */}
-        <div className="hidden md:flex flex-col shrink-0 h-full w-80 overflow-hidden border-r border-white/6">
-          <WorkspaceSidebar
-            activeView={activeView}
-            setActiveView={setActiveView}
-            selectedWorkspaceId={selectedWorkspaceId}
-            setSelectedWorkspaceId={setSelectedWorkspaceId}
+      <div className="flex h-full w-full bg-obsidian overflow-hidden">
+        {/* Desktop/tablet: sidebar with module list */}
+        <AppSidebar label="Modules" className="w-80">
+          <ChannelSidebar
+            selectedWorkspaceId={id}
+            onBack={() => router.push("/app/workspace")}
+            onSettingsOpen={() => setShowSettings(true)}
+            onCreateModule={(cat) => {
+              setCreateModuleCategory(cat || "General");
+              setShowCreateModule(true);
+            }}
           />
+        </AppSidebar>
 
-          <div className="flex-1 flex flex-col min-h-0">
-            <ChannelSidebar
-              selectedWorkspaceId={id}
-              onBack={() => router.push("/app/workspace")}
-              onSettingsOpen={() => setShowSettings(true)}
-              onCreateModule={(cat) => {
-                setCreateModuleCategory(cat || "General");
-                setShowCreateModule(true);
-              }}
-            />
-          </div>
-        </div>
+        {/* Mobile: workspace avatars + channel sidebar */}
+        <MobileWorkspaceSidebar
+          activeWorkspaceId={id}
+          onSettingsOpen={() => setShowSettings(true)}
+          onModuleSettingsOpen={(modId) => setActiveSettingsModuleId(modId)}
+          onCreateModule={(cat) => {
+            setCreateModuleCategory(cat || "General");
+            setShowCreateModule(true);
+          }}
+        />
 
-        {/* Main Content Area */}
-        <div className="flex-1 flex flex-col min-h-0 relative">
-          {/* Main Content — no module selected */}
+        {/* Desktop: empty state (hidden on mobile since MobileWorkspaceSidebar fills the space) */}
+        <div className="hidden md:flex flex-1 flex-col min-h-0 relative">
           <div className="flex-1 flex items-center justify-center h-full">
             <div className="text-center space-y-3">
               <Hash size={40} className="mx-auto text-ivory/10" />
@@ -53,18 +55,24 @@ export default function WorkspacePage() {
               </p>
             </div>
           </div>
-
-          {/* Settings Panel */}
-          {showSettings && (
-            <WorkspaceSettingsModal
-              workspaceId={id}
-              onClose={() => setShowSettings(false)}
-            />
-          )}
         </div>
       </div>
 
-      {/* Create Module Modal */}
+      {showSettings && (
+        <WorkspaceSettingsModal
+          workspaceId={id}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
+
+      {activeSettingsModuleId && (
+        <ModuleSettingsModal
+          moduleId={activeSettingsModuleId}
+          workspaceId={id}
+          onClose={() => setActiveSettingsModuleId(null)}
+        />
+      )}
+
       {showCreateModule && (
         <CreateModuleModal
           workspaceId={id}

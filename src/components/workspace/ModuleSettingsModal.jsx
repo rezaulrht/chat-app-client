@@ -47,54 +47,58 @@ export default function ModuleSettingsModal({ workspaceId, moduleId, onClose }) 
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
+      className="fixed inset-0 z-50 flex items-end md:items-center justify-center md:p-6"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
-      <div className="relative w-full max-w-3xl h-[85vh] md:h-[600px] flex flex-col md:flex-row bg-obsidian border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
-        
-        {/* Sidebar */}
-        <div className="md:w-60 bg-white/[0.02] border-r border-white/5 flex flex-col p-4 shrink-0 overflow-y-auto">
-          <div className="mb-6 px-2">
-            <h2 className="text-ivory font-display font-bold text-[16px] truncate">
-              {moduleData.name}
-            </h2>
-            <p className="text-ivory/40 text-[11px] font-mono mt-0.5">
-              Channel Settings
-            </p>
+      <div className="relative w-full md:max-w-2xl h-[92dvh] md:h-[600px] flex flex-col bg-obsidian border border-white/10 rounded-t-2xl md:rounded-2xl shadow-2xl overflow-hidden">
+
+        {/* Header with tabs on mobile, sidebar on desktop */}
+        <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-hidden">
+          {/* Nav: horizontal tabs on mobile, vertical sidebar on desktop */}
+          <div className="shrink-0 border-b border-white/5 md:border-b-0 md:border-r md:w-52 bg-white/[0.02] flex flex-row md:flex-col overflow-x-auto md:overflow-y-auto scrollbar-hide">
+            <div className="hidden md:block mb-4 px-4 pt-4">
+              <h2 className="text-ivory font-display font-bold text-[15px] truncate">
+                {moduleData.name}
+              </h2>
+              <p className="text-ivory/40 text-[11px] font-mono mt-0.5">
+                Channel Settings
+              </p>
+            </div>
+
+            <div className="flex flex-row md:flex-col gap-1 md:gap-0 md:space-y-1 px-2 py-2 md:py-0 md:pb-4">
+              {[
+                { id: "overview", label: "Overview", icon: Settings },
+                { id: "permissions", label: "Permissions", icon: Shield },
+                { id: "danger", label: "Danger Zone", icon: AlertTriangle },
+              ].map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  onClick={() => setActiveTab(id)}
+                  className={`shrink-0 md:w-full flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all text-left ${
+                    activeTab === id
+                      ? "bg-accent/10 text-accent font-bold"
+                      : id === "danger"
+                        ? "text-red-400/50 hover:text-red-400 hover:bg-red-500/[0.08] font-medium"
+                        : "text-ivory/60 hover:bg-white/5 hover:text-ivory font-medium"
+                  } text-[13px]`}
+                >
+                  <Icon size={15} />
+                  <span className="whitespace-nowrap">{label}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
-          <nav className="space-y-1">
-            {[
-              { id: "overview", label: "Overview", icon: Settings },
-              { id: "permissions", label: "Permissions", icon: Shield },
-              { id: "danger", label: "Danger Zone", icon: AlertTriangle },
-            ].map(({ id, label, icon: Icon }) => (
-              <button
-                key={id}
-                onClick={() => setActiveTab(id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left ${
-                  activeTab === id
-                    ? "bg-accent/10 text-accent font-bold"
-                    : "text-ivory/60 hover:bg-white/5 hover:text-ivory font-medium"
-                } text-[13px]`}
-              >
-                <Icon size={16} />
-                {label}
-              </button>
-            ))}
-          </nav>
-        </div>
-
-        {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-6 relative">
-          <button
-            onClick={onClose}
-            className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 text-ivory/40 hover:text-ivory transition-all backdrop-blur-md z-10"
-          >
+          {/* Content Area */}
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 relative min-h-0">
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 md:top-6 md:right-6 w-8 h-8 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 text-ivory/40 hover:text-ivory transition-all backdrop-blur-md z-10"
+            >
             <X size={16} />
           </button>
 
@@ -132,6 +136,7 @@ export default function ModuleSettingsModal({ workspaceId, moduleId, onClose }) 
               />
             )}
           </div>
+        </div>
         </div>
       </div>
     </div>,

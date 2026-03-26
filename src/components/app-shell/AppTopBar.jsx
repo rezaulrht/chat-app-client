@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -26,6 +26,8 @@ export default function AppTopBar() {
   const { setIsSidebarOpen, backNav } = useAppShell();
   const activeTab = getActiveTab(pathname);
   const isFeed = pathname.startsWith("/app/feed");
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   return (
     <header className="h-12 md:h-14 shrink-0 flex items-center px-4 gap-3 bg-deep/95 backdrop-blur-xl border-b border-white/[0.06] relative z-40">
@@ -63,24 +65,18 @@ export default function AppTopBar() {
         <div className="w-7 h-7 rounded-xl flex items-center justify-center bg-accent/10 border border-accent/25 shadow-[0_0_12px_rgba(0,211,187,0.08)] group-hover:bg-accent/15 transition-all">
           <Image src="/favicon.png" width={16} height={16} alt="ConvoX" />
         </div>
-        <div className="hidden sm:block">
-          <p className="text-[13px] font-display font-bold text-ivory/90 leading-none">ConvoX</p>
-          <p className="text-[9px] font-serif italic text-accent/45 leading-none mt-0.5">Precision.</p>
-        </div>
+        <p className="hidden sm:block text-[13px] font-display font-bold text-ivory/90 leading-none">ConvoX</p>
       </Link>
 
-      {/* Divider — desktop only */}
-      <div className="hidden md:block w-px h-4 bg-white/[0.07] shrink-0" />
-
-      {/* Nav pills — desktop/tablet only */}
-      <div className="hidden md:flex items-center gap-0.5 p-1 rounded-xl bg-white/[0.03] border border-white/[0.04]">
+      {/* Nav pills — centered absolutely (desktop/tablet only) */}
+      <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-0.5 p-1 rounded-xl bg-white/[0.03] border border-white/[0.04]">
         {TABS.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
             <Link
               key={tab.id}
               href={tab.href}
-              className={`px-3 py-1.5 rounded-lg text-[11px] font-display font-bold tracking-wide transition-all duration-200 ${
+              className={`px-4 py-1.5 rounded-lg text-[11px] font-display font-bold tracking-wide transition-all duration-200 ${
                 isActive
                   ? "bg-accent/10 border border-accent/[0.18] text-accent"
                   : "text-ivory/30 hover:text-ivory/60 hover:bg-white/[0.04]"
@@ -114,7 +110,7 @@ export default function AppTopBar() {
       )}
 
       {/* Avatar */}
-      {user && (
+      {mounted && user && (
         <Link
           href="/profile"
           className="relative shrink-0 group/avatar"

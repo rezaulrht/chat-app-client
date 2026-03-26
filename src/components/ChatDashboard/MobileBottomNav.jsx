@@ -24,7 +24,7 @@ export default function MobileBottomNav() {
   const activeId = getActiveId(pathname);
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 xl:hidden bg-obsidian/95 backdrop-blur-lg supports-[backdrop-filter]:bg-obsidian/80 relative">
+    <nav className="xl:hidden shrink-0 bg-obsidian/95 backdrop-blur-lg supports-[backdrop-filter]:bg-obsidian/80 relative">
       <div
         className="absolute top-0 left-0 right-0 h-px pointer-events-none"
         style={{

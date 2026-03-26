@@ -64,11 +64,16 @@ export default function MobileWorkspaceSidebar({
                     )}
                   </div>
                   <span
-                    className={`text-[9px] font-mono font-bold truncate max-w-[40px] leading-none ${
+                    className={`text-[9px] font-mono font-bold text-center max-w-[44px] leading-tight ${
                       isActive ? "text-accent" : "text-ivory/30"
                     }`}
                   >
-                    {ws.name?.split(" ")[0]}
+                    {ws.name?.split(" ").map((word, i, arr) => (
+                      <React.Fragment key={i}>
+                        {word}
+                        {i < arr.length - 1 && <br />}
+                      </React.Fragment>
+                    ))}
                   </span>
                 </button>
               );

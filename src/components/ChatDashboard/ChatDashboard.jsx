@@ -433,7 +433,7 @@ export default function ChatDashboard() {
 
         {/* ═══ Mobile: Slide-in Sidebar ═══ */}
         <div
-          className={`md:hidden absolute z-40 h-[calc(100%-3.5rem)] transition-transform duration-300 w-[85vw] sm:w-80 flex shrink-0 ${
+          className={`md:hidden absolute z-40 h-full transition-transform duration-300 w-[85vw] sm:w-80 flex shrink-0 ${
             isSidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >

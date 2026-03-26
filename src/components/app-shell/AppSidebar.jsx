@@ -36,7 +36,7 @@ export default function AppSidebar({ label, children, className = "" }) {
                 width={32}
                 height={32}
                 className="w-full h-full object-cover"
-                alt="avatar"
+                alt={user.name ? `${user.name}'s avatar` : "avatar"}
                 unoptimized
               />
             </div>
@@ -55,6 +55,7 @@ export default function AppSidebar({ label, children, className = "" }) {
             onClick={logout}
             className="p-1.5 rounded-lg hover:bg-red-500/10 text-ivory/30 hover:text-red-400 transition-all opacity-0 group-hover/user:opacity-100"
             title="Logout"
+            aria-label="Logout"
           >
             <LogOut size={14} />
           </button>

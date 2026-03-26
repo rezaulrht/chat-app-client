@@ -24,7 +24,13 @@ export default function MobileBottomNav() {
   const activeId = getActiveId(pathname);
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 xl:hidden border-t border-white/[0.08] bg-obsidian/95 backdrop-blur-lg supports-[backdrop-filter]:bg-obsidian/80">
+    <nav className="fixed inset-x-0 bottom-0 z-40 xl:hidden bg-obsidian/95 backdrop-blur-lg supports-[backdrop-filter]:bg-obsidian/80 relative">
+      <div
+        className="absolute top-0 left-0 right-0 h-px pointer-events-none"
+        style={{
+          background: "linear-gradient(90deg, transparent, rgba(0,211,187,0.4), rgba(162,139,250,0.25), rgba(0,211,187,0.35), transparent)",
+        }}
+      />
       <div className="mx-auto grid max-w-screen-sm grid-cols-4 px-2 pt-2 pb-3">
         {NAV_ITEMS.map(({ id, label, href, icon: Icon }) => {
           const isActive = activeId === id;

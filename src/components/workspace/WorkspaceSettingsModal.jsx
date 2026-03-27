@@ -351,41 +351,44 @@ function RoleItem({
 
           {/* Permissions Selection (Edit) */}
           <div className="mt-4 border-t border-white/10 pt-4 space-y-3">
-            <p className="text-[10px] font-mono font-bold text-ivory/40 uppercase tracking-widest">
-              Permissions
-            </p>
-            <div className="grid grid-cols-1 gap-2">
-              {AVAILABLE_PERMISSIONS.map((perm) => {
-                const hasPerm = editPermissions.includes(perm.id);
-                return (
-                  <label
-                    key={perm.id}
-                    className="flex items-start gap-3 p-2 rounded-xl hover:bg-white/5 cursor-pointer"
-                  >
-                    <div
-                      className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${hasPerm ? "bg-accent border-accent text-deep" : "bg-transparent border-ivory/20"}`}
+            <details className="group/perms">
+              <summary className="text-[10px] font-mono font-bold text-ivory/40 uppercase tracking-widest cursor-pointer list-none flex items-center justify-between outline-none">
+                <span>Permissions</span>
+                <ChevronRight size={12} className="transition-transform group-open/perms:rotate-90" />
+              </summary>
+              <div className="grid grid-cols-1 gap-2 mt-3 pl-1">
+                {AVAILABLE_PERMISSIONS.map((perm) => {
+                  const hasPerm = editPermissions.includes(perm.id);
+                  return (
+                    <label
+                      key={perm.id}
+                      className="flex items-start gap-3 p-2 rounded-xl hover:bg-white/5 cursor-pointer"
                     >
-                      {hasPerm && <Check size={12} strokeWidth={3} />}
-                    </div>
-                    <input
-                      type="checkbox"
-                      className="hidden"
-                      checked={hasPerm}
-                      onChange={(e) => {
-                        if (e.target.checked)
-                          setEditPermissions((prev) => [...prev, perm.id]);
-                        else
-                          setEditPermissions((prev) => prev.filter((p) => p !== perm.id));
-                      }}
-                    />
-                    <div>
-                      <p className="text-[12px] font-bold text-ivory/90">{perm.label}</p>
-                      <p className="text-[11px] text-ivory/50 leading-tight mt-0.5">{perm.desc}</p>
-                    </div>
-                  </label>
-                );
-              })}
-            </div>
+                      <div
+                        className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${hasPerm ? "bg-accent border-accent text-deep" : "bg-transparent border-ivory/20"}`}
+                      >
+                        {hasPerm && <Check size={12} strokeWidth={3} />}
+                      </div>
+                      <input
+                        type="checkbox"
+                        className="hidden"
+                        checked={hasPerm}
+                        onChange={(e) => {
+                          if (e.target.checked)
+                            setEditPermissions((prev) => [...prev, perm.id]);
+                          else
+                            setEditPermissions((prev) => prev.filter((p) => p !== perm.id));
+                        }}
+                      />
+                      <div>
+                        <p className="text-[12px] font-bold text-ivory/90">{perm.label}</p>
+                        <p className="text-[11px] text-ivory/50 leading-tight mt-0.5">{perm.desc}</p>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            </details>
           </div>
 
           <div className="flex gap-2">
@@ -596,50 +599,53 @@ function RolesTab({ workspace, onCreateRole, onUpdateRole, onDeleteRole }) {
 
         {/* Permissions Selection (Create) */}
         <div className="mt-4 border-t border-white/5 pt-4 space-y-3">
-          <p className="text-[10px] font-mono font-bold text-ivory/40 uppercase tracking-widest">
-            Base Permissions
-          </p>
-          <div className="grid grid-cols-1 gap-2">
-            {AVAILABLE_PERMISSIONS.map((perm) => {
-              const hasPerm = newPermissions.includes(perm.id);
-              return (
-                <label
-                  key={perm.id}
-                  className="flex items-start gap-3 p-2 rounded-xl hover:bg-white/5 cursor-pointer"
-                >
-                  <div
-                    className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${hasPerm ? "bg-accent border-accent text-deep" : "bg-transparent border-ivory/20"}`}
+          <details className="group/perms">
+            <summary className="text-[10px] font-mono font-bold text-ivory/40 uppercase tracking-widest cursor-pointer list-none flex items-center justify-between outline-none">
+              <span>Base Permissions</span>
+              <ChevronRight size={12} className="transition-transform group-open/perms:rotate-90" />
+            </summary>
+            <div className="grid grid-cols-1 gap-2 mt-3 pl-1">
+              {AVAILABLE_PERMISSIONS.map((perm) => {
+                const hasPerm = newPermissions.includes(perm.id);
+                return (
+                  <label
+                    key={perm.id}
+                    className="flex items-start gap-3 p-2 rounded-xl hover:bg-white/5 cursor-pointer"
                   >
-                    {hasPerm && <Check size={12} strokeWidth={3} />}
-                  </div>
-                  <input
-                    type="checkbox"
-                    className="hidden"
-                    checked={hasPerm}
-                    onChange={(e) => {
-                      if (e.target.checked)
-                        setNewPermissions((prev) => [...prev, perm.id]);
-                      else
-                        setNewPermissions((prev) =>
-                          prev.filter((p) => p !== perm.id),
-                        );
-                    }}
-                  />
-                  <div>
-                    <p className="text-[12px] font-bold text-ivory/90">
-                      {perm.label}
-                    </p>
-                    <p className="text-[11px] text-ivory/50 leading-tight mt-0.5">
-                      {perm.desc}
-                    </p>
-                  </div>
-                </label>
-              );
-            })}
-          </div>
+                    <div
+                      className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${hasPerm ? "bg-accent border-accent text-deep" : "bg-transparent border-ivory/20"}`}
+                    >
+                      {hasPerm && <Check size={12} strokeWidth={3} />}
+                    </div>
+                    <input
+                      type="checkbox"
+                      className="hidden"
+                      checked={hasPerm}
+                      onChange={(e) => {
+                        if (e.target.checked)
+                          setNewPermissions((prev) => [...prev, perm.id]);
+                        else
+                          setNewPermissions((prev) =>
+                            prev.filter((p) => p !== perm.id),
+                          );
+                      }}
+                    />
+                    <div>
+                      <p className="text-[12px] font-bold text-ivory/90">
+                        {perm.label}
+                      </p>
+                      <p className="text-[11px] text-ivory/50 leading-tight mt-0.5">
+                        {perm.desc}
+                      </p>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          </details>
         </div>
 
-        <div className="flex items-center gap-3 pt-2 mt-4 border-t border-white/5 pt-4">
+        <div className="flex items-center gap-3 mt-4 border-t border-white/5 pt-4">
           <RoleBadge color={newColor} name={newName || "Preview"} />
           <button
             onClick={handleCreate}
@@ -734,15 +740,6 @@ function MembersTab({ workspace, members, currentUser, onUpdateMemberRole, onRem
                       {roleInfo.label}
                     </span>
                   </div>
-                  <div className="flex flex-wrap gap-1 items-center">
-                    {memberRoles.length > 0 ? (
-                      memberRoles.map((r) => (
-                        <RoleBadge key={r._id} color={r.color} name={r.name} small />
-                      ))
-                    ) : (
-                      <span className="text-[10px] font-mono text-ivory/20">No custom roles</span>
-                    )}
-                  </div>
                 </div>
 
                 {/* Actions */}
@@ -791,20 +788,22 @@ function MembersTab({ workspace, members, currentUser, onUpdateMemberRole, onRem
                        )}
                     </div>
 
-                    <button
-                      title={m.role === "admin" ? "Demote to member" : "Promote to admin"}
-                      onClick={async () => {
-                        try {
-                          await onUpdateMemberRole(m.user._id, m.role === "admin" ? "member" : "admin");
-                          toast.success("Status updated");
-                        } catch { toast.error("Failed to update status"); }
-                      }}
-                      className="p-1.5 rounded-lg text-ivory/25 hover:text-blue-400 hover:bg-white/6 transition-all"
-                    >
-                      <UserCog size={14} />
-                    </button>
+                    {(isOwner || m.role === "member") && (
+                      <button
+                        title={m.role === "admin" ? "Demote to member" : "Promote to admin"}
+                        onClick={async () => {
+                          try {
+                            await onUpdateMemberRole(m.user._id, m.role === "admin" ? "member" : "admin");
+                            toast.success("Status updated");
+                          } catch { toast.error("Failed to update status"); }
+                        }}
+                        className="p-1.5 rounded-lg text-ivory/25 hover:text-blue-400 hover:bg-white/6 transition-all"
+                      >
+                        <UserCog size={14} />
+                      </button>
+                    )}
 
-                    {isOwner && (
+                    {(isOwner || m.role === "member") && (
                       <button
                         title="Remove member"
                         onClick={async () => {
@@ -1009,9 +1008,22 @@ function DangerTab({ workspace, currentUser, onDelete, onLeave }) {
               </p>
             </div>
           </div>
+          <div>
+            <label className="block text-[11px] font-mono text-ivory/40 mb-1.5">
+              Type <span className="text-orange-400 font-bold">{workspace?.name}</span> to confirm
+            </label>
+            <input
+              type="text"
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              className="w-full bg-white/4 border border-orange-500/20 rounded-xl px-3 py-2 text-[13px] text-ivory/70 placeholder:text-ivory/20 focus:outline-none focus:border-orange-500/50"
+              placeholder={workspace?.name}
+            />
+          </div>
           <button
             onClick={onLeave}
-            className="flex items-center gap-2 px-4 py-2.5 bg-orange-500/15 hover:bg-orange-500/25 text-orange-400 rounded-xl text-[13px] font-mono font-bold transition-all"
+            disabled={confirmText !== workspace?.name}
+            className="flex items-center gap-2 px-4 py-2.5 bg-orange-500/15 hover:bg-orange-500/25 text-orange-400 rounded-xl text-[13px] font-mono font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <LogOut size={14} />
             Leave Workspace
@@ -1089,9 +1101,47 @@ export default function WorkspaceSettingsModal({ workspaceId, onClose }) {
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative w-full max-w-3xl h-[88vh] max-h-180 bg-[#0e0e17] rounded-3xl shadow-2xl shadow-black/60 flex overflow-hidden ring-1 ring-white/6 mx-4">
-        {/* ── Left nav */}
-        <nav className="w-52 shrink-0 border-r border-white/6 bg-white/1.5 flex flex-col py-4 overflow-y-auto scrollbar-hide">
+      <div className="relative w-full max-w-3xl h-[95vh] sm:h-[88vh] max-h-180 bg-[#0e0e17] sm:rounded-3xl rounded-t-3xl sm:rounded-b-3xl rounded-b-none shadow-2xl shadow-black/60 flex flex-col sm:flex-row overflow-hidden ring-1 ring-white/6 mx-0 sm:mx-4 mt-auto sm:mt-0">
+        
+        {/* ── Header for Mobile (Shows Workspace Name) */}
+        <div className="sm:hidden flex items-center justify-between px-4 py-3 border-b border-white/6 bg-white/2">
+          <div>
+            <p className="text-[10px] font-mono font-bold text-ivory/30 uppercase tracking-widest">Settings</p>
+            <p className="text-[13px] font-display font-bold text-ivory/80 truncate max-w-[200px]">{workspace.name}</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-ivory/40 hover:text-ivory hover:bg-white/6 transition-all">
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* ── Horizontal Scrollable Tabs for Mobile */}
+        <div className="sm:hidden flex w-full overflow-x-auto gap-1 px-2 py-2 border-b border-white/6 scrollbar-hide shrink-0 bg-[#0e0e17]">
+          {TABS.map((tab) => {
+            const Icon = tab.Icon;
+            const isActive = activeTab === tab.id;
+            if (tab.id === "danger" || tab.id === "invites") {
+              if (!isAdmin) return null;
+            }
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-medium transition-all ${isActive
+                  ? "bg-accent/15 text-accent border border-accent/20"
+                  : tab.id === "danger"
+                    ? "text-red-400/60 hover:text-red-400 hover:bg-red-500/10 border border-transparent"
+                    : "text-ivory/40 hover:text-ivory border border-transparent hover:bg-white/5"
+                  }`}
+              >
+                <Icon size={12} />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ── Left nav for Desktop */}
+        <nav className="hidden sm:flex w-52 shrink-0 border-r border-white/6 bg-white/1.5 flex-col py-4 overflow-y-auto scrollbar-hide">
           <div className="px-4 mb-5">
             <p className="text-[10px] font-mono font-bold text-ivory/25 uppercase tracking-widest">Settings</p>
             <p className="text-[13px] font-display font-bold text-ivory/70 mt-1 truncate">{workspace.name}</p>
@@ -1127,7 +1177,7 @@ export default function WorkspaceSettingsModal({ workspaceId, onClose }) {
         {/* ── Content */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Header */}
-          <div className="h-14 px-6 flex items-center justify-between border-b border-white/6 shrink-0">
+          <div className="hidden sm:flex h-14 px-6 items-center justify-between border-b border-white/6 shrink-0">
             <h2 className="text-[15px] font-display font-bold text-ivory">
               {TABS.find((t) => t.id === activeTab)?.label}
             </h2>

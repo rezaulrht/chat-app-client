@@ -841,7 +841,9 @@ export default function ModuleChatWindow({
             onClick={onToggleSidebar}
             className="md:hidden w-8 h-8 rounded-xl bg-white/4 flex items-center justify-center text-ivory/30 hover:text-ivory transition-colors"
           >
-            <Menu size={18} />
+            <div className="relative w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center shrink-0 ring-1 ring-white/6 overflow-hidden">
+              <Menu size={18} />
+            </div>
           </button>
           <ModuleIcon size={17} className="text-accent/60 shrink-0" />
           <div>
@@ -1002,7 +1004,7 @@ export default function ModuleChatWindow({
                   onTouchMove={handleTouchEnd}
                 >
                   {/* Sender avatar — always shown in modules */}
-                  <div className="w-8 h-8 rounded-xl overflow-hidden shrink-0 mt-0.5 ring-1 ring-white/[0.06]">
+                  <div className="w-8 h-8 rounded-xl overflow-hidden shrink-0 mt-0.5 ring-1 ring-white/6">
                     <Image
                       src={
                         msg.sender?.avatar ||
@@ -1754,75 +1756,40 @@ export default function ModuleChatWindow({
             </button>
 
             {/* Mobile-only expanded toolbar row */}
-            <div className="sm:hidden w-full flex items-center gap-1 pt-1 border-t border-white/5 mt-1">
+            <div className="sm:hidden w-full flex items-center gap-1.5 pt-2 border-t border-white/5 mt-1 overflow-x-auto scrollbar-hide pb-1">
               <button
                 type="button"
                 onClick={() => {
                   setShowGifPicker(!showGifPicker);
                   setShowEmojiPicker(false);
                 }}
-                className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${showGifPicker
+                className={`shrink-0 px-2.5 py-1.5 text-[11px] font-black rounded-lg border transition-all ${showGifPicker
                   ? "bg-accent/20 border-accent/40 text-accent"
-                  : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+                  : "bg-white/4 border-white/10 text-ivory/50 hover:text-ivory"
                   }`}
               >
                 GIF
               </button>
 
               {/* AI Button - Mobile */}
-              <div ref={aiMenuRefMobile} className="relative inline-flex">
-                <button
-                  type="button"
-                  onClick={() => setAiMenuOpen((v) => !v)}
-                  title="AI tools"
-                  aria-label="AI tools"
-                  className={`inline-flex items-center gap-1 px-2 py-1 text-[10px] font-black rounded-md border transition-all ${aiMenuOpen
+              <button
+                type="button"
+                onClick={() => setAiMenuOpen((v) => !v)}
+                title="AI tools"
+                className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-black rounded-lg border transition-all ${aiMenuOpen || aiReplies.length > 0 || tonePickerOpen
                     ? "bg-accent/20 border-accent/40 text-accent"
-                    : aiReplies.length > 0 || tonePickerOpen
-                      ? "bg-accent/20 border-accent/40 text-accent"
-                      : "bg-white/4 border-white/10 text-ivory/30 hover:bg-accent/10 hover:border-accent/30 hover:text-accent"
-                    }`}
-                >
-                  ✦ AI
-                </button>
-                {aiMenuOpen && (
-                  <div className="absolute bottom-full mb-1 right-0 w-44 bg-deep border border-white/10 rounded-lg shadow-lg overflow-hidden z-50">
-                    <button
-                      type="button"
-                      className="w-full text-left px-3 py-2 text-[11px] text-ivory/70 hover:bg-white/6 hover:text-ivory transition-colors"
-                      onClick={() => {
-                        setAiMenuOpen(false);
-                        handleAiButton();
-                      }}
-                    >
-                      Reply suggestions
-                    </button>
-                    <button
-                      type="button"
-                      disabled={!text.trim()}
-                      className={`w-full text-left px-3 py-2 text-[11px] transition-colors ${text.trim()
-                        ? "text-ivory/70 hover:bg-white/6 hover:text-ivory"
-                        : "text-ivory/20 opacity-40 cursor-not-allowed"
-                        }`}
-                      onClick={() => {
-                        if (!text.trim()) return;
-                        setAiMenuOpen(false);
-                        setAiReplies([]);
-                        setTonePickerOpen(true);
-                      }}
-                    >
-                      Rewrite tone
-                    </button>
-                  </div>
-                )}
-              </div>
+                    : "bg-white/4 border-white/10 text-ivory/50 hover:text-ivory"
+                  }`}
+              >
+                ✦ AI
+              </button>
 
               <button
                 type="button"
                 onClick={() => setScheduleDropdownOpen((v) => !v)}
-                className={`mobile-schedule-trigger px-2 py-1 text-[10px] font-black rounded-md border transition-all ${scheduleDropdownOpen
+                className={`mobile-schedule-trigger shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-black rounded-lg border transition-all ${scheduleDropdownOpen
                   ? "bg-accent/20 border-accent/40 text-accent"
-                  : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+                  : "bg-white/4 border-white/10 text-ivory/50 hover:text-ivory"
                   }`}
                 title="Schedule or view pending"
               >

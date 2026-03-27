@@ -288,7 +288,7 @@ export function WorkspaceProvider({ children }) {
       });
       return mod;
     },
-    [socket],
+    [],
   );
 
   const updateModule = useCallback(async (workspaceId, moduleId, data) => {
@@ -621,11 +621,16 @@ export function WorkspaceProvider({ children }) {
     };
 
     // Online presence
-    const onPresenceOnline = ({ userId }) => {
-      setOnlineUsers((prev) => new Set([...prev, userId]));
-    };
-    const onPresenceOffline = ({ userId }) => {
-      setOnlineUsers((prev) => { const n = new Set(prev); n.delete(userId); return n; });
+    const onPresenceUpdate = ({ userId, online }) => {
+      setOnlineUsers((prev) => {
+        const updated = new Set(prev);
+        if (online) {
+          updated.add(userId);
+        } else {
+          updated.delete(userId);
+        }
+        return updated;
+      });
     };
 
     socket.on("workspace:updated", onWorkspaceUpdated);
@@ -645,8 +650,7 @@ export function WorkspaceProvider({ children }) {
     socket.on("workspace:member-roles-updated", onMemberRolesUpdated);
     socket.on("workspace:owner-transferred", onOwnerTransferred);
     socket.on("workspace:kicked", onKicked);
-    socket.on("user:online", onPresenceOnline);
-    socket.on("user:offline", onPresenceOffline);
+    socket.on("presence:update", onPresenceUpdate);
     socket.on("module:mention", onMention);
 
     return () => {
@@ -667,8 +671,7 @@ export function WorkspaceProvider({ children }) {
       socket.off("workspace:member-roles-updated", onMemberRolesUpdated);
       socket.off("workspace:owner-transferred", onOwnerTransferred);
       socket.off("workspace:kicked", onKicked);
-      socket.off("user:online", onPresenceOnline);
-      socket.off("user:offline", onPresenceOffline);
+      socket.off("presence:update", onPresenceUpdate);
       socket.off("module:mention", onMention);
     };
   }, [socket]);

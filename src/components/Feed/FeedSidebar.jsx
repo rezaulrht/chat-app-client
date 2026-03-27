@@ -355,7 +355,7 @@ function LeftSidebar({ userStats, followedTags, onTagFilter, collapsed = false }
           type="button"
           title="Recent Posts"
           onClick={() => {
-            if (userStats._id) window.location.href = `/app/feed?post=recent`;
+            if (userStats._id) window.location.href = `/profile/${userStats._id}`;
           }}
           className="w-8 h-8 flex items-center justify-center rounded-lg text-ivory/30 hover:text-accent hover:bg-accent/10 transition-all"
         >

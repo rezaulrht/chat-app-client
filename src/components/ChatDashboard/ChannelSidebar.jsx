@@ -151,30 +151,15 @@ export default function ChannelSidebar({
     <aside className="w-full flex flex-col shrink-0 flex-1 min-h-0 overflow-hidden">
       {/* Workspace Header (click to open settings) */}
       <div
-        onClick={() => {
-          onSettingsOpen?.();
-        }}
-        className={`h-13 px-4 flex items-center justify-between border-b border-white/6 hover:bg-white/3 transition-all duration-300 group relative cursor-pointer`}
+        onClick={() => onSettingsOpen?.()}
+        className="px-3 py-2 flex items-center justify-between border-b border-white/[0.06] hover:bg-white/[0.03] transition-all duration-200 group relative cursor-pointer shrink-0"
       >
-        <div className="flex items-center gap-2 min-w-0">
-          {onBack && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onBack();
-              }}
-              className="hidden md:flex w-7 h-7 rounded-lg items-center justify-center text-ivory/20 hover:text-accent hover:bg-white/6 transition-all duration-200 -ml-1 shrink-0"
-            >
-              <ChevronLeft size={16} />
-            </button>
-          )}
-          <h2 className="text-ivory font-display font-bold text-[15px] truncate">
-            {workspace?.name || "Workspace"}
-          </h2>
-        </div>
-        <div className="flex items-center gap-1.5">
+        <h2 className="text-ivory/90 font-display font-bold text-[13px] truncate min-w-0 flex-1 pr-1">
+          {workspace?.name || "Workspace"}
+        </h2>
+        <div className="flex items-center gap-0.5 shrink-0">
           {(workspace?.myRole === "owner" || workspace?.myRole === "admin") && (
-            <div className="flex items-center gap-0.5">
+            <>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -182,9 +167,9 @@ export default function ChannelSidebar({
                   setNewCategoryName("");
                 }}
                 title="New category"
-                className="w-6 h-6 rounded-lg flex items-center justify-center text-ivory/25 hover:text-accent hover:bg-white/6 transition-all duration-200 shrink-0"
+                className="w-6 h-6 rounded-md flex items-center justify-center text-ivory/25 hover:text-accent hover:bg-white/[0.06] transition-all shrink-0"
               >
-                <FolderPlus size={13} />
+                <FolderPlus size={12} />
               </button>
               <button
                 onClick={(e) => {
@@ -192,18 +177,18 @@ export default function ChannelSidebar({
                   onCreateModule?.("General");
                 }}
                 title="New module"
-                className="w-6 h-6 rounded-lg flex items-center justify-center text-ivory/25 hover:text-accent hover:bg-white/6 transition-all duration-200 shrink-0"
+                className="w-6 h-6 rounded-md flex items-center justify-center text-ivory/25 hover:text-accent hover:bg-white/[0.06] transition-all shrink-0"
               >
-                <Plus size={14} />
+                <Plus size={13} />
               </button>
-            </div>
+            </>
           )}
           <ChevronDown
-            size={16}
-            className="text-ivory/20 group-hover:text-ivory/60 transition-colors duration-300"
+            size={14}
+            className="text-ivory/20 group-hover:text-ivory/50 transition-colors ml-0.5"
           />
         </div>
-        <div className="absolute bottom-0 left-4 right-4 h-px bg-linear-to-r from-transparent via-accent/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        <div className="absolute bottom-0 left-3 right-3 h-px bg-linear-to-r from-transparent via-accent/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
       </div>
 
       {/* Modules List */}

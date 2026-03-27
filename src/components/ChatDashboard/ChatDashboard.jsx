@@ -4,11 +4,13 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { MessageCircle, Home } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 
 import Sidebar from "./SidebarChats";
 import ChatWindow from "./ChatWindow";
 import GroupInfoPanel from "./GroupInfoPanel";
-import WorkspaceSidebar from "./WorkspaceSidebar";
+import AppSidebar from "@/components/app-shell/AppSidebar";
+import { useAppShell } from "@/components/app-shell/AppShellContext";
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
@@ -16,6 +18,9 @@ import { sortConversations } from "@/utils/sortConversations";
 import toast from "react-hot-toast";
 
 export default function ChatDashboard() {
+  const searchParams = useSearchParams();
+  const initialConvId = searchParams.get("conv");
+
   const [conversations, setConversations] = useState([]);
   const [activeConversationId, setActiveConversationId] = useState(null);
   const [loadingConversations, setLoadingConversations] = useState(true);
@@ -24,8 +29,8 @@ export default function ChatDashboard() {
   const { socket, fetchLastSeenTimes } = useSocket() || {};
   const { user } = useAuth(); // ← New (for self-message check)
 
-  // Responsive sidebar states
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  // Responsive sidebar state — driven by AppTopBar hamburger via context
+  const { isSidebarOpen, setIsSidebarOpen } = useAppShell();
 
   // Refs to avoid stale closures in socket handlers
   const conversationsRef = useRef([]);
@@ -55,7 +60,8 @@ export default function ChatDashboard() {
         }
 
         if (sorted.length > 0) {
-          setActiveConversationId(sorted[0]._id);
+          const target = initialConvId && sorted.find((c) => c._id === initialConvId);
+          setActiveConversationId(target ? target._id : sorted[0]._id);
         }
       } catch (err) {
         console.error("Failed to fetch conversations:", err);
@@ -374,7 +380,7 @@ export default function ChatDashboard() {
 
   if (loadingConversations) {
     return (
-      <div className="flex h-screen w-full bg-obsidian items-center justify-center flex-col gap-6 relative overflow-hidden">
+      <div className="flex h-full w-full bg-obsidian items-center justify-center flex-col gap-6 relative overflow-hidden">
         {/* Ambient glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-accent/5 blur-[120px] rounded-full pointer-events-none" />
         <div className="relative z-10 flex flex-col items-center gap-5">
@@ -396,7 +402,7 @@ export default function ChatDashboard() {
   }
 
   return (
-    <div className="flex flex-col md:flex-row h-screen w-full bg-obsidian overflow-hidden font-sans relative">
+    <div className="flex flex-col md:flex-row h-full w-full bg-obsidian overflow-hidden font-sans relative">
       {/* Mobile Backdrops */}
       {(isSidebarOpen ||
         (showGroupInfo && activeConversation?.type === "group")) && (
@@ -412,11 +418,7 @@ export default function ChatDashboard() {
       {/* Main row: sidebar + content (fills remaining height above bottom nav) */}
       <div className="flex flex-1 min-h-0 w-full">
         {/* ═══ Desktop: Unified Sidebar ═══ */}
-        <div className="hidden md:flex flex-col shrink-0 h-full w-80 overflow-hidden border-r border-white/6">
-          {/* Tab Navigation Header */}
-          <WorkspaceSidebar />
-
-          {/* Chats Tab → Conversation List */}
+        <AppSidebar label="Direct Messages" className="w-80">
           <Sidebar
             conversations={conversations}
             activeConversationId={activeConversationId}
@@ -427,11 +429,11 @@ export default function ChatDashboard() {
             onNewConversation={handleNewConversation}
             onConversationUpdate={handleConversationUpdate}
           />
-        </div>
+        </AppSidebar>
 
         {/* ═══ Mobile: Slide-in Sidebar ═══ */}
         <div
-          className={`md:hidden absolute z-40 h-[calc(100%-3.5rem)] transition-transform duration-300 w-[85vw] sm:w-80 flex shrink-0 ${
+          className={`md:hidden absolute z-40 h-full transition-transform duration-300 w-[85vw] sm:w-80 flex shrink-0 ${
             isSidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >

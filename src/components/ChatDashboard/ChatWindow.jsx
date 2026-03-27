@@ -24,6 +24,7 @@ import {
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
+import { useCall } from "@/hooks/useCall";
 import { useRouter } from "next/navigation";
 import { EMOJI_MAP } from "@/utils/emojis";
 import { formatLastSeen } from "@/utils/formatLastSeen";
@@ -179,6 +180,16 @@ export default function ChatWindow({
 }) {
   const { socket, onlineUsers, typingUsers } = useSocket() || {};
   const { user } = useAuth();
+  const { startCall } = useCall();
+
+  if (!conversation) {
+    return (
+      <div className="flex flex-1 items-center justify-center h-full text-gray-400">
+        Select a conversation to start chatting
+      </div>
+    );
+  }
+
   const isGroup = conversation.type === "group";
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
@@ -362,6 +373,7 @@ export default function ChatWindow({
 
     const parsed = parseMessage(inputRef.current);
     setText(parsed.text);
+    handleInput({ currentTarget: inputRef.current });
   };
 
   const renderMessageText = (text, mentions, mentionData = []) => {
@@ -1359,6 +1371,7 @@ export default function ChatWindow({
   }, [conversation?._id]);
 
   const handleSend = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
     const hasContent = (inputRef.current?.textContent?.trim().length || 0) > 0;
     const hasFiles = stagedFiles.length > 0;
     if (!hasContent && !hasFiles) return;
@@ -1508,12 +1521,7 @@ export default function ChatWindow({
       )}
       <header className="h-17 border-b border-white/5 flex justify-between items-center px-3 sm:px-5 bg-obsidian/80 backdrop-blur-sm shrink-0">
         <div className="flex items-center gap-3">
-          <button
-            onClick={toggleSidebar}
-            className="md:hidden w-8 h-8 rounded-xl bg-white/4 flex items-center justify-center text-ivory/30 hover:text-ivory transition-colors"
-          >
-            <Menu size={18} />
-          </button>
+          {/* Hamburger removed — AppTopBar handles mobile sidebar toggle */}
           {isGroup ? (
             <>
               <div className="w-10 h-10 rounded-2xl shrink-0 overflow-hidden">

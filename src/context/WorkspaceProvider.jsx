@@ -35,6 +35,12 @@ const apiAssignRolesToMember = (wsId, targetUserId, roleIds) =>
   api
     .patch(`/api/workspaces/${wsId}/members/${targetUserId}/roles`, { roleIds })
     .then((r) => r.data);
+const apiBanMember = (wsId, targetUserId) =>
+  api.post(`/api/workspaces/${wsId}/members/${targetUserId}/ban`);
+const apiUnbanMember = (wsId, targetUserId) =>
+  api.delete(`/api/workspaces/${wsId}/members/${targetUserId}/ban`);
+const apiGetBannedUsers = (wsId) =>
+  api.get(`/api/workspaces/${wsId}/bans`).then((r) => r.data);
 
 // Role API
 const apiCreateRole = (wsId, data) =>
@@ -349,6 +355,27 @@ export function WorkspaceProvider({ children }) {
 
   const updateMemberRole = useCallback(async (workspaceId, targetUserId, role) => {
     return apiUpdateMemberRole(workspaceId, targetUserId, role);
+  }, []);
+
+  const banMember = useCallback(async (workspaceId, userId) => {
+    await apiBanMember(workspaceId, userId);
+    setMembersCache((prev) => {
+      if (!prev[workspaceId]) return prev;
+      return {
+        ...prev,
+        [workspaceId]: prev[workspaceId].filter(
+          (m) => m.user._id.toString() !== userId,
+        ),
+      };
+    });
+  }, []);
+
+  const unbanMember = useCallback(async (workspaceId, userId) => {
+    await apiUnbanMember(workspaceId, userId);
+  }, []);
+
+  const getBannedUsers = useCallback(async (workspaceId) => {
+    return apiGetBannedUsers(workspaceId);
   }, []);
 
   // ── Socket: workspace + module live events ────────────────────────────────
@@ -678,6 +705,9 @@ export function WorkspaceProvider({ children }) {
     addMembers,
     removeMembers,
     updateMemberRole,
+    banMember,
+    unbanMember,
+    getBannedUsers,
   };
 
   return (

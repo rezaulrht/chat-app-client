@@ -1,9 +1,14 @@
 "use client";
-import React, { useEffect } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import Image from "next/image";
-import { X, Crown, Shield, ChevronRight, Users, Circle } from "lucide-react";
+import { X, Crown, Shield, Users, Circle } from "lucide-react";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import useAuth from "@/hooks/useAuth";
+import useIsAdmin from "@/hooks/useIsAdmin";
+import MemberProfileModal from "@/components/workspace/MemberProfileModal";
+import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
+import api from "@/app/api/Axios";
 
 function RoleBadge({ color, name }) {
   return (
@@ -20,7 +25,7 @@ function RoleBadge({ color, name }) {
   );
 }
 
-function MemberRow({ member, roles, isOnline, onProfileClick }) {
+function MemberRow({ member, roles, isOnline, onProfileClick, onContextMenu }) {
   const roleInfo =
     member.role === "owner"
       ? { label: "Owner", color: "#e5b456", Icon: Crown }
@@ -35,6 +40,7 @@ function MemberRow({ member, roles, isOnline, onProfileClick }) {
   return (
     <div
       onClick={onProfileClick ? () => onProfileClick(member) : undefined}
+      onContextMenu={onContextMenu ? (e) => onContextMenu(e, member) : undefined}
       className={`flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all group ${
         onProfileClick ? "hover:bg-white/4 cursor-pointer" : ""
       }`}
@@ -110,13 +116,40 @@ export default function MemberListPanel({
   onClose,
   onSettingsOpen,
 }) {
-  const { workspaces, membersCache, onlineUsers, fetchWorkspaceMembers } =
+  const { workspaces, membersCache, onlineUsers, fetchWorkspaceMembers, removeMembers, updateMemberRole, banMember } =
     useWorkspace();
   const { user: currentUser } = useAuth();
+  const isAdmin = useIsAdmin(workspaceId);
 
   const workspace = workspaces.find((w) => w._id === workspaceId);
   const members = membersCache[workspaceId] || [];
   const roles = workspace?.roles || [];
+
+  const [profileTarget, setProfileTarget] = useState(null);
+  const [contextMenu, setContextMenu] = useState(null);
+
+  const handleProfileClick = useCallback((member) => {
+    setProfileTarget(member);
+    setContextMenu(null);
+  }, []);
+
+  const handleContextMenu = useCallback((e, member) => {
+    e.preventDefault();
+    setContextMenu({ member, x: e.clientX, y: e.clientY });
+  }, []);
+
+  const closeContextMenu = useCallback(() => setContextMenu(null), []);
+
+  const router = useRouter();
+
+  const handleMessage = useCallback(async (userId) => {
+    try {
+      const res = await api.post("/api/chat/conversations", { participantId: userId });
+      router.push(`/app?conv=${res.data._id}`);
+    } catch {
+      toast.error("Could not open conversation");
+    }
+  }, [router]);
 
   useEffect(() => {
     if (workspaceId) fetchWorkspaceMembers(workspaceId);
@@ -251,6 +284,8 @@ export default function MemberListPanel({
                     member={member}
                     roles={roles}
                     isOnline={onlineUsers.has(member.user?._id)}
+                    onProfileClick={handleProfileClick}
+                    onContextMenu={handleContextMenu}
                   />
                 ))}
               </div>
@@ -258,6 +293,112 @@ export default function MemberListPanel({
           ))
         )}
       </div>
+
+      {/* Profile modal */}
+      {profileTarget && (
+        <MemberProfileModal
+          workspaceId={workspaceId}
+          member={profileTarget}
+          onClose={() => setProfileTarget(null)}
+          onMessage={handleMessage}
+          scrollToRoles={!!profileTarget._scrollToRoles}
+        />
+      )}
+
+      {/* Context menu */}
+      {contextMenu && (
+        <MemberContextMenu
+          member={contextMenu.member}
+          x={contextMenu.x}
+          y={contextMenu.y}
+          isAdmin={isAdmin}
+          workspaceId={workspaceId}
+          onClose={closeContextMenu}
+          onOpenProfile={(m, scrollToRoles = false) => {
+            setProfileTarget({ ...m, _scrollToRoles: scrollToRoles });
+            setContextMenu(null);
+          }}
+          onMessage={handleMessage}
+          removeMembers={removeMembers}
+          updateMemberRole={updateMemberRole}
+          banMember={banMember}
+        />
+      )}
     </aside>
+  );
+}
+
+function MemberContextMenu({ member, x, y, isAdmin, workspaceId, onClose, onOpenProfile, onMessage, removeMembers, updateMemberRole, banMember }) {
+  const userId = member.user?._id?.toString();
+  const isOwner = member.role === "owner";
+  const canPromote = member.role === "member";
+  const canDemote = member.role === "admin";
+
+  const handleKick = async () => {
+    if (!confirm(`Kick ${member.user?.name}?`)) return;
+    try {
+      await removeMembers(workspaceId, [userId]);
+      toast.success(`${member.user?.name} was kicked`);
+      onClose();
+    } catch { toast.error("Failed to kick member"); }
+  };
+
+  const handleBan = async () => {
+    if (!confirm(`Ban ${member.user?.name}? They won't be able to rejoin.`)) return;
+    try {
+      await banMember(workspaceId, userId);
+      toast.success(`${member.user?.name} was banned`);
+      onClose();
+    } catch { toast.error("Failed to ban member"); }
+  };
+
+  const handlePromoteDemote = async () => {
+    try {
+      const newRole = canPromote ? "admin" : "member";
+      await updateMemberRole(workspaceId, userId, newRole);
+      toast.success(canPromote ? "Promoted to Admin" : "Demoted to Member");
+      onClose();
+    } catch { toast.error("Failed to update role"); }
+  };
+
+  useEffect(() => {
+    const handler = () => onClose();
+    const keyHandler = (e) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("mousedown", handler);
+    document.addEventListener("keydown", keyHandler);
+    return () => {
+      document.removeEventListener("mousedown", handler);
+      document.removeEventListener("keydown", keyHandler);
+    };
+  }, [onClose]);
+
+  const itemCls = "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] text-ivory/72 hover:bg-white/5 transition-all text-left";
+
+  return (
+    <div
+      style={{ position: "fixed", top: y, left: x, zIndex: 9999 }}
+      className="w-[190px] bg-[#16162a] border border-white/8 rounded-xl p-1 shadow-2xl"
+      onMouseDown={(e) => e.stopPropagation()}
+    >
+      <p className="text-[9px] font-mono uppercase tracking-[0.12em] text-white/20 px-2.5 pt-1.5 pb-1 truncate">{member.user?.name}</p>
+      <button onClick={() => { onOpenProfile(member); onClose(); }} className={itemCls}>View Profile</button>
+      <button onClick={() => { onMessage(userId); onClose(); }} className={itemCls}>Send Message</button>
+      <button disabled className={`${itemCls} opacity-40 cursor-not-allowed`}>Mention</button>
+      {isAdmin && !isOwner && (
+        <>
+          <div className="h-px bg-white/6 my-1" />
+          <p className="text-[9px] font-mono uppercase tracking-[0.1em] text-[#e55692]/50 px-2.5 py-1">Admin Actions</p>
+          <button onClick={() => { onOpenProfile(member, true); onClose(); }} className={itemCls}>Manage Roles</button>
+          {(canPromote || canDemote) && (
+            <button onClick={handlePromoteDemote} className={itemCls}>{canPromote ? "Promote to Admin" : "Demote to Member"}</button>
+          )}
+          <div className="h-px bg-white/6 my-1" />
+          <button onClick={handleKick} className={`${itemCls} text-red-400`}>Kick Member</button>
+          <button onClick={handleBan} className={`${itemCls} text-red-500`}>Ban Member</button>
+        </>
+      )}
+      <div className="h-px bg-white/6 my-1" />
+      <button disabled className={`${itemCls} text-red-400/50 cursor-not-allowed opacity-50`}>Report User</button>
+    </div>
   );
 }

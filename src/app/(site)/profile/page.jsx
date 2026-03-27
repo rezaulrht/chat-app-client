@@ -250,13 +250,13 @@ function ProfilePage() {
   return (
     <div>
       {/* ── Page content ─────────────────────────────────────────────── */}
-      <div className="max-w-3xl mx-auto px-4 py-10 space-y-6">
+      <div className="max-w-3xl mx-auto px-4 py-4 md:py-10 space-y-4 md:space-y-6">
         {/* ════════════════════════════════════════════════════════════ */}
         {/* HERO CARD                                                    */}
         {/* ════════════════════════════════════════════════════════════ */}
         <div className="relative rounded-3xl overflow-hidden border border-white/[0.08] shadow-2xl shadow-black/40">
           {/* Banner gradient */}
-          <div className="h-32 bg-linear-to-br from-accent/20 via-accent/5 to-transparent" />
+          <div className="h-20 md:h-32 bg-linear-to-br from-accent/20 via-accent/5 to-transparent" />
 
           {/* Overlay grid texture */}
           <div
@@ -268,11 +268,11 @@ function ProfilePage() {
           />
 
           {/* Avatar + identity */}
-          <div className="relative px-6 pb-6">
+          <div className="relative px-4 md:px-6 pb-4 md:pb-6">
             {/* Avatar — sits half on banner, half below */}
-            <div className="relative -mt-10 mb-4 w-fit">
+            <div className="relative -mt-7 md:-mt-10 mb-3 md:mb-4 w-fit">
               <div
-                className="w-20 h-20 rounded-2xl overflow-hidden ring-4 ring-[#07070e] shadow-xl cursor-pointer group/av relative"
+                className="w-16 h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden ring-4 ring-[#07070e] shadow-xl cursor-pointer group/av relative"
                 onClick={() => fileRef.current?.click()}
               >
                 <Image
@@ -306,7 +306,7 @@ function ProfilePage() {
             </div>
 
             <div className="space-y-1">
-              <h1 className="text-ivory font-display font-bold text-2xl leading-tight">
+              <h1 className="text-ivory font-display font-bold text-xl md:text-2xl leading-tight">
                 {user?.name}
               </h1>
               {user?.statusMessage && (
@@ -383,7 +383,7 @@ function ProfilePage() {
         </div>
 
         <div
-          className={`grid gap-6 ${activeSection === "posts" ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"}`}
+          className={`grid gap-4 md:gap-6 ${activeSection === "posts" || activeSection === "account" ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"}`}
         >
           {/* ════════════════════════════════════════════════════════════ */}
           {/* LEFT COLUMN                                                  */}
@@ -391,21 +391,25 @@ function ProfilePage() {
           <div className="space-y-4">
             {/* Section tabs */}
             <div className="flex gap-1 p-1 bg-white/[0.03] rounded-xl border border-white/[0.06]">
-              {["edit", ...(isLocal ? ["security"] : []), "posts"].map((s) => (
+              {["edit", ...(isLocal ? ["security"] : []), "posts", "account"].map((s) => (
                 <button
                   key={s}
                   onClick={() => setActiveSection(s)}
                   className={`flex-1 py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase tracking-[0.1em] transition-all duration-200 ${
+                    s === "account" ? "md:hidden" : ""
+                  } ${
                     activeSection === s
                       ? "bg-accent/15 text-accent border border-accent/20"
                       : "text-ivory/25 hover:text-ivory/50"
                   }`}
                 >
                   {s === "edit"
-                    ? "Edit Profile"
+                    ? "Edit"
                     : s === "security"
                       ? "Security"
-                      : "My Posts"}
+                      : s === "posts"
+                        ? "Posts"
+                        : "Account"}
                 </button>
               ))}
             </div>
@@ -711,10 +715,11 @@ function ProfilePage() {
           </div>
 
           {/* ════════════════════════════════════════════════════════════ */}
-          {/* RIGHT COLUMN (hidden when browsing own posts)               */}
+          {/* RIGHT COLUMN — on desktop always visible (except posts tab) */}
+          {/*              — on mobile only visible via "Account" tab     */}
           {/* ════════════════════════════════════════════════════════════ */}
           {activeSection !== "posts" && (
-            <div className="space-y-4">
+            <div className={`space-y-4 ${activeSection !== "account" ? "hidden md:block" : ""}`}>
               {/* ── Account Details ── */}
               <div className="glass-card rounded-2xl border border-white/[0.08] p-5 space-y-3">
                 <h2 className="text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-ivory/25 flex items-center gap-1.5 mb-3">
@@ -847,6 +852,8 @@ function ProfilePage() {
     </div>
   );
 }
+
+export { ProfilePage };
 
 export default function Page() {
   return (

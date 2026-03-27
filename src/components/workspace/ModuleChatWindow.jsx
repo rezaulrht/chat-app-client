@@ -24,7 +24,11 @@ import {
   Pin,
   PinOff,
   Search,
+  Gamepad2,
 } from "lucide-react";
+import WordSpyGame from "@/components/wordspy/WordSpyGame";
+import useWordSpyStore from "@/stores/wordSpyStore";
+import useWordSpy from "@/hooks/useWordSpy";
 import useAuth from "@/hooks/useAuth";
 import { useModule } from "@/hooks/useModule";
 import { useWorkspace } from "@/hooks/useWorkspace";
@@ -98,6 +102,13 @@ export default function ModuleChatWindow({
     deleteMessage,
     pinMessage,
   } = useModule();
+
+  const wordSpyPhase = useWordSpyStore((s) => s.phase);
+  const { joinGame } = useWordSpy();
+
+  // All phases including results are game phases — the results screen is part of the game
+  const GAME_PHASES = ["lobby", "word_assign", "word_reveal", "hint", "vote", "reveal", "results"];
+  const isGameActive = GAME_PHASES.includes(wordSpyPhase);
 
   const workspace = workspaces.find((w) => w._id === workspaceId);
   const modules = modulesCache[workspaceId] || [];
@@ -179,6 +190,7 @@ export default function ModuleChatWindow({
   // Reset input state when module changes
   useEffect(() => {
     setText("");
+    if (inputRef.current) inputRef.current.innerHTML = "";
     setReplyTo(null);
     setEditingId(null);
     setSuggestions([]);
@@ -253,6 +265,20 @@ export default function ModuleChatWindow({
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [reactionPickerMsgId, showEmojiPicker, showGifPicker, longPressedMsgId, showSeenBy, scheduleDropdownOpen, aiMenuOpen]);
+
+  // ── Jump to message (from panels) ────────────────────────────────────────
+  const handleJumpToMessage = useCallback((messageId) => {
+    setShowPinnedPanel(false);
+    setShowSearchPanel(false);
+    setTimeout(() => {
+      const el = document.querySelector(`[data-message-id="${messageId}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("ring-1", "ring-accent/50");
+        setTimeout(() => el.classList.remove("ring-1", "ring-accent/50"), 2000);
+      }
+    }, 50);
+  }, []);
 
   // ── Long-press (mobile) ───────────────────────────────────────────────────
   const handleTouchStart = useCallback((msgId) => {
@@ -531,9 +557,10 @@ export default function ModuleChatWindow({
     range.setEndAfter(textNode);
     selection.removeAllRanges();
     selection.addRange(range);
-    
+
     const parsed = parseMessage(inputRef.current);
     setText(parsed.text);
+    handleInput({ currentTarget: inputRef.current });
   };
 
   const renderInputHighlighter = (val) => {
@@ -645,6 +672,7 @@ export default function ModuleChatWindow({
       });
       toast.success("✅ Message scheduled!");
       setText("");
+      if (inputRef.current) inputRef.current.innerHTML = "";
       setSendAt("");
       refreshScheduled();
       setShowScheduledPanel(true);
@@ -754,6 +782,15 @@ export default function ModuleChatWindow({
     deleteMessage(msgId, true);
   };
 
+  // ── Word Spy game view ────────────────────────────────────────────────────
+  if (isGameActive) {
+    return (
+      <div className="flex-1 flex flex-col h-full bg-obsidian">
+        <WordSpyGame moduleId={moduleId} workspaceId={workspaceId} />
+      </div>
+    );
+  }
+
   // ── Empty state ───────────────────────────────────────────────────────────
   if (!activeModule) {
     return (
@@ -852,16 +889,27 @@ export default function ModuleChatWindow({
           </button>
           
           {/* Members toggle */}
-          <button
-            onClick={onToggleMembers}
-            title="Toggle member list"
-            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${showMembers
-              ? "bg-accent/15 text-accent"
-              : "text-ivory/25 hover:text-ivory/60 hover:bg-white/6"
-              }`}
-          >
-            <Users size={16} />
-          </button>
+        <div className="flex items-center gap-1">
+          {!isGameActive && (
+            <button
+              onClick={() => joinGame(moduleId, workspaceId)}
+              className="p-2 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-colors"
+              title="Play Word Spy"
+            >
+              <Gamepad2 size={18} />
+            </button>
+          )}
+            <button
+              onClick={onToggleMembers}
+              title="Toggle member list"
+              className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${showMembers
+                ? "bg-accent/15 text-accent"
+                : "text-ivory/25 hover:text-ivory/60 hover:bg-white/6"
+                }`}
+            >
+              <Users size={16} />
+            </button>
+        </div>
         </div>
       </header>
 
@@ -947,6 +995,7 @@ export default function ModuleChatWindow({
                 )}
 
                 <div
+                  data-message-id={msg._id}
                   className="flex items-start gap-2.5 group"
                   onTouchStart={() => handleTouchStart(msg._id)}
                   onTouchEnd={handleTouchEnd}
@@ -1808,6 +1857,7 @@ export default function ModuleChatWindow({
           workspaceId={workspaceId}
           workspace={workspace}
           onClose={() => setShowPinnedPanel(false)}
+          onJumpToMessage={handleJumpToMessage}
         />
       )}
 
@@ -1817,6 +1867,7 @@ export default function ModuleChatWindow({
           moduleId={moduleId}
           workspace={workspace}
           onClose={() => setShowSearchPanel(false)}
+          onJumpToMessage={handleJumpToMessage}
         />
       )}
     </main>

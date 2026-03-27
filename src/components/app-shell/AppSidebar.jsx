@@ -37,7 +37,11 @@ export default function AppSidebar({
 
   // Pass collapsed as a direct prop to the single child
   const child = React.Children.only(children);
-  const childWithCollapsed = React.cloneElement(child, { collapsed });
+  // Only inject collapsed into React components, not native DOM elements
+  const childWithCollapsed =
+    typeof child.type === "string"
+      ? child
+      : React.cloneElement(child, { collapsed });
 
   return (
     <div

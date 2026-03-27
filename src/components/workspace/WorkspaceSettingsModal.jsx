@@ -316,7 +316,7 @@ function RoleItem({
   const isEditing = editingId === role._id;
 
   return (
-    <div className={`px-3 py-2.5 rounded-xl border transition-all ${isEditing ? "bg-accent/5 border-accent/30 shadow-lg shadow-accent/5" : "bg-white/3 border-white/6 hover:border-white/12"}`}>
+    <div className={`group px-3 py-2.5 rounded-xl border transition-all ${isEditing ? "bg-accent/5 border-accent/30 shadow-lg shadow-accent/5" : "bg-white/3 border-white/6 hover:border-white/12"}`}>
       {isEditing ? (
         <div className="space-y-3">
           <input

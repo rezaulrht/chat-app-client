@@ -437,6 +437,9 @@ export function WorkspaceProvider({ children }) {
     };
 
     const onMention = ({ message, workspaceName, moduleName }) => {
+      if (!message) return;
+      const senderName = message.sender?.name ?? message.senderName ?? 'Someone';
+      const senderAvatar = message.sender?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${senderName}`;
       toast.custom((t) => (
         <div className={`${t.visible ? 'animate-in fade-in slide-in-from-top-4' : 'animate-out fade-out slide-out-to-top-4'} max-w-sm w-full bg-obsidian border border-accent/30 shadow-2xl rounded-xl p-4 flex flex-col gap-2 pointer-events-auto`}>
           <div className="flex items-center justify-between">
@@ -448,12 +451,12 @@ export function WorkspaceProvider({ children }) {
           </div>
           <div className="flex gap-3 items-start">
             <img 
-              src={message.sender?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${message.sender?.name}`}
+              src={senderAvatar}
               className="w-10 h-10 rounded-full border border-white/10"
               alt=""
             />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-ivory truncate">{message.sender?.name}</p>
+              <p className="text-sm font-bold text-ivory truncate">{senderName}</p>
               <p className="text-xs text-ivory/60 line-clamp-2 leading-relaxed">
                 {message.text}
               </p>

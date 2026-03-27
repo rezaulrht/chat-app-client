@@ -418,7 +418,7 @@ export default function ChatDashboard() {
       {/* Main row: sidebar + content (fills remaining height above bottom nav) */}
       <div className="flex flex-1 min-h-0 w-full">
         {/* ═══ Desktop: Unified Sidebar ═══ */}
-        <AppSidebar label="Direct Messages" className="w-80">
+        <AppSidebar label="Direct Messages" className="w-80" storeKey="chat">
           <Sidebar
             conversations={conversations}
             activeConversationId={activeConversationId}

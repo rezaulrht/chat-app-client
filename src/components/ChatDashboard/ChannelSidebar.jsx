@@ -32,6 +32,7 @@ export default function ChannelSidebar({
   onSettingsOpen, // () => void — opens WorkspaceSettingsPanel
   onCreateModule, // () => void — opens CreateModuleModal (later by Member 6)
   onModuleSettingsOpen, // (moduleId) => void — opens ModuleSettingsModal
+  collapsed = false,
 }) {
   const { user: currentUser } = useAuth();
   const {
@@ -143,6 +144,8 @@ export default function ChannelSidebar({
 
     return ordered;
   }, [modules, workspace]);
+
+  if (collapsed) return null;
 
   return (
     <aside className="w-full flex flex-col shrink-0 flex-1 min-h-0 overflow-hidden">

@@ -36,7 +36,7 @@ export default function ModulePage() {
 
   return (
     <ProtectedRoute>
-      <div className="flex h-full w-full bg-obsidian overflow-hidden">
+      <div className="flex h-full w-full bg-obsidian overflow-hidden relative">
 
         {/* ── Desktop: WorkspaceStrip (always visible) + collapsible ChannelSidebar */}
         <WorkspaceStrip />

@@ -29,25 +29,23 @@ export default function WorkspacePage() {
   useEffect(() => {
     if (!id) return;
 
-    const tryRedirect = async () => {
-      let modules = modulesCache?.[id];
-      if (!modules) {
-        await fetchModules(id);
-        modules = modulesCache?.[id];
-      }
+    const cached = modulesCache?.[id];
 
-      const sorted = (modules ?? [])
-        .filter((m) => m.type !== "voice")
-        .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+    if (cached === undefined) {
+      // Not in cache yet — fetch it; when modulesCache updates this effect re-runs
+      fetchModules(id);
+      return;
+    }
 
-      if (sorted.length > 0) {
-        router.replace(`/app/workspace/${id}/${sorted[0]._id}`);
-      } else {
-        setRedirecting(false); // no modules yet — show sidebar so user can create one
-      }
-    };
+    const sorted = cached
+      .filter((m) => m.type !== "voice")
+      .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
 
-    tryRedirect();
+    if (sorted.length > 0) {
+      router.replace(`/app/workspace/${id}/${sorted[0]._id}`);
+    } else {
+      setRedirecting(false);
+    }
   }, [id, modulesCache, fetchModules, router]);
 
   if (redirecting) {

@@ -288,6 +288,12 @@ export default function ModuleChatWindow({
     }, 500);
   }, []);
 
+  const formatLocalMin = () => {
+    const now = new Date();
+    return now.toISOString().slice(0, 16);
+  };
+
+
   const handleTouchEnd = useCallback(() => {
     if (longPressTimer.current) clearTimeout(longPressTimer.current);
   }, []);

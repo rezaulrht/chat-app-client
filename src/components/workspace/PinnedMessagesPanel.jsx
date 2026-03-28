@@ -6,6 +6,7 @@ import { useModule } from "@/hooks/useModule";
 import api from "@/app/api/Axios";
 import toast from "react-hot-toast";
 import FileAttachmentDisplay from "@/components/shared/FileAttachmentDisplay";
+import { useWorkspace } from "@/hooks/useWorkspace";
 
 export default function PinnedMessagesPanel({
   moduleId,

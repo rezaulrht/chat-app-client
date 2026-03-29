@@ -395,6 +395,33 @@
 :is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .ring-white\/\[0\.10\]  { --tw-ring-color: rgb(0 0 0 / 0.10); }
 :is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .ring-white\/\[0\.12\]  { --tw-ring-color: rgb(0 0 0 / 0.12); }
 
+/* ── text-ivory/N opacity boost for light themes ──────────────────────────
+   In dark mode text-ivory is near-white, so /40 = readable grey.
+   In light mode text-ivory = #1a1824 (near-black), so /40 = ~rgb(154,152,154)
+   which gives only ~2.5:1 contrast. These overrides lift each step to
+   maintain readability while preserving the relative muting hierarchy.     */
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .text-ivory\/10 { color: color-mix(in srgb, var(--color-ivory) 35%, transparent); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .text-ivory\/20 { color: color-mix(in srgb, var(--color-ivory) 46%, transparent); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .text-ivory\/25 { color: color-mix(in srgb, var(--color-ivory) 52%, transparent); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .text-ivory\/30 { color: color-mix(in srgb, var(--color-ivory) 57%, transparent); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .text-ivory\/35 { color: color-mix(in srgb, var(--color-ivory) 61%, transparent); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .text-ivory\/38 { color: color-mix(in srgb, var(--color-ivory) 64%, transparent); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .text-ivory\/40 { color: color-mix(in srgb, var(--color-ivory) 67%, transparent); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .text-ivory\/45 { color: color-mix(in srgb, var(--color-ivory) 70%, transparent); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .text-ivory\/50 { color: color-mix(in srgb, var(--color-ivory) 74%, transparent); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .text-ivory\/55 { color: color-mix(in srgb, var(--color-ivory) 77%, transparent); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .text-ivory\/60 { color: color-mix(in srgb, var(--color-ivory) 80%, transparent); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .text-ivory\/65 { color: color-mix(in srgb, var(--color-ivory) 83%, transparent); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .text-ivory\/70 { color: color-mix(in srgb, var(--color-ivory) 86%, transparent); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .text-ivory\/80 { color: color-mix(in srgb, var(--color-ivory) 91%, transparent); }
+
+/* ── placeholder:text-ivory/N — boost faint placeholder text in light themes  */
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .placeholder\:text-ivory\/15::placeholder { color: color-mix(in srgb, var(--color-ivory) 38%, transparent); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .placeholder\:text-ivory\/18::placeholder { color: color-mix(in srgb, var(--color-ivory) 40%, transparent); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .placeholder\:text-ivory\/20::placeholder { color: color-mix(in srgb, var(--color-ivory) 42%, transparent); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .placeholder\:text-ivory\/22::placeholder { color: color-mix(in srgb, var(--color-ivory) 44%, transparent); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .placeholder\:text-ivory\/30::placeholder { color: color-mix(in srgb, var(--color-ivory) 52%, transparent); }
+
 /* ── Dark hardcoded arbitrary bg classes → light surface equivalents ── */
 :is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-\[\#0d0d16\],
 :is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-\[\#0e0e17\],

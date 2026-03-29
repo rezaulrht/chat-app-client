@@ -404,5 +404,6 @@
 :is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-\[\#13131f\],
 :is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-\[\#16162a\]  { background-color: var(--color-slate-surface); }
 
+
 /* ── NavBar scrolled background ── */
 :is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-\[rgba\(13\,13\,18\,0\.85\)\] { background-color: rgb(240 237 232 / 0.9); }

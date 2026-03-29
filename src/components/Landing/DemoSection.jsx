@@ -18,10 +18,10 @@ import {
 
 gsap.registerPlugin(ScrollTrigger);
 
-const ACCENT = "#00d3bb";
-const OBSIDIAN = "#0D0D12";
-const DEEP = "#12121a";
-const SURFACE = "#1a1a2e";
+const ACCENT   = "var(--color-accent)";
+const OBSIDIAN = "var(--color-obsidian)";
+const DEEP     = "var(--color-slate-surface)";
+const SURFACE  = "var(--color-deep)";
 
 const SIDEBAR_CONVERSATIONS = [
   {
@@ -165,7 +165,7 @@ function WorkspaceSidebarMock() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          color: ACCENT + "88",
+          color: "color-mix(in srgb, var(--color-accent) 53%, transparent)",
         }}
       >
         <Plus size={18} />
@@ -246,7 +246,7 @@ function SidebarMock() {
                     width: 32,
                     height: 32,
                     borderRadius: "50%",
-                    outline: "1.5px solid " + ACCENT + "80",
+                    outline: "1.5px solid color-mix(in srgb, var(--color-accent) 50%, transparent)",
                     outlineOffset: 1,
                   }}
                 />
@@ -473,7 +473,7 @@ function OutgoingBubble({ text, showReaction, showSeen }) {
           fontSize: 12,
           lineHeight: 1.5,
           maxWidth: 220,
-          boxShadow: "0 4px 14px " + ACCENT + "33",
+          boxShadow: "0 4px 14px color-mix(in srgb, var(--color-accent) 20%, transparent)",
         }}
       >
         {text}
@@ -521,7 +521,7 @@ function OutgoingBubble({ text, showReaction, showSeen }) {
               gap: 4,
               padding: "1px 8px",
               borderRadius: 99,
-              background: ACCENT + "22",
+              background: "color-mix(in srgb, var(--color-accent) 13%, transparent)",
               color: ACCENT,
               fontSize: 8,
               fontWeight: 700,
@@ -707,9 +707,7 @@ export default function DemoSection() {
             height: "clamp(320px, 60vw, 460px)",
             border: "1px solid rgba(255,255,255,0.07)",
             boxShadow:
-              "0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04), 0 0 80px " +
-              ACCENT +
-              "12",
+              "0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04), 0 0 80px color-mix(in srgb, var(--color-accent) 7%, transparent)",
           }}
         >
           <WorkspaceSidebarMock />
@@ -746,7 +744,7 @@ export default function DemoSection() {
                       width: 34,
                       height: 34,
                       borderRadius: 10,
-                      outline: "2px solid " + ACCENT + "66",
+                      outline: "2px solid color-mix(in srgb, var(--color-accent) 40%, transparent)",
                       outlineOffset: 1,
                     }}
                   />
@@ -930,7 +928,7 @@ export default function DemoSection() {
                 <Smile size={16} style={{ color: "#475569", flexShrink: 0 }} />
                 <motion.div
                   animate={{
-                    background: [ACCENT + "33", ACCENT + "88", ACCENT + "33"],
+                    background: ["color-mix(in srgb, var(--color-accent) 20%, transparent)", "color-mix(in srgb, var(--color-accent) 53%, transparent)", "color-mix(in srgb, var(--color-accent) 20%, transparent)"],
                   }}
                   transition={{
                     repeat: Infinity,
@@ -970,9 +968,7 @@ export default function DemoSection() {
           style={{
             height: 1,
             background:
-              "linear-gradient(90deg, transparent, " +
-              ACCENT +
-              "40, transparent)",
+              "linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-accent) 25%, transparent), transparent)",
             borderRadius: 99,
             marginTop: -1,
           }}

@@ -298,7 +298,7 @@ function SidebarMock() {
               gap: 8,
               padding: "6px 8px",
               borderRadius: 6,
-              background: conv.active ? "rgba(26,26,46,0.7)" : "transparent",
+              background: conv.active ? "color-mix(in srgb, var(--color-slate-surface) 70%, transparent)" : "transparent",
               position: "relative",
               cursor: "default",
             }}
@@ -728,7 +728,7 @@ export default function DemoSection() {
               style={{
                 height: 56,
                 borderBottom: "1px solid rgba(255,255,255,0.05)",
-                background: "rgba(13,13,18,0.85)",
+                background: "color-mix(in srgb, var(--color-obsidian) 85%, transparent)",
                 backdropFilter: "blur(12px)",
                 display: "flex",
                 alignItems: "center",

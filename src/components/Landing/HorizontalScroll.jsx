@@ -113,7 +113,7 @@ export default function HorizontalScroll() {
             style={{
               width: "clamp(300px,36vw,460px)",
               height: "clamp(340px,52vh,490px)",
-              background: "linear-gradient(145deg,#12121a 0%,#0d0d12 100%)",
+              background: "linear-gradient(145deg, var(--color-slate-surface) 0%, var(--color-obsidian) 100%)",
               boxShadow: `0 24px 60px rgba(0,0,0,0.45),inset 0 1px 0 rgba(255,255,255,0.05)`,
             }}
           >

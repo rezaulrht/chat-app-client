@@ -6,6 +6,7 @@ import Image from "next/image";
 import NavLinks from "./buttons/NavLinks";
 import { usePathname } from "next/navigation";
 import useAuth from "@/hooks/useAuth";
+import ThemeSwitcher from "@/components/shared/ThemeSwitcher";
 
 export default function NavBar() {
   const pathname = usePathname();
@@ -40,7 +41,7 @@ export default function NavBar() {
           rounded-2xl transition-all duration-500 ease-[cubic-bezier(0.25,0.46,0.45,0.94)]
           ${
             scrolled
-              ? "bg-[rgba(13,13,18,0.85)] backdrop-blur-xl border border-white/[0.08] shadow-lg shadow-black/20"
+              ? "bg-deep/90 backdrop-blur-xl border border-white/[0.08] shadow-lg shadow-black/20"
               : "bg-transparent border border-transparent"
           }
         `}
@@ -163,8 +164,9 @@ export default function NavBar() {
             </ul>
           </div>
 
-          {/* Right – Auth Buttons */}
+          {/* Right – Theme + Auth Buttons */}
           <div className="flex items-center gap-3">
+            <ThemeSwitcher />
             {isMounted && (
               <>
                 {!user || !user.isVerified ? (

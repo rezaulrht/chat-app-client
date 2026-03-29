@@ -3,7 +3,9 @@
 @plugin "daisyui" {
   themes:
     midnight-luxe-mint --default,
-    midnight-luxe-cyan;
+    midnight-luxe-cyan,
+    luxe-mint-light,
+    luxe-cyan-light;
 }
 
 /* ─── Shared palette variables (referenced by both themes) ──────────────── */
@@ -47,6 +49,44 @@
   --color-darker: #034858;
 }
 
+/* ─── Luxe Mint Light ───────────────────────────────────────────────────── */
+@plugin "daisyui/theme" {
+  name: "luxe-mint-light";
+  color-scheme: light;
+  --color-primary: #00c4ad;
+  --color-secondary: #009e8c;
+
+  --color-light: #e6fbf8;
+  --color-light-hover: #d9f8f5;
+  --color-light-active: #b0f1ea;
+  --color-normal: #00c4ad;
+  --color-normal-hover: #00ae99;
+  --color-normal-active: #009985;
+  --color-dark: #009e8c;
+  --color-dark-hover: #007f70;
+  --color-dark-active: #005f54;
+  --color-darker: #004a41;
+}
+
+/* ─── Luxe Cyan Light ───────────────────────────────────────────────────── */
+@plugin "daisyui/theme" {
+  name: "luxe-cyan-light";
+  color-scheme: light;
+  --color-primary: #0fb8d4;
+  --color-secondary: #088ba3;
+
+  --color-light: #cef3fc;
+  --color-light-hover: #b2ecf9;
+  --color-light-active: #83e1f6;
+  --color-normal: #0fb8d4;
+  --color-normal-hover: #0da3bd;
+  --color-normal-active: #0b8fa7;
+  --color-dark: #088ba3;
+  --color-dark-hover: #06758a;
+  --color-dark-active: #045f70;
+  --color-darker: #034858;
+}
+
 @custom-variant dark (&:where([data-theme=midnight-luxe-dark], [data-theme=midnight-luxe-dark] *));
 
 /* --- Midnight Luxe Theme Tokens (global — applies to all themes) --- */
@@ -81,9 +121,22 @@
   --spacing-4_5: 1.125rem;
 }
 
+/* ─── Light theme surface token overrides ───────────────────────────────── */
+/* Must come AFTER @theme so these [data-theme] rules win in the cascade.    */
+[data-theme="luxe-mint-light"],
+[data-theme="luxe-cyan-light"] {
+  --color-obsidian: #f0ede8;
+  --color-slate-surface: #fafaf8;
+  --color-deep: #e8e3dd;
+  --color-ivory: #1a1824;
+  --color-background-dark: #f0ede8;
+  --color-surface-dark: #fafaf8;
+}
+
 @layer base {
   body {
-    @apply bg-background-dark text-slate-200 font-sans antialiased;
+    @apply bg-background-dark font-sans antialiased;
+    color: var(--color-ivory);
   }
 
   /* Noise texture overlay — eliminates flat digital feel */
@@ -184,6 +237,22 @@
     display: none;
   }
 
+  /* Light theme overrides for glass components */
+  :is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"]) .glass-card {
+    background: rgba(255, 255, 255, 0.75);
+    border-color: rgba(0, 0, 0, 0.07);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.06);
+  }
+  :is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"]) .glass-panel {
+    background: rgba(240, 237, 232, 0.88);
+    border-color: rgba(0, 0, 0, 0.05);
+  }
+  :is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"]) .btn-cta-glass {
+    background: rgba(255, 255, 255, 0.7);
+    border-color: rgba(0, 0, 0, 0.08);
+    color: #1a1824;
+  }
+
   /* Floating Label Logic for Tailwind v4 */
   .floating-group {
     @apply relative;
@@ -209,3 +278,131 @@
   0%, 100% { box-shadow: 0 0 0 0 rgba(0,211,187,0.4); }
   50%       { box-shadow: 0 0 0 6px rgba(0,211,187,0); }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* CYAN THEME: override accent color (static @theme token needs a [data]      */
+/* override so text-accent / bg-accent / border-accent switch to cyan)        */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+[data-theme="midnight-luxe-cyan"],
+[data-theme="luxe-cyan-light"] {
+  --color-accent: #13c8ec;
+  --color-accent-glow: rgba(19, 200, 236, 0.3);
+  --color-accent-dim: rgba(19, 200, 236, 0.08);
+  --color-primary-glow: rgba(19, 200, 236, 0.3);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* LIGHT THEMES: flip white overlays → black overlays                         */
+/* bg-white/X and border-white/X are invisible on a light background.         */
+/* These rules cover every opacity variant found in the codebase.             */
+/* Specificity: (0,1,1) beats Tailwind utility (0,0,1) so no !important.      */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── bg-white/N shorthand ── */
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/1        { background-color: rgb(0 0 0 / 0.01); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/2        { background-color: rgb(0 0 0 / 0.02); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/3        { background-color: rgb(0 0 0 / 0.03); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/4        { background-color: rgb(0 0 0 / 0.04); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/5        { background-color: rgb(0 0 0 / 0.05); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/6        { background-color: rgb(0 0 0 / 0.06); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/7        { background-color: rgb(0 0 0 / 0.07); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/8        { background-color: rgb(0 0 0 / 0.08); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/10       { background-color: rgb(0 0 0 / 0.10); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/15       { background-color: rgb(0 0 0 / 0.15); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/20       { background-color: rgb(0 0 0 / 0.20); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/25       { background-color: rgb(0 0 0 / 0.25); }
+
+/* ── bg-white/[decimal] bracket form ── */
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/\[0\.01\]  { background-color: rgb(0 0 0 / 0.01); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/\[0\.015\] { background-color: rgb(0 0 0 / 0.015); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/\[0\.02\]  { background-color: rgb(0 0 0 / 0.02); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/\[0\.025\] { background-color: rgb(0 0 0 / 0.025); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/\[0\.03\]  { background-color: rgb(0 0 0 / 0.03); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/\[0\.04\]  { background-color: rgb(0 0 0 / 0.04); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/\[0\.05\]  { background-color: rgb(0 0 0 / 0.05); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/\[0\.055\] { background-color: rgb(0 0 0 / 0.055); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/\[0\.06\]  { background-color: rgb(0 0 0 / 0.06); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/\[0\.07\]  { background-color: rgb(0 0 0 / 0.07); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/\[0\.08\]  { background-color: rgb(0 0 0 / 0.08); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/\[0\.1\]   { background-color: rgb(0 0 0 / 0.10); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/\[0\.10\]  { background-color: rgb(0 0 0 / 0.10); }
+
+/* ── hover:bg-white/N ── */
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/2:hover  { background-color: rgb(0 0 0 / 0.02); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/3:hover  { background-color: rgb(0 0 0 / 0.03); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/4:hover  { background-color: rgb(0 0 0 / 0.04); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/5:hover  { background-color: rgb(0 0 0 / 0.05); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/6:hover  { background-color: rgb(0 0 0 / 0.06); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/8:hover  { background-color: rgb(0 0 0 / 0.08); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/10:hover { background-color: rgb(0 0 0 / 0.10); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/20:hover { background-color: rgb(0 0 0 / 0.20); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/25:hover { background-color: rgb(0 0 0 / 0.25); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/\[0\.02\]:hover  { background-color: rgb(0 0 0 / 0.02); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/\[0\.03\]:hover  { background-color: rgb(0 0 0 / 0.03); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/\[0\.04\]:hover  { background-color: rgb(0 0 0 / 0.04); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/\[0\.05\]:hover  { background-color: rgb(0 0 0 / 0.05); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/\[0\.06\]:hover  { background-color: rgb(0 0 0 / 0.06); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/\[0\.07\]:hover  { background-color: rgb(0 0 0 / 0.07); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/\[0\.08\]:hover  { background-color: rgb(0 0 0 / 0.08); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/\[0\.1\]:hover   { background-color: rgb(0 0 0 / 0.10); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/\[0\.10\]:hover  { background-color: rgb(0 0 0 / 0.10); }
+
+/* ── border-white/N shorthand ── */
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/4  { border-color: rgb(0 0 0 / 0.04); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/5  { border-color: rgb(0 0 0 / 0.05); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/6  { border-color: rgb(0 0 0 / 0.06); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/7  { border-color: rgb(0 0 0 / 0.07); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/8  { border-color: rgb(0 0 0 / 0.08); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/10 { border-color: rgb(0 0 0 / 0.10); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/12 { border-color: rgb(0 0 0 / 0.12); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/15 { border-color: rgb(0 0 0 / 0.15); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/20 { border-color: rgb(0 0 0 / 0.20); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/30 { border-color: rgb(0 0 0 / 0.30); }
+
+/* ── border-white/[decimal] bracket form ── */
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/\[0\.03\] { border-color: rgb(0 0 0 / 0.03); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/\[0\.04\] { border-color: rgb(0 0 0 / 0.04); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/\[0\.05\] { border-color: rgb(0 0 0 / 0.05); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/\[0\.06\] { border-color: rgb(0 0 0 / 0.06); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/\[0\.07\] { border-color: rgb(0 0 0 / 0.07); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/\[0\.08\] { border-color: rgb(0 0 0 / 0.08); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/\[0\.1\]  { border-color: rgb(0 0 0 / 0.10); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/\[0\.10\] { border-color: rgb(0 0 0 / 0.10); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/\[0\.12\] { border-color: rgb(0 0 0 / 0.12); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/\[0\.14\] { border-color: rgb(0 0 0 / 0.14); }
+
+/* ── hover:border-white/X ── */
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:border-white\/\[0\.05\]:hover  { border-color: rgb(0 0 0 / 0.05); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:border-white\/\[0\.1\]:hover   { border-color: rgb(0 0 0 / 0.10); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:border-white\/\[0\.14\]:hover  { border-color: rgb(0 0 0 / 0.14); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:border-white\/10:hover  { border-color: rgb(0 0 0 / 0.10); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:border-white\/12:hover  { border-color: rgb(0 0 0 / 0.12); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:border-white\/15:hover  { border-color: rgb(0 0 0 / 0.15); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:border-white\/20:hover  { border-color: rgb(0 0 0 / 0.20); }
+
+/* ── ring-white/X ── */
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .ring-white\/5       { --tw-ring-color: rgb(0 0 0 / 0.05); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .ring-white\/6       { --tw-ring-color: rgb(0 0 0 / 0.06); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .ring-white\/7       { --tw-ring-color: rgb(0 0 0 / 0.07); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .ring-white\/8       { --tw-ring-color: rgb(0 0 0 / 0.08); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .ring-white\/10      { --tw-ring-color: rgb(0 0 0 / 0.10); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .ring-white\/12      { --tw-ring-color: rgb(0 0 0 / 0.12); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .ring-white\/\[0\.04\]  { --tw-ring-color: rgb(0 0 0 / 0.04); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .ring-white\/\[0\.06\]  { --tw-ring-color: rgb(0 0 0 / 0.06); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .ring-white\/\[0\.07\]  { --tw-ring-color: rgb(0 0 0 / 0.07); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .ring-white\/\[0\.08\]  { --tw-ring-color: rgb(0 0 0 / 0.08); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .ring-white\/\[0\.1\]   { --tw-ring-color: rgb(0 0 0 / 0.10); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .ring-white\/\[0\.10\]  { --tw-ring-color: rgb(0 0 0 / 0.10); }
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .ring-white\/\[0\.12\]  { --tw-ring-color: rgb(0 0 0 / 0.12); }
+
+/* ── Dark hardcoded arbitrary bg classes → light surface equivalents ── */
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-\[\#0d0d16\],
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-\[\#0e0e17\],
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-\[\#0f0f17\]  { background-color: var(--color-deep); }
+
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-\[\#13131c\],
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-\[\#13131f\],
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-\[\#16162a\]  { background-color: var(--color-slate-surface); }
+
+/* ── NavBar scrolled background ── */
+:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-\[rgba\(13\,13\,18\,0\.85\)\] { background-color: rgb(240 237 232 / 0.9); }

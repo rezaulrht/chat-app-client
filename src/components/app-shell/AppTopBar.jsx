@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Menu, ChevronLeft, User, LogOut, MessageCircle, Compass, Layers, Home } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 import { useAppShell } from "./AppShellContext";
+import ThemeSwitcher from "@/components/shared/ThemeSwitcher";
 
 const TABS = [
   { id: "landing",   label: "Home",      href: "/",              icon: Home },
@@ -117,6 +118,8 @@ export default function AppTopBar() {
           +
         </Link>
       )}
+
+      <ThemeSwitcher />
 
       {/* Profile button + dropdown */}
       {mounted && user && (

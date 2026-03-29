@@ -5,8 +5,8 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const ACCENT = "#00d3bb";
-const DEEP   = "#12121a";
+const ACCENT = "var(--color-accent)";
+const DEEP   = "var(--color-slate-surface)";
 
 const team = [
   {

@@ -157,6 +157,21 @@ export default function ChatWindow({
   const { socket, onlineUsers, typingUsers } = useSocket() || {};
   const { user } = useAuth();
   const { startCall } = useCall();
+
+  const handleStartCall = useCallback(
+    async (callType) => {
+      try {
+        const { data } = await api.post("/api/calls/initiate", {
+          conversationId: conversation._id,
+          callType,
+        });
+        startCall({ ...data, callType, pending: true });
+      } catch (err) {
+        toast.error(err?.response?.data?.error || "Failed to start call");
+      }
+    },
+    [conversation._id, startCall],
+  );
   const router = useRouter();
 
   const _isDm = conversation?.type !== "group";
@@ -1478,14 +1493,14 @@ export default function ChatWindow({
 
         <div className="flex gap-1">
           <button
-            onClick={() => startCall(participant?._id, "voice")}
+            onClick={() => handleStartCall("audio")}
             className="w-8 h-8 rounded-xl bg-white/4 hover:bg-accent/10 hover:text-accent flex items-center justify-center text-ivory/30 transition-all"
             title="Voice call"
           >
             <Phone size={16} />
           </button>
           <button
-            onClick={() => startCall(participant?._id, "video")}
+            onClick={() => handleStartCall("video")}
             className="w-8 h-8 rounded-xl bg-white/4 hover:bg-accent/10 hover:text-accent flex items-center justify-center text-ivory/30 transition-all"
             title="Video call"
           >

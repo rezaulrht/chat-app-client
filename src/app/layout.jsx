@@ -46,7 +46,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       {/* Sets data-theme before first paint to prevent flash of wrong theme */}
       <head>
         <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem('convox-theme')||'midnight-luxe-mint';document.documentElement.setAttribute('data-theme',t);}catch(e){}` }} />

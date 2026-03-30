@@ -7,6 +7,7 @@ import NavLinks from "./buttons/NavLinks";
 import { usePathname } from "next/navigation";
 import useAuth from "@/hooks/useAuth";
 import ThemeSwitcher from "@/components/shared/ThemeSwitcher";
+import NotificationBell from "@/components/shared/NotificationBell";
 
 export default function NavBar() {
   const pathname = usePathname();
@@ -167,6 +168,7 @@ export default function NavBar() {
           {/* Right – Theme + Auth Buttons */}
           <div className="flex items-center gap-3">
             <ThemeSwitcher />
+            {isMounted && user?.isVerified && <NotificationBell />}
             {isMounted && (
               <>
                 {!user || !user.isVerified ? (

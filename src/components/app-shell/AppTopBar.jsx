@@ -7,6 +7,7 @@ import { Menu, ChevronLeft, User, LogOut, MessageCircle, Compass, Layers, Home }
 import useAuth from "@/hooks/useAuth";
 import { useAppShell } from "./AppShellContext";
 import ThemeSwitcher from "@/components/shared/ThemeSwitcher";
+import NotificationBell from "@/components/shared/NotificationBell";
 
 const TABS = [
   { id: "landing",   label: "Home",      href: "/",              icon: Home },
@@ -120,6 +121,7 @@ export default function AppTopBar() {
       )}
 
       <ThemeSwitcher />
+      {mounted && user && <NotificationBell />}
 
       {/* Profile button + dropdown */}
       {mounted && user && (

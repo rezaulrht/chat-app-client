@@ -61,7 +61,7 @@ export default function AppTopBar() {
       {/* Mobile: back button (deep pages like module chat) OR hamburger */}
       {backNav ? (
         <button
-          className="md:hidden flex items-center gap-1 text-ivory/60 hover:text-ivory transition-colors shrink-0"
+          className="lg:hidden flex items-center gap-1 text-ivory/60 hover:text-ivory transition-colors shrink-0"
           onClick={() => router.push(backNav.href)}
           aria-label="Go back"
         >
@@ -70,7 +70,7 @@ export default function AppTopBar() {
         </button>
       ) : (
         <button
-          className="md:hidden w-8 h-8 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-ivory/50 hover:text-ivory hover:bg-white/[0.07] transition-all shrink-0"
+          className="lg:hidden w-8 h-8 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-ivory/50 hover:text-ivory hover:bg-white/[0.07] transition-all shrink-0"
           onClick={() => setIsSidebarOpen((v) => !v)}
           aria-label="Toggle sidebar"
         >
@@ -95,8 +95,8 @@ export default function AppTopBar() {
               key={id}
               href={href}
               className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[11px] font-display font-bold tracking-wide transition-all duration-200 ${isActive
-                  ? "bg-accent/10 border border-accent/[0.18] text-accent"
-                  : "text-ivory/30 hover:text-ivory/60 hover:bg-white/[0.04]"
+                ? "bg-accent/10 border border-accent/[0.18] text-accent"
+                : "text-ivory/30 hover:text-ivory/60 hover:bg-white/[0.04]"
                 }`}
             >
               <Icon size={12} />
@@ -112,7 +112,7 @@ export default function AppTopBar() {
       {isFeed && (
         <Link
           href="/app/feed?compose=1"
-          className="md:hidden w-8 h-8 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent/70 hover:text-accent hover:bg-accent/15 transition-all text-lg font-light shrink-0"
+          className="lg:hidden w-8 h-8 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent/70 hover:text-accent hover:bg-accent/15 transition-all text-lg font-light shrink-0"
           aria-label="New post"
         >
           +

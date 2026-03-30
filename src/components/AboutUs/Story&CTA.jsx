@@ -68,7 +68,7 @@ const StoryAndCTA = () => {
     <div className="bg-obsidian text-ivory py-20 px-6">
       <div className="max-w-6xl mx-auto">
         {/* Our Story */}
-        <section ref={storyRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-16 items-center mb-32">
+        <section ref={storyRef} className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center mb-32">
           <div className="story-img relative" style={{ perspective: "800px" }}>
             <div
               className="rounded-3xl overflow-hidden border border-white/[0.06]"

@@ -92,8 +92,8 @@ export default function ChatDashboard() {
         (t) => (
           <div
             className={`flex flex-col gap-1.5 px-4 py-3.5 rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.3)] glass-card ring-1 ring-accent/15 text-sm min-w-70 max-w-90 transition-all duration-300 ${t.visible
-                ? "opacity-100 translate-y-0"
-                : "opacity-0 -translate-y-3"
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 -translate-y-3"
               }`}
           >
             <p className="font-display font-bold text-ivory text-[13px]">
@@ -428,7 +428,7 @@ export default function ChatDashboard() {
 
       <div className="flex flex-1 min-h-0 w-full">
         {/* ═══ Desktop: Unified Sidebar ═══ */}
-        <AppSidebar label="Direct Messages" className="md:hidden lg:flex w-80 overflow-hidden border-r border-white/[0.06]" storeKey="chat">
+        <AppSidebar label="Direct Messages" className="lg:flex w-80 overflow-hidden border-r border-white/[0.06]" storeKey="chat">
           <Sidebar
             conversations={conversations}
             activeConversationId={activeConversationId}

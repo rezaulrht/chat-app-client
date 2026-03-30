@@ -105,7 +105,7 @@ export default function CompetitiveEdge() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8 items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
           {/* Left: Differentiators */}
           <div
             className="edge-card-wrap rounded-3xl border border-white/[0.06] p-8 flex flex-col justify-between gap-6"

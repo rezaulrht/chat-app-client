@@ -90,15 +90,7 @@ export default function CreateModuleModal({
     if (!canSubmit) return;
     setSubmitting(true);
 
-    // If private, we need to deny VIEW_CHANNEL to members by default,
-    // but the backend computePermissions doesn't have an @everyone role yet.
-    // However, if we just send `permissionOverrides` with the allowed roles explicitly ALLOWING,
-    // we still need a way to DENY base members.
-    // Actually, in our computePermissions, if `isPrivate` is true, does it matter?
-    // Let's rely on the backend passing `isPrivate` down, but actually we need to
-    // modify the payload to include permissionOverrides for the selected roles.
-
-    // We will build permissionOverrides:
+    // For private modules, include permissionOverrides for selected roles and rely on isPrivate handling in the backend.
     const overrides = [];
     if (isPrivate) {
       allowedRoles.forEach((roleId) => {
@@ -175,8 +167,8 @@ export default function CreateModuleModal({
                   type="button"
                   onClick={() => setType(value)}
                   className={`flex flex-col items-start gap-1.5 p-3 rounded-xl border transition-all text-left ${type === value
-                      ? "bg-accent/10 border-accent/40 text-ivory"
-                      : "bg-white/3 border-white/6 text-ivory/50 hover:border-white/12 hover:text-ivory/70"
+                    ? "bg-accent/10 border-accent/40 text-ivory"
+                    : "bg-white/3 border-white/6 text-ivory/50 hover:border-white/12 hover:text-ivory/70"
                     }`}
                 >
                   <Icon
@@ -260,14 +252,14 @@ export default function CreateModuleModal({
               aria-pressed={isPrivate}
               onClick={() => setIsPrivate((v) => !v)}
               className={`relative w-10 h-5 rounded-full border transition-all ${isPrivate
-                  ? "bg-accent/30 border-accent/40"
-                  : "bg-white/6 border-white/10"
+                ? "bg-accent/30 border-accent/40"
+                : "bg-white/6 border-white/10"
                 }`}
             >
               <span
                 className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full transition-transform ${isPrivate
-                    ? "translate-x-5 bg-accent"
-                    : "translate-x-0 bg-ivory/30"
+                  ? "translate-x-5 bg-accent"
+                  : "translate-x-0 bg-ivory/30"
                   }`}
               />
             </button>

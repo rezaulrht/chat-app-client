@@ -71,7 +71,7 @@ const ContactPage = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Contact Form */}
           <div
             ref={formRef}

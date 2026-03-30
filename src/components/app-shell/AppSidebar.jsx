@@ -45,7 +45,7 @@ export default function AppSidebar({
 
   return (
     <div
-      className={`hidden lg:flex flex-col shrink-0 h-full bg-white/[0.02] backdrop-blur-xl overflow-hidden transition-[width] duration-300 ease-in-out ${className}`}
+      className={`hidden md:flex flex-col shrink-0 h-full bg-white/[0.02] backdrop-blur-xl overflow-hidden transition-[width] duration-300 ease-in-out ${className}`}
       style={{ width, ...style }}
     >
       {/* Toggle button — always visible when storeKey is set */}

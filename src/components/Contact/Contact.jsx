@@ -9,12 +9,12 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 gsap.registerPlugin(ScrollTrigger);
 
 const ACCENT = "#00d3bb";
-const DEEP   = "#12121a";
+const DEEP = "#12121a";
 
 const ContactPage = () => {
   const headerRef = useRef(null);
-  const formRef   = useRef(null);
-  const sideRef   = useRef(null);
+  const formRef = useRef(null);
+  const sideRef = useRef(null);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -71,7 +71,7 @@ const ContactPage = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 items-start">
           {/* Contact Form */}
           <div
             ref={formRef}

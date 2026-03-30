@@ -125,10 +125,10 @@ export default function ShareModal({ post, open, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-sm glass-card rounded-3xl overflow-hidden shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-4 bg-black/60 backdrop-blur-sm">
+      <div className="w-full max-w-xs md:max-w-sm glass-card rounded-3xl overflow-hidden shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
+        <div className="flex items-center justify-between px-4 md:px-5 py-3 md:py-4 border-b border-white/[0.06]">
           <h2 className="font-display font-bold text-ivory text-sm">
             Share Post
           </h2>
@@ -143,7 +143,7 @@ export default function ShareModal({ post, open, onClose }) {
 
         {/* Post preview */}
         {post && (
-          <div className="mx-5 mt-4 p-3 rounded-xl ring-1 ring-white/[0.07] bg-white/[0.03] flex flex-col gap-1">
+          <div className="mx-4 md:mx-5 mt-3 md:mt-4 p-3 rounded-xl ring-1 ring-white/[0.07] bg-white/[0.03] flex flex-col gap-1">
             <p className="text-[11px] font-mono text-ivory/30 uppercase tracking-wider">
               {post.type}
             </p>
@@ -157,7 +157,7 @@ export default function ShareModal({ post, open, onClose }) {
         )}
 
         {/* Search */}
-        <div className="px-5 pt-4">
+        <div className="px-4 md:px-5 pt-3 md:pt-4">
           <div className="flex items-center gap-2 bg-white/[0.04] ring-1 ring-white/[0.07] rounded-xl px-3 py-2">
             <Search size={13} className="text-ivory/25 shrink-0" />
             <input
@@ -171,7 +171,7 @@ export default function ShareModal({ post, open, onClose }) {
         </div>
 
         {/* Conversation list */}
-        <div className="px-5 py-3 max-h-44 overflow-y-auto scrollbar-hide flex flex-col gap-1">
+        <div className="px-4 md:px-5 py-2 md:py-3 max-h-44 overflow-y-auto scrollbar-hide flex flex-col gap-1">
           {loading ? (
             <div className="flex justify-center py-4">
               <Loader2 size={18} className="text-accent/40 animate-spin" />
@@ -194,11 +194,10 @@ export default function ShareModal({ post, open, onClose }) {
                   key={c._id}
                   type="button"
                   onClick={() => setSelected(c)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 text-left ${
-                    selected?._id === c._id
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 text-left ${selected?._id === c._id
                       ? "bg-accent/12 ring-1 ring-accent/25"
                       : "hover:bg-white/[0.06]"
-                  }`}
+                    }`}
                 >
                   {/* Avatar */}
                   <div className="w-8 h-8 shrink-0 rounded-lg overflow-hidden bg-white/[0.06] ring-1 ring-white/[0.08] flex items-center justify-center text-ivory/30">
@@ -233,7 +232,7 @@ export default function ShareModal({ post, open, onClose }) {
 
         {/* Optional message */}
         {selected && (
-          <div className="px-5 pb-2">
+          <div className="px-4 md:px-5 pb-2">
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
@@ -245,7 +244,7 @@ export default function ShareModal({ post, open, onClose }) {
         )}
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-5 py-4 border-t border-white/[0.06]">
+        <div className="flex items-center justify-between px-4 md:px-5 py-3 md:py-4 border-t border-white/[0.06]">
           <button
             type="button"
             onClick={handleCopyLink}

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import dynamic from "next/dynamic";
 import {
   Phone,
@@ -26,6 +27,7 @@ import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
 import { useCall } from "@/hooks/useCall";
 import { useRouter } from "next/navigation";
+import { useDmPrefs } from "@/hooks/useDmPrefs";
 import { EMOJI_MAP } from "@/utils/emojis";
 import { formatLastSeen } from "@/utils/formatLastSeen";
 import CreatePollModal from "../CreatePollModal";
@@ -104,11 +106,11 @@ function SharedPostCard({ parsed, isMe }) {
       <button
         type="button"
         onClick={handleClick}
-        className={`text-left w-full max-w-[260px] rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98] p-3 flex flex-col gap-1.5 group
+        className={`text-left w-full max-w-[280px] rounded-2xl border transition-all hover:scale-[1.02] active:scale-[0.98] p-4 flex flex-col gap-2 group shadow-sm
           ${
             isMe
-              ? "bg-black/20 border-black/20 hover:border-black/30"
-              : "bg-black/20 border-white/10 hover:border-accent/30"
+              ? "bg-accent/10 border-accent/20 hover:bg-accent/15"
+              : "bg-white/[0.04] border-white/10 hover:border-accent/40 hover:bg-white/[0.08]"
           }`}
       >
         <div className="flex items-center gap-1.5">
@@ -129,7 +131,7 @@ function SharedPostCard({ parsed, isMe }) {
           <p className="text-[10px] font-mono opacity-40">by {parsed.author}</p>
         )}
         <p
-          className={`text-[10px] font-mono mt-0.5 ${isMe ? "text-black/50" : "text-accent/60"} group-hover:underline`}
+          className={`text-[11px] font-bold mt-1 tracking-wide text-accent/80 group-hover:text-accent group-hover:underline transition-colors`}
         >
           View post →
         </p>
@@ -174,6 +176,8 @@ export default function ChatWindow({
   onMessagesSeen,
   showGroupInfo,
   onToggleGroupInfo,
+  showDmInfo,
+  onToggleDmInfo,
   onConversationUpdate,
   toggleSidebar,
   toggleWorkspace,
@@ -181,6 +185,14 @@ export default function ChatWindow({
   const { socket, onlineUsers, typingUsers } = useSocket() || {};
   const { user } = useAuth();
   const { startCall } = useCall();
+  const router = useRouter();
+
+  // Chat customisation prefs (chat colour, emoji, plus nickname for DMs)
+  const _isDm = conversation?.type !== "group";
+  const { prefs: dmPrefs } = useDmPrefs(conversation);
+  const dmColor    = dmPrefs.color || "#00d3bb";
+  const dmEmoji    = dmPrefs.emoji || "👍";
+  const dmNickname = _isDm ? dmPrefs.nickname?.trim() : null;
 
   if (!conversation) {
     return (
@@ -354,8 +366,9 @@ export default function ChatWindow({
     scheduleDropdownOpen,
   ]);
 
-  const handleEmojiClick = (emojiData) =>
-    setText((prev) => prev + emojiData.emoji);
+  const handleEmojiClick = (emojiData) => {
+    insertTextAtCursor(emojiData.emoji);
+  };
 
   const insertTextAtCursor = (textToInsert) => {
     if (!inputRef.current) return;
@@ -1370,6 +1383,55 @@ export default function ChatWindow({
     });
   }, [conversation?._id]);
 
+  const handleSendQuickEmoji = () => {
+    if (!conversation || !socket || fileUploading) return;
+    const tempId = `temp-${Date.now()}`;
+    const mappedEmoji = Array.from(dmEmoji)
+      .map((c) => EMOJI_MAP[c] || c)
+      .join("");
+
+    const optimistic = {
+      _id: tempId,
+      conversationId: conversation._id,
+      sender: { _id: user?._id, name: user?.name },
+      text: mappedEmoji,
+      mentions: [],
+      mentionData: [],
+      attachments: [],
+      createdAt: new Date().toISOString(),
+      status: "sending",
+      isOptimistic: true,
+      replyTo,
+    };
+
+    setMessages((prev) => [...prev, optimistic]);
+    setReplyTo(null);
+
+    const isGrp = conversation.type === "group";
+    socket.emit(
+      "message:send",
+      {
+        conversationId: conversation._id,
+        ...(isGrp ? {} : { receiverId: conversation.participant?._id }),
+        text: mappedEmoji,
+        mentions: [],
+        mentionData: [],
+        tempId,
+        replyTo: replyTo?._id || null,
+        attachments: [],
+      },
+      (response) => {
+        if (response?.success && response?.message) {
+          setMessages((prev) =>
+            prev.map((m) => (m._id === tempId ? response.message : m)),
+          );
+        }
+      },
+    );
+
+    onMessageSent?.(conversation._id, mappedEmoji, null, conversation.type);
+  };
+
   const handleSend = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
     const hasContent = (inputRef.current?.textContent?.trim().length || 0) > 0;
@@ -1451,7 +1513,7 @@ export default function ChatWindow({
 
   if (!conversation) {
     return (
-      <div className="flex-1 bg-obsidian flex flex-col items-center justify-center gap-6 p-6">
+      <div className="flex-1 bg-transparent flex flex-col items-center justify-center gap-6 p-6">
         <div className="relative">
           <div className="absolute inset-0 bg-accent/20 blur-3xl rounded-full" />
           <div className="relative w-24 h-24 rounded-4xl bg-accent/10 border border-accent/20 flex items-center justify-center shadow-2xl backdrop-blur-sm">
@@ -1499,7 +1561,7 @@ export default function ChatWindow({
 
   return (
     <main
-      className="flex-1 min-w-0 flex flex-col bg-obsidian relative h-full"
+      className="flex-1 min-w-0 flex flex-col bg-obsidian/40 backdrop-blur-3xl relative h-full"
       onDragOver={(e) => {
         e.preventDefault();
         setIsDragging(true);
@@ -1519,7 +1581,7 @@ export default function ChatWindow({
           <p className="text-accent text-lg font-medium">Drop files here</p>
         </div>
       )}
-      <header className="h-17 border-b border-white/5 flex justify-between items-center px-3 sm:px-5 bg-obsidian/80 backdrop-blur-sm shrink-0">
+      <header className="h-17 border-b border-white/[0.06] flex justify-between items-center px-3 sm:px-5 bg-white/[0.02] backdrop-blur-2xl shrink-0 shadow-sm relative z-20">
         <div className="flex items-center gap-3">
           {/* Hamburger removed — AppTopBar handles mobile sidebar toggle */}
           {isGroup ? (
@@ -1547,9 +1609,13 @@ export default function ChatWindow({
                 )}
               </div>
               <div>
-                <h2 className="font-bold text-ivory text-sm leading-tight">
+                <button
+                  type="button"
+                  onClick={onToggleGroupInfo}
+                  className="font-bold text-ivory text-sm leading-tight hover:text-accent transition-colors text-left"
+                >
                   {conversation.name}
-                </h2>
+                </button>
                 <p className="text-[10px] mt-0.5 text-ivory/30">
                   {groupMemberCount} member{groupMemberCount !== 1 ? "s" : ""}
                   {groupOnlineCount > 0 && (
@@ -1562,7 +1628,7 @@ export default function ChatWindow({
             </>
           ) : (
             <>
-              <div className="relative">
+              <Link href={`/profile/${participant?._id}`} className="relative block">
                 <div
                   className={`rounded-2xl overflow-hidden ${
                     isParticipantOnline
@@ -1587,12 +1653,15 @@ export default function ChatWindow({
                     isParticipantOnline ? "bg-emerald-400" : "bg-slate-600"
                   }`}
                 />
-              </div>
+              </Link>
 
               <div>
-                <h2 className="font-bold text-ivory text-sm leading-tight">
-                  {participant?.name}
-                </h2>
+                <Link
+                  href={`/profile/${participant?._id}`}
+                  className="font-bold text-ivory hover:text-accent transition-colors text-sm leading-tight cursor-pointer text-left block"
+                >
+                  {dmNickname || participant?.name}
+                </Link>
                 <p className="text-[10px] mt-0.5">
                   {isParticipantOnline ? (
                     <span className="text-emerald-400 flex items-center gap-1">
@@ -1614,10 +1683,18 @@ export default function ChatWindow({
         </div>
 
         <div className="flex gap-1">
-          <button className="w-8 h-8 rounded-xl bg-white/4 hover:bg-accent/10 hover:text-accent flex items-center justify-center text-ivory/30 transition-all">
+          <button
+            onClick={() => startCall(participant?._id, "voice")}
+            className="w-8 h-8 rounded-xl bg-white/4 hover:bg-accent/10 hover:text-accent flex items-center justify-center text-ivory/30 transition-all"
+            title="Voice call"
+          >
             <Phone size={16} />
           </button>
-          <button className="w-8 h-8 rounded-xl bg-white/4 hover:bg-accent/10 hover:text-accent flex items-center justify-center text-ivory/30 transition-all">
+          <button
+            onClick={() => startCall(participant?._id, "video")}
+            className="w-8 h-8 rounded-xl bg-white/4 hover:bg-accent/10 hover:text-accent flex items-center justify-center text-ivory/30 transition-all"
+            title="Video call"
+          >
             <Video size={16} />
           </button>
 
@@ -1643,9 +1720,10 @@ export default function ChatWindow({
 
           <button
             type="button"
-            onClick={isGroup ? onToggleGroupInfo : undefined}
+            onClick={isGroup ? onToggleGroupInfo : onToggleDmInfo}
+            title={isGroup ? "Group info" : "Chat info"}
             className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
-              isGroup && showGroupInfo
+              (isGroup && showGroupInfo) || (!isGroup && showDmInfo)
                 ? "bg-accent/20 text-accent border border-accent/30"
                 : "bg-white/4 hover:bg-accent/10 hover:text-accent text-ivory/30"
             }`}
@@ -1958,7 +2036,15 @@ export default function ChatWindow({
                   </div>
                 )}
 
-                <div
+                {msg.isSystem ? (
+                  <div key={`sys-${msg._id}`} className="flex justify-center my-3 w-full">
+                    <span className="text-[10px] text-ivory/40 bg-white/5 px-3 py-1 rounded-full font-mono text-center">
+                      {msg.text}
+                    </span>
+                  </div>
+                ) : (
+                  <div
+
                   id={`msg-${msg._id}`}
                   data-message-id={msg._id}
                   data-sender-id={msg.sender?._id}
@@ -2000,7 +2086,7 @@ export default function ChatWindow({
                   >
                     {isGroup && !isMe && (
                       <span className="text-[10px] font-semibold text-accent/80 mb-0.5 px-1">
-                        {msg.sender?.name || "Member"}
+                        {conversation?.customisation?.nicknames?.[msg.sender?._id] || msg.sender?.name || "Member"}
                       </span>
                     )}
 
@@ -2009,7 +2095,7 @@ export default function ChatWindow({
                         <div
                           className={`absolute -top-7 ${isMe ? "right-0" : "left-0"} items-center gap-0.5 bg-deep border border-white/6 rounded-lg p-0.5 shadow-xl shadow-black/40 z-30 ${longPressedMsgId === msg._id ? "flex" : "hidden group-hover:flex"}`}
                         >
-                          {["👍", "❤️", "😂", "😮", "😢"].map((emoji) => (
+                          {[dmEmoji, ...(["👍", "❤️", "😂", "😮", "😢"].filter(e => e !== dmEmoji))].map((emoji) => (
                             <button
                               key={emoji}
                               type="button"
@@ -2145,19 +2231,24 @@ export default function ChatWindow({
                             : isMe
                               ? isGif
                                 ? "bg-transparent"
-                                : "bg-accent text-black rounded-br-none shadow-lg shadow-accent/10"
+                                : "backdrop-blur-[12px] text-ivory/90 rounded-br-none"
                               : isGif
                                 ? "bg-transparent"
-                                : "bg-slate-surface text-ivory/80 rounded-bl-none shadow-sm shadow-black/5"
+                                : "chat-bubble-glass text-ivory/90 rounded-bl-none"
                         } 
                         ${msg.isOptimistic ? "opacity-60" : ""}`}
+                        style={isMe && !isGif && editingMessageId !== msg._id ? {
+                          background: `${dmColor}33`,
+                          border: `1px solid ${dmColor}55`,
+                          boxShadow: `0 4px 30px ${dmColor}22`,
+                        } : undefined}
                       >
                         {msg.replyTo && (
                           <div className="mb-2 p-2 bg-black/20 rounded-lg border-l-2 border-accent text-[11px] opacity-80 line-clamp-2">
                             <p className="font-bold mb-0.5">
-                              {msg.replyTo.sender?.name === user?.name
+                              {msg.replyTo.sender?.name === user?.name || msg.replyTo.sender === user?._id
                                 ? "You"
-                                : msg.replyTo.sender?.name || "Participant"}
+                                : conversation?.customisation?.nicknames?.[msg.replyTo.sender?._id] || msg.replyTo.sender?.name || "Participant"}
                             </p>
                             {msg.replyTo.text}
                           </div>
@@ -2356,6 +2447,7 @@ export default function ChatWindow({
                     )}
                   </div>
                 </div>
+                )}
               </React.Fragment>
             );
           });
@@ -2449,6 +2541,9 @@ export default function ChatWindow({
                   type="button"
                   onClick={() => {
                     setText(rewritePreview);
+                    if (inputRef.current) {
+                      inputRef.current.textContent = rewritePreview;
+                    }
                     setRewritePreview(null);
                     setTonePickerOpen(false);
                     setSelectedTone("");
@@ -2462,6 +2557,9 @@ export default function ChatWindow({
                   type="button"
                   onClick={() => {
                     setText(originalText);
+                    if (inputRef.current) {
+                      inputRef.current.textContent = originalText;
+                    }
                     setRewritePreview(null);
                     setTonePickerOpen(false);
                     setSelectedTone("");
@@ -2682,7 +2780,12 @@ export default function ChatWindow({
                       <button
                         key={i}
                         type="button"
-                        onClick={() => setText(reply)}
+                        onClick={() => {
+                          setText(reply);
+                          if (inputRef.current) {
+                            inputRef.current.textContent = reply;
+                          }
+                        }}
                         className="px-3 py-1 text-[11px] rounded-full bg-accent/10 border border-accent/20 text-accent/80 hover:bg-accent/20 hover:text-accent transition-all max-w-45 truncate"
                         title={reply}
                       >
@@ -3030,27 +3133,43 @@ export default function ChatWindow({
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={
-              scheduling ||
-              fileUploading ||
-              fileErrors.some((e) => e !== null) ||
-              (!text.trim() && stagedFiles.length === 0)
-            }
-            className={`w-9 h-9 flex items-center justify-center rounded-xl ml-1 transition-all active:scale-95 shadow-lg ${
-              scheduling ||
-              fileUploading ||
-              fileErrors.some((e) => e !== null) ||
-              (!text.trim() && stagedFiles.length === 0)
-                ? "bg-slate-700 text-ivory/40 cursor-not-allowed opacity-50"
-                : "bg-accent hover:bg-accent/90 text-black shadow-accent/20"
-            }`}
-            title="Send"
-            aria-label="Send"
-          >
-            <Send size={18} />
-          </button>
+          {/* Show Send button, or Quick Emoji button if DM and input empty */}
+          {(!text.trim() && stagedFiles.length === 0) ? (
+            <button
+              type="button"
+              onClick={handleSendQuickEmoji}
+              disabled={scheduling || fileUploading || fileErrors.some((e) => e !== null)}
+              className="w-11 h-11 flex items-center justify-center rounded-xl ml-1 transition-all active:scale-[0.8] hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed group"
+              title={`Send ${dmEmoji}`}
+              aria-label={`Send ${dmEmoji}`}
+            >
+              <span className="text-2xl transition-transform group-hover:scale-110 drop-shadow-lg" style={{ filter: `drop-shadow(0 4px 12px ${dmColor}40)` }}>
+                {dmEmoji}
+              </span>
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={
+                scheduling ||
+                fileUploading ||
+                fileErrors.some((e) => e !== null) ||
+                (!text.trim() && stagedFiles.length === 0)
+              }
+              className={`w-9 h-9 flex items-center justify-center rounded-xl ml-1 transition-all active:scale-95 shadow-lg ${
+                scheduling ||
+                fileUploading ||
+                fileErrors.some((e) => e !== null) ||
+                (!text.trim() && stagedFiles.length === 0)
+                  ? "bg-slate-700 text-ivory/40 cursor-not-allowed opacity-50"
+                  : "bg-accent hover:bg-accent/90 text-black shadow-accent/20"
+              }`}
+              title="Send"
+              aria-label="Send"
+            >
+              <Send size={18} />
+            </button>
+          )}
 
           {/* Mobile-only expanded toolbar row */}
           <div className="sm:hidden w-full flex items-center gap-1 pt-1 border-t border-white/5 mt-1">

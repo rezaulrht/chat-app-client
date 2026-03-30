@@ -1,8 +1,5 @@
 import React from "react";
 
-const ACCENT = "#00d3bb";
-const DEEP = "#12121a";
-
 export default function Footer() {
   return (
     <footer className="relative bg-obsidian text-ivory/40 pt-0 pb-0">
@@ -11,17 +8,12 @@ export default function Footer() {
         className="h-px w-full"
         style={{
           background:
-            "linear-gradient(90deg, transparent, " +
-            ACCENT +
-            "50, #a78bfa50, " +
-            ACCENT +
-            "50, transparent)",
+            "linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-accent) 50%, transparent), #a78bfa50, color-mix(in srgb, var(--color-accent) 50%, transparent), transparent)",
         }}
       />
 
       <div
-        className="rounded-t-[2rem] sm:rounded-t-[4rem] pt-16 pb-12 px-6"
-        style={{ background: DEEP }}
+        className="rounded-t-[2rem] sm:rounded-t-[4rem] pt-16 pb-12 px-6 bg-obsidian"
       >
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
           {/* Brand */}

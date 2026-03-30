@@ -436,7 +436,7 @@ export default function Sidebar({
   // ── Expanded render (existing code below unchanged) ─────────────────────
   return (
     <>
-      <aside className="w-full md:w-full sm:w-80 glass-panel flex flex-col shrink-0 flex-1 min-h-0 overflow-hidden">
+      <aside className="w-full md:w-full sm:w-80 bg-deep/90 md:bg-transparent backdrop-blur-3xl md:backdrop-blur-none flex flex-col shrink-0 flex-1 min-h-0 overflow-hidden shadow-[12px_0_40px_rgba(0,0,0,0.4)] md:shadow-none">
         {/* ── Search Header ── */}
         <div className="h-14 px-3 flex items-center justify-between border-b border-white/[0.06] shrink-0 relative">
           <div className="relative flex-1 group">

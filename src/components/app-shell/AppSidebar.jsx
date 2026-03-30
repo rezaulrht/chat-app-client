@@ -45,7 +45,7 @@ export default function AppSidebar({
 
   return (
     <div
-      className={`hidden md:flex flex-col shrink-0 h-full border-r border-white/[0.06] bg-deep overflow-hidden transition-[width] duration-300 ease-in-out ${className}`}
+      className={`hidden md:flex flex-col shrink-0 h-full bg-white/[0.02] backdrop-blur-xl overflow-hidden transition-[width] duration-300 ease-in-out ${className}`}
       style={{ width, ...style }}
     >
       {/* Toggle button — always visible when storeKey is set */}
@@ -114,7 +114,7 @@ export default function AppSidebar({
           </Link>
           <button
             onClick={logout}
-            className="p-1.5 rounded-lg hover:bg-red-500/10 text-ivory/30 hover:text-red-400 transition-all opacity-0 group-hover/user:opacity-100"
+            className="p-1.5 rounded-lg hover:bg-red-500/10 text-ivory/30 hover:text-red-400 transition-all"
             title="Logout"
             aria-label="Logout"
           >

@@ -104,11 +104,11 @@ function SharedPostCard({ parsed, isMe }) {
       <button
         type="button"
         onClick={handleClick}
-        className={`text-left w-full max-w-[260px] rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98] p-3 flex flex-col gap-1.5 group
+        className={`text-left w-full max-w-[280px] rounded-2xl border transition-all hover:scale-[1.02] active:scale-[0.98] p-4 flex flex-col gap-2 group shadow-sm
           ${
             isMe
-              ? "bg-black/20 border-black/20 hover:border-black/30"
-              : "bg-black/20 border-white/10 hover:border-accent/30"
+              ? "bg-accent/10 border-accent/20 hover:bg-accent/15"
+              : "bg-white/[0.04] border-white/10 hover:border-accent/40 hover:bg-white/[0.08]"
           }`}
       >
         <div className="flex items-center gap-1.5">
@@ -129,7 +129,7 @@ function SharedPostCard({ parsed, isMe }) {
           <p className="text-[10px] font-mono opacity-40">by {parsed.author}</p>
         )}
         <p
-          className={`text-[10px] font-mono mt-0.5 ${isMe ? "text-black/50" : "text-accent/60"} group-hover:underline`}
+          className={`text-[11px] font-bold mt-1 tracking-wide text-accent/80 group-hover:text-accent group-hover:underline transition-colors`}
         >
           View post →
         </p>
@@ -354,8 +354,9 @@ export default function ChatWindow({
     scheduleDropdownOpen,
   ]);
 
-  const handleEmojiClick = (emojiData) =>
-    setText((prev) => prev + emojiData.emoji);
+  const handleEmojiClick = (emojiData) => {
+    insertTextAtCursor(emojiData.emoji);
+  };
 
   const insertTextAtCursor = (textToInsert) => {
     if (!inputRef.current) return;
@@ -1451,7 +1452,7 @@ export default function ChatWindow({
 
   if (!conversation) {
     return (
-      <div className="flex-1 bg-obsidian flex flex-col items-center justify-center gap-6 p-6">
+      <div className="flex-1 bg-transparent flex flex-col items-center justify-center gap-6 p-6">
         <div className="relative">
           <div className="absolute inset-0 bg-accent/20 blur-3xl rounded-full" />
           <div className="relative w-24 h-24 rounded-4xl bg-accent/10 border border-accent/20 flex items-center justify-center shadow-2xl backdrop-blur-sm">
@@ -1499,7 +1500,7 @@ export default function ChatWindow({
 
   return (
     <main
-      className="flex-1 min-w-0 flex flex-col bg-obsidian relative h-full"
+      className="flex-1 min-w-0 flex flex-col bg-obsidian/40 backdrop-blur-3xl relative h-full"
       onDragOver={(e) => {
         e.preventDefault();
         setIsDragging(true);
@@ -1519,7 +1520,7 @@ export default function ChatWindow({
           <p className="text-accent text-lg font-medium">Drop files here</p>
         </div>
       )}
-      <header className="h-17 border-b border-white/5 flex justify-between items-center px-3 sm:px-5 bg-obsidian/80 backdrop-blur-sm shrink-0">
+      <header className="h-17 border-b border-white/[0.06] flex justify-between items-center px-3 sm:px-5 bg-white/[0.02] backdrop-blur-2xl shrink-0 shadow-sm relative z-20">
         <div className="flex items-center gap-3">
           {/* Hamburger removed — AppTopBar handles mobile sidebar toggle */}
           {isGroup ? (
@@ -2145,10 +2146,10 @@ export default function ChatWindow({
                             : isMe
                               ? isGif
                                 ? "bg-transparent"
-                                : "bg-accent text-black rounded-br-none shadow-lg shadow-accent/10"
+                                : "bg-accent/20 backdrop-blur-[12px] border border-accent/30 text-ivory/90 rounded-br-none shadow-[0_4px_30px_rgba(0,0,0,0.1)]"
                               : isGif
                                 ? "bg-transparent"
-                                : "bg-slate-surface text-ivory/80 rounded-bl-none shadow-sm shadow-black/5"
+                                : "chat-bubble-glass text-ivory/90 rounded-bl-none"
                         } 
                         ${msg.isOptimistic ? "opacity-60" : ""}`}
                       >
@@ -2449,6 +2450,9 @@ export default function ChatWindow({
                   type="button"
                   onClick={() => {
                     setText(rewritePreview);
+                    if (inputRef.current) {
+                      inputRef.current.textContent = rewritePreview;
+                    }
                     setRewritePreview(null);
                     setTonePickerOpen(false);
                     setSelectedTone("");
@@ -2462,6 +2466,9 @@ export default function ChatWindow({
                   type="button"
                   onClick={() => {
                     setText(originalText);
+                    if (inputRef.current) {
+                      inputRef.current.textContent = originalText;
+                    }
                     setRewritePreview(null);
                     setTonePickerOpen(false);
                     setSelectedTone("");
@@ -2682,7 +2689,12 @@ export default function ChatWindow({
                       <button
                         key={i}
                         type="button"
-                        onClick={() => setText(reply)}
+                        onClick={() => {
+                          setText(reply);
+                          if (inputRef.current) {
+                            inputRef.current.textContent = reply;
+                          }
+                        }}
                         className="px-3 py-1 text-[11px] rounded-full bg-accent/10 border border-accent/20 text-accent/80 hover:bg-accent/20 hover:text-accent transition-all max-w-45 truncate"
                         title={reply}
                       >

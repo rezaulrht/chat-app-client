@@ -402,12 +402,12 @@ export default function ChatDashboard() {
   }
 
   return (
-    <div className="flex flex-col md:flex-row h-full w-full bg-obsidian overflow-hidden font-sans relative">
+    <div className="flex flex-col md:flex-row h-full w-full bg-slate-surface overflow-hidden font-sans relative">
       {/* Mobile Backdrops */}
       {(isSidebarOpen ||
         (showGroupInfo && activeConversation?.type === "group")) && (
         <div
-          className="md:hidden fixed inset-0 bg-black/60 z-30 transition-opacity"
+          className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-30 transition-all"
           onClick={() => {
             setIsSidebarOpen(false);
             setShowGroupInfo(false);
@@ -415,10 +415,9 @@ export default function ChatDashboard() {
         />
       )}
 
-      {/* Main row: sidebar + content (fills remaining height above bottom nav) */}
       <div className="flex flex-1 min-h-0 w-full">
         {/* ═══ Desktop: Unified Sidebar ═══ */}
-        <AppSidebar label="Direct Messages" className="w-80" storeKey="chat">
+        <AppSidebar label="Direct Messages" className="w-80 overflow-hidden border-r border-white/[0.06]" storeKey="chat">
           <Sidebar
             conversations={conversations}
             activeConversationId={activeConversationId}
@@ -451,7 +450,7 @@ export default function ChatDashboard() {
         </div>
 
         {/* Main content */}
-        <div className="flex-1 w-full h-full min-w-0 z-10">
+        <div className="flex-1 w-full h-full min-w-0 z-10 overflow-hidden">
           <ChatWindow
             conversation={activeConversation}
             onMessageSent={handleMessageSent}

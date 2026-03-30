@@ -232,7 +232,7 @@ export default function GroupInfoPanel({
   };
 
   return (
-    <aside className="w-full sm:w-80 shrink-0 flex flex-col h-full glass-panel overflow-hidden">
+    <aside className="w-full sm:w-80 shrink-0 flex flex-col h-full bg-slate-surface/90 backdrop-blur-2xl md:border-l border-white/[0.08] overflow-hidden">
       {/* ── Panel header ── */}
       <div className="h-[68px] flex items-center justify-between px-5 border-b border-white/[0.06] shrink-0 relative">
         <div className="flex items-center gap-2.5">

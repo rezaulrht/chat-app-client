@@ -64,11 +64,11 @@ export default function DMInfoPanel({ conversation, currentUser, onClose }) {
         <div className="flex flex-col items-center gap-3 py-8 px-5 border-b border-white/[0.06] relative">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-40 blur-[80px] rounded-full pointer-events-none opacity-20" style={{ background: themeColor }} />
 
-          <div className="relative z-10 group/av">
+          <Link href={`/profile/${participant?._id}`} className="relative z-10 group/av">
             <div className="w-20 h-20 rounded-2xl overflow-hidden ring-4 ring-offset-4 ring-offset-obsidian shadow-lg transition-transform group-hover/av:scale-105" style={{ borderColor: themeColor, "--tw-ring-color": themeColor }}>
               <Image src={participant?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${participant?.name}`} width={80} height={80} className="w-full h-full object-cover" alt={participant?.name || "avatar"} unoptimized />
             </div>
-          </div>
+          </Link>
 
           <div className="z-10 text-center">
             <p className="text-ivory font-display font-bold text-base leading-tight">{displayName}</p>
@@ -87,6 +87,12 @@ export default function DMInfoPanel({ conversation, currentUser, onClose }) {
                 <span className="text-[9px] font-mono text-ivory/25">{label}</span>
               </button>
             ))}
+            <Link href={`/profile/${participant?._id}`} className="flex flex-col items-center gap-1.5 group">
+              <span className="w-11 h-11 rounded-2xl flex items-center justify-center transition-all group-hover:scale-105" style={{ background: `${themeColor}22`, border: `1px solid ${themeColor}44` }}>
+                <ExternalLink size={18} style={{ color: themeColor }} />
+              </span>
+              <span className="text-[9px] font-mono text-ivory/25">Profile</span>
+            </Link>
           </div>
         </div>
 
@@ -184,6 +190,19 @@ export default function DMInfoPanel({ conversation, currentUser, onClose }) {
               <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${muted ? "left-0.5" : "left-4"}`} />
             </div>
           </button>
+        </div>
+
+        {/* View Full Profile */}
+        <div className="px-5 py-4">
+          <Link href={`/profile/${participant?._id}`} className="flex items-center justify-between px-3 py-3 rounded-xl hover:bg-white/[0.04] transition-all group">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${themeColor}22` }}>
+                <ExternalLink size={13} style={{ color: themeColor }} />
+              </div>
+              <p className="text-sm text-ivory/60 font-medium">View Full Profile</p>
+            </div>
+            <ChevronRight size={13} className="text-ivory/20 group-hover:text-ivory/50 shrink-0 transition-colors" />
+          </Link>
         </div>
       </div>
     </aside>

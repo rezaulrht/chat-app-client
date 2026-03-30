@@ -1628,7 +1628,7 @@ export default function ChatWindow({
             </>
           ) : (
             <>
-              <div className="relative">
+              <Link href={`/profile/${participant?._id}`} className="relative block">
                 <div
                   className={`rounded-2xl overflow-hidden ${
                     isParticipantOnline
@@ -1653,16 +1653,15 @@ export default function ChatWindow({
                     isParticipantOnline ? "bg-emerald-400" : "bg-slate-600"
                   }`}
                 />
-              </div>
+              </Link>
 
               <div>
-                <button
-                  type="button"
-                  onClick={onToggleDmInfo}
-                  className="font-bold text-ivory hover:text-accent transition-colors text-sm leading-tight cursor-pointer text-left"
+                <Link
+                  href={`/profile/${participant?._id}`}
+                  className="font-bold text-ivory hover:text-accent transition-colors text-sm leading-tight cursor-pointer text-left block"
                 >
                   {dmNickname || participant?.name}
-                </button>
+                </Link>
                 <p className="text-[10px] mt-0.5">
                   {isParticipantOnline ? (
                     <span className="text-emerald-400 flex items-center gap-1">

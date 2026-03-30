@@ -9,7 +9,9 @@ import { useSearchParams } from "next/navigation";
 import Sidebar from "./SidebarChats";
 import ChatWindow from "./ChatWindow";
 import GroupInfoPanel from "./GroupInfoPanel";
-import WorkspaceSidebar from "./WorkspaceSidebar";
+import DMInfoPanel from "./DMInfoPanel";
+import AppSidebar from "@/components/app-shell/AppSidebar";
+import { useAppShell } from "@/components/app-shell/AppShellContext";
 import api from "@/app/api/Axios";
 import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
@@ -25,11 +27,12 @@ export default function ChatDashboard() {
   const [loadingConversations, setLoadingConversations] = useState(true);
   // Controls the slide-out GroupInfoPanel beside ChatWindow
   const [showGroupInfo, setShowGroupInfo] = useState(false);
+  const [showDmInfo, setShowDmInfo] = useState(false);
   const { socket, fetchLastSeenTimes } = useSocket() || {};
   const { user } = useAuth(); // ← New (for self-message check)
 
-  // Responsive sidebar states
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  // Responsive sidebar state — driven by AppTopBar hamburger via context
+  const { isSidebarOpen, setIsSidebarOpen } = useAppShell();
 
   // Refs to avoid stale closures in socket handlers
   const conversationsRef = useRef([]);
@@ -260,6 +263,14 @@ export default function ChatDashboard() {
       }
     };
 
+    const handleCustomiseUpdated = ({ conversationId, customisation }) => {
+      setConversations((prev) =>
+        prev.map((c) =>
+          c._id === conversationId ? { ...c, customisation } : c,
+        ),
+      );
+    };
+
     socket.on("message:new", handleGlobalMessage);
     socket.on("unread:update", handleUnreadUpdate);
     socket.on("message:status", handleMessageStatus);
@@ -271,6 +282,7 @@ export default function ChatDashboard() {
     socket.on("group:members-removed", handleGroupRefetch);
     socket.on("group:member-left", handleGroupRefetch);
     socket.on("group:admin-updated", handleGroupRefetch);
+    socket.on("conversation:customise:updated", handleCustomiseUpdated);
 
     return () => {
       socket.off("message:new", handleGlobalMessage);
@@ -284,6 +296,7 @@ export default function ChatDashboard() {
       socket.off("group:members-removed", handleGroupRefetch);
       socket.off("group:member-left", handleGroupRefetch);
       socket.off("group:admin-updated", handleGroupRefetch);
+      socket.off("conversation:customise:updated", handleCustomiseUpdated);
     };
   }, [socket, fetchLastSeenTimes, user, showNewMessageToast]);
 
@@ -379,7 +392,7 @@ export default function ChatDashboard() {
 
   if (loadingConversations) {
     return (
-      <div className="flex h-screen w-full bg-obsidian items-center justify-center flex-col gap-6 relative overflow-hidden">
+      <div className="flex h-full w-full bg-obsidian items-center justify-center flex-col gap-6 relative overflow-hidden">
         {/* Ambient glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-accent/5 blur-[120px] rounded-full pointer-events-none" />
         <div className="relative z-10 flex flex-col items-center gap-5">
@@ -401,12 +414,12 @@ export default function ChatDashboard() {
   }
 
   return (
-    <div className="flex flex-col md:flex-row h-screen w-full bg-obsidian overflow-hidden font-sans relative">
+    <div className="flex flex-col md:flex-row h-full w-full bg-slate-surface overflow-hidden font-sans relative">
       {/* Mobile Backdrops */}
       {(isSidebarOpen ||
         (showGroupInfo && activeConversation?.type === "group")) && (
         <div
-          className="md:hidden fixed inset-0 bg-black/60 z-30 transition-opacity"
+          className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-30 transition-all"
           onClick={() => {
             setIsSidebarOpen(false);
             setShowGroupInfo(false);
@@ -414,14 +427,9 @@ export default function ChatDashboard() {
         />
       )}
 
-      {/* Main row: sidebar + content (fills remaining height above bottom nav) */}
       <div className="flex flex-1 min-h-0 w-full">
         {/* ═══ Desktop: Unified Sidebar ═══ */}
-        <div className="hidden md:flex flex-col shrink-0 h-full w-80 overflow-hidden border-r border-white/6">
-          {/* Tab Navigation Header */}
-          <WorkspaceSidebar />
-
-          {/* Chats Tab → Conversation List */}
+        <AppSidebar label="Direct Messages" className="w-80 overflow-hidden border-r border-white/[0.06]" storeKey="chat">
           <Sidebar
             conversations={conversations}
             activeConversationId={activeConversationId}
@@ -432,11 +440,11 @@ export default function ChatDashboard() {
             onNewConversation={handleNewConversation}
             onConversationUpdate={handleConversationUpdate}
           />
-        </div>
+        </AppSidebar>
 
         {/* ═══ Mobile: Slide-in Sidebar ═══ */}
         <div
-          className={`md:hidden absolute z-40 h-[calc(100%-3.5rem)] transition-transform duration-300 w-[85vw] sm:w-80 flex shrink-0 ${
+          className={`md:hidden absolute z-40 h-full transition-transform duration-300 w-[85vw] sm:w-80 flex shrink-0 ${
             isSidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
@@ -454,13 +462,15 @@ export default function ChatDashboard() {
         </div>
 
         {/* Main content */}
-        <div className="flex-1 w-full h-full min-w-0 z-10">
+        <div className="flex-1 w-full h-full min-w-0 z-10 overflow-hidden">
           <ChatWindow
             conversation={activeConversation}
             onMessageSent={handleMessageSent}
             onMessagesSeen={handleMessagesSeen}
             showGroupInfo={showGroupInfo}
             onToggleGroupInfo={() => setShowGroupInfo((v) => !v)}
+            showDmInfo={showDmInfo}
+            onToggleDmInfo={() => setShowDmInfo((v) => !v)}
             onConversationUpdate={handleConversationUpdate}
             conversations={conversations}
             toggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
@@ -474,6 +484,16 @@ export default function ChatDashboard() {
               currentUser={currentUser}
               onClose={() => setShowGroupInfo(false)}
               onConversationUpdate={handleConversationUpdate}
+            />
+          </div>
+        )}
+
+        {showDmInfo && activeConversation?.type !== "group" && (
+          <div className="absolute top-0 right-0 h-full md:relative z-40 shrink-0">
+            <DMInfoPanel
+              conversation={activeConversation}
+              currentUser={currentUser}
+              onClose={() => setShowDmInfo(false)}
             />
           </div>
         )}

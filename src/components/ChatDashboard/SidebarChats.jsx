@@ -76,6 +76,7 @@ export default function Sidebar({
   setActiveConversationId,
   onNewConversation,
   onConversationUpdate,
+  collapsed = false,
 }) {
   const { onlineUsers, socket } = useSocket() || {};
   const { user: currentUser } = useAuth();
@@ -342,9 +343,100 @@ export default function Sidebar({
     );
   };
 
+  // ── Collapsed render: avatar strip ────────────────────────────────────────
+  if (collapsed) {
+    const visible = sortedConversations.slice(0, 18);
+    return (
+      <aside className="w-full flex flex-col items-center min-h-0 overflow-y-auto scrollbar-hide pt-1 gap-1 pb-4">
+        {visible.map((conv) => {
+          const isActive = activeConversationId === conv._id;
+          const isGroup = conv.type === "group";
+          const hasUnread = conv.unreadCount > 0 && !conv.isMuted;
+          const isUserOnline =
+            !isGroup && onlineUsers?.get(conv.participant?._id)?.online;
+          const groupColor = isGroup
+            ? getGroupAvatarColor(conv.name)
+            : null;
+          const groupInitials = isGroup ? getGroupInitials(conv.name) : null;
+
+          return (
+            <div
+              key={conv._id}
+              className="relative shrink-0 cursor-pointer"
+              title={isGroup ? conv.name : conv.participant?.name}
+              onClick={() => setActiveConversationId(conv._id)}
+            >
+              {/* Active pip */}
+              {isActive && (
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-accent rounded-r-full -ml-1 shadow-[0_0_8px_rgba(0,211,187,0.4)]" />
+              )}
+
+              {/* Avatar */}
+              {isGroup ? (
+                <div
+                  className={`w-8 h-8 rounded-xl flex items-center justify-center font-display font-bold text-[10px] ring-1 transition-all ${
+                    isActive ? "ring-accent/40" : "ring-white/[0.06] hover:ring-accent/20"
+                  }`}
+                  style={{
+                    backgroundColor: conv.avatar ? "transparent" : groupColor.bg,
+                    color: groupColor.text,
+                  }}
+                >
+                  {conv.avatar ? (
+                    <Image
+                      src={conv.avatar}
+                      width={32}
+                      height={32}
+                      className="w-full h-full object-cover rounded-xl"
+                      alt={conv.name}
+                      unoptimized
+                    />
+                  ) : (
+                    groupInitials
+                  )}
+                </div>
+              ) : (
+                <div className="relative">
+                  <div className={`w-8 h-8 rounded-xl overflow-hidden ring-1 transition-all ${
+                    isActive ? "ring-accent/40" : "ring-white/[0.06] hover:ring-accent/20"
+                  }`}>
+                    <Image
+                      src={
+                        conv.participant?.avatar ||
+                        `https://api.dicebear.com/7.x/avataaars/svg?seed=${conv.participant?.name}`
+                      }
+                      width={32}
+                      height={32}
+                      alt={conv.participant?.name || "avatar"}
+                      unoptimized
+                    />
+                  </div>
+                  {/* Online dot */}
+                  <div
+                    className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-deep ${
+                      isUserOnline
+                        ? "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]"
+                        : "bg-ivory/10"
+                    }`}
+                  />
+                </div>
+              )}
+
+              {/* Unread dot */}
+              {hasUnread && (
+                <div className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-accent border-2 border-deep shadow-[0_0_6px_rgba(0,211,187,0.4)]" />
+              )}
+            </div>
+          );
+        })}
+      </aside>
+    );
+  }
+
+  // ── Expanded render (existing code below unchanged) ─────────────────────
   return (
     <>
-      <aside className="w-full md:w-full sm:w-80 glass-panel flex flex-col shrink-0 flex-1 min-h-0 overflow-hidden">
+      <aside className="w-full md:w-full sm:w-80 bg-deep/90 md:bg-transparent backdrop-blur-3xl md:backdrop-blur-none flex flex-col shrink-0 flex-1 min-h-0 overflow-hidden shadow-[12px_0_40px_rgba(0,0,0,0.4)] md:shadow-none">
         {/* ── Search Header ── */}
         <div className="h-14 px-3 flex items-center justify-between border-b border-white/[0.06] shrink-0 relative">
           <div className="relative flex-1 group">
@@ -698,53 +790,6 @@ export default function Sidebar({
           </div>
         </div>
 
-        {/* ── User Status Bar ── */}
-        <div className="h-14 glass-card mx-2 mb-2 rounded-xl px-3 flex items-center gap-2.5 group/user shrink-0 ring-1 ring-white/[0.04]">
-          <div
-            onClick={() => setShowProfile(true)}
-            className="relative shrink-0 cursor-pointer group/avatar"
-          >
-            <div className="w-8 h-8 rounded-xl overflow-hidden ring-1 ring-white/[0.06] group-hover/avatar:ring-accent/30 transition-all duration-200 shadow-[0_0_12px_rgba(0,211,187,0.05)]">
-              <Image
-                src={
-                  currentUser?.avatar ||
-                  `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser?.name}`
-                }
-                width={32}
-                height={32}
-                className="rounded-xl"
-                alt="avatar"
-                unoptimized
-              />
-            </div>
-            <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-deep bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
-          </div>
-
-          <div
-            onClick={() => setShowProfile(true)}
-            className="flex-1 min-w-0 cursor-pointer overflow-hidden"
-          >
-            <p className="text-ivory text-[13px] font-display font-bold truncate leading-tight group-hover/user:text-accent transition-colors duration-200 hover:underline decoration-accent/40 underline-offset-2">
-              {currentUser?.name?.split(" ")[0]}
-            </p>
-            <p className="text-ivory/20 text-[10px] truncate leading-tight flex items-center gap-1 font-mono">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_4px_rgba(52,211,153,0.4)]" />
-              Online
-            </p>
-          </div>
-
-          <div className="flex items-center gap-0.5 opacity-40 group-hover/user:opacity-80 transition-opacity">
-            <button
-              onClick={() => {
-                window.location.href = "/";
-              }}
-              className="p-1.5 rounded-lg hover:bg-white/[0.06] text-ivory/40 hover:text-ivory/60 transition-all duration-200"
-              title="Logout"
-            >
-              <LogOut size={15} />
-            </button>
-          </div>
-        </div>
       </aside>
 
       {/* ── New Chat Modal ── */}

@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { useWorkspace } from "@/hooks/useWorkspace";
 
-export default function CreateWorkspaceModal() {
+export default function CreateWorkspaceModal({ trigger = null }) {
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -184,18 +184,27 @@ export default function CreateWorkspaceModal() {
 
   return (
     <>
-      {/* Trigger button */}
-      <button
-        onClick={() => setIsOpen(true)}
-        className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-ivory/20 hover:text-accent hover:bg-accent/5 transition-all duration-150"
-      >
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center border border-dashed border-white/10 hover:border-accent/30 transition-colors">
-          <Plus size={18} />
-        </div>
-        <span className="text-sm font-display font-semibold">
-          Create Workspace
-        </span>
-      </button>
+      {/* Trigger: custom element or default button */}
+      {trigger ? (
+        React.cloneElement(trigger, {
+          onClick: (e) => {
+            trigger.props.onClick?.(e);
+            setIsOpen(true);
+          },
+        })
+      ) : (
+        <button
+          onClick={() => setIsOpen(true)}
+          className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-ivory/20 hover:text-accent hover:bg-accent/5 transition-all duration-150"
+        >
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center border border-dashed border-white/10 hover:border-accent/30 transition-colors">
+            <Plus size={18} />
+          </div>
+          <span className="text-sm font-display font-semibold">
+            Create Workspace
+          </span>
+        </button>
+      )}
 
       {typeof window !== "undefined" && createPortal(modal, document.body)}
     </>

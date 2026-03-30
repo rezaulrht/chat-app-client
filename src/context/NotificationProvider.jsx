@@ -44,6 +44,8 @@ export function NotificationProvider({ children }) {
   const socket    = socketCtx?.socket ?? null;
   const { user }  = useAuth();
 
+  // Per-type toast icon (emoji) to match the icon badges in the dropdown
+
   const fetchNotifications = useCallback(async (page = 1) => {
     if (!user) return;
     setLoading(true);
@@ -155,7 +157,20 @@ export function NotificationProvider({ children }) {
         notif.data?.conversationId === activeConvRef.current;
 
       if (!isSuppressed) {
-        toast(formatToastMessage(notif), { icon: "🔔", duration: 4000 });
+        const TOAST_ICON = {
+          feed_follow:          "👤",
+          feed_reaction:        "❤️",
+          feed_comment:         "💬",
+          feed_answer_accepted: "✅",
+          chat_message:         "📩",
+          chat_mention:         "📣",
+          call_missed:          "📵",
+          workspace_mention:    "#️⃣",
+        };
+        toast(formatToastMessage(notif), {
+          icon: TOAST_ICON[notif.type] || "🔔",
+          duration: 4000,
+        });
       }
     };
 

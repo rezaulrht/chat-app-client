@@ -1,10 +1,41 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Settings, ArrowLeft, Trash2 } from "lucide-react";
+import {
+  Settings, ArrowLeft, Trash2,
+  Heart, MessageCircle, UserPlus, CheckCircle2,
+  MessageSquare, AtSign, PhoneMissed, Hash,
+} from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import useNotification from "@/hooks/useNotification";
+
+// ── Type-icon config ─────────────────────────────────────────────────────────
+// Each entry: { Icon, bg (tailwind bg class), color (tailwind text class) }
+
+const TYPE_ICON = {
+  feed_follow:          { Icon: UserPlus,       bg: "bg-emerald-500",  color: "text-white" },
+  feed_reaction:        { Icon: Heart,           bg: "bg-pink-500",     color: "text-white" },
+  feed_comment:         { Icon: MessageCircle,   bg: "bg-blue-500",     color: "text-white" },
+  feed_answer_accepted: { Icon: CheckCircle2,    bg: "bg-accent",       color: "text-obsidian" },
+  chat_message:         { Icon: MessageSquare,   bg: "bg-indigo-500",   color: "text-white" },
+  chat_mention:         { Icon: AtSign,          bg: "bg-violet-500",   color: "text-white" },
+  call_missed:          { Icon: PhoneMissed,     bg: "bg-red-500",      color: "text-white" },
+  workspace_mention:    { Icon: Hash,            bg: "bg-orange-500",   color: "text-white" },
+};
+
+function NotifTypeBadge({ type }) {
+  const cfg = TYPE_ICON[type];
+  if (!cfg) return null;
+  const { Icon, bg, color } = cfg;
+  return (
+    <span
+      className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full ${bg} ${color} flex items-center justify-center ring-2 ring-deep`}
+    >
+      <Icon size={8} strokeWidth={2.5} />
+    </span>
+  );
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -141,20 +172,31 @@ export default function NotificationDropdown({ onClose }) {
       {/* ── Preferences Panel ──────────────────────────────────── */}
       {view === "prefs" ? (
         <div className="p-3 flex flex-col gap-0.5 overflow-y-auto">
-          {Object.entries(PREF_LABELS).map(([key, label]) => (
-            <div
-              key={key}
-              className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-white/[0.03] transition-colors"
-            >
-              <span className="text-ivory/70 text-[13px] font-display font-semibold">{label}</span>
-              <input
-                type="checkbox"
-                className="toggle toggle-sm toggle-success"
-                checked={prefs[key] !== false}
-                onChange={(e) => updatePrefs({ [key]: e.target.checked })}
-              />
-            </div>
-          ))}
+          {Object.entries(PREF_LABELS).map(([key, label]) => {
+            const cfg = TYPE_ICON[key];
+            const Icon = cfg?.Icon;
+            return (
+              <div
+                key={key}
+                className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-white/[0.03] transition-colors"
+              >
+                <div className="flex items-center gap-2.5">
+                  {Icon && (
+                    <span className={`w-5 h-5 rounded-lg ${cfg.bg} ${cfg.color} flex items-center justify-center shrink-0`}>
+                      <Icon size={10} strokeWidth={2.5} />
+                    </span>
+                  )}
+                  <span className="text-ivory/70 text-[13px] font-display font-semibold">{label}</span>
+                </div>
+                <input
+                  type="checkbox"
+                  className="toggle toggle-sm toggle-success"
+                  checked={prefs[key] !== false}
+                  onChange={(e) => updatePrefs({ [key]: e.target.checked })}
+                />
+              </div>
+            );
+          })}
         </div>
       ) : (
         /* ── Notifications List ─────────────────────────────────── */
@@ -172,19 +214,22 @@ export default function NotificationDropdown({ onClose }) {
                   !notif.read ? "border-l-2 border-l-accent" : "border-l-2 border-l-transparent"
                 }`}
               >
-                {/* Actor avatar */}
-                <div className="w-8 h-8 rounded-xl overflow-hidden shrink-0 ring-1 ring-white/[0.08]">
-                  <Image
-                    src={
-                      notif.actors?.[0]?.avatar ||
-                      `https://api.dicebear.com/7.x/avataaars/svg?seed=${notif.actors?.[0]?.name || "user"}`
-                    }
-                    width={32}
-                    height={32}
-                    alt="actor"
-                    className="w-full h-full object-cover"
-                    unoptimized
-                  />
+                {/* Actor avatar + type badge */}
+                <div className="relative shrink-0">
+                  <div className="w-9 h-9 rounded-xl overflow-hidden ring-1 ring-white/[0.08]">
+                    <Image
+                      src={
+                        notif.actors?.[0]?.avatar ||
+                        `https://api.dicebear.com/7.x/avataaars/svg?seed=${notif.actors?.[0]?.name || "user"}`
+                      }
+                      width={36}
+                      height={36}
+                      alt="actor"
+                      className="w-full h-full object-cover"
+                      unoptimized
+                    />
+                  </div>
+                  <NotifTypeBadge type={notif.type} />
                 </div>
 
                 <div className="flex-1 min-w-0">

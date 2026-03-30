@@ -6,8 +6,8 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const ACCENT = "#00d3bb";
-const DEEP = "#12121a";
+const ACCENT = "var(--color-accent)";
+const DEEP = "var(--color-slate-surface)";
 
 const StoryAndCTA = () => {
   const storyRef = useRef(null);
@@ -80,7 +80,7 @@ const StoryAndCTA = () => {
               className="absolute -bottom-6 -right-6 hidden sm:flex border border-white/[0.08] p-4 rounded-2xl items-center gap-4"
               style={{ background: DEEP, boxShadow: "0 16px 32px rgba(0,0,0,0.4)" }}
             >
-              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: ACCENT + "20" }}>
+              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--color-accent) 13%, transparent)" }}>
                 <span className="text-xl">🌍</span>
               </div>
               <div>
@@ -135,7 +135,7 @@ const StoryAndCTA = () => {
         >
           <div
             className="absolute inset-0"
-            style={{ background: "radial-gradient(circle at 50% 0%, " + ACCENT + "15, transparent 70%)" }}
+            style={{ background: "radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--color-accent) 8%, transparent), transparent 70%)" }}
           />
           <div className="relative z-10 py-20 px-8 text-center">
             <h2 className="cta-el font-display text-4xl md:text-5xl font-bold mb-6 tracking-[-0.02em] text-ivory">

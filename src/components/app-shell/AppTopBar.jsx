@@ -10,9 +10,9 @@ import ThemeSwitcher from "@/components/shared/ThemeSwitcher";
 import NotificationBell from "@/components/shared/NotificationBell";
 
 const TABS = [
-  { id: "landing",   label: "Home",      href: "/",              icon: Home },
-  { id: "home",      label: "Chats",     href: "/app",           icon: MessageCircle },
-  { id: "feed",      label: "Feed",      href: "/app/feed",      icon: Compass },
+  { id: "landing", label: "Home", href: "/", icon: Home },
+  { id: "home", label: "Chats", href: "/app", icon: MessageCircle },
+  { id: "feed", label: "Feed", href: "/app/feed", icon: Compass },
   { id: "workspace", label: "Workspace", href: "/app/workspace", icon: Layers },
 ];
 
@@ -87,18 +87,17 @@ export default function AppTopBar() {
       </Link>
 
       {/* Nav pills — centered absolutely (desktop/tablet only) */}
-      <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-0.5 p-1 rounded-xl bg-white/[0.03] border border-white/[0.04]">
+      <div className="hidden lg:flex absolute left-1/2 -translate-x-1/2 items-center gap-0.5 p-1 rounded-xl bg-white/[0.03] border border-white/[0.04]">
         {TABS.map(({ id, label, href, icon: Icon }) => {
           const isActive = activeTab === id;
           return (
             <Link
               key={id}
               href={href}
-              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[11px] font-display font-bold tracking-wide transition-all duration-200 ${
-                isActive
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[11px] font-display font-bold tracking-wide transition-all duration-200 ${isActive
                   ? "bg-accent/10 border border-accent/[0.18] text-accent"
                   : "text-ivory/30 hover:text-ivory/60 hover:bg-white/[0.04]"
-              }`}
+                }`}
             >
               <Icon size={12} />
               {label}

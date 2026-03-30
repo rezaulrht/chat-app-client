@@ -230,7 +230,6 @@ export default function ChatWindow({
   const [rewritePreview, setRewritePreview] = useState(null);
   const [originalText, setOriginalText] = useState("");
   const aiMenuRefDesktop = useRef(null);
-  const aiMenuRefMobile = useRef(null);
 
   // Scheduled messages UI
   const [scheduleDropdownOpen, setScheduleDropdownOpen] = useState(false);
@@ -314,8 +313,7 @@ export default function ChatWindow({
       const outsideDesktop =
         !aiMenuRefDesktop.current ||
         !aiMenuRefDesktop.current.contains(e.target);
-      const outsideMobile =
-        !aiMenuRefMobile.current || !aiMenuRefMobile.current.contains(e.target);
+      const outsideMobile = true; // unified toolbar, no separate mobile ref
       if (aiMenuOpen && outsideDesktop && outsideMobile) {
         setAiMenuOpen(false);
       }
@@ -384,11 +382,21 @@ export default function ChatWindow({
     const resolvedMentions = mentions
       .map((m) => {
         const id = typeof m === "object" ? m._id || m.id : m;
-        const participant = participants.find((p) => String(p._id) === String(id));
-        const smuggled = (mentionData || []).find(d => String(d.id || d._id) === String(id));
-        const name = (typeof m === "object" ? m.name : null) || smuggled?.name || participant?.name;
-        const avatar = (typeof m === "object" ? m.avatar : null) || smuggled?.avatar || participant?.avatar;
-        
+        const participant = participants.find(
+          (p) => String(p._id) === String(id),
+        );
+        const smuggled = (mentionData || []).find(
+          (d) => String(d.id || d._id) === String(id),
+        );
+        const name =
+          (typeof m === "object" ? m.name : null) ||
+          smuggled?.name ||
+          participant?.name;
+        const avatar =
+          (typeof m === "object" ? m.avatar : null) ||
+          smuggled?.avatar ||
+          participant?.avatar;
+
         return {
           id,
           name,
@@ -400,8 +408,12 @@ export default function ChatWindow({
 
     if (resolvedMentions.length === 0) return text;
 
-    const sorted = [...resolvedMentions].sort((a, b) => b.name.length - a.name.length);
-    const regexSource = sorted.map((m) => `@${m.name.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}`).join("|");
+    const sorted = [...resolvedMentions].sort(
+      (a, b) => b.name.length - a.name.length,
+    );
+    const regexSource = sorted
+      .map((m) => `@${m.name.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}`)
+      .join("|");
     const regex = new RegExp(`(${regexSource})`, "g");
 
     const parts = text.split(regex);
@@ -448,7 +460,7 @@ export default function ChatWindow({
           mentions.push({
             id: node.dataset.id,
             name: node.textContent.replace(/^@/, ""),
-            avatar: node.querySelector("img")?.src
+            avatar: node.querySelector("img")?.src,
           });
           text += node.textContent;
         } else if (node.nodeName === "BR") {
@@ -594,14 +606,13 @@ export default function ChatWindow({
     const emojiMatch = textBeforeCursor.match(/:([a-zA-Z0-9_]*)$/);
     if (emojiMatch) {
       const query = emojiMatch[1].toLowerCase();
-      const filtered = Object.entries(EMOJI_MAP)
-        .filter(([code]) => {
-          const name = code.slice(1, -1);
-          return (
-            name.startsWith(query) ||
-            name.split("_").some((w) => w.startsWith(query))
-          );
-        })
+      const filtered = Object.entries(EMOJI_MAP).filter(([code]) => {
+        const name = code.slice(1, -1);
+        return (
+          name.startsWith(query) ||
+          name.split("_").some((w) => w.startsWith(query))
+        );
+      });
       if (filtered.length > 0) {
         setSuggestions(filtered);
         setSuggestionIndex(0);
@@ -613,16 +624,18 @@ export default function ChatWindow({
     if (mentionMatch) {
       const query = mentionMatch[1].toLowerCase();
       const participants = conversation.participants || [];
-      const currentMentions = parsed.mentions.map(m => typeof m === 'object' ? m.id : m);
-      
+      const currentMentions = parsed.mentions.map((m) =>
+        typeof m === "object" ? m.id : m,
+      );
+
       const filtered = participants
         .filter(
           (p) =>
             p._id.toString() !== user?._id?.toString() &&
             !currentMentions.includes(p._id.toString()) &&
-            p.name.toLowerCase().startsWith(query)
+            p.name.toLowerCase().startsWith(query),
         )
-        .map(p => ({ type: 'mention', key: p._id, value: p.name, user: p }))
+        .map((p) => ({ type: "mention", key: p._id, value: p.name, user: p }))
         .slice(0, 10);
 
       if (filtered.length > 0) {
@@ -642,7 +655,9 @@ export default function ChatWindow({
         setSuggestionIndex((prev) => (prev + 1) % suggestions.length);
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
-        setSuggestionIndex((prev) => (prev - 1 + suggestions.length) % suggestions.length);
+        setSuggestionIndex(
+          (prev) => (prev - 1 + suggestions.length) % suggestions.length,
+        );
       } else if (e.key === "Enter" || e.key === "Tab") {
         e.preventDefault();
         insertSuggestion(suggestions[suggestionIndex]);
@@ -675,7 +690,6 @@ export default function ChatWindow({
 
     fetchPinnedMessages();
   }, [conversation?._id]);
-
 
   const toggleReaction = useCallback(
     (msgId, emoji) => {
@@ -870,14 +884,20 @@ export default function ChatWindow({
         }
 
         // Check for optimistic message to replace (for regular messages)
-        let optimisticIndex = prev.findIndex((m) => m._id === msg.tempId || (m.tempId && m.tempId === msg.tempId));
-        
+        let optimisticIndex = prev.findIndex(
+          (m) => m._id === msg.tempId || (m.tempId && m.tempId === msg.tempId),
+        );
+
         // Fuzzy match fallback (if server stripped tempId)
-        if (optimisticIndex === -1 && String(msg.sender?._id) === String(user?._id)) {
-          optimisticIndex = prev.findIndex(m => 
-            m.isOptimistic && 
-            m.text === msg.text &&
-            !prev.some(other => other._id === msg._id)
+        if (
+          optimisticIndex === -1 &&
+          String(msg.sender?._id) === String(user?._id)
+        ) {
+          optimisticIndex = prev.findIndex(
+            (m) =>
+              m.isOptimistic &&
+              m.text === msg.text &&
+              !prev.some((other) => other._id === msg._id),
           );
         }
 
@@ -885,9 +905,10 @@ export default function ChatWindow({
           console.log("🔄 Replacing optimistic message");
           const updated = [...prev];
           // Preserve local mentionData if needed
-          updated[optimisticIndex] = { 
-            ...msg, 
-            mentionData: msg.mentionData || updated[optimisticIndex].mentionData 
+          updated[optimisticIndex] = {
+            ...msg,
+            mentionData:
+              msg.mentionData || updated[optimisticIndex].mentionData,
           };
           return updated;
         }
@@ -1390,7 +1411,9 @@ export default function ChatWindow({
     }
 
     const tempId = `temp-${Date.now()}`;
-    const mentionData = parsed.mentions.map(m => typeof m === 'object' ? m : null).filter(Boolean);
+    const mentionData = parsed.mentions
+      .map((m) => (typeof m === "object" ? m : null))
+      .filter(Boolean);
     const optimistic = {
       _id: tempId,
       conversationId: conversation._id,
@@ -1421,21 +1444,29 @@ export default function ChatWindow({
       conversationId: conversation._id,
       ...(isGrp ? {} : { receiverId: conversation.participant?._id }),
     });
-    socket.emit("message:send", {
-      conversationId: conversation._id,
-      ...(isGrp ? {} : { receiverId: conversation.participant?._id }),
-      text: optimistic.text,
-      mentions: optimistic.mentions.map(m => typeof m === 'object' ? m.id : m),
-      mentionData,
-      tempId,
-      replyTo: replyTo?._id || null,
-      attachments,
-    }, (response) => {
-      // Callback from server if implemented
-      if (response?.success && response?.message) {
-        setMessages(prev => prev.map(m => m._id === tempId ? response.message : m));
-      }
-    });
+    socket.emit(
+      "message:send",
+      {
+        conversationId: conversation._id,
+        ...(isGrp ? {} : { receiverId: conversation.participant?._id }),
+        text: optimistic.text,
+        mentions: optimistic.mentions.map((m) =>
+          typeof m === "object" ? m.id : m,
+        ),
+        mentionData,
+        tempId,
+        replyTo: replyTo?._id || null,
+        attachments,
+      },
+      (response) => {
+        // Callback from server if implemented
+        if (response?.success && response?.message) {
+          setMessages((prev) =>
+            prev.map((m) => (m._id === tempId ? response.message : m)),
+          );
+        }
+      },
+    );
 
     setSuggestions([]);
     setReplyTo(null);
@@ -1519,11 +1550,11 @@ export default function ChatWindow({
           <p className="text-accent text-lg font-medium">Drop files here</p>
         </div>
       )}
-      <header className="h-17 border-b border-white/5 flex justify-between items-center px-3 sm:px-5 bg-obsidian/80 backdrop-blur-sm shrink-0">
-        <div className="flex items-center gap-3">
+      <header className="h-17 border-b border-white/5 flex justify-between items-center px-3 sm:px-4 md:px-5 bg-obsidian/80 backdrop-blur-sm shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3">
           <button
             onClick={toggleSidebar}
-            className="md:hidden w-8 h-8 rounded-xl bg-white/4 flex items-center justify-center text-ivory/30 hover:text-ivory transition-colors"
+            className="sm:hidden w-8 h-8 rounded-xl bg-white/4 flex items-center justify-center text-ivory/30 hover:text-ivory transition-colors"
           >
             <Menu size={18} />
           </button>
@@ -1662,7 +1693,7 @@ export default function ChatWindow({
 
       <div
         ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto px-3 sm:px-5 py-5 flex flex-col gap-3 scrollbar-hide"
+        className="flex-1 overflow-y-auto px-3 sm:px-4 md:px-6 lg:px-8 py-5 flex flex-col gap-3 scrollbar-hide"
       >
         {" "}
         {/* Pinned Messages Drawer */}
@@ -1768,9 +1799,9 @@ export default function ChatWindow({
                                 loading="lazy"
                               />
                             ) : (
-                                <p className="text-[13px] text-ivory/80 leading-relaxed break-words line-clamp-3">
-                                  {renderMessageText(msg.text, msg.mentions)}
-                                </p>
+                              <p className="text-[13px] text-ivory/80 leading-relaxed break-words line-clamp-3">
+                                {renderMessageText(msg.text, msg.mentions)}
+                              </p>
                             )}
 
                             {/* Timestamp & Pinned By */}
@@ -2001,7 +2032,7 @@ export default function ChatWindow({
                   )}
 
                   <div
-                    className={`flex flex-col ${isMe ? "items-end" : "items-start"} max-w-[85%]`}
+                    className={`flex flex-col ${isMe ? "items-end" : "items-start"} max-w-[85%] md:max-w-[70%] lg:max-w-[60%]`}
                   >
                     {isGroup && !isMe && (
                       <span className="text-[10px] font-semibold text-accent/80 mb-0.5 px-1">
@@ -2254,10 +2285,10 @@ export default function ChatWindow({
                                 />
                               );
                             }
-                              return (
-                                <>
-                                  {renderMessageText(msg.text, msg.mentions)}
-                                  {msg.attachments?.length > 0 && (
+                            return (
+                              <>
+                                {renderMessageText(msg.text, msg.mentions)}
+                                {msg.attachments?.length > 0 && (
                                   <FileAttachmentDisplay
                                     attachments={msg.attachments}
                                   />
@@ -2291,7 +2322,9 @@ export default function ChatWindow({
                               typeof window !== "undefined" &&
                               window.innerWidth < 400
                                 ? Math.min(window.innerWidth - 32, 300)
-                                : 320
+                                : window.innerWidth < 900
+                                  ? 300
+                                  : 320
                             }
                             height={360}
                             searchPlaceholder="Search emoji..."
@@ -2435,7 +2468,7 @@ export default function ChatWindow({
 
       <form
         onSubmit={handleSend}
-        className="p-4 relative z-20 bg-obsidian/80 backdrop-blur-sm border-t border-white/5"
+        className="p-3 sm:p-4 md:p-5 relative z-20 bg-obsidian/80 backdrop-blur-sm border-t border-white/5"
       >
         {/* Shared absolute wrapper — rewritePreview and replyTo stack as block elements */}
         <div className="absolute bottom-full left-0 right-0">
@@ -2560,7 +2593,7 @@ export default function ChatWindow({
         {showGifPicker && (
           <div
             ref={gifPickerRef}
-            className="absolute bottom-20 right-0 sm:right-4 left-0 sm:left-auto z-50 shadow-2xl rounded-2xl overflow-hidden border border-white/6 mx-2 sm:mx-0"
+            className="absolute bottom-20 right-0 sm:right-4 left-0 sm:left-auto z-50 shadow-2xl rounded-2xl overflow-hidden border border-white/6 mx-2 sm:mx-0 md:right-4 md:left-auto"
           >
             <style>{`.gpr-picker { --gpr-bg-color: #15191C !important; --gpr-secondary-bg: #1C2227 !important; --gpr-text-color: #cbd5e1 !important; --gpr-text-secondary: #94a3b8 !important; --gpr-border-color: #1e293b !important; --gpr-highlight-color: #2dd4bf !important; --gpr-highlight-hover: #5eead4 !important; --gpr-input-bg: #0B0E11 !important; --gpr-hover-bg: rgba(45, 212, 191, 0.1) !important; --gpr-radius: 16px !important; border: none !important; } .gpr-trending-terms { display: none !important; }`}</style>
             <GifPicker
@@ -2581,7 +2614,7 @@ export default function ChatWindow({
         {showEmojiPicker && (
           <div
             ref={inputEmojiPickerRef}
-            className="absolute bottom-20 right-0 sm:right-4 left-0 sm:left-auto z-50 shadow-2xl mx-2 sm:mx-0"
+            className="absolute bottom-20 right-0 sm:right-4 left-0 sm:left-auto z-50 shadow-2xl mx-2 sm:mx-0 md:right-4 md:left-auto"
           >
             <EmojiPicker
               onEmojiClick={handleEmojiClick}
@@ -2719,7 +2752,7 @@ export default function ChatWindow({
           onRemove={removeFile}
         />
 
-        <div className="bg-slate-surface rounded-2xl flex items-center flex-wrap p-2 gap-1 border border-white/5 focus-within:border-accent/50 transition-all shadow-inner">
+        <div className="bg-slate-surface rounded-2xl flex flex-col p-2 gap-1 border border-white/5 focus-within:border-accent/50 transition-all shadow-inner">
           {/* Hidden file input */}
           <input
             ref={fileInputRef}
@@ -2732,67 +2765,113 @@ export default function ChatWindow({
             }}
           />
 
-          {/* Paperclip button */}
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="w-9 h-9 flex items-center justify-center text-ivory/30 hover:text-accent transition-colors"
-            aria-label="Attach files"
-            title="Attach files"
-          >
-            <Paperclip size={18} />
-          </button>
-
-          {/* Poll Button */}
-          {isGroup && (
+          {/* ── Row 1: Input area ── */}
+          <div className="flex items-center gap-1">
+            {/* Paperclip button */}
             <button
               type="button"
-              onClick={() => setShowCreatePoll(true)}
-              className="w-9 h-9 flex items-center justify-center text-ivory/30 hover:text-accent transition-colors"
-              title="Create Poll"
-              aria-label="Create Poll"
+              onClick={() => fileInputRef.current?.click()}
+              className="w-9 h-9 shrink-0 flex items-center justify-center text-ivory/30 hover:text-accent transition-colors"
+              aria-label="Attach files"
+              title="Attach files"
             >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <rect x="3" y="3" width="7" height="7" />
-                <rect x="14" y="3" width="7" height="7" />
-                <rect x="14" y="14" width="7" height="7" />
-                <rect x="3" y="14" width="7" height="7" />
-              </svg>
+              <Paperclip size={18} />
             </button>
-          )}
 
-          <div className="flex-1 relative min-w-0">
-            <div
-              ref={inputRef}
-              className="w-full bg-transparent outline-none text-sm text-ivory/80 px-3 placeholder:text-ivory/20 min-h-5 max-h-37.5 overflow-y-auto whitespace-pre-wrap wrap-break-word empty:before:content-[attr(placeholder)] empty:before:text-ivory/20"
-              contentEditable="true"
-              placeholder="Type a message..."
-              onInput={handleInput}
-              onKeyDown={handleKeyDown}
-              onPaste={(e) => {
-                e.preventDefault();
-                const text = e.clipboardData.getData("text/plain");
-                const selection = window.getSelection();
-                if (!selection.rangeCount) return;
-                selection.getRangeAt(0).insertNode(document.createTextNode(text));
-                selection.collapseToEnd();
-                handleInput({ currentTarget: inputRef.current });
+            {/* Poll Button */}
+            {isGroup && (
+              <button
+                type="button"
+                onClick={() => setShowCreatePoll(true)}
+                className="w-9 h-9 shrink-0 flex items-center justify-center text-ivory/30 hover:text-accent transition-colors"
+                title="Create Poll"
+                aria-label="Create Poll"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect x="3" y="3" width="7" height="7" />
+                  <rect x="14" y="3" width="7" height="7" />
+                  <rect x="14" y="14" width="7" height="7" />
+                  <rect x="3" y="14" width="7" height="7" />
+                </svg>
+              </button>
+            )}
+
+            <div className="flex-1 relative min-w-0">
+              <div
+                ref={inputRef}
+                className="w-full bg-transparent outline-none text-sm text-ivory/80 px-3 placeholder:text-ivory/20 min-h-5 max-h-37.5 overflow-y-auto whitespace-pre-wrap wrap-break-word empty:before:content-[attr(placeholder)] empty:before:text-ivory/20"
+                contentEditable="true"
+                placeholder="Type a message..."
+                onInput={handleInput}
+                onKeyDown={handleKeyDown}
+                onPaste={(e) => {
+                  e.preventDefault();
+                  const text = e.clipboardData.getData("text/plain");
+                  const selection = window.getSelection();
+                  if (!selection.rangeCount) return;
+                  selection
+                    .getRangeAt(0)
+                    .insertNode(document.createTextNode(text));
+                  selection.collapseToEnd();
+                  handleInput({ currentTarget: inputRef.current });
+                }}
+              />
+            </div>
+
+            {/* Emoji button — always visible in input row */}
+            <button
+              type="button"
+              onClick={() => {
+                setShowEmojiPicker(!showEmojiPicker);
+                setShowGifPicker(false);
               }}
-            />
+              className={`w-9 h-9 shrink-0 flex items-center justify-center transition-all ${
+                showEmojiPicker
+                  ? "text-accent"
+                  : "text-ivory/30 hover:text-ivory/60"
+              }`}
+              title="Emoji"
+              aria-label="Emoji"
+            >
+              <Smile size={20} />
+            </button>
+
+            {/* Send button — always visible in input row */}
+            <button
+              type="submit"
+              disabled={
+                scheduling ||
+                fileUploading ||
+                fileErrors.some((e) => e !== null) ||
+                (!text.trim() && stagedFiles.length === 0)
+              }
+              className={`w-9 h-9 shrink-0 flex items-center justify-center rounded-xl transition-all active:scale-95 shadow-lg ${
+                scheduling ||
+                fileUploading ||
+                fileErrors.some((e) => e !== null) ||
+                (!text.trim() && stagedFiles.length === 0)
+                  ? "bg-slate-700 text-ivory/40 cursor-not-allowed opacity-50"
+                  : "bg-accent hover:bg-accent/90 text-black shadow-accent/20"
+              }`}
+              title="Send"
+              aria-label="Send"
+            >
+              <Send size={18} />
+            </button>
           </div>
 
           {/* Emoji suggestions dropdown */}
           {suggestions.length > 0 && (
-            <div className="absolute bottom-20 left-2 sm:left-10 bg-deep/95 backdrop-blur-md border border-white/6 rounded-xl p-1 shadow-2xl z-50 min-w-37.5 max-w-[calc(100vw-2rem)]">
+            <div className="absolute bottom-20 left-2 sm:left-10 bg-deep/95 backdrop-blur-md border border-white/6 rounded-xl p-1 shadow-2xl z-50 min-w-37.5 max-w-[calc(100vw-2rem)] md:max-w-xs">
               {suggestions.map(([code, emoji], i) => (
                 <div
                   key={code}
@@ -2810,270 +2889,15 @@ export default function ChatWindow({
             </div>
           )}
 
-          {/* GIF, AI, Schedule buttons... */}
-          <button
-            type="button"
-            onClick={() => {
-              setShowGifPicker(!showGifPicker);
-              setShowEmojiPicker(false);
-              setScheduleMode(false);
-            }}
-            className={`hidden sm:inline-flex px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${
-              showGifPicker
-                ? "bg-accent/20 border-accent/40 text-accent"
-                : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
-            }`}
-          >
-            GIF
-          </button>
-
-          <div
-            ref={aiMenuRefDesktop}
-            className="relative hidden sm:inline-flex"
-          >
-            <button
-              type="button"
-              onClick={() => setAiMenuOpen((v) => !v)}
-              title="AI tools"
-              aria-label="AI tools"
-              className={`inline-flex items-center gap-1 px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${
-                aiMenuOpen
-                  ? "bg-accent/20 border-accent/40 text-accent"
-                  : aiReplies.length > 0 || tonePickerOpen
-                    ? "bg-accent/20 border-accent/40 text-accent"
-                    : "bg-white/4 border-white/10 text-ivory/30 hover:bg-accent/10 hover:border-accent/30 hover:text-accent"
-              }`}
-            >
-              ✦ AI
-            </button>
-            {aiMenuOpen && (
-              <div className="absolute bottom-full mb-1 right-0 w-44 bg-deep border border-white/10 rounded-lg shadow-lg overflow-hidden z-50">
-                <button
-                  type="button"
-                  className="w-full text-left px-3 py-2 text-[11px] text-ivory/70 hover:bg-white/6 hover:text-ivory transition-colors"
-                  onClick={() => {
-                    setAiMenuOpen(false);
-                    handleAiButton();
-                  }}
-                >
-                  Reply suggestions
-                </button>
-                <button
-                  type="button"
-                  disabled={!text.trim()}
-                  className={`w-full text-left px-3 py-2 text-[11px] transition-colors ${
-                    text.trim()
-                      ? "text-ivory/70 hover:bg-white/6 hover:text-ivory"
-                      : "text-ivory/20 opacity-40 cursor-not-allowed"
-                  }`}
-                  onClick={() => {
-                    if (!text.trim()) return;
-                    setAiMenuOpen(false);
-                    setAiReplies([]);
-                    setTonePickerOpen(true);
-                  }}
-                >
-                  Rewrite tone
-                </button>
-              </div>
-            )}
-          </div>
-
-          {
-            <button
-              type="button"
-              title="View scheduled messages"
-              aria-label="View scheduled messages"
-              onClick={() => {
-                setShowScheduledPanel((v) => !v);
-                refreshScheduled();
-              }}
-              className="hidden sm:inline-flex px-2 py-1 mx-1 text-[10px] font-black rounded-md border bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
-            >
-              PENDING
-            </button>
-          }
-
-          {
-            <button
-              type="button"
-              title="Schedule message"
-              aria-label="Schedule message"
-              onClick={() => {
-                setScheduleMode((v) => !v);
-                setShowScheduledPanel(true);
-              }}
-              className={`hidden sm:inline-flex px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${
-                scheduleMode
-                  ? "bg-accent/20 border-accent/40 text-accent"
-                  : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
-              }`}
-            >
-              SCHEDULE
-            </button>
-          }
-
-          {scheduleMode && (
-            <input
-              type="datetime-local"
-              value={sendAt}
-              min={new Date().toISOString().slice(0, 16)}
-              onChange={(e) => setSendAt(e.target.value)}
-              className="flex-1 min-w-0 px-2 py-1 rounded-md bg-accent border border-white/10 text-ivory/80 text-[11px]"
-            />
-          )}
-
-          <button
-            type="button"
-            onClick={() => {
-              setShowEmojiPicker(!showEmojiPicker);
-              setShowGifPicker(false);
-            }}
-            className={`w-9 h-9 flex items-center justify-center transition-all ${
-              showEmojiPicker
-                ? "text-accent"
-                : "text-ivory/30 hover:text-ivory/60"
-            }`}
-            title="Emoji"
-            aria-label="Emoji"
-          >
-            <Smile size={20} />
-          </button>
-
-          {/* Schedule Dropdown */}
-          {!isGroup && (
-            <div ref={scheduleDropdownRef} className="relative inline-flex">
-              <button
-                type="button"
-                onClick={() => setScheduleDropdownOpen((v) => !v)}
-                className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${
-                  scheduleDropdownOpen
-                    ? "bg-accent/20 text-accent"
-                    : "text-ivory/30 hover:text-ivory/60"
-                }`}
-                title="Schedule or view pending"
-              >
-                <Clock size={18} />
-              </button>
-
-              {scheduleDropdownOpen && (
-                <div className="absolute bottom-full right-0 mb-2 w-56 bg-deep border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                  {/* Header */}
-                  <div className="px-4 py-3 border-b border-white/8 flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-ivory/40">
-                      Schedule Message
-                    </span>
-                    <button
-                      onClick={() => setScheduleDropdownOpen(false)}
-                      className="text-ivory/20 hover:text-ivory transition-colors"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-
-                  {/* Content */}
-                  <div className="p-3 space-y-2">
-                    {/* Schedule Option */}
-                    <div>
-                      <label className="text-[11px] font-mono text-ivory/50 mb-2 block">
-                        Send at
-                      </label>
-                      <input
-                        type="datetime-local"
-                        value={sendAt}
-                        min={new Date(
-                          Date.now() - new Date().getTimezoneOffset() * 60000,
-                        )
-                          .toISOString()
-                          .slice(0, 16)}
-                        onChange={(e) => setSendAt(e.target.value)}
-                        className="w-full bg-white/4 border border-white/10 rounded-lg px-2.5 py-2 text-xs text-ivory/80 outline-none focus:border-accent/40 transition-colors"
-                      />
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          if (!sendAt) {
-                            toast.error("Please select a date and time");
-                            return;
-                          }
-                          await scheduleMessage();
-                          setScheduleDropdownOpen(false);
-                        }}
-                        disabled={!sendAt || scheduling}
-                        className="w-full mt-2 px-3 py-1.5 bg-accent/20 hover:bg-accent/30 disabled:opacity-50 disabled:cursor-not-allowed text-accent text-[11px] font-bold rounded-lg transition-all"
-                      >
-                        {scheduling ? "Scheduling..." : "Schedule"}
-                      </button>
-                    </div>
-
-                    {/* Divider */}
-                    <div className="h-px bg-white/5" />
-
-                    {/* Pending Messages */}
-                    <div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowScheduledPanel(true);
-                          refreshScheduled();
-                          setScheduleDropdownOpen(false);
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-semibold text-ivory/70 hover:bg-white/5 rounded-lg transition-colors"
-                      >
-                        <Calendar size={14} className="text-accent/60" />
-                        View Pending
-                        {scheduledItems.length > 0 && (
-                          <span className="ml-auto px-2 py-0.5 bg-accent/20 text-accent text-[10px] font-mono rounded">
-                            {scheduledItems.length}
-                          </span>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={
-              scheduling ||
-              fileUploading ||
-              fileErrors.some((e) => e !== null) ||
-              (!text.trim() && stagedFiles.length === 0)
-            }
-            className={`w-9 h-9 flex items-center justify-center rounded-xl ml-1 transition-all active:scale-95 shadow-lg ${
-              scheduling ||
-              fileUploading ||
-              fileErrors.some((e) => e !== null) ||
-              (!text.trim() && stagedFiles.length === 0)
-                ? "bg-slate-700 text-ivory/40 cursor-not-allowed opacity-50"
-                : "bg-accent hover:bg-accent/90 text-black shadow-accent/20"
-            }`}
-            title="Send"
-            aria-label="Send"
-          >
-            <Send size={18} />
-          </button>
-
-          {/* Mobile-only expanded toolbar row */}
-          <div className="sm:hidden w-full flex items-center gap-1 pt-1 border-t border-white/5 mt-1">
-            {/* ✅ Poll Button (Mobile - Groups only) */}
-            {isGroup && (
-              <button
-                type="button"
-                onClick={() => setShowCreatePoll(true)}
-                className="px-2 py-1 text-[10px] font-black rounded-md border bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60 transition-all"
-              >
-                📊 POLL
-              </button>
-            )}
+          {/* ── Row 2: Toolbar (GIF, AI, Schedule, etc.) — always a dedicated row ── */}
+          <div className="flex items-center gap-1 pt-0.5 border-t border-white/5">
+            {/* GIF */}
             <button
               type="button"
               onClick={() => {
                 setShowGifPicker(!showGifPicker);
                 setShowEmojiPicker(false);
+                setScheduleMode(false);
               }}
               className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${
                 showGifPicker
@@ -3084,7 +2908,8 @@ export default function ChatWindow({
               GIF
             </button>
 
-            <div ref={aiMenuRefMobile} className="relative inline-flex">
+            {/* AI */}
+            <div ref={aiMenuRefDesktop} className="relative inline-flex">
               <button
                 type="button"
                 onClick={() => setAiMenuOpen((v) => !v)}
@@ -3101,7 +2926,7 @@ export default function ChatWindow({
                 ✦ AI
               </button>
               {aiMenuOpen && (
-                <div className="absolute bottom-full mb-1 right-0 w-44 bg-deep border border-white/10 rounded-lg shadow-lg overflow-hidden z-50">
+                <div className="absolute bottom-full mb-1 left-0 w-44 bg-deep border border-white/10 rounded-lg shadow-lg overflow-hidden z-50">
                   <button
                     type="button"
                     className="w-full text-left px-3 py-2 text-[11px] text-ivory/70 hover:bg-white/6 hover:text-ivory transition-colors"
@@ -3133,20 +2958,143 @@ export default function ChatWindow({
               )}
             </div>
 
+            {/* PENDING */}
+            <button
+              type="button"
+              title="View scheduled messages"
+              aria-label="View scheduled messages"
+              onClick={() => {
+                setShowScheduledPanel((v) => !v);
+                refreshScheduled();
+              }}
+              className="px-2 py-1 text-[10px] font-black rounded-md border bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+            >
+              PENDING
+            </button>
+
+            {/* SCHEDULE */}
+            <button
+              type="button"
+              title="Schedule message"
+              aria-label="Schedule message"
+              onClick={() => {
+                setScheduleMode((v) => !v);
+                setShowScheduledPanel(true);
+              }}
+              className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${
+                scheduleMode
+                  ? "bg-accent/20 border-accent/40 text-accent"
+                  : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+              }`}
+            >
+              SCHEDULE
+            </button>
+
+            {scheduleMode && (
+              <input
+                type="datetime-local"
+                value={sendAt}
+                min={new Date().toISOString().slice(0, 16)}
+                onChange={(e) => setSendAt(e.target.value)}
+                className="flex-1 min-w-0 px-2 py-1 rounded-md bg-accent border border-white/10 text-ivory/80 text-[11px]"
+              />
+            )}
+
+            {/* Schedule Dropdown (DM only) */}
             {!isGroup && (
-              <div className="relative inline-flex">
+              <div
+                ref={scheduleDropdownRef}
+                className="relative inline-flex ml-auto"
+              >
                 <button
                   type="button"
                   onClick={() => setScheduleDropdownOpen((v) => !v)}
-                  className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${
+                  className={`w-8 h-8 flex items-center justify-center rounded-xl transition-all ${
                     scheduleDropdownOpen
-                      ? "bg-accent/20 border-accent/40 text-accent"
-                      : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+                      ? "bg-accent/20 text-accent"
+                      : "text-ivory/30 hover:text-ivory/60"
                   }`}
                   title="Schedule or view pending"
                 >
-                  ⏱ Schedule
+                  <Clock size={16} />
                 </button>
+
+                {scheduleDropdownOpen && (
+                  <div className="absolute bottom-full right-0 mb-2 w-56 bg-deep border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                    {/* Header */}
+                    <div className="px-4 py-3 border-b border-white/8 flex items-center justify-between">
+                      <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-ivory/40">
+                        Schedule Message
+                      </span>
+                      <button
+                        onClick={() => setScheduleDropdownOpen(false)}
+                        className="text-ivory/20 hover:text-ivory transition-colors"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-3 space-y-2">
+                      {/* Schedule Option */}
+                      <div>
+                        <label className="text-[11px] font-mono text-ivory/50 mb-2 block">
+                          Send at
+                        </label>
+                        <input
+                          type="datetime-local"
+                          value={sendAt}
+                          min={new Date(
+                            Date.now() - new Date().getTimezoneOffset() * 60000,
+                          )
+                            .toISOString()
+                            .slice(0, 16)}
+                          onChange={(e) => setSendAt(e.target.value)}
+                          className="w-full bg-white/4 border border-white/10 rounded-lg px-2.5 py-2 text-xs text-ivory/80 outline-none focus:border-accent/40 transition-colors"
+                        />
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!sendAt) {
+                              toast.error("Please select a date and time");
+                              return;
+                            }
+                            await scheduleMessage();
+                            setScheduleDropdownOpen(false);
+                          }}
+                          disabled={!sendAt || scheduling}
+                          className="w-full mt-2 px-3 py-1.5 bg-accent/20 hover:bg-accent/30 disabled:opacity-50 disabled:cursor-not-allowed text-accent text-[11px] font-bold rounded-lg transition-all"
+                        >
+                          {scheduling ? "Scheduling..." : "Schedule"}
+                        </button>
+                      </div>
+
+                      {/* Divider */}
+                      <div className="h-px bg-white/5" />
+
+                      {/* Pending Messages */}
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowScheduledPanel(true);
+                            refreshScheduled();
+                            setScheduleDropdownOpen(false);
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-semibold text-ivory/70 hover:bg-white/5 rounded-lg transition-colors"
+                        >
+                          <Calendar size={14} className="text-accent/60" />
+                          View Pending
+                          {scheduledItems.length > 0 && (
+                            <span className="ml-auto px-2 py-0.5 bg-accent/20 text-accent text-[10px] font-mono rounded">
+                              {scheduledItems.length}
+                            </span>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

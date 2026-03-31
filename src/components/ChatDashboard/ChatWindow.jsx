@@ -961,6 +961,15 @@ export default function ChatWindow({
       );
     };
 
+    // Append call log message in real time when a call ends/is declined/missed
+    const handleCallLog = (msg) => {
+      if (msg.conversationId !== conversation?._id) return;
+      setMessages((prev) => {
+        if (prev.some((m) => m._id === msg._id)) return prev;
+        return [...prev, msg];
+      });
+    };
+
     socket.on("message:new", handleReceive);
     socket.on("message:status", handleDelivered);
     socket.on("message:reacted", handleReacted);
@@ -971,6 +980,7 @@ export default function ChatWindow({
     socket.on("poll:updated", handlePollUpdated);
     socket.on("message:read-receipt", handleReadReceipt);
     socket.on("messages:bulk-read", handleBulkRead);
+    socket.on("call:log", handleCallLog);
 
     return () => {
       socket.off("message:new", handleReceive);
@@ -983,6 +993,7 @@ export default function ChatWindow({
       socket.off("poll:updated", handlePollUpdated);
       socket.off("message:read-receipt", handleReadReceipt);
       socket.off("messages:bulk-read", handleBulkRead);
+      socket.off("call:log", handleCallLog);
     };
   }, [socket, conversation?._id, user?._id, onMessagesSeen]);
 
@@ -1823,7 +1834,10 @@ export default function ChatWindow({
             const isMe =
               msg.sender?._id === user?._id || msg.sender === user?._id;
             const isGif = !!msg.gifUrl;
-            const isCallLog = !!msg.callLog;
+            const isCallLog = !!(
+              msg.callLog &&
+              (msg.callLog.callType || msg.callLog.status)
+            );
             const currentDateKey = toDateKey(msg.createdAt);
             const prevDateKey =
               index > 0 ? toDateKey(messages[index - 1].createdAt) : null;

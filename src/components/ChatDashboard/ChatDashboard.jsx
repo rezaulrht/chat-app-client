@@ -102,10 +102,11 @@ export default function ChatDashboard() {
       toast.custom(
         (t) => (
           <div
-            className={`flex flex-col gap-1.5 px-4 py-3.5 rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.3)] glass-card ring-1 ring-accent/15 text-sm min-w-70 max-w-90 transition-all duration-300 ${t.visible
-              ? "opacity-100 translate-y-0"
-              : "opacity-0 -translate-y-3"
-              }`}
+            className={`flex flex-col gap-1.5 px-4 py-3.5 rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.3)] glass-card ring-1 ring-accent/15 text-sm min-w-70 max-w-90 transition-all duration-300 ${
+              t.visible
+                ? "opacity-100 translate-y-0"
+                : "opacity-0 -translate-y-3"
+            }`}
           >
             <p className="font-display font-bold text-ivory text-[13px]">
               New message from {msg.sender.name}
@@ -162,17 +163,17 @@ export default function ChatDashboard() {
           const updated = prev.map((c) =>
             c._id === msg.conversationId
               ? {
-                ...c,
-                lastMessage: {
-                  text: msg.text,
-                  gifUrl: msg.gifUrl,
-                  attachments: msg.attachments || [],
-                  // Keep populated sender object for group last-message preview
-                  sender: msg.sender || null,
-                  timestamp: msg.createdAt,
-                },
-                updatedAt: msg.createdAt,
-              }
+                  ...c,
+                  lastMessage: {
+                    text: msg.text,
+                    gifUrl: msg.gifUrl,
+                    attachments: msg.attachments || [],
+                    // Keep populated sender object for group last-message preview
+                    sender: msg.sender || null,
+                    createdAt: msg.createdAt,
+                  },
+                  updatedAt: msg.createdAt,
+                }
               : c,
           );
           return sortConversations(updated);
@@ -285,6 +286,33 @@ export default function ChatDashboard() {
       );
     };
 
+    // Update sidebar lastMessage when a call log is created
+    const handleCallLog = (msg) => {
+      setConversations((prev) => {
+        const updated = prev.map((c) =>
+          c._id === msg.conversationId
+            ? {
+                ...c,
+                lastMessage: {
+                  text:
+                    msg.callLog?.status === "missed"
+                      ? "Missed call"
+                      : msg.callLog?.status === "declined"
+                        ? "Call declined"
+                        : (msg.callLog?.callType === "video"
+                            ? "Video"
+                            : "Audio") + " call",
+                  createdAt: msg.createdAt,
+                  sender: msg.sender || null,
+                },
+                updatedAt: msg.createdAt,
+              }
+            : c,
+        );
+        return sortConversations(updated);
+      });
+    };
+
     socket.on("message:new", handleGlobalMessage);
     socket.on("unread:update", handleUnreadUpdate);
     socket.on("message:status", handleMessageStatus);
@@ -297,6 +325,7 @@ export default function ChatDashboard() {
     socket.on("group:member-left", handleGroupRefetch);
     socket.on("group:admin-updated", handleGroupRefetch);
     socket.on("conversation:customise:updated", handleCustomiseUpdated);
+    socket.on("call:log", handleCallLog);
 
     return () => {
       socket.off("message:new", handleGlobalMessage);
@@ -311,6 +340,7 @@ export default function ChatDashboard() {
       socket.off("group:member-left", handleGroupRefetch);
       socket.off("group:admin-updated", handleGroupRefetch);
       socket.off("conversation:customise:updated", handleCustomiseUpdated);
+      socket.off("call:log", handleCallLog);
     };
   }, [socket, fetchLastSeenTimes, user, showNewMessageToast]);
 
@@ -325,16 +355,16 @@ export default function ChatDashboard() {
         const updated = prev.map((c) =>
           c._id === conversationId
             ? {
-              ...c,
-              lastMessage: {
-                ...c.lastMessage,
-                text,
-                gifUrl,
-                attachments,
-                timestamp: new Date().toISOString(),
-              },
-              updatedAt: new Date().toISOString(),
-            }
+                ...c,
+                lastMessage: {
+                  ...c.lastMessage,
+                  text,
+                  gifUrl,
+                  attachments,
+                  createdAt: new Date().toISOString(),
+                },
+                updatedAt: new Date().toISOString(),
+              }
             : c,
         );
         return sortConversations(updated);
@@ -447,14 +477,14 @@ export default function ChatDashboard() {
       {/* Mobile Backdrops */}
       {(isSidebarOpen ||
         (showGroupInfo && activeConversation?.type === "group")) && (
-          <div
-            className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-30 transition-all"
-            onClick={() => {
-              setIsSidebarOpen(false);
-              setShowGroupInfo(false);
-            }}
-          />
-        )}
+        <div
+          className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-30 transition-all"
+          onClick={() => {
+            setIsSidebarOpen(false);
+            setShowGroupInfo(false);
+          }}
+        />
+      )}
 
       <div className="flex flex-1 min-h-0 w-full">
         {/* ═══ Desktop: Unified Sidebar ═══ */}
@@ -477,8 +507,9 @@ export default function ChatDashboard() {
 
         {/* ═══ Mobile: Slide-in Sidebar ═══ */}
         <div
-          className={`lg:hidden absolute z-40 h-full transition-transform duration-300 w-[85vw] sm:w-80 flex shrink-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-            }`}
+          className={`lg:hidden absolute z-40 h-full transition-transform duration-300 w-[85vw] sm:w-80 flex shrink-0 ${
+            isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
         >
           <Sidebar
             conversations={conversations}

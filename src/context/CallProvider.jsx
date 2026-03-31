@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { CallContext } from "./CallContext";
 import { useSocket } from "@/hooks/useSocket";
+import { disconnectRoom } from "@/lib/livekitRoom";
 
 export const CallProvider = ({ children }) => {
   const { socket } = useSocket() || {};
@@ -39,9 +40,10 @@ export const CallProvider = ({ children }) => {
 
   const acceptCall = useCallback(() => {
     if (incomingCall) {
-      // Emit accepted to server so initiator gets notified and both connect simultaneously
-      socket?.emit("call:accepted", { callId: incomingCall.callId });
-      setActiveCall(incomingCall); // callee connects immediately (pending=false since it came from call:incoming)
+      socket?.emit("call:accepted", {
+        callId: incomingCall.callId?.toString(),
+      });
+      setActiveCall({ ...incomingCall, pending: false });
       setIncomingCall(null);
       setIsMinimized(false);
     }
@@ -49,7 +51,9 @@ export const CallProvider = ({ children }) => {
 
   const declineCall = useCallback(() => {
     if (incomingCall) {
-      socket?.emit("call:declined", { callId: incomingCall.callId });
+      socket?.emit("call:declined", {
+        callId: incomingCall.callId?.toString(),
+      });
     }
     setIncomingCall(null);
   }, [incomingCall, socket]);
@@ -67,13 +71,14 @@ export const CallProvider = ({ children }) => {
     const handleAccepted = ({ callId, roomName, callType }) => {
       // Callee accepted — caller can now connect to LiveKit
       setActiveCall((prev) =>
-        prev?.callId === callId
+        prev?.callId?.toString() === callId?.toString()
           ? { ...prev, roomName, callType, pending: false }
           : prev,
       );
     };
 
     const handleEnded = () => {
+      disconnectRoom(); // release mic/camera on the receiving side too
       setActiveCall(null);
       setIncomingCall(null);
       setIsMinimized(false);

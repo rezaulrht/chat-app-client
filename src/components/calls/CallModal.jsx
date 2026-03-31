@@ -26,31 +26,44 @@ export default function CallModal() {
     setIsVideoOff(activeCall?.callType === "audio");
   }, [activeCall?.callType]);
 
-  const { room, isConnected, connect, disconnect, participants } = useLiveKit();
+  const {
+    room,
+    isConnected,
+    connect,
+    disconnect,
+    participants,
+    activeSpeakers,
+  } = useLiveKit();
 
   const hasConnected = useRef(false);
   useEffect(() => {
     if (activeCall?.roomName && !activeCall.pending && !hasConnected.current) {
       hasConnected.current = true;
-      connect(activeCall.roomName, activeCall.callType);
+      connect(activeCall.roomName, activeCall.callType ?? "audio");
     }
     if (!activeCall) {
       hasConnected.current = false;
     }
-  }, [activeCall?.roomName, activeCall?.pending, connect]);
+  }, [
+    activeCall?.roomName,
+    activeCall?.pending,
+    activeCall?.callType,
+    connect,
+  ]);
 
-  const handleEndCall = async () => {
-    socket?.emit("call:ended", { callId: activeCall.callId });
-    await disconnect();
+  const handleEndCall = () => {
+    socket?.emit("call:ended", { callId: activeCall.callId?.toString() });
     hasConnected.current = false;
-    endCall();
+    endCall(); // close UI immediately
+    disconnect(); // release mic/LiveKit in background
   };
 
   const localParticipant = room?.localParticipant;
 
   const toggleMute = () => {
-    localParticipant?.setMicrophoneEnabled(isMuted);
-    setIsMuted(!isMuted);
+    const nowMuted = !isMuted;
+    localParticipant?.setMicrophoneEnabled(!nowMuted);
+    setIsMuted(nowMuted);
   };
 
   const toggleVideo = () => {
@@ -62,13 +75,15 @@ export default function CallModal() {
 
   if (!activeCall || isMinimized || activeCall.isVoiceChannel) return null;
 
-  // Always include local user as first tile, then remote participants
+  const localIdentity = localParticipant?.identity ?? "";
+
   const allTiles = [
-    { id: "local", name: user?.name, isLocal: true },
+    { id: "local", name: user?.name, isLocal: true, identity: localIdentity },
     ...participants.map((p) => ({
       id: p.sid,
       name: p.name || p.identity,
       isLocal: false,
+      identity: p.identity,
     })),
   ];
 
@@ -114,7 +129,6 @@ export default function CallModal() {
 
       {/* Participants Area */}
       <div className="flex-1 relative bg-deep overflow-hidden">
-        {/* Pending/ringing — waiting for callee to pick up */}
         {activeCall.pending ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
             <div className="w-24 h-24 rounded-full bg-accent/20 flex items-center justify-center text-4xl font-bold text-ivory animate-pulse">
@@ -129,33 +143,76 @@ export default function CallModal() {
             </p>
           </div>
         ) : (
-          /* Connected — show all participant tiles including yourself */
           <div className={`absolute inset-0 p-4 ${gridClass}`}>
-            {allTiles.slice(0, 9).map((tile) => (
-              <div
-                key={tile.id}
-                className="relative bg-slate-700 rounded-lg overflow-hidden flex items-center justify-center min-h-32"
-              >
+            {allTiles.slice(0, 9).map((tile) => {
+              const isSpeaking = activeSpeakers.has(tile.identity);
+              return (
                 <div
-                  className={`w-20 h-20 rounded-full flex items-center justify-center text-3xl font-bold text-ivory ${
-                    tile.isLocal ? "bg-accent/30" : "bg-slate-600"
-                  }`}
+                  key={tile.id}
+                  className="relative bg-slate-700 rounded-lg overflow-hidden flex items-center justify-center min-h-32 transition-all duration-150"
+                  style={{
+                    boxShadow: isSpeaking
+                      ? "0 0 0 3px #22c55e, 0 0 16px 2px rgba(34,197,94,0.35)"
+                      : "none",
+                  }}
                 >
-                  {tile.name?.[0]?.toUpperCase()}
-                </div>
-                <div className="absolute bottom-2 left-2 bg-black/50 px-2 py-1 rounded text-xs">
-                  {tile.name}
-                  {tile.isLocal && (
-                    <span className="ml-1 text-accent/70">(You)</span>
+                  {/* Speaking pulse ring */}
+                  {isSpeaking && (
+                    <span className="absolute inset-0 rounded-lg border-2 border-green-400 animate-pulse pointer-events-none" />
+                  )}
+
+                  {/* Avatar */}
+                  <div
+                    className={`w-20 h-20 rounded-full flex items-center justify-center text-3xl font-bold text-ivory transition-all duration-150 ${
+                      isSpeaking
+                        ? "ring-4 ring-green-400 ring-offset-2 ring-offset-slate-700 scale-105"
+                        : tile.isLocal
+                          ? "bg-accent/30"
+                          : "bg-slate-600"
+                    } ${tile.isLocal ? "bg-accent/30" : "bg-slate-600"}`}
+                  >
+                    {tile.name?.[0]?.toUpperCase()}
+                  </div>
+
+                  {/* Name label */}
+                  <div className="absolute bottom-2 left-2 flex items-center gap-1.5">
+                    <span className="bg-black/60 px-2 py-1 rounded text-xs flex items-center gap-1.5">
+                      {isSpeaking && (
+                        <span className="flex gap-0.5 items-end h-3">
+                          <span
+                            className="w-0.5 bg-green-400 rounded-full animate-[soundbar_0.6s_ease-in-out_infinite]"
+                            style={{ height: "40%", animationDelay: "0ms" }}
+                          />
+                          <span
+                            className="w-0.5 bg-green-400 rounded-full animate-[soundbar_0.6s_ease-in-out_infinite]"
+                            style={{ height: "100%", animationDelay: "100ms" }}
+                          />
+                          <span
+                            className="w-0.5 bg-green-400 rounded-full animate-[soundbar_0.6s_ease-in-out_infinite]"
+                            style={{ height: "60%", animationDelay: "200ms" }}
+                          />
+                          <span
+                            className="w-0.5 bg-green-400 rounded-full animate-[soundbar_0.6s_ease-in-out_infinite]"
+                            style={{ height: "80%", animationDelay: "150ms" }}
+                          />
+                        </span>
+                      )}
+                      {tile.name}
+                      {tile.isLocal && (
+                        <span className="ml-1 text-accent/70">(You)</span>
+                      )}
+                    </span>
+                  </div>
+
+                  {/* Muted indicator for local */}
+                  {tile.isLocal && isMuted && (
+                    <div className="absolute top-2 right-2 bg-red-500/80 rounded-full p-1">
+                      <MicOff className="w-3 h-3" />
+                    </div>
                   )}
                 </div>
-                {tile.isLocal && isMuted && (
-                  <div className="absolute top-2 right-2 bg-red-500/80 rounded-full p-1">
-                    <MicOff className="w-3 h-3" />
-                  </div>
-                )}
-              </div>
-            ))}
+              );
+            })}
 
             {allTiles.length > 9 && (
               <div className="absolute top-4 right-4 bg-black/70 px-3 py-1 rounded text-sm">
@@ -163,7 +220,6 @@ export default function CallModal() {
               </div>
             )}
 
-            {/* Subtle banner when you're connected but alone */}
             {participants.length === 0 && isConnected && (
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 text-gray-400 text-xs px-4 py-2 rounded-full">
                 Waiting for others to join...

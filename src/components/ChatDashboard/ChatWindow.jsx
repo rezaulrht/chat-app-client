@@ -40,6 +40,7 @@ import FileAttachmentDisplay from "@/components/shared/FileAttachmentDisplay";
 import PinIcon from "../icons/PinIcon";
 import "@/components/workspace/Mention.css";
 import ReadReceipts from "../ReadReceipts";
+import CallLogMessage from "@/components/calls/CallLogMessage";
 
 import {
   createScheduledMessage,
@@ -1782,6 +1783,7 @@ export default function ChatWindow({
             const isMe =
               msg.sender?._id === user?._id || msg.sender === user?._id;
             const isGif = !!msg.gifUrl;
+            const isCallLog = !!msg.callLog;
             const currentDateKey = toDateKey(msg.createdAt);
             const prevDateKey =
               index > 0 ? toDateKey(messages[index - 1].createdAt) : null;
@@ -2021,7 +2023,9 @@ export default function ChatWindow({
                               {msg.replyTo.text}
                             </div>
                           )}
-                          {msg.isDeleted ? (
+                          {isCallLog ? (
+                            <CallLogMessage callLog={msg.callLog} isMe={isMe} />
+                          ) : msg.isDeleted ? (
                             <p className="italic text-slate-600 text-xs">
                               This message was deleted
                             </p>

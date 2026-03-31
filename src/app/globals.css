@@ -238,16 +238,19 @@
   }
 
   /* Light theme overrides for glass components */
-  :is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"]) .glass-card {
+  :is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+    .glass-card {
     background: rgba(255, 255, 255, 0.75);
     border-color: rgba(0, 0, 0, 0.07);
     box-shadow: 0 4px 30px rgba(0, 0, 0, 0.06);
   }
-  :is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"]) .glass-panel {
+  :is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+    .glass-panel {
     background: rgba(240, 237, 232, 0.88);
     border-color: rgba(0, 0, 0, 0.05);
   }
-  :is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"]) .btn-cta-glass {
+  :is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+    .btn-cta-glass {
     background: rgba(255, 255, 255, 0.7);
     border-color: rgba(0, 0, 0, 0.08);
     color: #1a1824;
@@ -260,7 +263,8 @@
     border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   }
-  :is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"]) .chat-bubble-glass {
+  :is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+    .chat-bubble-glass {
     background: rgba(255, 255, 255, 0.35);
     border-color: rgba(255, 255, 255, 0.6);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
@@ -283,13 +287,25 @@
 }
 
 @keyframes scrollPulse {
-  0%, 100% { opacity: 0.4; transform: scaleY(0.8); }
-  50%       { opacity: 1;   transform: scaleY(1.15); }
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scaleY(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleY(1.15);
+  }
 }
 
 @keyframes accentPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(0,211,187,0.4); }
-  50%       { box-shadow: 0 0 0 6px rgba(0,211,187,0); }
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 211, 187, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(0, 211, 187, 0);
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════ */
@@ -312,138 +328,456 @@
 /* ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ── bg-white/N shorthand ── */
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/1        { background-color: rgb(0 0 0 / 0.01); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/2        { background-color: rgb(0 0 0 / 0.02); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/3        { background-color: rgb(0 0 0 / 0.03); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/4        { background-color: rgb(0 0 0 / 0.04); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/5        { background-color: rgb(0 0 0 / 0.05); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/6        { background-color: rgb(0 0 0 / 0.06); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/7        { background-color: rgb(0 0 0 / 0.07); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/8        { background-color: rgb(0 0 0 / 0.08); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/10       { background-color: rgb(0 0 0 / 0.10); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/15       { background-color: rgb(0 0 0 / 0.15); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/20       { background-color: rgb(0 0 0 / 0.20); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/25       { background-color: rgb(0 0 0 / 0.25); }
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .bg-white\/1 {
+  background-color: rgb(0 0 0 / 0.01);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .bg-white\/2 {
+  background-color: rgb(0 0 0 / 0.02);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .bg-white\/3 {
+  background-color: rgb(0 0 0 / 0.03);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .bg-white\/4 {
+  background-color: rgb(0 0 0 / 0.04);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .bg-white\/5 {
+  background-color: rgb(0 0 0 / 0.05);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .bg-white\/6 {
+  background-color: rgb(0 0 0 / 0.06);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .bg-white\/7 {
+  background-color: rgb(0 0 0 / 0.07);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .bg-white\/8 {
+  background-color: rgb(0 0 0 / 0.08);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .bg-white\/10 {
+  background-color: rgb(0 0 0 / 0.1);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .bg-white\/15 {
+  background-color: rgb(0 0 0 / 0.15);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .bg-white\/20 {
+  background-color: rgb(0 0 0 / 0.2);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .bg-white\/25 {
+  background-color: rgb(0 0 0 / 0.25);
+}
 
 /* ── bg-white/[decimal] bracket form ── */
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/\[0\.01\]  { background-color: rgb(0 0 0 / 0.01); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/\[0\.015\] { background-color: rgb(0 0 0 / 0.015); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/\[0\.02\]  { background-color: rgb(0 0 0 / 0.02); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/\[0\.025\] { background-color: rgb(0 0 0 / 0.025); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/\[0\.03\]  { background-color: rgb(0 0 0 / 0.03); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/\[0\.04\]  { background-color: rgb(0 0 0 / 0.04); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/\[0\.05\]  { background-color: rgb(0 0 0 / 0.05); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/\[0\.055\] { background-color: rgb(0 0 0 / 0.055); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/\[0\.06\]  { background-color: rgb(0 0 0 / 0.06); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/\[0\.07\]  { background-color: rgb(0 0 0 / 0.07); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/\[0\.08\]  { background-color: rgb(0 0 0 / 0.08); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/\[0\.1\]   { background-color: rgb(0 0 0 / 0.10); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-white\/\[0\.10\]  { background-color: rgb(0 0 0 / 0.10); }
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .bg-white\/\[0\.01\] {
+  background-color: rgb(0 0 0 / 0.01);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .bg-white\/\[0\.015\] {
+  background-color: rgb(0 0 0 / 0.015);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .bg-white\/\[0\.02\] {
+  background-color: rgb(0 0 0 / 0.02);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .bg-white\/\[0\.025\] {
+  background-color: rgb(0 0 0 / 0.025);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .bg-white\/\[0\.03\] {
+  background-color: rgb(0 0 0 / 0.03);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .bg-white\/\[0\.04\] {
+  background-color: rgb(0 0 0 / 0.04);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .bg-white\/\[0\.05\] {
+  background-color: rgb(0 0 0 / 0.05);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .bg-white\/\[0\.055\] {
+  background-color: rgb(0 0 0 / 0.055);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .bg-white\/\[0\.06\] {
+  background-color: rgb(0 0 0 / 0.06);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .bg-white\/\[0\.07\] {
+  background-color: rgb(0 0 0 / 0.07);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .bg-white\/\[0\.08\] {
+  background-color: rgb(0 0 0 / 0.08);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .bg-white\/\[0\.1\] {
+  background-color: rgb(0 0 0 / 0.1);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .bg-white\/\[0\.10\] {
+  background-color: rgb(0 0 0 / 0.1);
+}
 
 /* ── hover:bg-white/N ── */
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/2:hover  { background-color: rgb(0 0 0 / 0.02); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/3:hover  { background-color: rgb(0 0 0 / 0.03); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/4:hover  { background-color: rgb(0 0 0 / 0.04); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/5:hover  { background-color: rgb(0 0 0 / 0.05); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/6:hover  { background-color: rgb(0 0 0 / 0.06); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/8:hover  { background-color: rgb(0 0 0 / 0.08); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/10:hover { background-color: rgb(0 0 0 / 0.10); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/20:hover { background-color: rgb(0 0 0 / 0.20); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/25:hover { background-color: rgb(0 0 0 / 0.25); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/\[0\.02\]:hover  { background-color: rgb(0 0 0 / 0.02); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/\[0\.03\]:hover  { background-color: rgb(0 0 0 / 0.03); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/\[0\.04\]:hover  { background-color: rgb(0 0 0 / 0.04); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/\[0\.05\]:hover  { background-color: rgb(0 0 0 / 0.05); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/\[0\.06\]:hover  { background-color: rgb(0 0 0 / 0.06); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/\[0\.07\]:hover  { background-color: rgb(0 0 0 / 0.07); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/\[0\.08\]:hover  { background-color: rgb(0 0 0 / 0.08); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/\[0\.1\]:hover   { background-color: rgb(0 0 0 / 0.10); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:bg-white\/\[0\.10\]:hover  { background-color: rgb(0 0 0 / 0.10); }
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .hover\:bg-white\/2:hover {
+  background-color: rgb(0 0 0 / 0.02);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .hover\:bg-white\/3:hover {
+  background-color: rgb(0 0 0 / 0.03);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .hover\:bg-white\/4:hover {
+  background-color: rgb(0 0 0 / 0.04);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .hover\:bg-white\/5:hover {
+  background-color: rgb(0 0 0 / 0.05);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .hover\:bg-white\/6:hover {
+  background-color: rgb(0 0 0 / 0.06);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .hover\:bg-white\/8:hover {
+  background-color: rgb(0 0 0 / 0.08);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .hover\:bg-white\/10:hover {
+  background-color: rgb(0 0 0 / 0.1);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .hover\:bg-white\/20:hover {
+  background-color: rgb(0 0 0 / 0.2);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .hover\:bg-white\/25:hover {
+  background-color: rgb(0 0 0 / 0.25);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .hover\:bg-white\/\[0\.02\]:hover {
+  background-color: rgb(0 0 0 / 0.02);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .hover\:bg-white\/\[0\.03\]:hover {
+  background-color: rgb(0 0 0 / 0.03);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .hover\:bg-white\/\[0\.04\]:hover {
+  background-color: rgb(0 0 0 / 0.04);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .hover\:bg-white\/\[0\.05\]:hover {
+  background-color: rgb(0 0 0 / 0.05);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .hover\:bg-white\/\[0\.06\]:hover {
+  background-color: rgb(0 0 0 / 0.06);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .hover\:bg-white\/\[0\.07\]:hover {
+  background-color: rgb(0 0 0 / 0.07);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .hover\:bg-white\/\[0\.08\]:hover {
+  background-color: rgb(0 0 0 / 0.08);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .hover\:bg-white\/\[0\.1\]:hover {
+  background-color: rgb(0 0 0 / 0.1);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .hover\:bg-white\/\[0\.10\]:hover {
+  background-color: rgb(0 0 0 / 0.1);
+}
 
 /* ── border-white/N shorthand ── */
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/4  { border-color: rgb(0 0 0 / 0.04); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/5  { border-color: rgb(0 0 0 / 0.05); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/6  { border-color: rgb(0 0 0 / 0.06); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/7  { border-color: rgb(0 0 0 / 0.07); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/8  { border-color: rgb(0 0 0 / 0.08); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/10 { border-color: rgb(0 0 0 / 0.10); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/12 { border-color: rgb(0 0 0 / 0.12); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/15 { border-color: rgb(0 0 0 / 0.15); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/20 { border-color: rgb(0 0 0 / 0.20); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/30 { border-color: rgb(0 0 0 / 0.30); }
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .border-white\/4 {
+  border-color: rgb(0 0 0 / 0.04);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .border-white\/5 {
+  border-color: rgb(0 0 0 / 0.05);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .border-white\/6 {
+  border-color: rgb(0 0 0 / 0.06);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .border-white\/7 {
+  border-color: rgb(0 0 0 / 0.07);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .border-white\/8 {
+  border-color: rgb(0 0 0 / 0.08);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .border-white\/10 {
+  border-color: rgb(0 0 0 / 0.1);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .border-white\/12 {
+  border-color: rgb(0 0 0 / 0.12);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .border-white\/15 {
+  border-color: rgb(0 0 0 / 0.15);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .border-white\/20 {
+  border-color: rgb(0 0 0 / 0.2);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .border-white\/30 {
+  border-color: rgb(0 0 0 / 0.3);
+}
 
 /* ── border-white/[decimal] bracket form ── */
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/\[0\.03\] { border-color: rgb(0 0 0 / 0.03); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/\[0\.04\] { border-color: rgb(0 0 0 / 0.04); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/\[0\.05\] { border-color: rgb(0 0 0 / 0.05); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/\[0\.06\] { border-color: rgb(0 0 0 / 0.06); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/\[0\.07\] { border-color: rgb(0 0 0 / 0.07); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/\[0\.08\] { border-color: rgb(0 0 0 / 0.08); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/\[0\.1\]  { border-color: rgb(0 0 0 / 0.10); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/\[0\.10\] { border-color: rgb(0 0 0 / 0.10); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/\[0\.12\] { border-color: rgb(0 0 0 / 0.12); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .border-white\/\[0\.14\] { border-color: rgb(0 0 0 / 0.14); }
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .border-white\/\[0\.03\] {
+  border-color: rgb(0 0 0 / 0.03);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .border-white\/\[0\.04\] {
+  border-color: rgb(0 0 0 / 0.04);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .border-white\/\[0\.05\] {
+  border-color: rgb(0 0 0 / 0.05);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .border-white\/\[0\.06\] {
+  border-color: rgb(0 0 0 / 0.06);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .border-white\/\[0\.07\] {
+  border-color: rgb(0 0 0 / 0.07);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .border-white\/\[0\.08\] {
+  border-color: rgb(0 0 0 / 0.08);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .border-white\/\[0\.1\] {
+  border-color: rgb(0 0 0 / 0.1);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .border-white\/\[0\.10\] {
+  border-color: rgb(0 0 0 / 0.1);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .border-white\/\[0\.12\] {
+  border-color: rgb(0 0 0 / 0.12);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .border-white\/\[0\.14\] {
+  border-color: rgb(0 0 0 / 0.14);
+}
 
 /* ── hover:border-white/X ── */
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:border-white\/\[0\.05\]:hover  { border-color: rgb(0 0 0 / 0.05); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:border-white\/\[0\.1\]:hover   { border-color: rgb(0 0 0 / 0.10); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:border-white\/\[0\.14\]:hover  { border-color: rgb(0 0 0 / 0.14); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:border-white\/10:hover  { border-color: rgb(0 0 0 / 0.10); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:border-white\/12:hover  { border-color: rgb(0 0 0 / 0.12); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:border-white\/15:hover  { border-color: rgb(0 0 0 / 0.15); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .hover\:border-white\/20:hover  { border-color: rgb(0 0 0 / 0.20); }
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .hover\:border-white\/\[0\.05\]:hover {
+  border-color: rgb(0 0 0 / 0.05);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .hover\:border-white\/\[0\.1\]:hover {
+  border-color: rgb(0 0 0 / 0.1);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .hover\:border-white\/\[0\.14\]:hover {
+  border-color: rgb(0 0 0 / 0.14);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .hover\:border-white\/10:hover {
+  border-color: rgb(0 0 0 / 0.1);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .hover\:border-white\/12:hover {
+  border-color: rgb(0 0 0 / 0.12);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .hover\:border-white\/15:hover {
+  border-color: rgb(0 0 0 / 0.15);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .hover\:border-white\/20:hover {
+  border-color: rgb(0 0 0 / 0.2);
+}
 
 /* ── ring-white/X ── */
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .ring-white\/5       { --tw-ring-color: rgb(0 0 0 / 0.05); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .ring-white\/6       { --tw-ring-color: rgb(0 0 0 / 0.06); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .ring-white\/7       { --tw-ring-color: rgb(0 0 0 / 0.07); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .ring-white\/8       { --tw-ring-color: rgb(0 0 0 / 0.08); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .ring-white\/10      { --tw-ring-color: rgb(0 0 0 / 0.10); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .ring-white\/12      { --tw-ring-color: rgb(0 0 0 / 0.12); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .ring-white\/\[0\.04\]  { --tw-ring-color: rgb(0 0 0 / 0.04); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .ring-white\/\[0\.06\]  { --tw-ring-color: rgb(0 0 0 / 0.06); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .ring-white\/\[0\.07\]  { --tw-ring-color: rgb(0 0 0 / 0.07); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .ring-white\/\[0\.08\]  { --tw-ring-color: rgb(0 0 0 / 0.08); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .ring-white\/\[0\.1\]   { --tw-ring-color: rgb(0 0 0 / 0.10); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .ring-white\/\[0\.10\]  { --tw-ring-color: rgb(0 0 0 / 0.10); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .ring-white\/\[0\.12\]  { --tw-ring-color: rgb(0 0 0 / 0.12); }
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .ring-white\/5 {
+  --tw-ring-color: rgb(0 0 0 / 0.05);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .ring-white\/6 {
+  --tw-ring-color: rgb(0 0 0 / 0.06);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .ring-white\/7 {
+  --tw-ring-color: rgb(0 0 0 / 0.07);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .ring-white\/8 {
+  --tw-ring-color: rgb(0 0 0 / 0.08);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .ring-white\/10 {
+  --tw-ring-color: rgb(0 0 0 / 0.1);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .ring-white\/12 {
+  --tw-ring-color: rgb(0 0 0 / 0.12);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .ring-white\/\[0\.04\] {
+  --tw-ring-color: rgb(0 0 0 / 0.04);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .ring-white\/\[0\.06\] {
+  --tw-ring-color: rgb(0 0 0 / 0.06);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .ring-white\/\[0\.07\] {
+  --tw-ring-color: rgb(0 0 0 / 0.07);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .ring-white\/\[0\.08\] {
+  --tw-ring-color: rgb(0 0 0 / 0.08);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .ring-white\/\[0\.1\] {
+  --tw-ring-color: rgb(0 0 0 / 0.1);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .ring-white\/\[0\.10\] {
+  --tw-ring-color: rgb(0 0 0 / 0.1);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .ring-white\/\[0\.12\] {
+  --tw-ring-color: rgb(0 0 0 / 0.12);
+}
 
 /* ── text-ivory/N opacity boost for light themes ──────────────────────────
    In dark mode text-ivory is near-white, so /40 = readable grey.
    In light mode text-ivory = #1a1824 (near-black), so /40 = ~rgb(154,152,154)
    which gives only ~2.5:1 contrast. These overrides lift each step to
    maintain readability while preserving the relative muting hierarchy.     */
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .text-ivory\/10 { color: color-mix(in srgb, var(--color-ivory) 35%, transparent); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .text-ivory\/20 { color: color-mix(in srgb, var(--color-ivory) 46%, transparent); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .text-ivory\/25 { color: color-mix(in srgb, var(--color-ivory) 52%, transparent); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .text-ivory\/30 { color: color-mix(in srgb, var(--color-ivory) 57%, transparent); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .text-ivory\/35 { color: color-mix(in srgb, var(--color-ivory) 61%, transparent); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .text-ivory\/38 { color: color-mix(in srgb, var(--color-ivory) 64%, transparent); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .text-ivory\/40 { color: color-mix(in srgb, var(--color-ivory) 67%, transparent); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .text-ivory\/45 { color: color-mix(in srgb, var(--color-ivory) 70%, transparent); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .text-ivory\/50 { color: color-mix(in srgb, var(--color-ivory) 74%, transparent); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .text-ivory\/55 { color: color-mix(in srgb, var(--color-ivory) 77%, transparent); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .text-ivory\/60 { color: color-mix(in srgb, var(--color-ivory) 80%, transparent); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .text-ivory\/65 { color: color-mix(in srgb, var(--color-ivory) 83%, transparent); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .text-ivory\/70 { color: color-mix(in srgb, var(--color-ivory) 86%, transparent); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .text-ivory\/80 { color: color-mix(in srgb, var(--color-ivory) 91%, transparent); }
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .text-ivory\/10 {
+  color: color-mix(in srgb, var(--color-ivory) 35%, transparent);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .text-ivory\/20 {
+  color: color-mix(in srgb, var(--color-ivory) 46%, transparent);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .text-ivory\/25 {
+  color: color-mix(in srgb, var(--color-ivory) 52%, transparent);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .text-ivory\/30 {
+  color: color-mix(in srgb, var(--color-ivory) 57%, transparent);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .text-ivory\/35 {
+  color: color-mix(in srgb, var(--color-ivory) 61%, transparent);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .text-ivory\/38 {
+  color: color-mix(in srgb, var(--color-ivory) 64%, transparent);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .text-ivory\/40 {
+  color: color-mix(in srgb, var(--color-ivory) 67%, transparent);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .text-ivory\/45 {
+  color: color-mix(in srgb, var(--color-ivory) 70%, transparent);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .text-ivory\/50 {
+  color: color-mix(in srgb, var(--color-ivory) 74%, transparent);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .text-ivory\/55 {
+  color: color-mix(in srgb, var(--color-ivory) 77%, transparent);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .text-ivory\/60 {
+  color: color-mix(in srgb, var(--color-ivory) 80%, transparent);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .text-ivory\/65 {
+  color: color-mix(in srgb, var(--color-ivory) 83%, transparent);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .text-ivory\/70 {
+  color: color-mix(in srgb, var(--color-ivory) 86%, transparent);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .text-ivory\/80 {
+  color: color-mix(in srgb, var(--color-ivory) 91%, transparent);
+}
 
 /* ── placeholder:text-ivory/N — boost faint placeholder text in light themes  */
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .placeholder\:text-ivory\/15::placeholder { color: color-mix(in srgb, var(--color-ivory) 38%, transparent); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .placeholder\:text-ivory\/18::placeholder { color: color-mix(in srgb, var(--color-ivory) 40%, transparent); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .placeholder\:text-ivory\/20::placeholder { color: color-mix(in srgb, var(--color-ivory) 42%, transparent); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .placeholder\:text-ivory\/22::placeholder { color: color-mix(in srgb, var(--color-ivory) 44%, transparent); }
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .placeholder\:text-ivory\/30::placeholder { color: color-mix(in srgb, var(--color-ivory) 52%, transparent); }
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .placeholder\:text-ivory\/15::placeholder {
+  color: color-mix(in srgb, var(--color-ivory) 38%, transparent);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .placeholder\:text-ivory\/18::placeholder {
+  color: color-mix(in srgb, var(--color-ivory) 40%, transparent);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .placeholder\:text-ivory\/20::placeholder {
+  color: color-mix(in srgb, var(--color-ivory) 42%, transparent);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .placeholder\:text-ivory\/22::placeholder {
+  color: color-mix(in srgb, var(--color-ivory) 44%, transparent);
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .placeholder\:text-ivory\/30::placeholder {
+  color: color-mix(in srgb, var(--color-ivory) 52%, transparent);
+}
 
 /* ── Dark hardcoded arbitrary bg classes → light surface equivalents ── */
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-\[\#0d0d16\],
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-\[\#0e0e17\],
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-\[\#0f0f17\]  { background-color: var(--color-deep); }
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .bg-\[\#0d0d16\],
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .bg-\[\#0e0e17\],
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .bg-\[\#0f0f17\] {
+  background-color: var(--color-deep);
+}
 
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-\[\#13131c\],
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-\[\#13131f\],
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-\[\#16162a\]  { background-color: var(--color-slate-surface); }
-
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .bg-\[\#13131c\],
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .bg-\[\#13131f\],
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .bg-\[\#16162a\] {
+  background-color: var(--color-slate-surface);
+}
 
 /* ── NavBar scrolled background ── */
-:is([data-theme="luxe-mint-light"],[data-theme="luxe-cyan-light"]) .bg-\[rgba\(13\,13\,18\,0\.85\)\] { background-color: rgb(240 237 232 / 0.9); }
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  .bg-\[rgba\(13\,13\,18\,0\.85\)\] {
+  background-color: rgb(240 237 232 / 0.9);
+}

@@ -482,7 +482,6 @@ export default function ModuleChatWindow({
       range.insertNode(span);
 
       const space = document.createTextNode("\u00A0");
-      const space = document.createTextNode("\u00A0");
       span.after(space);
 
       range.setStartAfter(space);

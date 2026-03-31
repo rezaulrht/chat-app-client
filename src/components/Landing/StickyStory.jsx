@@ -61,7 +61,7 @@ function Mockup({ active }) {
       {/* Card */}
       <div
         className="relative rounded-3xl border p-8 transition-colors duration-700"
-        style={{ background: "#12121a", border: `1px solid ${beat.color}22` }}
+        style={{ background: "var(--color-slate-surface)", border: `1px solid ${beat.color}22` }}
       >
         {/* Header */}
         <div className="flex items-center gap-3 mb-8">

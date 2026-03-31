@@ -7,8 +7,8 @@ import { Github, Slack, MessageCircle, Database, Share2 } from "lucide-react";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const ACCENT = "#00d3bb";
-const DEEP = "#12121a";
+const ACCENT = "var(--color-accent)";
+const DEEP = "var(--color-slate-surface)";
 
 const integrations = [
   {
@@ -68,7 +68,7 @@ export default function Integrations() {
 
   return (
     <section ref={sectionRef} className="relative bg-obsidian py-10 md:py-16 px-6 overflow-hidden border-t border-white/[0.03]">
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full blur-[120px] pointer-events-none" style={{ background: ACCENT + "06" }} />
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full blur-[120px] pointer-events-none" style={{ background: "color-mix(in srgb, var(--color-accent) 4%, transparent)" }} />
 
       <div className="relative z-10 max-w-6xl mx-auto">
         <div className="text-center mb-16">
@@ -96,7 +96,7 @@ export default function Integrations() {
                 <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 transition-all duration-300 group-hover:scale-110 border border-white/[0.05]" style={{ background: "rgba(255,255,255,0.04)" }}>
                   <Icon size={24} style={{ color: app.color }} />
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded mb-3 font-mono" style={{ color: ACCENT, background: ACCENT + "12" }}>
+                <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded mb-3 font-mono" style={{ color: "var(--color-accent)", background: "color-mix(in srgb, var(--color-accent) 7%, transparent)" }}>
                   {app.status}
                 </span>
                 <h3 className="font-display text-xl font-bold text-ivory mb-3">{app.name}</h3>

@@ -13,13 +13,13 @@ import {
 
 gsap.registerPlugin(ScrollTrigger);
 
-const ACCENT = "#00d3bb";
-const PURPLE = "#a78bfa";
-const GREEN  = "#34d399";
-const ORANGE = "#fb923c";
-const BLUE   = "#60a5fa";
-const DEEP   = "#12121a";
-const SURFACE = "#1a1a2e";
+const ACCENT  = "var(--color-accent)";
+const PURPLE  = "#a78bfa";
+const GREEN   = "#34d399";
+const ORANGE  = "#fb923c";
+const BLUE    = "#60a5fa";
+const DEEP    = "var(--color-slate-surface)";
+const SURFACE = "var(--color-deep)";
 
 /* ── Venetian-blind word reveal ──────────────────────────────────────────── */
 function SplitWords({ text, className = "" }) {
@@ -56,7 +56,7 @@ function SmartRepliesDemo() {
           <motion.button key={r} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.09 }}
             onClick={() => setAccepted(i)}
             className="text-left px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200"
-            style={{ background: accepted === i ? ACCENT + "22" : "rgba(255,255,255,0.04)", border: `1px solid ${accepted === i ? ACCENT + "45" : "rgba(255,255,255,0.06)"}`, color: accepted === i ? ACCENT : "rgba(250,248,245,0.6)" }}>
+            style={{ background: accepted === i ? "color-mix(in srgb, var(--color-accent) 13%, transparent)" : "rgba(255,255,255,0.04)", border: `1px solid ${accepted === i ? "color-mix(in srgb, var(--color-accent) 27%, transparent)" : "rgba(255,255,255,0.06)"}`, color: accepted === i ? "var(--color-accent)" : "rgba(250,248,245,0.6)" }}>
             {accepted === i && <CheckCheck size={10} className="inline mr-1" style={{ color: ACCENT }} />}
             {r}
           </motion.button>
@@ -123,7 +123,7 @@ function PolishDemo() {
       </AnimatePresence>
       <button onClick={handle} disabled={polished || loading}
         className="self-start inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-mono font-semibold disabled:opacity-40 transition-all duration-150"
-        style={{ background: ACCENT + "12", border: `1px solid ${ACCENT}30`, color: ACCENT }}>
+        style={{ background: "color-mix(in srgb, var(--color-accent) 7%, transparent)", border: "1px solid color-mix(in srgb, var(--color-accent) 19%, transparent)", color: "var(--color-accent)" }}>
         {loading ? <><span className="w-2 h-2 border border-current border-t-transparent rounded-full animate-spin" /> Polishing...</>
                  : polished ? <><CheckCheck size={10} /> Polished!</>
                  : <><Sparkles size={10} /> Polish with AI</>}
@@ -336,7 +336,7 @@ function ChatCard({ cardRef }) {
 
       <div className="relative z-10 flex flex-col h-full">
         <div className="flex items-center gap-3 mb-2">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: ACCENT + "18", border: `1px solid ${ACCENT}28` }}>
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "color-mix(in srgb, var(--color-accent) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--color-accent) 16%, transparent)" }}>
             <MessageCircle size={17} style={{ color: ACCENT }} />
           </div>
           <div>

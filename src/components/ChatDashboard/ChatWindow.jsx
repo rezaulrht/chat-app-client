@@ -41,6 +41,7 @@ import PinIcon from "../icons/PinIcon";
 import "@/components/workspace/Mention.css";
 import ReadReceipts from "../ReadReceipts";
 import CallLogMessage from "@/components/calls/CallLogMessage";
+import VoiceMessageRecorder from "@/components/calls/VoiceMessageRecorder";
 
 import {
   createScheduledMessage,
@@ -201,6 +202,7 @@ export default function ChatWindow({
 
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showGifPicker, setShowGifPicker] = useState(false);
+  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
 
   const [suggestions, setSuggestions] = useState([]);
   const [suggestionIndex, setSuggestionIndex] = useState(0);
@@ -674,6 +676,44 @@ export default function ChatWindow({
     });
     onMessageSent?.(conversation._id, null, gifUrl);
   };
+
+  const handleVoiceSend = useCallback(
+    (attachment) => {
+      if (!socket || !conversation) return;
+      const tempId = `temp-${Date.now()}`;
+      const optimistic = {
+        _id: tempId,
+        conversationId: conversation._id,
+        sender: { _id: user?._id, name: user?.name },
+        attachments: [attachment],
+        createdAt: new Date().toISOString(),
+        status: "sent",
+        isOptimistic: true,
+      };
+      setMessages((prev) => [...prev, optimistic]);
+      setShowVoiceRecorder(false);
+      socket.emit(
+        "message:send",
+        {
+          conversationId: conversation._id,
+          ...(conversation.type !== "group"
+            ? { receiverId: conversation.participant?._id }
+            : {}),
+          attachments: [attachment],
+          tempId,
+        },
+        (response) => {
+          if (response?.success && response?.message) {
+            setMessages((prev) =>
+              prev.map((m) => (m._id === tempId ? response.message : m)),
+            );
+          }
+        },
+      );
+      onMessageSent?.(conversation._id, null, null, [attachment]);
+    },
+    [socket, conversation, user, onMessageSent],
+  );
 
   const handleEdit = (messageId, currentText) => {
     setEditingMessageId(messageId);
@@ -2545,6 +2585,13 @@ export default function ChatWindow({
           </div>
         )}
 
+        {/* Voice message recorder panel */}
+        {showVoiceRecorder && (
+          <div className="mb-2 px-1">
+            <VoiceMessageRecorder onSend={handleVoiceSend} />
+          </div>
+        )}
+
         <FileAttachmentPreview
           files={stagedFiles}
           previews={filePreviews}
@@ -2694,6 +2741,35 @@ export default function ChatWindow({
               </div>
             )}
           </div>
+
+          {/* Voice message button */}
+          <button
+            type="button"
+            onClick={() => {
+              setShowVoiceRecorder((v) => !v);
+              setShowEmojiPicker(false);
+              setShowGifPicker(false);
+            }}
+            className={`w-9 h-9 flex items-center justify-center transition-all ${showVoiceRecorder ? "text-accent" : "text-ivory/30 hover:text-ivory/60"}`}
+            title="Voice message"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+              <line x1="12" y1="19" x2="12" y2="23" />
+              <line x1="8" y1="23" x2="16" y2="23" />
+            </svg>
+          </button>
 
           {/* Emoji button */}
           <button
@@ -2847,6 +2923,17 @@ export default function ChatWindow({
               className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${showGifPicker ? "bg-accent/20 border-accent/40 text-accent" : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"}`}
             >
               GIF
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowVoiceRecorder((v) => !v);
+                setShowEmojiPicker(false);
+                setShowGifPicker(false);
+              }}
+              className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${showVoiceRecorder ? "bg-accent/20 border-accent/40 text-accent" : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"}`}
+            >
+              🎙 Voice
             </button>
             <div ref={aiMenuRefMobile} className="relative inline-flex">
               <button

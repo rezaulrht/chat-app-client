@@ -961,9 +961,12 @@ export default function ChatWindow({
       );
     };
 
-    // Append call log message in real time when a call ends/is declined/missed
+    // Append call log message in real time.
+    // Backend may emit via message:new (callLog field set), call:log, call:ended, or call:declined.
     const handleCallLog = (msg) => {
-      if (msg.conversationId !== conversation?._id) return;
+      if (!msg || msg.conversationId !== conversation?._id) return;
+      // Only handle if this is actually a call log message
+      if (!msg.callLog && !msg._id) return;
       setMessages((prev) => {
         if (prev.some((m) => m._id === msg._id)) return prev;
         return [...prev, msg];
@@ -980,7 +983,11 @@ export default function ChatWindow({
     socket.on("poll:updated", handlePollUpdated);
     socket.on("message:read-receipt", handleReadReceipt);
     socket.on("messages:bulk-read", handleBulkRead);
+    // Listen on all possible call log event names the backend may emit
     socket.on("call:log", handleCallLog);
+    socket.on("call:ended", handleCallLog);
+    socket.on("call:declined", handleCallLog);
+    socket.on("call:missed", handleCallLog);
 
     return () => {
       socket.off("message:new", handleReceive);
@@ -994,6 +1001,9 @@ export default function ChatWindow({
       socket.off("message:read-receipt", handleReadReceipt);
       socket.off("messages:bulk-read", handleBulkRead);
       socket.off("call:log", handleCallLog);
+      socket.off("call:ended", handleCallLog);
+      socket.off("call:declined", handleCallLog);
+      socket.off("call:missed", handleCallLog);
     };
   }, [socket, conversation?._id, user?._id, onMessagesSeen]);
 

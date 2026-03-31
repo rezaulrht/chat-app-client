@@ -80,9 +80,7 @@ export default function AppSidebar({
       )}
 
       {/* Content slot */}
-      <div className="flex-1 min-h-0 overflow-hidden">
-        {childWithCollapsed}
-      </div>
+      <div className="flex-1 min-h-0 overflow-hidden">{childWithCollapsed}</div>
 
       {/* User bar — hidden when collapsed */}
       {user && !collapsed && (
@@ -99,6 +97,7 @@ export default function AppSidebar({
                 className="w-full h-full object-cover"
                 alt={user.name ? `${user.name}'s avatar` : "avatar"}
                 unoptimized
+                priority
               />
             </div>
             <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-deep bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
@@ -138,6 +137,7 @@ export default function AppSidebar({
                 className="w-full h-full object-cover"
                 alt={user.name ? `${user.name}'s avatar` : "avatar"}
                 unoptimized
+                priority
               />
             </div>
           </Link>

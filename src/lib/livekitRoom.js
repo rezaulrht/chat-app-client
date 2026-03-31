@@ -1,6 +1,6 @@
 import { Room, RoomEvent, Track, setLogLevel } from "livekit-client";
 
-setLogLevel("warn");
+setLogLevel("error");
 
 let room = null;
 let connecting = false;

@@ -165,9 +165,26 @@ export default function ChatDashboard() {
               ? {
                   ...c,
                   lastMessage: {
-                    text: msg.text,
+                    text: msg.callLog
+                      ? msg.callLog.status === "missed"
+                        ? "Missed call"
+                        : msg.callLog.status === "declined"
+                          ? "Call declined"
+                          : (msg.callLog.callType === "video"
+                              ? "Video"
+                              : "Audio") +
+                            " call" +
+                            (msg.callLog.duration
+                              ? " · " +
+                                Math.floor(msg.callLog.duration / 60) +
+                                "m " +
+                                (msg.callLog.duration % 60) +
+                                "s"
+                              : "")
+                      : msg.text,
                     gifUrl: msg.gifUrl,
                     attachments: msg.attachments || [],
+                    callLog: msg.callLog || null,
                     // Keep populated sender object for group last-message preview
                     sender: msg.sender || null,
                     createdAt: msg.createdAt,

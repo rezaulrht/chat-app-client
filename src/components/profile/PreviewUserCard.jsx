@@ -41,8 +41,8 @@ export default function PreviewUserCard({
     const [showMenu, setShowMenu] = useState(false);
     const [messageText, setMessageText] = useState("");
     const [isSending, setIsSending] = useState(false);
-    const [editingStatus, setEditingStatus] = useState(false);
     const menuRef = useRef(null);
+    const [clampedPosition, setClampedPosition] = useState({ x: 0, y: 0 });
 
     useEffect(() => {
         const handleClickOutside = (e) => {
@@ -56,7 +56,7 @@ export default function PreviewUserCard({
 
     // Smart positioning beside panel
     useEffect(() => {
-        if (!cardRef.current || !position) return;
+        if (!position) return;
         const cardWidth = 300;
         const cardHeight = 520;
         const gap = 16;
@@ -74,8 +74,7 @@ export default function PreviewUserCard({
             top = Math.max(16, window.innerHeight - cardHeight - 20);
         }
 
-        cardRef.current.style.left = `${left}px`;
-        cardRef.current.style.top = `${top}px`;
+        setClampedPosition({ x: left, y: top });
     }, [position]);
 
     useEffect(() => {
@@ -114,8 +113,8 @@ export default function PreviewUserCard({
             onClick={(e) => e.stopPropagation()}
             className="fixed z-50 w-80 rounded-xl border border-white/8 bg-obsidian shadow-2xl overflow-hidden animate-in fade-in slide-in-from-left duration-300"
             style={{
-                left: position?.x || 0,
-                top: position?.y || 0,
+                left: clampedPosition.x,
+                top: clampedPosition.y,
             }}
         >
             {/* BANNER */}
@@ -237,22 +236,12 @@ export default function PreviewUserCard({
                     </div>
                 </div>
 
-                {/* STATUS MESSAGE - CLICKABLE */}
-                {user?.statusMessage ? (
-                    <button
-                        onClick={() => setEditingStatus(true)}
-                        className="w-full text-left mb-3 p-2 rounded-lg bg-white/4 border border-white/6 hover:border-accent/40 transition-all"
-                    >
+                {/* STATUS MESSAGE */}
+                {user?.statusMessage && (
+                    <div className="w-full text-left mb-3 p-2 rounded-lg bg-white/4 border border-white/6">
                         <p className="text-xs text-ivory/50 mb-1">Status</p>
                         <p className="text-sm text-ivory/80 italic">"{user.statusMessage}"</p>
-                    </button>
-                ) : (
-                    <button
-                        onClick={() => setEditingStatus(true)}
-                        className="w-full text-left mb-3 p-2 rounded-lg bg-white/4 border border-white/6 hover:border-accent/40 transition-all"
-                    >
-                        <p className="text-xs text-ivory/40 italic">Click to edit status...</p>
-                    </button>
+                    </div>
                 )}
 
                 {/* BIO PREVIEW */}

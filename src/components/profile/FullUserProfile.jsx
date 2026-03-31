@@ -17,7 +17,7 @@ export default function FullUserProfile({
     recentPosts = []
 }) {
     const modalRef = useRef(null);
-    const { updateProfile } = useAuth();
+    const { user: authUser, updateProfile } = useAuth();
 
     // Inline status edit state
     const [editingStatus, setEditingStatus] = useState(false);
@@ -99,7 +99,7 @@ export default function FullUserProfile({
                            )}
                         </h2>
                         <div className="flex items-center gap-2 mb-4">
-                            <p className="text-ivory/50 text-[13px] font-mono">{user?.email}</p>
+                            {isOwnProfile && <p className="text-ivory/50 text-[13px] font-mono">{user?.email}</p>}
                             {/* Dummy badge for aesthetics mimicking the HTML */}
                             <span className="shrink-0 flex items-center justify-center w-[18px] h-[18px] rounded-[3px] bg-[#5865f2] text-white text-[9px] font-bold">★</span>
                         </div>
@@ -182,7 +182,7 @@ export default function FullUserProfile({
                                 <div className="w-6 h-6 rounded-full bg-[#1b2838] flex items-center justify-center shrink-0">
                                     <Mail size={12} className="text-[#c7d5e0]" />
                                 </div>
-                                <span className="text-[13px] text-ivory">{user?.email}</span>
+                                {isOwnProfile && <span className="text-[13px] text-ivory">{user?.email}</span>}
                             </div>
                         </div>
 
@@ -229,7 +229,7 @@ export default function FullUserProfile({
                                         )}
                                         <p className="text-ivory/80 text-[14px] leading-relaxed mb-3 whitespace-pre-wrap break-words">{post.caption || post.content}</p>
                                         <div className="flex items-center gap-4 text-ivory/40 text-[12px] font-mono">
-                                            <span className="flex items-center gap-1.5"><Heart size={14} className={post.likes?.includes(user?._id) ? "text-red-400" : ""} /> {post.likes?.length || 0}</span>
+                                            <span className="flex items-center gap-1.5"><Heart size={14} className={post.likes?.includes(authUser?._id || authUser?.id) ? "text-red-400" : ""} /> {post.likes?.length || 0}</span>
                                             <span className="flex items-center gap-1.5"><MessageSquare size={14} /> {post.comments?.length || post.replies || 0}</span>
                                             <span className="flex items-center gap-1.5 ml-auto"><Clock size={14} /> {new Date(post.createdAt || Date.now()).toLocaleDateString()}</span>
                                         </div>

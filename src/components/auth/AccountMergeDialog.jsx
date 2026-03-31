@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { AlertCircle, ArrowRight, LogIn } from "lucide-react";
+import React from "react";
+import { AlertCircle, ArrowRight, LogIn, Loader2 } from "lucide-react";
 
 /**
  * AccountMergeDialog
@@ -83,7 +83,7 @@ export default function AccountMergeDialog({
                         className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-accent/20 to-accent/10 border border-accent/30 hover:from-accent/30 hover:to-accent/20 hover:border-accent/50 text-accent text-sm font-mono font-semibold uppercase tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {isLoading ? (
-                            <span className="animate-spin">⏳</span>
+                            <Loader2 size={14} className="animate-spin" />
                         ) : (
                             <>
                                 <LogIn size={14} />

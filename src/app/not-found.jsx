@@ -1,19 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Home } from "lucide-react";
 
 export default function NotFound() {
     const router = useRouter();
-    const [mounted, setMounted] = useState(false);
-
-    useEffect(() => {
-        setMounted(true);
-    }, []);
-
-    if (!mounted) return null;
 
     return (
         <div className="min-h-screen w-full bg-gradient-to-br from-obsidian via-deep to-obsidian flex items-center justify-center p-4 relative overflow-hidden">

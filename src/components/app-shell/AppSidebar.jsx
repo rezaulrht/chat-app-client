@@ -91,10 +91,13 @@ export default function AppSidebar({
 
       {/* User bar — hidden when collapsed */}
       {user && !collapsed && (
-        <div 
+        <button 
            ref={userBarRef} 
+           type="button"
            onClick={() => setShowUserCard(!showUserCard)}
-           className="cursor-pointer h-14 mx-2 mb-2 glass-card rounded-xl px-3 flex items-center gap-2.5 group/user shrink-0 ring-1 ring-white/[0.04] hover:bg-white/[0.03] transition-all duration-200"
+           className="cursor-pointer h-14 mx-2 mb-2 glass-card rounded-xl px-3 flex items-center gap-2.5 group/user shrink-0 ring-1 ring-white/[0.04] hover:bg-white/[0.03] transition-all duration-200 w-full text-left"
+           aria-expanded={showUserCard}
+           aria-controls="user-card-popup"
         >
           <div className="relative shrink-0">
             <div className="w-8 h-8 rounded-xl overflow-hidden ring-1 ring-white/[0.06] group-hover/user:ring-accent/30 transition-all">
@@ -121,15 +124,17 @@ export default function AppSidebar({
               Online
             </p>
           </div>
-          <button
+          <span
             onClick={(e) => { e.stopPropagation(); logout(); }}
-            className="p-1.5 rounded-lg hover:bg-red-500/10 text-ivory/30 hover:text-red-400 transition-all"
+            className="p-1.5 rounded-lg hover:bg-red-500/10 text-ivory/30 hover:text-red-400 transition-all cursor-pointer"
             title="Logout"
-            aria-label="Logout"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); logout(); } }}
           >
             <LogOut size={14} />
-          </button>
-        </div>
+          </span>
+        </button>
       )}
 
       {/* User avatar only when collapsed */}

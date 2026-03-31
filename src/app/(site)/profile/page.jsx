@@ -33,6 +33,8 @@ import {
   Globe,
   ChevronRight,
   Rss,
+  LinkIcon,
+  Unlink,
 } from "lucide-react";
 import PostCard from "@/components/Feed/PostCard";
 import { useTheme } from "@/context/ThemeContext";
@@ -181,6 +183,24 @@ function ProfilePage() {
   const [myPostsError, setMyPostsError] = useState(false);
   const [myPostsLoaded, setMyPostsLoaded] = useState(false);
 
+  // ── Banner state ───────────────────────────────────────────────
+  const [bannerPreview, setBannerPreview] = useState(user?.banner || "");
+  const [bannerData, setBannerData] = useState(null);
+  const [customColor, setCustomColor] = useState(user?.customColor || "");
+  const [showBannerCrop, setShowBannerCrop] = useState(false);
+  const [pendingBannerImage, setPendingBannerImage] = useState(null);
+  const [savingBanner, setSavingBanner] = useState(false);
+  const bannerFileRef = useRef(null);
+
+  // ── Social links state ───────────────────────────────────────────────
+  const [socialLinks, setSocialLinks] = useState([]);
+  const [loadingSocialLinks, setLoadingSocialLinks] = useState(false);
+  const [linkingProvider, setLinkingProvider] = useState(null);
+  const [unlinkingProvider, setUnlinkingProvider] = useState(null);
+  const [hasGoogle, setHasGoogle] = useState(false);
+  const [hasGitHub, setHasGitHub] = useState(false);
+  const [canAddMore, setCanAddMore] = useState(true);
+
   const loadMyPosts = useCallback(
     async (page = 1) => {
       const userId = user?._id || user?.id;
@@ -229,6 +249,111 @@ function ProfilePage() {
       setAvatarData(reader.result);
     };
     reader.readAsDataURL(file);
+  };
+
+  // ── Banner handling ──────────────────────────────────────────────────
+  const handleBannerChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be under 5 MB");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPendingBannerImage(reader.result);
+      setShowBannerCrop(true);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleBannerCropSave = async (croppedImage) => {
+    setShowBannerCrop(false);
+    setBannerPreview(croppedImage);
+    setBannerData(croppedImage);
+    setPendingBannerImage(null);
+    setSavingBanner(true);
+    try {
+      const res = await api.put("/api/user/banner", { banner: croppedImage });
+      if (res.data) {
+        setBannerPreview(res.data.banner);
+        setBannerData(null);
+        toast.success("Banner updated!");
+      }
+    } catch (err) {
+      toast.error("Failed to save banner");
+    } finally {
+      setSavingBanner(false);
+    }
+  };
+
+  const handleRemoveBanner = async () => {
+    setSavingBanner(true);
+    try {
+      await api.put("/api/user/banner", { banner: "" });
+      setBannerPreview("");
+      setBannerData(null);
+      toast.success("Banner removed");
+    } catch (err) {
+      toast.error("Failed to remove banner");
+    } finally {
+      setSavingBanner(false);
+    }
+  };
+
+  // ── Social links handling ──────────────────────────────────────────
+  const fetchSocialLinks = useCallback(async () => {
+    setLoadingSocialLinks(true);
+    try {
+      const res = await api.get("/api/user/social-links");
+      const links = res.data.socialLinks || [];
+      setSocialLinks(links);
+      setHasGoogle(links.some(l => l.provider === "google"));
+      setHasGitHub(links.some(l => l.provider === "github"));
+      setCanAddMore(links.length < 2);
+    } catch (err) {
+      console.error("Failed to fetch social links:", err);
+    } finally {
+      setLoadingSocialLinks(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSocialLinks();
+  }, [fetchSocialLinks]);
+
+  const handleLinkAccount = async (provider) => {
+    setLinkingProvider(provider);
+    try {
+      const res = await api.post(`/api/user/social-links/init/${provider}`);
+      if (res.data.authUrl) {
+        window.location.href = res.data.authUrl;
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to start linking");
+      setLinkingProvider(null);
+    }
+  };
+
+  const handleUnlinkAccount = async (provider) => {
+    if (!confirm(`Are you sure you want to disconnect ${provider}?`)) return;
+    setUnlinkingProvider(provider);
+    try {
+      await api.delete(`/api/user/social-links/${provider}`);
+      toast.success(`${provider} has been disconnected`);
+      fetchSocialLinks();
+    } catch (err) {
+      const msg = err.response?.data?.message || "Failed to unlink account";
+      if (err.response?.data?.requiresPassword) {
+        toast.error("Please set a password first (Security tab)");
+        setActiveSection("security");
+      } else {
+        toast.error(msg);
+      }
+    } finally {
+      setUnlinkingProvider(null);
+    }
   };
 
   // ── Save profile ──────────────────────────────────────────────────────
@@ -441,7 +566,7 @@ function ProfilePage() {
           <div className="space-y-4">
             {/* Section tabs */}
             <div className="flex gap-1 p-1 bg-white/[0.03] rounded-xl border border-white/[0.06]">
-              {["edit", ...(isLocal ? ["security"] : []), "posts", "account"].map((s) => (
+              {["edit", "connections", ...(isLocal ? ["security"] : []), "posts", "account"].map((s) => (
                 <button
                   key={s}
                   onClick={() => setActiveSection(s)}

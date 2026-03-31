@@ -53,11 +53,12 @@ export default function QuickStatusPopup({
     }, [onCancel]);
 
     const handleSave = () => {
+        if (isLoading) return;
         onSave?.(status.trim());
     };
 
     const handleKeyDown = (e) => {
-        if (e.key === "Enter") {
+        if (e.key === "Enter" && !isLoading) {
             handleSave();
         }
     };

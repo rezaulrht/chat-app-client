@@ -276,7 +276,7 @@ export default function UserProfileModal({ onClose }) {
                                 <Image src={post.imageUrl} fill className="object-cover" alt="Post media" unoptimized />
                              </div>
                            )}
-                           <p className="text-ivory/80 text-[14px] leading-relaxed mb-3 whitespace-pre-wrap break-words">{post.caption}</p>
+                            <p className="text-ivory/80 text-[14px] leading-relaxed mb-3 whitespace-pre-wrap break-words">{post.caption || post.content}</p>
                            <div className="flex items-center gap-4 text-ivory/40 text-[12px] font-mono">
                               <span className="flex items-center gap-1.5"><Heart size={14} className={post.likes?.includes(user?._id) ? "text-red-400" : ""} /> {post.likes?.length || 0}</span>
                               <span className="flex items-center gap-1.5"><MessageSquare size={14} /> {post.comments?.length || 0}</span>

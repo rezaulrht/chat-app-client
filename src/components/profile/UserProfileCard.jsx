@@ -39,14 +39,19 @@ export default function UserProfileCard({ onClose, anchorRef, onOpenFullProfile 
 
   const handleSaveStatus = async () => {
     setSavingStatus(true);
-    const res = await updateProfile({ statusMessage: statusInput });
-    setSavingStatus(false);
-    if (res.success) {
-      toast.success("Status updated");
-    } else {
-      toast.error(res.message || "Failed to update status");
+    try {
+      const res = await updateProfile({ statusMessage: statusInput });
+      if (res.success) {
+        toast.success("Status updated");
+        setEditingStatus(false);
+      } else {
+        toast.error(res.message || "Failed to update status");
+      }
+    } catch (error) {
+      toast.error(error.message || "Failed to update status");
+    } finally {
+      setSavingStatus(false);
     }
-    setEditingStatus(false);
   };
 
   if (!user) return null;
@@ -115,15 +120,25 @@ export default function UserProfileCard({ onClose, anchorRef, onOpenFullProfile 
                </div>
              </div>
           ) : (
-             <div 
-               className="group flex items-center justify-between cursor-text hover:bg-white/[0.03] p-2 -mx-2 rounded-lg transition-colors border border-transparent"
+             <button 
+               type="button"
+               className="group flex w-full items-center justify-between cursor-text hover:bg-white/[0.03] p-2 -mx-2 rounded-lg transition-colors border border-transparent text-left"
                onClick={() => { setStatusInput(user.statusMessage || ""); setEditingStatus(true); }}
+               onKeyDown={(e) => {
+                 if (e.key === 'Enter' || e.key === ' ') {
+                   e.preventDefault();
+                   setStatusInput(user.statusMessage || "");
+                   setEditingStatus(true);
+                 }
+               }}
+               tabIndex={0}
+               aria-label="Edit status message"
              >
                <p className={`text-[13px] italic ${user.statusMessage ? 'text-ivory/80' : 'text-ivory/30'}`}>
                  {user.statusMessage || "Click to add a status..."}
                </p>
                <Pencil size={12} className="text-ivory/20 group-hover:text-accent opacity-0 group-hover:opacity-100 transition-opacity" />
-             </div>
+             </button>
           )}
         </div>
 

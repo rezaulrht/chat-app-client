@@ -1236,7 +1236,7 @@ export default function WorkspaceSettingsModal({ workspaceId, onClose }) {
           {TABS.map((tab) => {
             const Icon = tab.Icon;
             const isActive = activeTab === tab.id;
-            if (tab.id === "danger" || tab.id === "invites" || tab.id === "bans") {
+            if (tab.id === "invites" || tab.id === "bans") {
               if (!isAdmin) return null;
             }
             return (
@@ -1268,7 +1268,7 @@ export default function WorkspaceSettingsModal({ workspaceId, onClose }) {
             {TABS.map((tab) => {
               const Icon = tab.Icon;
               const isActive = activeTab === tab.id;
-              if (tab.id === "danger" || tab.id === "invites" || tab.id === "bans") {
+              if (tab.id === "invites" || tab.id === "bans") {
                 if (!isAdmin) return null;
               }
               return (

@@ -92,10 +92,10 @@ export default function ThreadPanel({ moduleId, workspaceId, parentMessage, onCl
   useEffect(() => {
     if (workspaceId) fetchWorkspaceMembers?.(workspaceId);
   }, [workspaceId, fetchWorkspaceMembers]);
-  
+
   const [localReplies, setLocalReplies] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   const [text, setText] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [suggestionIndex, setSuggestionIndex] = useState(0);
@@ -107,7 +107,7 @@ export default function ThreadPanel({ moduleId, workspaceId, parentMessage, onCl
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [localReplies, messages]);
-  
+
   // Close emoji picker on outside click
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -133,7 +133,7 @@ export default function ThreadPanel({ moduleId, workspaceId, parentMessage, onCl
         setLoading(false);
       }
     };
-    
+
     fetchReplies();
   }, [moduleId, parentMessage._id]);
 
@@ -141,7 +141,7 @@ export default function ThreadPanel({ moduleId, workspaceId, parentMessage, onCl
   const allReplies = React.useMemo(() => {
     const map = new Map();
     localReplies.forEach((m) => map.set(m._id, m));
-    
+
     // Also grab any real-time messages that reply to this parent
     messages.forEach((m) => {
       if ((m.replyTo?._id || m.replyTo) === parentMessage._id) {
@@ -276,7 +276,7 @@ export default function ThreadPanel({ moduleId, workspaceId, parentMessage, onCl
       const smuggled = (mentionData || []).find(d => String(d.id || d._id) === String(userId));
       const memberName = (typeof mentionItem === "object" ? mentionItem.name : null) || smuggled?.name || member?.user?.name;
       const avatar = (typeof mentionItem === "object" ? mentionItem.avatar : null) || smuggled?.avatar || member?.user?.avatar;
-      
+
       return { userId, memberName, member, avatar };
     }).filter(m => m.memberName).sort((a, b) => b.memberName.length - a.memberName.length);
 
@@ -352,9 +352,9 @@ export default function ThreadPanel({ moduleId, workspaceId, parentMessage, onCl
                 {formatTime(parentMessage.createdAt)}
               </span>
             </div>
-                <p className="text-[13px] text-ivory/80 leading-relaxed whitespace-pre-wrap break-words">
-                  {renderMessageText(parentMessage.text, parentMessage.mentions, parentMessage.mentionData)}
-                </p>
+            <p className="text-[13px] text-ivory/80 leading-relaxed whitespace-pre-wrap break-words">
+              {renderMessageText(parentMessage.text, parentMessage.mentions, parentMessage.mentionData)}
+            </p>
             {parentMessage.attachments?.length > 0 && (
               <FileAttachmentDisplay attachments={parentMessage.attachments} />
             )}
@@ -454,9 +454,9 @@ export default function ThreadPanel({ moduleId, workspaceId, parentMessage, onCl
           </div>
         )}
 
-        <form onSubmit={handleSend} className="bg-slate-surface border border-white/5 rounded-xl flex items-end p-1.5 focus-within:border-accent/40 transition-colors">
+        <form onSubmit={handleSend} className="bg-slate-surface border border-white/5 rounded-xl flex items-end p-1 md:p-1.5 focus-within:border-accent/40 transition-colors">
           <textarea
-            className="flex-1 bg-transparent min-w-0 resize-none outline-none text-xs text-ivory/90 px-2 py-1.5 placeholder:text-ivory/20 scrollbar-hide max-h-24"
+            className="flex-1 bg-transparent min-w-0 resize-none outline-none text-[11px] md:text-xs text-ivory/90 px-1.5 md:px-2 py-1.5 placeholder:text-ivory/20 scrollbar-hide max-h-24"
             placeholder="Reply to thread..."
             value={text}
             onChange={handleTextChange}
@@ -467,18 +467,18 @@ export default function ThreadPanel({ moduleId, workspaceId, parentMessage, onCl
               e.target.style.height = Math.min(e.target.scrollHeight, 96) + "px";
             }}
           />
-          <div className="flex items-center gap-1 pb-0.5 pr-0.5">
+          <div className="flex items-center gap-1 pb-0.5 pr-0.5 md:pr-1">
             <button
               type="button"
               onClick={() => setShowEmojiPicker((v) => !v)}
-              className="p-1.5 text-ivory/30 hover:text-ivory/60 transition-colors rounded-lg"
+              className="p-1 md:p-1.5 text-ivory/30 hover:text-ivory/60 transition-colors rounded-lg shrink-0"
             >
               <Smile size={16} />
             </button>
             <button
               type="submit"
               disabled={!text.trim()}
-              className="p-1.5 bg-accent hover:bg-accent/90 text-black rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-1 md:p-1.5 bg-accent hover:bg-accent/90 text-black rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
             >
               <Send size={14} />
             </button>

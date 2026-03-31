@@ -136,9 +136,9 @@ export default function UserProfileModal({ onClose }) {
 
   const memberSince = user?.createdAt
     ? new Date(user.createdAt).toLocaleDateString("en-US", {
-        month: "long",
-        year: "numeric",
-      })
+      month: "long",
+      year: "numeric",
+    })
     : null;
 
   const workspaceCount = workspaces?.length || 0;
@@ -147,17 +147,17 @@ export default function UserProfileModal({ onClose }) {
   // ── render ────────────────────────────────────────────────────────
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-4 bg-black/60 backdrop-blur-md"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative w-full max-w-md glass-card rounded-3xl border border-white/[0.08] shadow-2xl shadow-black/60 overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="relative w-full max-w-sm md:max-w-md glass-card rounded-3xl border border-white/[0.08] shadow-2xl shadow-black/60 overflow-hidden flex flex-col max-h-[90vh]">
         {/* ── gradient top bar ─────────────────────────────────────── */}
         <div className="h-1.5 w-full bg-linear-to-r from-accent/60 via-accent to-accent/60" />
 
         {/* ── header ───────────────────────────────────────────────── */}
-        <div className="flex items-center justify-between px-6 pt-5 pb-3 shrink-0">
+        <div className="flex items-center justify-between px-4 md:px-6 pt-4 md:pt-5 pb-3 shrink-0">
           <h2 className="text-ivory font-display font-bold text-lg tracking-tight">
             My Profile
           </h2>
@@ -170,16 +170,15 @@ export default function UserProfileModal({ onClose }) {
         </div>
 
         {/* ── tabs ─────────────────────────────────────────────────── */}
-        <div className="flex gap-1 px-6 pb-3 shrink-0">
+        <div className="flex gap-1 px-4 md:px-6 pb-3 shrink-0">
           {["profile", ...(isLocal ? ["security"] : [])].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-3 py-1.5 rounded-xl text-[11px] font-mono font-bold uppercase tracking-[0.12em] transition-all duration-200 ${
-                activeTab === tab
+              className={`px-3 py-1.5 rounded-xl text-[11px] font-mono font-bold uppercase tracking-[0.12em] transition-all duration-200 ${activeTab === tab
                   ? "bg-accent/15 text-accent border border-accent/30"
                   : "text-ivory/30 hover:text-ivory/50 hover:bg-white/[0.04]"
-              }`}
+                }`}
             >
               {tab}
             </button>
@@ -187,7 +186,7 @@ export default function UserProfileModal({ onClose }) {
         </div>
 
         {/* ── scrollable body ──────────────────────────────────────── */}
-        <div className="flex-1 overflow-y-auto scrollbar-hide px-6 pb-6">
+        <div className="flex-1 overflow-y-auto scrollbar-hide px-4 md:px-6 pb-4 md:pb-6">
           {/* ═══════════════ PROFILE TAB ═══════════════ */}
           {activeTab === "profile" && (
             <div className="space-y-5">
@@ -453,15 +452,14 @@ export default function UserProfileModal({ onClose }) {
                     {[8, 10, 14].map((threshold, i) => (
                       <div
                         key={i}
-                        className={`flex-1 h-1 rounded-full transition-all duration-300 ${
-                          newPw.length >= threshold
+                        className={`flex-1 h-1 rounded-full transition-all duration-300 ${newPw.length >= threshold
                             ? i === 0
                               ? "bg-red-400/70"
                               : i === 1
                                 ? "bg-amber-400/70"
                                 : "bg-emerald-400/70"
                             : "bg-white/[0.06]"
-                        }`}
+                          }`}
                       />
                     ))}
                     <span className="text-[9px] font-mono text-ivory/20 w-10 text-right">
@@ -489,11 +487,10 @@ export default function UserProfileModal({ onClose }) {
                   onChange={(e) => setConfirmPw(e.target.value)}
                   required
                   placeholder="Repeat new password"
-                  className={`w-full bg-white/[0.04] border rounded-xl px-3.5 py-2.5 text-[13px] text-ivory placeholder:text-ivory/20 focus:outline-none transition-all duration-200 ${
-                    confirmPw && confirmPw !== newPw
+                  className={`w-full bg-white/[0.04] border rounded-xl px-3.5 py-2.5 text-[13px] text-ivory placeholder:text-ivory/20 focus:outline-none transition-all duration-200 ${confirmPw && confirmPw !== newPw
                       ? "border-red-400/40 focus:border-red-400/60"
                       : "border-white/[0.08] focus:border-accent/40 focus:bg-white/[0.06]"
-                  }`}
+                    }`}
                 />
                 {confirmPw && confirmPw !== newPw && (
                   <p className="text-[10px] text-red-400/70 mt-1 font-mono">

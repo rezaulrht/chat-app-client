@@ -287,15 +287,15 @@ export default function CreateGroupModal({ onGroupCreated }) {
         typeof document !== "undefined" &&
         createPortal(
           <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-3 md:p-4"
             onClick={handleClose}
           >
             <div
-              className="glass-card w-full max-w-lg rounded-3xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[90vh] ring-1 ring-white/[0.08]"
+              className="glass-card w-full max-w-md md:max-w-lg rounded-3xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[90vh] ring-1 ring-white/[0.08]"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06] shrink-0 relative">
+              <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4 border-b border-white/[0.06] shrink-0 relative">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center">
                     <Users size={15} className="text-accent" />
@@ -318,7 +318,7 @@ export default function CreateGroupModal({ onGroupCreated }) {
               </div>
 
               {/* Body */}
-              <div className="overflow-y-auto flex-1 scrollbar-hide px-6 py-5 space-y-5">
+              <div className="overflow-y-auto flex-1 scrollbar-hide px-4 md:px-6 py-4 md:py-5 space-y-4 md:space-y-5">
                 {/* Group Name */}
                 <div>
                   <p className="text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-ivory/25 mb-2">

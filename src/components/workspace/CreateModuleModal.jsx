@@ -89,16 +89,8 @@ export default function CreateModuleModal({
     e.preventDefault();
     if (!canSubmit) return;
     setSubmitting(true);
-    
-    // If private, we need to deny VIEW_CHANNEL to members by default,
-    // but the backend computePermissions doesn't have an @everyone role yet.
-    // However, if we just send `permissionOverrides` with the allowed roles explicitly ALLOWING,
-    // we still need a way to DENY base members.
-    // Actually, in our computePermissions, if `isPrivate` is true, does it matter?
-    // Let's rely on the backend passing `isPrivate` down, but actually we need to
-    // modify the payload to include permissionOverrides for the selected roles.
-    
-    // We will build permissionOverrides:
+
+    // For private modules, include permissionOverrides for selected roles and rely on isPrivate handling in the backend.
     const overrides = [];
     if (isPrivate) {
       allowedRoles.forEach((roleId) => {
@@ -133,7 +125,7 @@ export default function CreateModuleModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -142,9 +134,9 @@ export default function CreateModuleModal({
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
       {/* Modal */}
-      <div className="relative w-full max-w-md bg-obsidian border border-white/8 rounded-2xl shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-sm md:max-w-md bg-obsidian border border-white/8 rounded-2xl shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/6">
+        <div className="flex items-center justify-between px-4 md:px-5 pt-4 md:pt-5 pb-3 md:pb-4 border-b border-white/6">
           <div>
             <h2 className="text-ivory font-display font-bold text-[15px]">
               Create Module
@@ -162,7 +154,7 @@ export default function CreateModuleModal({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="px-5 py-5 space-y-5">
+        <form onSubmit={handleSubmit} className="px-4 md:px-5 py-4 md:py-5 space-y-4 md:space-y-5">
           {/* Module Type */}
           <div className="space-y-2">
             <label className="text-[11px] font-mono font-bold text-ivory/40 uppercase tracking-wider">
@@ -174,11 +166,10 @@ export default function CreateModuleModal({
                   key={value}
                   type="button"
                   onClick={() => setType(value)}
-                  className={`flex flex-col items-start gap-1.5 p-3 rounded-xl border transition-all text-left ${
-                    type === value
-                      ? "bg-accent/10 border-accent/40 text-ivory"
-                      : "bg-white/3 border-white/6 text-ivory/50 hover:border-white/12 hover:text-ivory/70"
-                  }`}
+                  className={`flex flex-col items-start gap-1.5 p-3 rounded-xl border transition-all text-left ${type === value
+                    ? "bg-accent/10 border-accent/40 text-ivory"
+                    : "bg-white/3 border-white/6 text-ivory/50 hover:border-white/12 hover:text-ivory/70"
+                    }`}
                 >
                   <Icon
                     size={16}
@@ -260,18 +251,16 @@ export default function CreateModuleModal({
               }
               aria-pressed={isPrivate}
               onClick={() => setIsPrivate((v) => !v)}
-              className={`relative w-10 h-5 rounded-full border transition-all ${
-                isPrivate
-                  ? "bg-accent/30 border-accent/40"
-                  : "bg-white/6 border-white/10"
-              }`}
+              className={`relative w-10 h-5 rounded-full border transition-all ${isPrivate
+                ? "bg-accent/30 border-accent/40"
+                : "bg-white/6 border-white/10"
+                }`}
             >
               <span
-                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full transition-transform ${
-                  isPrivate
-                    ? "translate-x-5 bg-accent"
-                    : "translate-x-0 bg-ivory/30"
-                }`}
+                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full transition-transform ${isPrivate
+                  ? "translate-x-5 bg-accent"
+                  : "translate-x-0 bg-ivory/30"
+                  }`}
               />
             </button>
           </div>

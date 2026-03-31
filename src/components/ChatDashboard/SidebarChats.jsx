@@ -219,8 +219,6 @@ export default function Sidebar({
     if (!socket) return;
 
     const handleMessageDeleted = (payload) => {
-      console.log("Sidebar: message:deleted event RECEIVED!", payload);
-
       const { conversationId } = payload;
 
       setSearchedConversations((prev) =>

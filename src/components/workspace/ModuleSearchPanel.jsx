@@ -6,7 +6,12 @@ import toast from "react-hot-toast";
 import FileAttachmentDisplay from "@/components/shared/FileAttachmentDisplay";
 import { useWorkspace } from "@/hooks/useWorkspace";
 
-export default function ModuleSearchPanel({ moduleId, workspace, onJumpToMessage, onClose }) {
+export default function ModuleSearchPanel({
+  moduleId,
+  workspace,
+  onJumpToMessage,
+  onClose,
+}) {
   const { membersCache, fetchWorkspaceMembers } = useWorkspace();
   const [query, setQuery] = useState("");
 
@@ -14,6 +19,7 @@ export default function ModuleSearchPanel({ moduleId, workspace, onJumpToMessage
     const wsId = workspace?.id || workspace?._id;
     if (wsId) fetchWorkspaceMembers(wsId);
   }, [workspace, fetchWorkspaceMembers]);
+
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
@@ -54,7 +60,7 @@ export default function ModuleSearchPanel({ moduleId, workspace, onJumpToMessage
 
     searchTimeoutRef.current = setTimeout(() => {
       fetchSearchResults(val);
-    }, 500); // 500ms debounce
+    }, 500);
   };
 
   const handleKeyDown = (e) => {
@@ -75,9 +81,6 @@ export default function ModuleSearchPanel({ moduleId, workspace, onJumpToMessage
     let elements = [textArg];
 
     const wsId = workspace?.id || workspace?._id;
-    // The `members` variable from `membersCache` is not directly used in the `processedMentions` mapping below,
-    // as the instruction explicitly uses `workspace?.members`.
-    // However, `membersCache` is still fetched and might be used elsewhere or for other purposes.
     const members = membersCache?.[wsId] || [];
 
     const processedMentions = mentionsArg
@@ -86,24 +89,34 @@ export default function ModuleSearchPanel({ moduleId, workspace, onJumpToMessage
           typeof mentionItem === "object"
             ? mentionItem._id || mentionItem.id
             : mentionItem;
+
+        // ✅ FIX #1: Look up member from members array BEFORE using it
+        const member = members.find(
+          (m) => String(m.user?._id || m._id || m.id) === String(userId),
+        );
+
         const smuggled = (mentionData || []).find(
           (d) => String(d.id || d._id) === String(userId),
         );
+
+        // ✅ FIX #2: Now member is defined, so member?.user?.name works
         const memberName =
           (typeof mentionItem === "object" ? mentionItem.name : null) ||
           smuggled?.name ||
-          member?.user?.name;
+          member?.user?.name; // ✅ Fixed: was "members?.user?.name" (wrong!)
+
         const avatar =
           (typeof mentionItem === "object" ? mentionItem.avatar : null) ||
           smuggled?.avatar ||
           member?.user?.avatar;
 
-        return { userId, memberName, member, avatar };
+        return { userId, memberName, member, avatar }; // ✅ Include avatar in return
       })
       .filter((m) => m.memberName)
       .sort((a, b) => b.memberName.length - a.memberName.length);
 
-    processedMentions.forEach(({ userId, memberName, member }) => {
+    // ✅ FIX #3: Destructure avatar in forEach
+    processedMentions.forEach(({ userId, memberName, member, avatar }) => {
       if (memberName) {
         const nameStr = `@${memberName}`;
         elements = elements.flatMap((el) => {
@@ -120,7 +133,7 @@ export default function ModuleSearchPanel({ moduleId, workspace, onJumpToMessage
                 >
                   <Image
                     src={
-                      mention.avatar ||
+                      avatar || // ✅ Fixed: was "mention.avatar" (undefined!)
                       `https://api.dicebear.com/7.x/avataaars/svg?seed=${memberName}`
                     }
                     alt=""

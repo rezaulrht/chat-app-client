@@ -4,7 +4,9 @@ import React from "react";
 import { Phone, Video, PhoneMissed } from "lucide-react";
 
 export default function CallLogMessage({ callLog, isMe }) {
-  const { callType, duration, status } = callLog;
+  // callLog may be unpopulated (only _id from API) — destructure safely
+  const { callType, duration, status } =
+    callLog && typeof callLog === "object" ? callLog : {};
 
   const formatDuration = (seconds) => {
     if (!seconds) return null;

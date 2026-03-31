@@ -962,15 +962,36 @@ export default function ChatWindow({
     };
 
     // Append call log message in real time.
-    // Backend may emit via message:new (callLog field set), call:log, call:ended, or call:declined.
-    const handleCallLog = (msg) => {
-      if (!msg || msg.conversationId !== conversation?._id) return;
-      // Only handle if this is actually a call log message
-      if (!msg.callLog && !msg._id) return;
-      setMessages((prev) => {
-        if (prev.some((m) => m._id === msg._id)) return prev;
-        return [...prev, msg];
-      });
+    // Backend may emit via:
+    //   - message:new with callLog field populated  → has _id + callLog
+    //   - call:log with full message object         → has _id + callLog
+    //   - call:ended / call:declined / call:missed  → may only have { callId, conversationId }
+    const handleCallLog = async (payload) => {
+      if (!payload) return;
+      // Case 1: full message object emitted (has _id)
+      if (payload._id && payload.conversationId === conversation?._id) {
+        setMessages((prev) => {
+          if (prev.some((m) => m._id === payload._id)) return prev;
+          return [...prev, payload];
+        });
+        return;
+      }
+      // Case 2: minimal payload { callId, conversationId } — fetch latest messages
+      const convId = payload.conversationId || payload.callId;
+      if (!convId) return;
+      // Re-fetch last few messages to pick up the new call log entry
+      try {
+        const res = await api.get(`/api/chat/messages/${conversation._id}`);
+        const fresh = res.data || [];
+        setMessages((prev) => {
+          // Merge: keep existing, append any new ones from server
+          const existingIds = new Set(prev.map((m) => m._id));
+          const newMsgs = fresh.filter((m) => !existingIds.has(m._id));
+          return newMsgs.length > 0 ? [...prev, ...newMsgs] : prev;
+        });
+      } catch (err) {
+        console.error("[call log] failed to refetch messages:", err);
+      }
     };
 
     socket.on("message:new", handleReceive);
@@ -1844,9 +1865,18 @@ export default function ChatWindow({
             const isMe =
               msg.sender?._id === user?._id || msg.sender === user?._id;
             const isGif = !!msg.gifUrl;
+            // callLog can be:
+            //   - populated object { callType, status, duration } (from socket)
+            //   - unpopulated ObjectId string or { _id } only (from API on refresh)
+            //   - null/undefined (not a call message)
             const isCallLog = !!(
               msg.callLog &&
-              (msg.callLog.callType || msg.callLog.status)
+              (msg.callLog.callType ||
+                msg.callLog.status ||
+                typeof msg.callLog === "string" ||
+                (typeof msg.callLog === "object" &&
+                  msg.callLog._id &&
+                  !msg.text))
             );
             const currentDateKey = toDateKey(msg.createdAt);
             const prevDateKey =

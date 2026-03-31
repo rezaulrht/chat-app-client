@@ -304,30 +304,51 @@ export default function ChatDashboard() {
     };
 
     // Update sidebar lastMessage when a call log is created
-    const handleCallLog = (msg) => {
-      setConversations((prev) => {
-        const updated = prev.map((c) =>
-          c._id === msg.conversationId
-            ? {
-                ...c,
-                lastMessage: {
-                  text:
-                    msg.callLog?.status === "missed"
-                      ? "Missed call"
-                      : msg.callLog?.status === "declined"
-                        ? "Call declined"
-                        : (msg.callLog?.callType === "video"
-                            ? "Video"
-                            : "Audio") + " call",
-                  createdAt: msg.createdAt,
-                  sender: msg.sender || null,
-                },
-                updatedAt: msg.createdAt,
-              }
-            : c,
-        );
-        return sortConversations(updated);
-      });
+    const handleCallLog = async (payload) => {
+      if (!payload) return;
+      // Case 1: full message object with conversationId + callLog populated
+      if (payload._id && payload.conversationId) {
+        const cl = payload.callLog || {};
+        const label =
+          cl.status === "missed"
+            ? "Missed call"
+            : cl.status === "declined"
+              ? "Call declined"
+              : (cl.callType === "video" ? "Video" : "Audio") +
+                " call" +
+                (cl.duration
+                  ? " · " +
+                    Math.floor(cl.duration / 60) +
+                    "m " +
+                    (cl.duration % 60) +
+                    "s"
+                  : "");
+        setConversations((prev) => {
+          const updated = prev.map((c) =>
+            c._id === payload.conversationId
+              ? {
+                  ...c,
+                  lastMessage: {
+                    text: label,
+                    callLog: cl,
+                    createdAt: payload.createdAt,
+                    sender: payload.sender || null,
+                  },
+                  updatedAt: payload.createdAt,
+                }
+              : c,
+          );
+          return sortConversations(updated);
+        });
+        return;
+      }
+      // Case 2: minimal { callId } only — refetch conversations to get updated lastMessage
+      try {
+        const res = await api.get("/api/chat/conversations");
+        setConversations(sortConversations(res.data));
+      } catch (err) {
+        console.error("[call log] sidebar refetch failed:", err);
+      }
     };
 
     socket.on("message:new", handleGlobalMessage);
@@ -343,6 +364,9 @@ export default function ChatDashboard() {
     socket.on("group:admin-updated", handleGroupRefetch);
     socket.on("conversation:customise:updated", handleCustomiseUpdated);
     socket.on("call:log", handleCallLog);
+    socket.on("call:ended", handleCallLog);
+    socket.on("call:declined", handleCallLog);
+    socket.on("call:missed", handleCallLog);
 
     return () => {
       socket.off("message:new", handleGlobalMessage);
@@ -358,6 +382,9 @@ export default function ChatDashboard() {
       socket.off("group:admin-updated", handleGroupRefetch);
       socket.off("conversation:customise:updated", handleCustomiseUpdated);
       socket.off("call:log", handleCallLog);
+      socket.off("call:ended", handleCallLog);
+      socket.off("call:declined", handleCallLog);
+      socket.off("call:missed", handleCallLog);
     };
   }, [socket, fetchLastSeenTimes, user, showNewMessageToast]);
 

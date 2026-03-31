@@ -48,10 +48,10 @@ const TABS = [
   { id: "danger", label: "Danger Zone", Icon: AlertTriangle },
 ];
 
-import { 
-  Settings, Shield, Users, Link2, AlertTriangle, ChevronRight, X, Camera, 
-  Loader2, Check, Globe, Lock, Plus, Search, Crown, UserCog, UserMinus, 
-  RefreshCw, Copy, LogOut, Trash2, Pencil, ChevronDown 
+import {
+  Settings, Shield, Users, Link2, AlertTriangle, ChevronRight, X, Camera,
+  Loader2, Check, Globe, Lock, Plus, Search, Crown, UserCog, UserMinus,
+  RefreshCw, Copy, LogOut, Trash2, Pencil, ChevronDown
 } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -128,11 +128,11 @@ function OverviewTab({ workspace, onUpdate }) {
           <label className="block text-[11px] font-mono font-bold text-ivory/40 uppercase tracking-widest mb-4">
             Workspace Identity
           </label>
-          
+
           <div className="relative mb-12">
             {/* Banner */}
             <div className="h-40 w-full rounded-2xl bg-white/4 border border-white/8 overflow-hidden relative group/banner shadow-inner">
-              <div 
+              <div
                 className="w-full h-full bg-linear-to-br from-accent/20 via-accent/5 to-transparent bg-cover bg-center transition-transform duration-500 group-hover/banner:scale-105"
                 style={bannerUrl ? { backgroundImage: `url(${bannerUrl})` } : {}}
               />
@@ -174,11 +174,11 @@ function OverviewTab({ workspace, onUpdate }) {
               </div>
               <div className="mb-2 pb-1">
                 <h3 className="text-ivory font-display font-bold text-xl leading-tight drop-shadow-md">
-                   {name || workspace?.name}
+                  {name || workspace?.name}
                 </h3>
                 <p className="text-ivory/30 text-[11px] font-mono tracking-wide flex items-center gap-1.5">
-                   {visibility === 'public' ? <Globe size={11} /> : <Lock size={11} />}
-                   {visibility === 'public' ? 'Public Workspace' : 'Private Workspace'}
+                  {visibility === 'public' ? <Globe size={11} /> : <Lock size={11} />}
+                  {visibility === 'public' ? 'Public Workspace' : 'Private Workspace'}
                 </p>
               </div>
             </div>
@@ -190,7 +190,7 @@ function OverviewTab({ workspace, onUpdate }) {
         {/* Name & Description */}
         <div className="grid grid-cols-1 gap-6">
           <SettingsInput label="Display Name" value={name} onChange={setName} placeholder="How people see your workspace" />
-          
+
           <div>
             <label className="block text-[11px] font-mono font-bold text-ivory/40 uppercase tracking-widest mb-2.5">
               Workspace Description
@@ -207,39 +207,39 @@ function OverviewTab({ workspace, onUpdate }) {
 
         {/* Links section */}
         <div>
-           <button 
-             type="button" 
-             onClick={() => setShowAdvanced(!showAdvanced)}
-             className="text-[11px] font-mono font-bold text-ivory/25 hover:text-ivory/50 transition-colors uppercase tracking-widest flex items-center gap-2 mb-3"
-           >
-             {showAdvanced ? 'Hide Advanced Settings' : 'Advanced Image Settings (URLs)'}
-             <ChevronDown size={12} className={`transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
-           </button>
-           
-           {showAdvanced && (
-             <div className="space-y-4 p-4 rounded-2xl bg-white/2 border border-white/5 animate-in slide-in-from-top-2 duration-200">
-                <div>
-                  <label className="block text-[10px] font-mono font-bold text-ivory/30 uppercase mb-2">Banner URL</label>
-                  <input
-                    type="text"
-                    value={bannerUrl}
-                    onChange={(e) => setBannerUrl(e.target.value)}
-                    placeholder="https://example.com/banner.jpg"
-                    className="w-full bg-black/20 border border-white/5 rounded-xl px-3 py-2 text-[12px] font-mono text-ivory/60 focus:outline-none focus:border-accent/30"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-mono font-bold text-ivory/30 uppercase mb-2">Avatar URL</label>
-                  <input
-                    type="text"
-                    value={avatarUrl}
-                    onChange={(e) => setAvatarUrl(e.target.value)}
-                    placeholder="https://example.com/avatar.jpg"
-                    className="w-full bg-black/20 border border-white/5 rounded-xl px-3 py-2 text-[12px] font-mono text-ivory/60 focus:outline-none focus:border-accent/30"
-                  />
-                </div>
-             </div>
-           )}
+          <button
+            type="button"
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="text-[11px] font-mono font-bold text-ivory/25 hover:text-ivory/50 transition-colors uppercase tracking-widest flex items-center gap-2 mb-3"
+          >
+            {showAdvanced ? 'Hide Advanced Settings' : 'Advanced Image Settings (URLs)'}
+            <ChevronDown size={12} className={`transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
+          </button>
+
+          {showAdvanced && (
+            <div className="space-y-4 p-4 rounded-2xl bg-white/2 border border-white/5 animate-in slide-in-from-top-2 duration-200">
+              <div>
+                <label className="block text-[10px] font-mono font-bold text-ivory/30 uppercase mb-2">Banner URL</label>
+                <input
+                  type="text"
+                  value={bannerUrl}
+                  onChange={(e) => setBannerUrl(e.target.value)}
+                  placeholder="https://example.com/banner.jpg"
+                  className="w-full bg-black/20 border border-white/5 rounded-xl px-3 py-2 text-[12px] font-mono text-ivory/60 focus:outline-none focus:border-accent/30"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-mono font-bold text-ivory/30 uppercase mb-2">Avatar URL</label>
+                <input
+                  type="text"
+                  value={avatarUrl}
+                  onChange={(e) => setAvatarUrl(e.target.value)}
+                  placeholder="https://example.com/avatar.jpg"
+                  className="w-full bg-black/20 border border-white/5 rounded-xl px-3 py-2 text-[12px] font-mono text-ivory/60 focus:outline-none focus:border-accent/30"
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Visibility */}
@@ -309,9 +309,9 @@ function SettingsInput({ label, value, onChange, placeholder }) {
   );
 }
 
-function RoleItem({ 
-  role, editingId, editName, setEditName, editColor, setEditColor, 
-  editIsHoisted, setEditIsHoisted, editPermissions, setEditPermissions, handleUpdate, handleDelete, setEditingId, saving 
+function RoleItem({
+  role, editingId, editName, setEditName, editColor, setEditColor,
+  editIsHoisted, setEditIsHoisted, editPermissions, setEditPermissions, handleUpdate, handleDelete, setEditingId, saving
 }) {
   const isEditing = editingId === role._id;
 
@@ -407,13 +407,13 @@ function RoleItem({
           <div className="w-3.5 h-3.5 rounded-lg shrink-0 shadow-sm" style={{ backgroundColor: role.color }} />
           <span className="text-[13px] font-medium text-ivory/80 flex-1">{role.name}</span>
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button onClick={() => { 
-                setEditingId(role._id); 
-                setEditName(role.name); 
-                setEditColor(role.color); 
-                setEditIsHoisted(role.isHoisted || false); 
-                setEditPermissions(role.permissions || []);
-              }}
+            <button onClick={() => {
+              setEditingId(role._id);
+              setEditName(role.name);
+              setEditColor(role.color);
+              setEditIsHoisted(role.isHoisted || false);
+              setEditPermissions(role.permissions || []);
+            }}
               className="p-1.5 rounded-lg text-ivory/25 hover:text-accent hover:bg-accent/10 transition-all">
               <Pencil size={12} />
             </button>
@@ -512,9 +512,9 @@ function RolesTab({ workspace, onCreateRole, onUpdateRole, onDeleteRole }) {
                 .filter(r => r.isHoisted)
                 .sort((a, b) => a.name.localeCompare(b.name))
                 .map((role) => (
-                  <RoleItem 
-                    key={role._id} 
-                    role={role} 
+                  <RoleItem
+                    key={role._id}
+                    role={role}
                     editingId={editingId}
                     editName={editName}
                     setEditName={setEditName}
@@ -541,9 +541,9 @@ function RolesTab({ workspace, onCreateRole, onUpdateRole, onDeleteRole }) {
                 .filter(r => !r.isHoisted)
                 .sort((a, b) => a.name.localeCompare(b.name))
                 .map((role) => (
-                  <RoleItem 
-                    key={role._id} 
-                    role={role} 
+                  <RoleItem
+                    key={role._id}
+                    role={role}
                     editingId={editingId}
                     editName={editName}
                     setEditName={setEditName}
@@ -747,45 +747,45 @@ function MembersTab({ workspace, members, currentUser, onUpdateMemberRole, onRem
                   <div className="flex items-center gap-1 opacity-10 group-hover:opacity-100 transition-opacity">
                     {/* Role Picker */}
                     <div className="relative">
-                       <button
-                         onClick={() => setAssigningUser(assigningUser === m.user._id ? null : m.user._id)}
-                         title="Manage roles"
-                         className={`p-1.5 rounded-lg transition-all ${assigningUser === m.user._id ? "bg-accent/20 text-accent" : "text-ivory/35 hover:text-accent hover:bg-white/6"}`}
-                       >
-                         <Shield size={14} />
-                       </button>
-                       
-                       {assigningUser === m.user._id && (
-                         <div className="absolute top-full right-0 mt-1 z-50 w-48 bg-deep border border-white/10 rounded-2xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200">
-                            <p className="text-[9px] font-mono font-bold text-ivory/30 uppercase tracking-widest p-2 border-b border-white/5 mb-1">Custom Roles</p>
-                            <div className="max-h-48 overflow-y-auto scrollbar-hide py-1 space-y-0.5">
-                               {roles.length === 0 ? (
-                                 <p className="text-[10px] font-mono text-ivory/20 p-2 text-center">No roles created</p>
-                               ) : roles.map(role => {
-                                 const hasRole = (m.roleIds || []).includes(role._id);
-                                 return (
-                                   <button
-                                     key={role._id}
-                                     onClick={async () => {
-                                       const newIds = hasRole 
-                                         ? (m.roleIds || []).filter(id => id !== role._id)
-                                         : [...(m.roleIds || []), role._id];
-                                       try {
-                                         await onAssignRoles(m.user._id, newIds);
-                                         toast.success("Roles updated");
-                                       } catch { toast.error("Failed to update roles"); }
-                                     }}
-                                     className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all ${hasRole ? "bg-white/5 text-ivory" : "text-ivory/40 hover:bg-white/3 hover:text-ivory/70"}`}
-                                   >
-                                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: role.color }} />
-                                      <span className="text-[11px] font-medium flex-1 text-left">{role.name}</span>
-                                      {hasRole && <Check size={10} className="text-accent" />}
-                                   </button>
-                                 );
-                               })}
-                            </div>
-                         </div>
-                       )}
+                      <button
+                        onClick={() => setAssigningUser(assigningUser === m.user._id ? null : m.user._id)}
+                        title="Manage roles"
+                        className={`p-1.5 rounded-lg transition-all ${assigningUser === m.user._id ? "bg-accent/20 text-accent" : "text-ivory/35 hover:text-accent hover:bg-white/6"}`}
+                      >
+                        <Shield size={14} />
+                      </button>
+
+                      {assigningUser === m.user._id && (
+                        <div className="absolute top-full right-0 mt-1 z-50 w-48 bg-deep border border-white/10 rounded-2xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200">
+                          <p className="text-[9px] font-mono font-bold text-ivory/30 uppercase tracking-widest p-2 border-b border-white/5 mb-1">Custom Roles</p>
+                          <div className="max-h-48 overflow-y-auto scrollbar-hide py-1 space-y-0.5">
+                            {roles.length === 0 ? (
+                              <p className="text-[10px] font-mono text-ivory/20 p-2 text-center">No roles created</p>
+                            ) : roles.map(role => {
+                              const hasRole = (m.roleIds || []).includes(role._id);
+                              return (
+                                <button
+                                  key={role._id}
+                                  onClick={async () => {
+                                    const newIds = hasRole
+                                      ? (m.roleIds || []).filter(id => id !== role._id)
+                                      : [...(m.roleIds || []), role._id];
+                                    try {
+                                      await onAssignRoles(m.user._id, newIds);
+                                      toast.success("Roles updated");
+                                    } catch { toast.error("Failed to update roles"); }
+                                  }}
+                                  className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all ${hasRole ? "bg-white/5 text-ivory" : "text-ivory/40 hover:bg-white/3 hover:text-ivory/70"}`}
+                                >
+                                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: role.color }} />
+                                  <span className="text-[11px] font-medium flex-1 text-left">{role.name}</span>
+                                  {hasRole && <Check size={10} className="text-accent" />}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {(isOwner || m.role === "member") && (
@@ -1102,12 +1102,12 @@ export default function WorkspaceSettingsModal({ workspaceId, onClose }) {
 
       {/* Modal */}
       <div className="relative w-full max-w-3xl h-[95vh] sm:h-[88vh] max-h-180 bg-[#0e0e17] sm:rounded-3xl rounded-t-3xl sm:rounded-b-3xl rounded-b-none shadow-2xl shadow-black/60 flex flex-col sm:flex-row overflow-hidden ring-1 ring-white/6 mx-0 sm:mx-4 mt-auto sm:mt-0">
-        
+
         {/* ── Header for Mobile (Shows Workspace Name) */}
         <div className="sm:hidden flex items-center justify-between px-4 py-3 border-b border-white/6 bg-white/2">
           <div>
             <p className="text-[10px] font-mono font-bold text-ivory/30 uppercase tracking-widest">Settings</p>
-            <p className="text-[13px] font-display font-bold text-ivory/80 truncate max-w-[200px]">{workspace.name}</p>
+            <p className="text-[13px] font-display font-bold text-ivory/80 truncate max-w-50">{workspace.name}</p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg text-ivory/40 hover:text-ivory hover:bg-white/6 transition-all">
             <X size={18} />

@@ -459,7 +459,9 @@ function ProfilePage() {
                       ? "Security"
                       : s === "posts"
                         ? "Posts"
-                        : "Account"}
+                        : s === "connections"
+                          ? "Connections"
+                          : "Account"}
                 </button>
               ))}
             </div>
@@ -572,6 +574,112 @@ function ProfilePage() {
                     "Save Changes"
                   )}
                 </button>
+              </div>
+            )}
+
+            {/* ── Connections Section ── */}
+            {activeSection === "connections" && (
+              <div className="glass-card rounded-2xl border border-white/[0.08] p-5 space-y-4">
+                <h2 className="text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-ivory/25 flex items-center gap-1.5">
+                  <LinkIcon size={10} className="text-accent/50" />
+                  Connected Accounts
+                </h2>
+
+                {loadingSocialLinks ? (
+                  <div className="flex justify-center py-6">
+                    <Loader2 size={20} className="text-accent/40 animate-spin" />
+                  </div>
+                ) : (
+                  <>
+                    {/* Connected accounts */}
+                    <div className="space-y-2">
+                      {socialLinks.map((link) => (
+                        <div
+                          key={link.provider}
+                          className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-xl border border-white/[0.04]"
+                        >
+                          <div className="w-10 h-10 rounded-xl bg-white/[0.04] flex items-center justify-center">
+                            {link.provider === "google" ? (
+                              <Chrome size={18} className="text-accent/60" />
+                            ) : (
+                              <Github size={18} className="text-ivory/40" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[12px] font-semibold text-ivory/70 capitalize">
+                              {link.provider}
+                            </p>
+                            {link.username && (
+                              <p className="text-[10px] font-mono text-ivory/30 truncate">
+                                @{link.username}
+                              </p>
+                            )}
+                          </div>
+                          <span className="text-[9px] font-mono text-emerald-400/70 flex items-center gap-1">
+                            <CheckCircle2 size={10} />
+                            Connected
+                          </span>
+                          {link.canUnlink && (
+                            <button
+                              onClick={() => handleUnlinkAccount(link.provider)}
+                              disabled={unlinkingProvider === link.provider}
+                              className="p-2 rounded-lg text-ivory/30 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                            >
+                              {unlinkingProvider === link.provider ? (
+                                <Loader2 size={14} className="animate-spin" />
+                              ) : (
+                                <Unlink size={14} />
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      ))}
+
+                      {socialLinks.length === 0 && (
+                        <p className="text-ivory/25 text-[12px] font-mono text-center py-4">
+                          No connected accounts
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Connect more */}
+                    {canAddMore && (
+                      <div className="pt-2 border-t border-white/[0.06]">
+                        <p className="text-[10px] font-mono text-ivory/25 mb-2">Connect more accounts</p>
+                        <div className="flex gap-2">
+                          {!hasGoogle && (
+                            <button
+                              onClick={() => handleLinkAccount("google")}
+                              disabled={linkingProvider === "google"}
+                              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-ivory/50 hover:text-ivory hover:bg-white/[0.08] transition-all text-[11px]"
+                            >
+                              {linkingProvider === "google" ? (
+                                <Loader2 size={12} className="animate-spin" />
+                              ) : (
+                                <Chrome size={12} />
+                              )}
+                              Connect Google
+                            </button>
+                          )}
+                          {!hasGitHub && (
+                            <button
+                              onClick={() => handleLinkAccount("github")}
+                              disabled={linkingProvider === "github"}
+                              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-ivory/50 hover:text-ivory hover:bg-white/[0.08] transition-all text-[11px]"
+                            >
+                              {linkingProvider === "github" ? (
+                                <Loader2 size={12} className="animate-spin" />
+                              ) : (
+                                <Github size={12} />
+                              )}
+                              Connect GitHub
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             )}
 
@@ -902,6 +1010,15 @@ function ProfilePage() {
           )}
         </div>
       </div>
+
+      {/* Banner crop modal */}
+      {showBannerCrop && pendingBannerImage && (
+        <BannerCropModal
+          imageUrl={pendingBannerImage}
+          onSave={handleBannerCropSave}
+          onClose={() => { setShowBannerCrop(false); setPendingBannerImage(null); }}
+        />
+      )}
     </div>
   );
 }

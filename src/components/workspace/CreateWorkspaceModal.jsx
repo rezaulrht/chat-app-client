@@ -63,7 +63,7 @@ export default function CreateWorkspaceModal({ trigger = null }) {
       />
 
       {/* Modal */}
-      <div className="relative z-10 w-full max-w-md glass-card rounded-3xl border border-white/[0.08] shadow-[0_24px_80px_rgba(0,0,0,0.6)] p-6 space-y-5">
+      <div className="relative z-10 w-full max-w-md glass-card rounded-3xl border border-white/8 shadow-[0_24px_80px_rgba(0,0,0,0.6)] p-6 space-y-5">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
@@ -76,7 +76,7 @@ export default function CreateWorkspaceModal({ trigger = null }) {
           </div>
           <button
             onClick={handleClose}
-            className="w-8 h-8 rounded-xl flex items-center justify-center text-ivory/20 hover:text-ivory/60 hover:bg-white/[0.06] transition-all"
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-ivory/20 hover:text-ivory/60 hover:bg-white/6 transition-all"
           >
             <X size={16} />
           </button>
@@ -94,7 +94,7 @@ export default function CreateWorkspaceModal({ trigger = null }) {
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. My Team"
               maxLength={50}
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 text-ivory text-sm font-mono placeholder:text-ivory/20 focus:outline-none focus:border-accent/40 focus:bg-white/[0.06] transition-all"
+              className="w-full bg-white/4 border border-white/8 rounded-xl px-4 py-2.5 text-ivory text-sm font-mono placeholder:text-ivory/20 focus:outline-none focus:border-accent/40 focus:bg-white/6 transition-all"
               autoFocus
             />
           </div>
@@ -110,7 +110,7 @@ export default function CreateWorkspaceModal({ trigger = null }) {
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Optional — what's this workspace for?"
               maxLength={120}
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 text-ivory text-sm font-mono placeholder:text-ivory/20 focus:outline-none focus:border-accent/40 focus:bg-white/[0.06] transition-all"
+              className="w-full bg-white/4 border border-white/8 rounded-xl px-4 py-2.5 text-ivory text-sm font-mono placeholder:text-ivory/20 focus:outline-none focus:border-accent/40 focus:bg-white/6 transition-all"
             />
           </div>
 
@@ -141,11 +141,10 @@ export default function CreateWorkspaceModal({ trigger = null }) {
                     key={opt.id}
                     type="button"
                     onClick={() => setVisibility(opt.id)}
-                    className={`flex-1 flex items-center gap-2.5 px-3 py-2.5 rounded-xl border transition-all ${
-                      isSelected
+                    className={`flex-1 flex items-center gap-2.5 px-3 py-2.5 rounded-xl border transition-all ${isSelected
                         ? "border-accent/40 bg-accent/8 text-accent"
-                        : "border-white/[0.06] bg-white/[0.02] text-ivory/30 hover:text-ivory/50 hover:border-white/[0.1]"
-                    }`}
+                        : "border-white/6 bg-white/2 text-ivory/30 hover:text-ivory/50 hover:border-white/10"
+                      }`}
                   >
                     <Icon size={15} />
                     <div className="text-left">

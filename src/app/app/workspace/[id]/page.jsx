@@ -65,7 +65,7 @@ export default function WorkspacePage() {
         {/* Desktop: workspace strip + channel sidebar */}
         <WorkspaceStrip />
         <div
-          className="hidden md:flex flex-col shrink-0 h-full border-r border-white/[0.06] bg-deep overflow-hidden transition-[width] duration-300 ease-in-out"
+          className="hidden md:flex flex-col shrink-0 h-full border-r border-white/6 bg-deep overflow-hidden transition-[width] duration-300 ease-in-out"
           style={{ width: workspaceCollapsed ? "0px" : "188px" }}
         >
           <ChannelSidebar

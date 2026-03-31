@@ -43,13 +43,13 @@ export default function ModulePage() {
 
         {/* Collapsible channel sidebar column */}
         <div
-          className="hidden md:flex flex-col shrink-0 h-full border-r border-white/[0.06] bg-deep overflow-hidden transition-[width] duration-300 ease-in-out relative"
+          className="hidden md:flex flex-col shrink-0 h-full border-r border-white/6 bg-deep overflow-hidden transition-[width] duration-300 ease-in-out relative"
           style={{ width: workspaceCollapsed ? "0px" : "188px" }}
         >
           {/* Toggle button pinned at top of channel sidebar */}
           <button
             onClick={toggleWorkspace}
-            className="absolute top-2 right-2 z-10 p-1.5 rounded-lg text-ivory/25 hover:text-ivory/60 hover:bg-white/[0.06] transition-all"
+            className="absolute top-2 right-2 z-10 p-1.5 rounded-lg text-ivory/25 hover:text-ivory/60 hover:bg-white/6 transition-all"
             title="Collapse sidebar"
           >
             <PanelLeftClose size={14} />
@@ -73,7 +73,7 @@ export default function ModulePage() {
         {workspaceCollapsed && (
           <button
             onClick={toggleWorkspace}
-            className="hidden md:flex absolute left-14 top-2 z-20 p-1.5 rounded-lg text-ivory/25 hover:text-ivory/60 hover:bg-white/[0.06] transition-all bg-deep border border-white/[0.06]"
+            className="hidden md:flex absolute left-14 top-2 z-20 p-1.5 rounded-lg text-ivory/25 hover:text-ivory/60 hover:bg-white/6 transition-all bg-deep border border-white/6"
             title="Expand sidebar"
           >
             <PanelLeftOpen size={14} />
@@ -88,7 +88,7 @@ export default function ModulePage() {
           >
             <div className="absolute inset-0 bg-black/60" />
             <div
-              className="absolute left-0 top-12 bottom-16 w-72 bg-deep border-r border-accent/[0.12] flex flex-col overflow-hidden"
+              className="absolute left-0 top-12 bottom-16 w-72 bg-deep border-r border-accent/12 flex flex-col overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               <MobileWorkspaceSidebar

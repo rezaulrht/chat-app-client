@@ -43,24 +43,6 @@ function RoleBadge({ color, name, small = false }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TABS
-// ─────────────────────────────────────────────────────────────────────────────
-const TABS = [
-  { id: "overview", label: "Overview", Icon: Settings },
-  { id: "roles", label: "Roles", Icon: Shield },
-  { id: "members", label: "Members", Icon: Users },
-  { id: "bans", label: "Bans", Icon: Gavel },
-  { id: "invites", label: "Invites", Icon: Link2 },
-  { id: "danger", label: "Danger Zone", Icon: AlertTriangle },
-];
-
-import {
-  Settings, Shield, Users, Link2, AlertTriangle, ChevronRight, X, Camera,
-  Loader2, Check, Globe, Lock, Plus, Search, Crown, UserCog, UserMinus,
-  RefreshCw, Copy, LogOut, Trash2, Pencil, ChevronDown, Gavel
-} from "lucide-react";
-
-// ─────────────────────────────────────────────────────────────────────────────
 // OVERVIEW TAB
 // ─────────────────────────────────────────────────────────────────────────────
 function OverviewTab({ workspace, onUpdate }) {

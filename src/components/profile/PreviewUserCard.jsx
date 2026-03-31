@@ -84,13 +84,6 @@ export default function PreviewUserCard({
         setClampedPosition({ x: left, y: top });
     }, [position]);
 
-    // Remove duplicate click outside effect - it's now consolidated above
-            }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, [onClose]);
-
     const handleSendMessage = async () => {
         if (!messageText.trim()) return;
         setIsSending(true);

@@ -37,7 +37,7 @@ import {
   Unlink,
 } from "lucide-react";
 import PostCard from "@/components/Feed/PostCard";
-import BannerCropModal from "@/components/profile/BannerCropModal";
+import ImageCropModal from "@/components/shared/ImageCropModal";
 import { useTheme } from "@/context/ThemeContext";
 import { THEMES } from "@/context/ThemeContext";
 import { Paintbrush } from "lucide-react";
@@ -1197,10 +1197,14 @@ function ProfilePage() {
 
       {/* Banner crop modal */}
       {showBannerCrop && pendingBannerImage && (
-        <BannerCropModal
+        <ImageCropModal
           imageUrl={pendingBannerImage}
-          onSave={handleBannerCropSave}
-          onClose={() => { setShowBannerCrop(false); setPendingBannerImage(null); }}
+          onSave={(cropData, croppedCanvas) => {
+            // Convert canvas to data URL
+            const croppedImage = croppedCanvas.toDataURL("image/jpeg", 0.92);
+            handleBannerCropSave(croppedImage);
+          }}
+          onCancel={() => { setShowBannerCrop(false); setPendingBannerImage(null); }}
         />
       )}
     </div>

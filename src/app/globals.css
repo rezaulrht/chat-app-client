@@ -781,3 +781,14 @@
   .bg-\[rgba\(13\,13\,18\,0\.85\)\] {
   background-color: rgb(240 237 232 / 0.9);
 }
+
+/* ── Speaking soundbar animation ── */
+@keyframes soundbar {
+  0%,
+  100% {
+    transform: scaleY(0.4);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}

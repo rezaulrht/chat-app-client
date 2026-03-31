@@ -7,11 +7,11 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 gsap.registerPlugin(ScrollTrigger);
 
 const ACCENT = "var(--color-accent)";
-const DEEP   = "var(--color-slate-surface)";
+const DEEP = "var(--color-slate-surface)";
 
 const StoryAndCTA = () => {
   const storyRef = useRef(null);
-  const ctaRef   = useRef(null);
+  const ctaRef = useRef(null);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -68,7 +68,7 @@ const StoryAndCTA = () => {
     <div className="bg-obsidian text-ivory py-20 px-6">
       <div className="max-w-6xl mx-auto">
         {/* Our Story */}
-        <section ref={storyRef} className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center mb-32">
+        <section ref={storyRef} className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center mb-32">
           <div className="story-img relative" style={{ perspective: "800px" }}>
             <div
               className="rounded-3xl overflow-hidden border border-white/[0.06]"
@@ -115,7 +115,7 @@ const StoryAndCTA = () => {
             <div className="grid grid-cols-3 gap-4 sm:gap-8 mt-12 pt-8 border-t border-white/[0.05]">
               {[
                 { value: "2026", label: "Founded" },
-                { value: "50+",  label: "Team Members" },
+                { value: "50+", label: "Team Members" },
                 { value: "99.9%", label: "Uptime" },
               ].map((stat, i) => (
                 <div key={i} className="stat-item">

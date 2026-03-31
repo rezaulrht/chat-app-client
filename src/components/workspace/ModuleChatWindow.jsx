@@ -288,6 +288,19 @@ export default function ModuleChatWindow({
     }, 500);
   }, []);
 
+  const formatLocalMin = () => {
+    const now = new Date();
+
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
+
   const handleTouchEnd = useCallback(() => {
     if (longPressTimer.current) clearTimeout(longPressTimer.current);
   }, []);
@@ -307,7 +320,7 @@ export default function ModuleChatWindow({
         const mUserId = mem.user?._id || mem.user?.id || mem.user;
         return String(mUserId) === String(id);
       });
-      
+
       const smuggled = (mentionData || []).find(d => String(d.id || d._id) === String(id));
       const name = (typeof m === "object" ? m.name : null) || smuggled?.name || member?.user?.name;
       const avatar = (typeof m === "object" ? m.avatar : null) || smuggled?.avatar || member?.user?.avatar;
@@ -411,25 +424,25 @@ export default function ModuleChatWindow({
       span.className = "mention";
       span.contentEditable = "false";
       span.dataset.id = suggestion.user?._id || suggestion.key;
-      
+
       const img = document.createElement("img");
       img.src = suggestion.user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${suggestion.value}`;
       img.alt = "";
       span.appendChild(img);
-      
+
       const nameText = document.createTextNode(`@${suggestion.value}`);
       span.appendChild(nameText);
 
       range.insertNode(span);
 
-      const space = document.createTextNode("\u00A0"); 
+      const space = document.createTextNode("\u00A0");
       span.after(space);
 
       range.setStartAfter(space);
       range.setEndAfter(space);
       selection.removeAllRanges();
       selection.addRange(range);
-      
+
       const parsed = parseMessage(inputRef.current);
       setText(parsed.text);
       setSuggestions([]);
@@ -485,7 +498,7 @@ export default function ModuleChatWindow({
       const query = mentionMatch[1].toLowerCase();
       const availableMembers = membersCache?.[workspaceId] || [];
       const currentMentions = parsed.mentions.map(m => typeof m === 'object' ? m.id : m);
-      
+
       const filtered = availableMembers
         .filter(
           (m) =>
@@ -496,7 +509,7 @@ export default function ModuleChatWindow({
         )
         .map(m => ({ type: 'mention', key: m.user._id, value: m.user.name, user: m.user }))
         .slice(0, 10);
-      
+
       if (filtered.length > 0) {
         setSuggestions(filtered);
         setSuggestionIndex(0);
@@ -529,7 +542,7 @@ export default function ModuleChatWindow({
       range.setEndAfter(emojiNode);
       selection.removeAllRanges();
       selection.addRange(range);
-      
+
       const parsed = parseMessage(inputRef.current);
       setText(parsed.text);
       setSuggestions([]);
@@ -889,18 +902,18 @@ export default function ModuleChatWindow({
           >
             <Pin size={16} />
           </button>
-          
+
           {/* Members toggle */}
-        <div className="flex items-center gap-1">
-          {!isGameActive && (
-            <button
-              onClick={() => joinGame(moduleId, workspaceId)}
-              className="p-2 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-colors"
-              title="Play Word Spy"
-            >
-              <Gamepad2 size={18} />
-            </button>
-          )}
+          <div className="flex items-center gap-1">
+            {!isGameActive && (
+              <button
+                onClick={() => joinGame(moduleId, workspaceId)}
+                className="p-2 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-colors"
+                title="Play Word Spy"
+              >
+                <Gamepad2 size={18} />
+              </button>
+            )}
             <button
               onClick={onToggleMembers}
               title="Toggle member list"
@@ -911,7 +924,7 @@ export default function ModuleChatWindow({
             >
               <Users size={16} />
             </button>
-        </div>
+          </div>
         </div>
       </header>
 
@@ -1401,7 +1414,7 @@ export default function ModuleChatWindow({
       {canType ? (
         <form
           onSubmit={handleSend}
-          className="p-4 relative z-20 bg-obsidian/80 backdrop-blur-sm border-t border-white/5"
+          className="p-3 md:p-4 relative z-20 bg-obsidian/80 backdrop-blur-sm border-t border-white/5"
         >
           {/* Auto-complete suggestions */}
           {suggestions.length > 0 && (
@@ -1471,7 +1484,7 @@ export default function ModuleChatWindow({
           )}
 
           {showScheduledPanel && (
-            <div className="mb-3 p-3 rounded-2xl bg-slate-surface border border-white/5">
+            <div className="mb-2 md:mb-3 p-2 md:p-3 rounded-2xl bg-slate-surface border border-white/5">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs font-bold text-ivory/80">
                   Scheduled messages
@@ -1533,7 +1546,7 @@ export default function ModuleChatWindow({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="w-9 h-9 flex items-center justify-center text-ivory/30 hover:text-accent transition-colors"
+              className="w-8 md:w-9 h-8 md:h-9 flex items-center justify-center text-ivory/30 hover:text-accent transition-colors shrink-0"
               title="Upload files"
               aria-label="Upload files"
             >
@@ -1555,7 +1568,7 @@ export default function ModuleChatWindow({
             <div className="flex-1 relative min-w-0">
               <div
                 ref={inputRef}
-                className="w-full bg-transparent outline-none text-sm caret-white px-3 py-2 placeholder:text-ivory/20 transition-colors relative z-10 border-none message-input-rich"
+                className="w-full bg-transparent outline-none text-xs md:text-sm caret-white px-2 md:px-3 py-2 placeholder:text-ivory/20 transition-colors relative z-10 border-none message-input-rich"
                 contentEditable={canType}
                 onInput={handleInput}
                 onPaste={(e) => {
@@ -1584,7 +1597,7 @@ export default function ModuleChatWindow({
                 setShowGifPicker((v) => !v);
                 setShowEmojiPicker(false);
               }}
-              className={`hidden sm:inline-flex px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${showGifPicker
+              className={`hidden lg:inline-flex px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${showGifPicker
                 ? "bg-accent/20 border-accent/40 text-accent"
                 : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
                 }`}
@@ -1598,7 +1611,7 @@ export default function ModuleChatWindow({
                 setShowEmojiPicker((v) => !v);
                 setShowGifPicker(false);
               }}
-              className={`w-9 h-9 flex items-center justify-center transition-all ${showEmojiPicker
+              className={`w-8 md:w-9 h-8 md:h-9 flex items-center justify-center transition-all shrink-0 ${showEmojiPicker
                 ? "text-accent"
                 : "text-ivory/30 hover:text-ivory/60"
                 }`}
@@ -1608,7 +1621,7 @@ export default function ModuleChatWindow({
             </button>
 
             {/* AI Button - Desktop */}
-            <div ref={aiMenuRefDesktop} className="relative hidden sm:inline-flex">
+            <div ref={aiMenuRefDesktop} className="relative hidden lg:inline-flex">
               <button
                 type="button"
                 onClick={() => setAiMenuOpen((v) => !v)}
@@ -1656,7 +1669,7 @@ export default function ModuleChatWindow({
             </div>
 
             {/* Schedule Dropdown */}
-            <div ref={scheduleDropdownRef} className="relative inline-flex">
+            <div ref={scheduleDropdownRef} className="relative hidden lg:inline-flex">
               <button
                 type="button"
                 onClick={() => setScheduleDropdownOpen((v) => !v)}
@@ -1747,7 +1760,7 @@ export default function ModuleChatWindow({
               type="submit"
               disabled={scheduling || fileUploading || fileErrors.some((e) => e !== null) || (!text.trim() && stagedFiles.length === 0)}
               title="Send"
-              className={`w-9 h-9 flex items-center justify-center rounded-xl ml-1 transition-all active:scale-95 shadow-lg ${(scheduling || fileUploading || fileErrors.some((e) => e !== null) || (!text.trim() && stagedFiles.length === 0))
+              className={`w-8 md:w-9 h-8 md:h-9 flex items-center justify-center rounded-xl ml-1 transition-all active:scale-95 shadow-lg shrink-0 ${(scheduling || fileUploading || fileErrors.some((e) => e !== null) || (!text.trim() && stagedFiles.length === 0))
                 ? "bg-slate-700 text-ivory/40 cursor-not-allowed opacity-50"
                 : "bg-accent hover:bg-accent/90 text-black shadow-accent/20"
                 }`}

@@ -55,7 +55,7 @@ export default function CreateWorkspaceModal({ trigger = null }) {
   };
 
   const modal = isOpen && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-4">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
@@ -63,7 +63,7 @@ export default function CreateWorkspaceModal({ trigger = null }) {
       />
 
       {/* Modal */}
-      <div className="relative z-10 w-full max-w-md glass-card rounded-3xl border border-white/8 shadow-[0_24px_80px_rgba(0,0,0,0.6)] p-6 space-y-5">
+      <div className="relative z-10 w-full max-w-sm md:max-w-md glass-card rounded-3xl border border-white/[0.08] shadow-[0_24px_80px_rgba(0,0,0,0.6)] p-4 md:p-6 space-y-4 md:space-y-5">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
@@ -143,7 +143,7 @@ export default function CreateWorkspaceModal({ trigger = null }) {
                     onClick={() => setVisibility(opt.id)}
                     className={`flex-1 flex items-center gap-2.5 px-3 py-2.5 rounded-xl border transition-all ${isSelected
                         ? "border-accent/40 bg-accent/8 text-accent"
-                        : "border-white/6 bg-white/2 text-ivory/30 hover:text-ivory/50 hover:border-white/10"
+                        : "border-white/[0.06] bg-white/[0.02] text-ivory/30 hover:text-ivory/50 hover:border-white/[0.1]"
                       }`}
                   >
                     <Icon size={15} />

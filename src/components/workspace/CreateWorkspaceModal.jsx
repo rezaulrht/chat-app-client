@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { useWorkspace } from "@/hooks/useWorkspace";
 
-export default function CreateWorkspaceModal() {
+export default function CreateWorkspaceModal({ trigger = null }) {
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -55,7 +55,7 @@ export default function CreateWorkspaceModal() {
   };
 
   const modal = isOpen && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-4">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
@@ -63,7 +63,7 @@ export default function CreateWorkspaceModal() {
       />
 
       {/* Modal */}
-      <div className="relative z-10 w-full max-w-md glass-card rounded-3xl border border-white/[0.08] shadow-[0_24px_80px_rgba(0,0,0,0.6)] p-6 space-y-5">
+      <div className="relative z-10 w-full max-w-sm md:max-w-md glass-card rounded-3xl border border-white/[0.08] shadow-[0_24px_80px_rgba(0,0,0,0.6)] p-4 md:p-6 space-y-4 md:space-y-5">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
@@ -141,11 +141,10 @@ export default function CreateWorkspaceModal() {
                     key={opt.id}
                     type="button"
                     onClick={() => setVisibility(opt.id)}
-                    className={`flex-1 flex items-center gap-2.5 px-3 py-2.5 rounded-xl border transition-all ${
-                      isSelected
+                    className={`flex-1 flex items-center gap-2.5 px-3 py-2.5 rounded-xl border transition-all ${isSelected
                         ? "border-accent/40 bg-accent/8 text-accent"
                         : "border-white/[0.06] bg-white/[0.02] text-ivory/30 hover:text-ivory/50 hover:border-white/[0.1]"
-                    }`}
+                      }`}
                   >
                     <Icon size={15} />
                     <div className="text-left">
@@ -184,18 +183,27 @@ export default function CreateWorkspaceModal() {
 
   return (
     <>
-      {/* Trigger button */}
-      <button
-        onClick={() => setIsOpen(true)}
-        className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-ivory/20 hover:text-accent hover:bg-accent/5 transition-all duration-150"
-      >
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center border border-dashed border-white/10 hover:border-accent/30 transition-colors">
-          <Plus size={18} />
-        </div>
-        <span className="text-sm font-display font-semibold">
-          Create Workspace
-        </span>
-      </button>
+      {/* Trigger: custom element or default button */}
+      {trigger ? (
+        React.cloneElement(trigger, {
+          onClick: (e) => {
+            trigger.props.onClick?.(e);
+            setIsOpen(true);
+          },
+        })
+      ) : (
+        <button
+          onClick={() => setIsOpen(true)}
+          className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-ivory/20 hover:text-accent hover:bg-accent/5 transition-all duration-150"
+        >
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center border border-dashed border-white/10 hover:border-accent/30 transition-colors">
+            <Plus size={18} />
+          </div>
+          <span className="text-sm font-display font-semibold">
+            Create Workspace
+          </span>
+        </button>
+      )}
 
       {typeof window !== "undefined" && createPortal(modal, document.body)}
     </>

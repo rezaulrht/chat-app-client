@@ -6,8 +6,8 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const ACCENT   = "#00d3bb";
-const DEEP     = "#12121a";
+const ACCENT   = "var(--color-accent)";
+const DEEP     = "var(--color-slate-surface)";
 
 const values = [
   {
@@ -80,9 +80,9 @@ const AboutSection = () => {
       <section ref={heroRef} className="relative py-32 px-6 flex flex-col items-center text-center">
         <div
           className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-0"
-          style={{ background: "radial-gradient(circle at 50% 0%, " + ACCENT + "15, transparent 70%)" }}
+          style={{ background: "radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--color-accent) 8%, transparent), transparent 70%)" }}
         />
-        <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full blur-[120px] -z-0" style={{ background: ACCENT + "10" }} />
+        <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full blur-[120px] -z-0" style={{ background: "color-mix(in srgb, var(--color-accent) 6%, transparent)" }} />
 
         <div className="relative z-10 max-w-4xl">
           <div className="hero-el inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/[0.08] bg-white/[0.03] mb-8">
@@ -108,7 +108,7 @@ const AboutSection = () => {
       <section ref={valuesRef} className="relative py-24 px-6">
         <div
           className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-px"
-          style={{ background: "linear-gradient(90deg, transparent, " + ACCENT + "40, transparent)" }}
+          style={{ background: "linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-accent) 25%, transparent), transparent)" }}
         />
 
         <div className="relative max-w-6xl mx-auto">
@@ -124,7 +124,7 @@ const AboutSection = () => {
             </div>
             <div
               className="hidden md:block h-px flex-1 ml-12 mb-4"
-              style={{ background: "linear-gradient(90deg, " + ACCENT + "40, transparent)" }}
+              style={{ background: "linear-gradient(90deg, color-mix(in srgb, var(--color-accent) 25%, transparent), transparent)" }}
             />
           </div>
 
@@ -137,12 +137,12 @@ const AboutSection = () => {
               >
                 <div
                   className="absolute -inset-1 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition duration-700"
-                  style={{ background: "linear-gradient(135deg, " + value.color + "15, transparent)" }}
+                  style={{ background: `linear-gradient(135deg, color-mix(in srgb, ${value.color} 8%, transparent), transparent)` }}
                 />
                 <div className="relative z-10">
                   <div
                     className="w-14 h-14 rounded-2xl flex items-center justify-center mb-8 transition-all duration-500 group-hover:scale-110"
-                    style={{ background: value.color + "12", border: "1px solid " + value.color + "25" }}
+                    style={{ background: `color-mix(in srgb, ${value.color} 7%, transparent)`, border: `1px solid color-mix(in srgb, ${value.color} 15%, transparent)` }}
                   >
                     {value.icon}
                   </div>

@@ -8,13 +8,13 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const ACCENT = "#00d3bb";
-const DEEP   = "#12121a";
+const ACCENT = "var(--color-accent)";
+const DEEP = "var(--color-slate-surface)";
 
 const ContactPage = () => {
   const headerRef = useRef(null);
-  const formRef   = useRef(null);
-  const sideRef   = useRef(null);
+  const formRef = useRef(null);
+  const sideRef = useRef(null);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -56,7 +56,7 @@ const ContactPage = () => {
       {/* Background glow */}
       <div
         className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] blur-[150px] -z-10"
-        style={{ background: ACCENT + "08" }}
+        style={{ background: "color-mix(in srgb, var(--color-accent) 3%, transparent)" }}
       />
 
       <div className="max-w-6xl mx-auto relative z-10">
@@ -71,7 +71,7 @@ const ContactPage = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Contact Form */}
           <div
             ref={formRef}
@@ -131,7 +131,7 @@ const ContactPage = () => {
               <h3 className="font-display text-xl font-bold mb-8 text-ivory">Contact Information</h3>
               <div className="space-y-8">
                 <div className="flex gap-4">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: ACCENT + "15" }}>
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: "color-mix(in srgb, var(--color-accent) 8%, transparent)" }}>
                     <Mail className="w-5 h-5" style={{ color: ACCENT }} />
                   </div>
                   <div>

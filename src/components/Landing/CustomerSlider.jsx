@@ -6,8 +6,6 @@ import "swiper/css";
 import "swiper/css/effect-coverflow";
 import "swiper/css/pagination";
 
-const ACCENT = "#00d3bb";
-const DEEP = "#12121a";
 
 const reviews = [
   {
@@ -44,7 +42,7 @@ export default function CustomerSlider() {
       <div className="absolute inset-0 z-0">
         <div
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full blur-[120px] opacity-20 pointer-events-none"
-          style={{ background: ACCENT + "15" }}
+          style={{ background: "color-mix(in srgb, var(--color-accent) 8%, transparent)" }}
         />
       </div>
 
@@ -83,13 +81,12 @@ export default function CustomerSlider() {
               className="w-[calc(100vw-3rem)]! sm:w-87.5! md:w-100!"
             >
               <div
-                className="p-8 rounded-3xl border border-white/[0.06] relative h-full flex flex-col justify-between"
-                style={{ background: DEEP }}
+                className="p-8 rounded-3xl border border-white/[0.06] relative h-full flex flex-col justify-between bg-slate-surface"
               >
                 {/* Decorative quote mark */}
                 <div
                   className="absolute top-4 right-6 font-serif text-6xl leading-none pointer-events-none select-none"
-                  style={{ color: ACCENT + "12" }}
+                  style={{ color: "color-mix(in srgb, var(--color-accent) 7%, transparent)" }}
                 >
                   &ldquo;
                 </div>
@@ -99,9 +96,8 @@ export default function CustomerSlider() {
                     {[...Array(5)].map((_, i) => (
                       <svg
                         key={i}
-                        className="w-4 h-4"
+                        className="w-4 h-4 fill-accent"
                         viewBox="0 0 20 20"
-                        style={{ fill: ACCENT }}
                       >
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                       </svg>
@@ -119,7 +115,7 @@ export default function CustomerSlider() {
                     </h4>
                     <p
                       className="text-[10px] uppercase tracking-widest font-bold mt-1 font-mono"
-                      style={{ color: ACCENT }}
+                      style={{ color: "var(--color-accent)" }}
                     >
                       Verified User
                     </p>

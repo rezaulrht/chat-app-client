@@ -84,7 +84,7 @@ export default function UseCases() {
                 whileHover={{ y: -6, borderColor: useCase.color + "40" }}
                 transition={{ duration: 0.3 }}
                 className="group p-8 rounded-3xl border border-white/[0.05] transition-all duration-300"
-                style={{ background: "#12121a" }}
+                style={{ background: "var(--color-slate-surface)" }}
               >
                 <div
                   className="w-12 h-12 rounded-xl flex items-center justify-center mb-6 transition-transform duration-300 group-hover:scale-110"

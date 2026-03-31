@@ -7,8 +7,8 @@ import { Zap, ShieldCheck, TrendingUp, Check, X } from "lucide-react";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const ACCENT = "#00d3bb";
-const DEEP = "#12121a";
+const ACCENT = "var(--color-accent)";
+const DEEP = "var(--color-slate-surface)";
 
 const differentiators = [
   {
@@ -87,10 +87,7 @@ export default function CompetitiveEdge() {
       <div
         className="absolute top-0 left-0 w-full h-px"
         style={{
-          background:
-            "linear-gradient(90deg, transparent, " +
-            ACCENT +
-            "40, transparent)",
+          background: "linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-accent) 25%, transparent), transparent)",
         }}
       />
 
@@ -108,7 +105,7 @@ export default function CompetitiveEdge() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
           {/* Left: Differentiators */}
           <div
             className="edge-card-wrap rounded-3xl border border-white/[0.06] p-8 flex flex-col justify-between gap-6"

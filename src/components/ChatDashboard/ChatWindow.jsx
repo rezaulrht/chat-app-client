@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import dynamic from "next/dynamic";
 import {
   Phone,
@@ -26,6 +27,7 @@ import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
 import { useCall } from "@/hooks/useCall";
 import { useRouter } from "next/navigation";
+import { useDmPrefs } from "@/hooks/useDmPrefs";
 import { EMOJI_MAP } from "@/utils/emojis";
 import { formatLastSeen } from "@/utils/formatLastSeen";
 import CreatePollModal from "../CreatePollModal";
@@ -104,11 +106,10 @@ function SharedPostCard({ parsed, isMe }) {
       <button
         type="button"
         onClick={handleClick}
-        className={`text-left w-full max-w-[260px] rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98] p-3 flex flex-col gap-1.5 group
-          ${
-            isMe
-              ? "bg-black/20 border-black/20 hover:border-black/30"
-              : "bg-black/20 border-white/10 hover:border-accent/30"
+        className={`text-left w-full max-w-[280px] rounded-2xl border transition-all hover:scale-[1.02] active:scale-[0.98] p-4 flex flex-col gap-2 group shadow-sm
+          ${isMe
+            ? "bg-accent/10 border-accent/20 hover:bg-accent/15"
+            : "bg-white/[0.04] border-white/10 hover:border-accent/40 hover:bg-white/[0.08]"
           }`}
       >
         <div className="flex items-center gap-1.5">
@@ -129,7 +130,7 @@ function SharedPostCard({ parsed, isMe }) {
           <p className="text-[10px] font-mono opacity-40">by {parsed.author}</p>
         )}
         <p
-          className={`text-[10px] font-mono mt-0.5 ${isMe ? "text-black/50" : "text-accent/60"} group-hover:underline`}
+          className={`text-[11px] font-bold mt-1 tracking-wide text-accent/80 group-hover:text-accent group-hover:underline transition-colors`}
         >
           View post →
         </p>
@@ -174,6 +175,8 @@ export default function ChatWindow({
   onMessagesSeen,
   showGroupInfo,
   onToggleGroupInfo,
+  showDmInfo,
+  onToggleDmInfo,
   onConversationUpdate,
   toggleSidebar,
   toggleWorkspace,
@@ -181,6 +184,14 @@ export default function ChatWindow({
   const { socket, onlineUsers, typingUsers } = useSocket() || {};
   const { user } = useAuth();
   const { startCall } = useCall();
+  const router = useRouter();
+
+  // Chat customisation prefs (chat colour, emoji, plus nickname for DMs)
+  const _isDm = conversation?.type !== "group";
+  const { prefs: dmPrefs } = useDmPrefs(conversation);
+  const dmColor    = dmPrefs.color || "#00d3bb";
+  const dmEmoji    = dmPrefs.emoji || "👍";
+  const dmNickname = _isDm ? dmPrefs.nickname?.trim() : null;
 
   if (!conversation) {
     return (
@@ -354,8 +365,9 @@ export default function ChatWindow({
     scheduleDropdownOpen,
   ]);
 
-  const handleEmojiClick = (emojiData) =>
-    setText((prev) => prev + emojiData.emoji);
+  const handleEmojiClick = (emojiData) => {
+    insertTextAtCursor(emojiData.emoji);
+  };
 
   const insertTextAtCursor = (textToInsert) => {
     if (!inputRef.current) return;
@@ -388,7 +400,7 @@ export default function ChatWindow({
         const smuggled = (mentionData || []).find(d => String(d.id || d._id) === String(id));
         const name = (typeof m === "object" ? m.name : null) || smuggled?.name || participant?.name;
         const avatar = (typeof m === "object" ? m.avatar : null) || smuggled?.avatar || participant?.avatar;
-        
+
         return {
           id,
           name,
@@ -614,7 +626,7 @@ export default function ChatWindow({
       const query = mentionMatch[1].toLowerCase();
       const participants = conversation.participants || [];
       const currentMentions = parsed.mentions.map(m => typeof m === 'object' ? m.id : m);
-      
+
       const filtered = participants
         .filter(
           (p) =>
@@ -871,11 +883,11 @@ export default function ChatWindow({
 
         // Check for optimistic message to replace (for regular messages)
         let optimisticIndex = prev.findIndex((m) => m._id === msg.tempId || (m.tempId && m.tempId === msg.tempId));
-        
+
         // Fuzzy match fallback (if server stripped tempId)
         if (optimisticIndex === -1 && String(msg.sender?._id) === String(user?._id)) {
-          optimisticIndex = prev.findIndex(m => 
-            m.isOptimistic && 
+          optimisticIndex = prev.findIndex(m =>
+            m.isOptimistic &&
             m.text === msg.text &&
             !prev.some(other => other._id === msg._id)
           );
@@ -885,9 +897,9 @@ export default function ChatWindow({
           console.log("🔄 Replacing optimistic message");
           const updated = [...prev];
           // Preserve local mentionData if needed
-          updated[optimisticIndex] = { 
-            ...msg, 
-            mentionData: msg.mentionData || updated[optimisticIndex].mentionData 
+          updated[optimisticIndex] = {
+            ...msg,
+            mentionData: msg.mentionData || updated[optimisticIndex].mentionData
           };
           return updated;
         }
@@ -1143,8 +1155,8 @@ export default function ChatWindow({
       console.error(err);
       toast.error(
         err?.response?.data?.error ||
-          err?.response?.data?.message ||
-          "Failed to load scheduled messages",
+        err?.response?.data?.message ||
+        "Failed to load scheduled messages",
       );
     } finally {
       setLoadingScheduled(false);
@@ -1201,8 +1213,8 @@ export default function ChatWindow({
       console.error(err);
       toast.error(
         err?.response?.data?.error ||
-          err?.response?.data?.message ||
-          "Failed to cancel scheduled message",
+        err?.response?.data?.message ||
+        "Failed to cancel scheduled message",
       );
     }
   };
@@ -1301,8 +1313,8 @@ export default function ChatWindow({
       console.error(err);
       toast.error(
         err?.response?.data?.error ||
-          err?.response?.data?.message ||
-          "Failed to schedule",
+        err?.response?.data?.message ||
+        "Failed to schedule",
       );
     } finally {
       setScheduling(false);
@@ -1369,6 +1381,55 @@ export default function ChatWindow({
       return unique;
     });
   }, [conversation?._id]);
+
+  const handleSendQuickEmoji = () => {
+    if (!conversation || !socket || fileUploading) return;
+    const tempId = `temp-${Date.now()}`;
+    const mappedEmoji = Array.from(dmEmoji)
+      .map((c) => EMOJI_MAP[c] || c)
+      .join("");
+
+    const optimistic = {
+      _id: tempId,
+      conversationId: conversation._id,
+      sender: { _id: user?._id, name: user?.name },
+      text: mappedEmoji,
+      mentions: [],
+      mentionData: [],
+      attachments: [],
+      createdAt: new Date().toISOString(),
+      status: "sending",
+      isOptimistic: true,
+      replyTo,
+    };
+
+    setMessages((prev) => [...prev, optimistic]);
+    setReplyTo(null);
+
+    const isGrp = conversation.type === "group";
+    socket.emit(
+      "message:send",
+      {
+        conversationId: conversation._id,
+        ...(isGrp ? {} : { receiverId: conversation.participant?._id }),
+        text: mappedEmoji,
+        mentions: [],
+        mentionData: [],
+        tempId,
+        replyTo: replyTo?._id || null,
+        attachments: [],
+      },
+      (response) => {
+        if (response?.success && response?.message) {
+          setMessages((prev) =>
+            prev.map((m) => (m._id === tempId ? response.message : m)),
+          );
+        }
+      },
+    );
+
+    onMessageSent?.(conversation._id, mappedEmoji, null, conversation.type);
+  };
 
   const handleSend = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
@@ -1451,7 +1512,7 @@ export default function ChatWindow({
 
   if (!conversation) {
     return (
-      <div className="flex-1 bg-obsidian flex flex-col items-center justify-center gap-6 p-6">
+      <div className="flex-1 bg-transparent flex flex-col items-center justify-center gap-6 p-6">
         <div className="relative">
           <div className="absolute inset-0 bg-accent/20 blur-3xl rounded-full" />
           <div className="relative w-24 h-24 rounded-4xl bg-accent/10 border border-accent/20 flex items-center justify-center shadow-2xl backdrop-blur-sm">
@@ -1490,8 +1551,8 @@ export default function ChatWindow({
     : 0;
   const groupOnlineCount = isGroup
     ? (conversation.participants || []).filter(
-        (p) => onlineUsers?.get(p._id)?.online,
-      ).length
+      (p) => onlineUsers?.get(p._id)?.online,
+    ).length
     : 0;
   const groupAvatarColors = isGroup
     ? getGroupAvatarColor(conversation.name)
@@ -1499,7 +1560,7 @@ export default function ChatWindow({
 
   return (
     <main
-      className="flex-1 min-w-0 flex flex-col bg-obsidian relative h-full"
+      className="flex-1 min-w-0 flex flex-col bg-obsidian/40 backdrop-blur-3xl relative h-full"
       onDragOver={(e) => {
         e.preventDefault();
         setIsDragging(true);
@@ -1519,14 +1580,9 @@ export default function ChatWindow({
           <p className="text-accent text-lg font-medium">Drop files here</p>
         </div>
       )}
-      <header className="h-17 border-b border-white/5 flex justify-between items-center px-3 sm:px-5 bg-obsidian/80 backdrop-blur-sm shrink-0">
+      <header className="h-17 border-b border-white/[0.06] flex justify-between items-center px-3 sm:px-5 bg-white/[0.02] backdrop-blur-2xl shrink-0 shadow-sm relative z-20">
         <div className="flex items-center gap-3">
-          <button
-            onClick={toggleSidebar}
-            className="md:hidden w-8 h-8 rounded-xl bg-white/4 flex items-center justify-center text-ivory/30 hover:text-ivory transition-colors"
-          >
-            <Menu size={18} />
-          </button>
+          {/* Hamburger removed — AppTopBar handles mobile sidebar toggle */}
           {isGroup ? (
             <>
               <div className="w-10 h-10 rounded-2xl shrink-0 overflow-hidden">
@@ -1552,9 +1608,13 @@ export default function ChatWindow({
                 )}
               </div>
               <div>
-                <h2 className="font-bold text-ivory text-sm leading-tight">
+                <button
+                  type="button"
+                  onClick={onToggleGroupInfo}
+                  className="font-bold text-ivory text-sm leading-tight hover:text-accent transition-colors text-left"
+                >
                   {conversation.name}
-                </h2>
+                </button>
                 <p className="text-[10px] mt-0.5 text-ivory/30">
                   {groupMemberCount} member{groupMemberCount !== 1 ? "s" : ""}
                   {groupOnlineCount > 0 && (
@@ -1567,13 +1627,12 @@ export default function ChatWindow({
             </>
           ) : (
             <>
-              <div className="relative">
+              <Link href={`/profile/${participant?._id}`} className="relative block">
                 <div
-                  className={`rounded-2xl overflow-hidden ${
-                    isParticipantOnline
+                  className={`rounded-2xl overflow-hidden ${isParticipantOnline
                       ? "ring-2 ring-accent/60 ring-offset-1 ring-offset-[#0a0e13]"
                       : ""
-                  }`}
+                    }`}
                 >
                   <Image
                     src={
@@ -1588,16 +1647,18 @@ export default function ChatWindow({
                   />
                 </div>
                 <div
-                  className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-obsidian ${
-                    isParticipantOnline ? "bg-emerald-400" : "bg-slate-600"
-                  }`}
+                  className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-obsidian ${isParticipantOnline ? "bg-emerald-400" : "bg-slate-600"
+                    }`}
                 />
-              </div>
+              </Link>
 
               <div>
-                <h2 className="font-bold text-ivory text-sm leading-tight">
-                  {participant?.name}
-                </h2>
+                <Link
+                  href={`/profile/${participant?._id}`}
+                  className="font-bold text-ivory hover:text-accent transition-colors text-sm leading-tight cursor-pointer text-left block"
+                >
+                  {dmNickname || participant?.name}
+                </Link>
                 <p className="text-[10px] mt-0.5">
                   {isParticipantOnline ? (
                     <span className="text-emerald-400 flex items-center gap-1">
@@ -1619,10 +1680,18 @@ export default function ChatWindow({
         </div>
 
         <div className="flex gap-1">
-          <button className="w-8 h-8 rounded-xl bg-white/4 hover:bg-accent/10 hover:text-accent flex items-center justify-center text-ivory/30 transition-all">
+          <button
+            onClick={() => startCall(participant?._id, "voice")}
+            className="w-8 h-8 rounded-xl bg-white/4 hover:bg-accent/10 hover:text-accent flex items-center justify-center text-ivory/30 transition-all"
+            title="Voice call"
+          >
             <Phone size={16} />
           </button>
-          <button className="w-8 h-8 rounded-xl bg-white/4 hover:bg-accent/10 hover:text-accent flex items-center justify-center text-ivory/30 transition-all">
+          <button
+            onClick={() => startCall(participant?._id, "video")}
+            className="w-8 h-8 rounded-xl bg-white/4 hover:bg-accent/10 hover:text-accent flex items-center justify-center text-ivory/30 transition-all"
+            title="Video call"
+          >
             <Video size={16} />
           </button>
 
@@ -1631,11 +1700,10 @@ export default function ChatWindow({
             <button
               type="button"
               onClick={() => setShowPinnedDrawer(!showPinnedDrawer)}
-              className={`relative w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
-                showPinnedDrawer
+              className={`relative w-8 h-8 rounded-xl flex items-center justify-center transition-all ${showPinnedDrawer
                   ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
                   : "bg-white/4 hover:bg-amber-500/10 hover:text-amber-400 text-ivory/30"
-              }`}
+                }`}
               title="View pinned messages"
               aria-label="View pinned messages"
             >
@@ -1648,12 +1716,12 @@ export default function ChatWindow({
 
           <button
             type="button"
-            onClick={isGroup ? onToggleGroupInfo : undefined}
-            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
-              isGroup && showGroupInfo
+            onClick={isGroup ? onToggleGroupInfo : onToggleDmInfo}
+            title={isGroup ? "Group info" : "Chat info"}
+            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${(isGroup && showGroupInfo) || (!isGroup && showDmInfo)
                 ? "bg-accent/20 text-accent border border-accent/30"
                 : "bg-white/4 hover:bg-accent/10 hover:text-accent text-ivory/30"
-            }`}
+              }`}
           >
             <Info size={16} />
           </button>
@@ -1768,9 +1836,9 @@ export default function ChatWindow({
                                 loading="lazy"
                               />
                             ) : (
-                                <p className="text-[13px] text-ivory/80 leading-relaxed break-words line-clamp-3">
-                                  {renderMessageText(msg.text, msg.mentions)}
-                                </p>
+                              <p className="text-[13px] text-ivory/80 leading-relaxed break-words line-clamp-3">
+                                {renderMessageText(msg.text, msg.mentions)}
+                              </p>
                             )}
 
                             {/* Timestamp & Pinned By */}
@@ -1793,10 +1861,10 @@ export default function ChatWindow({
                           {(() => {
                             const canUnpin = isGroup
                               ? conversation.admins?.some(
-                                  (adminId) =>
-                                    adminId === user?._id ||
-                                    adminId._id === user?._id,
-                                )
+                                (adminId) =>
+                                  adminId === user?._id ||
+                                  adminId._id === user?._id,
+                              )
                               : true;
 
                             if (!canUnpin) return null;
@@ -1963,7 +2031,15 @@ export default function ChatWindow({
                   </div>
                 )}
 
-                <div
+                {msg.isSystem ? (
+                  <div key={`sys-${msg._id}`} className="flex justify-center my-3 w-full">
+                    <span className="text-[10px] text-ivory/40 bg-white/5 px-3 py-1 rounded-full font-mono text-center">
+                      {msg.text}
+                    </span>
+                  </div>
+                ) : (
+                  <div
+
                   id={`msg-${msg._id}`}
                   data-message-id={msg._id}
                   data-sender-id={msg.sender?._id}
@@ -2005,7 +2081,7 @@ export default function ChatWindow({
                   >
                     {isGroup && !isMe && (
                       <span className="text-[10px] font-semibold text-accent/80 mb-0.5 px-1">
-                        {msg.sender?.name || "Member"}
+                        {conversation?.customisation?.nicknames?.[msg.sender?._id] || msg.sender?.name || "Member"}
                       </span>
                     )}
 
@@ -2014,7 +2090,7 @@ export default function ChatWindow({
                         <div
                           className={`absolute -top-7 ${isMe ? "right-0" : "left-0"} items-center gap-0.5 bg-deep border border-white/6 rounded-lg p-0.5 shadow-xl shadow-black/40 z-30 ${longPressedMsgId === msg._id ? "flex" : "hidden group-hover:flex"}`}
                         >
-                          {["👍", "❤️", "😂", "😮", "😢"].map((emoji) => (
+                          {[dmEmoji, ...(["👍", "❤️", "😂", "😮", "😢"].filter(e => e !== dmEmoji))].map((emoji) => (
                             <button
                               key={emoji}
                               type="button"
@@ -2073,10 +2149,10 @@ export default function ChatWindow({
                             // Only admins can unpin (in groups)
                             const canUnpin = isGroup
                               ? conversation.admins?.some(
-                                  (adminId) =>
-                                    adminId === user?._id ||
-                                    adminId._id === user?._id,
-                                )
+                                (adminId) =>
+                                  adminId === user?._id ||
+                                  adminId._id === user?._id,
+                              )
                               : true;
 
                             // Show button if: not pinned OR (pinned and can unpin)
@@ -2097,11 +2173,10 @@ export default function ChatWindow({
                                   }
                                   setLongPressedMsgId(null);
                                 }}
-                                className={`p-1.5 rounded-md transition-all duration-150 ${
-                                  isPinned
+                                className={`p-1.5 rounded-md transition-all duration-150 ${isPinned
                                     ? "text-amber-400 hover:text-amber-300 hover:bg-amber-500/20"
                                     : "text-ivory/40 hover:text-amber-400 hover:bg-amber-500/10"
-                                }`}
+                                  }`}
                                 title={
                                   isPinned ? "Unpin message" : "Pin message"
                                 }
@@ -2144,25 +2219,29 @@ export default function ChatWindow({
 
                       <div
                         className={`${isGif ? "p-1" : "p-3.5"} rounded-2xl text-[13px] leading-relaxed relative z-10 
-                        ${
-                          editingMessageId === msg._id
+                        ${editingMessageId === msg._id
                             ? "bg-slate-surface text-ivory border border-accent/50 shadow-2xl shadow-accent/10 rounded-br-none"
                             : isMe
                               ? isGif
                                 ? "bg-transparent"
-                                : "bg-accent text-black rounded-br-none shadow-lg shadow-accent/10"
+                                : "backdrop-blur-[12px] text-ivory/90 rounded-br-none"
                               : isGif
                                 ? "bg-transparent"
-                                : "bg-slate-surface text-ivory/80 rounded-bl-none shadow-sm shadow-black/5"
-                        } 
+                                : "chat-bubble-glass text-ivory/90 rounded-bl-none"
+                          } 
                         ${msg.isOptimistic ? "opacity-60" : ""}`}
+                        style={isMe && !isGif && editingMessageId !== msg._id ? {
+                          background: `${dmColor}33`,
+                          border: `1px solid ${dmColor}55`,
+                          boxShadow: `0 4px 30px ${dmColor}22`,
+                        } : undefined}
                       >
                         {msg.replyTo && (
                           <div className="mb-2 p-2 bg-black/20 rounded-lg border-l-2 border-accent text-[11px] opacity-80 line-clamp-2">
                             <p className="font-bold mb-0.5">
-                              {msg.replyTo.sender?.name === user?.name
+                              {msg.replyTo.sender?.name === user?.name || msg.replyTo.sender === user?._id
                                 ? "You"
-                                : msg.replyTo.sender?.name || "Participant"}
+                                : conversation?.customisation?.nicknames?.[msg.replyTo.sender?._id] || msg.replyTo.sender?.name || "Participant"}
                             </p>
                             {msg.replyTo.text}
                           </div>
@@ -2254,10 +2333,10 @@ export default function ChatWindow({
                                 />
                               );
                             }
-                              return (
-                                <>
-                                  {renderMessageText(msg.text, msg.mentions)}
-                                  {msg.attachments?.length > 0 && (
+                            return (
+                              <>
+                                {renderMessageText(msg.text, msg.mentions)}
+                                {msg.attachments?.length > 0 && (
                                   <FileAttachmentDisplay
                                     attachments={msg.attachments}
                                   />
@@ -2289,7 +2368,7 @@ export default function ChatWindow({
                             emojiStyle="native"
                             width={
                               typeof window !== "undefined" &&
-                              window.innerWidth < 400
+                                window.innerWidth < 400
                                 ? Math.min(window.innerWidth - 32, 300)
                                 : 320
                             }
@@ -2361,6 +2440,7 @@ export default function ChatWindow({
                     )}
                   </div>
                 </div>
+                )}
               </React.Fragment>
             );
           });
@@ -2435,12 +2515,12 @@ export default function ChatWindow({
 
       <form
         onSubmit={handleSend}
-        className="p-4 relative z-20 bg-obsidian/80 backdrop-blur-sm border-t border-white/5"
+        className="p-3 md:p-4 relative z-20 bg-obsidian/80 backdrop-blur-sm border-t border-white/5"
       >
         {/* Shared absolute wrapper — rewritePreview and replyTo stack as block elements */}
         <div className="absolute bottom-full left-0 right-0">
           {rewritePreview && (
-            <div className="p-3 bg-slate-surface border-t border-accent/30 flex flex-col gap-2">
+            <div className="p-2 md:p-3 bg-slate-surface border-t border-accent/30 flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold text-accent">
                   AI rewrite · {activeTone}
@@ -2454,6 +2534,9 @@ export default function ChatWindow({
                   type="button"
                   onClick={() => {
                     setText(rewritePreview);
+                    if (inputRef.current) {
+                      inputRef.current.textContent = rewritePreview;
+                    }
                     setRewritePreview(null);
                     setTonePickerOpen(false);
                     setSelectedTone("");
@@ -2467,6 +2550,9 @@ export default function ChatWindow({
                   type="button"
                   onClick={() => {
                     setText(originalText);
+                    if (inputRef.current) {
+                      inputRef.current.textContent = originalText;
+                    }
                     setRewritePreview(null);
                     setTonePickerOpen(false);
                     setSelectedTone("");
@@ -2480,7 +2566,7 @@ export default function ChatWindow({
             </div>
           )}
           {replyTo && (
-            <div className="p-3 bg-slate-surface border-t border-accent/30 flex items-center justify-between">
+            <div className="p-2 md:p-3 bg-slate-surface border-t border-accent/30 flex items-center justify-between">
               <div className="flex items-center gap-3 overflow-hidden">
                 <div className="w-1 bg-accent h-8 rounded-full" />
                 <div className="overflow-hidden">
@@ -2506,7 +2592,7 @@ export default function ChatWindow({
         </div>
 
         {showScheduledPanel && (
-          <div className="mb-3 p-3 rounded-2xl bg-slate-surface border border-white/5">
+          <div className="mb-2 md:mb-3 p-2 md:p-3 rounded-2xl bg-slate-surface border border-white/5">
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs font-bold text-ivory/80">
                 Scheduled messages
@@ -2601,7 +2687,7 @@ export default function ChatWindow({
         )}
 
         {(aiReplies.length > 0 || loadingAiReplies || tonePickerOpen) && (
-          <div className="flex items-center gap-1.5 flex-wrap mb-2 px-1">
+          <div className="flex items-center gap-1.5 flex-wrap mb-2 px-1 md:px-2">
             {tonePickerOpen ? (
               /* ── Tone Picker ── */
               <>
@@ -2616,11 +2702,10 @@ export default function ChatWindow({
                       setSelectedTone(tone);
                       setCustomTone("");
                     }}
-                    className={`px-3 py-1 text-[11px] rounded-full border transition-all ${
-                      selectedTone === tone && !customTone.trim()
+                    className={`px-3 py-1 text-[11px] rounded-full border transition-all ${selectedTone === tone && !customTone.trim()
                         ? "bg-accent/20 border-accent/40 text-accent"
                         : "bg-accent/10 border-accent/20 text-accent/80 hover:bg-accent/20 hover:text-accent"
-                    }`}
+                      }`}
                   >
                     {tone}
                   </button>
@@ -2640,11 +2725,10 @@ export default function ChatWindow({
                   type="button"
                   onClick={handleRewrite}
                   disabled={!activeTone || loadingRewrite}
-                  className={`flex items-center gap-1 px-3 py-1 text-[11px] font-bold rounded-full border transition-all ${
-                    !activeTone || loadingRewrite
+                  className={`flex items-center gap-1 px-3 py-1 text-[11px] font-bold rounded-full border transition-all ${!activeTone || loadingRewrite
                       ? "bg-white/5 border-white/10 text-ivory/20 cursor-not-allowed"
                       : "bg-accent/20 border-accent/40 text-accent hover:bg-accent/30"
-                  }`}
+                    }`}
                 >
                   {loadingRewrite ? (
                     <span className="w-2.5 h-2.5 rounded-full border-2 border-accent border-t-transparent animate-spin" />
@@ -2687,7 +2771,12 @@ export default function ChatWindow({
                       <button
                         key={i}
                         type="button"
-                        onClick={() => setText(reply)}
+                        onClick={() => {
+                          setText(reply);
+                          if (inputRef.current) {
+                            inputRef.current.textContent = reply;
+                          }
+                        }}
                         className="px-3 py-1 text-[11px] rounded-full bg-accent/10 border border-accent/20 text-accent/80 hover:bg-accent/20 hover:text-accent transition-all max-w-45 truncate"
                         title={reply}
                       >
@@ -2719,7 +2808,7 @@ export default function ChatWindow({
           onRemove={removeFile}
         />
 
-        <div className="bg-slate-surface rounded-2xl flex items-center flex-wrap p-2 gap-1 border border-white/5 focus-within:border-accent/50 transition-all shadow-inner">
+        <div className="bg-slate-surface rounded-2xl flex items-center flex-wrap p-2 md:p-2.5 gap-1 border border-white/5 focus-within:border-accent/50 transition-all shadow-inner">
           {/* Hidden file input */}
           <input
             ref={fileInputRef}
@@ -2736,7 +2825,7 @@ export default function ChatWindow({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="w-9 h-9 flex items-center justify-center text-ivory/30 hover:text-accent transition-colors"
+            className="w-8 md:w-9 h-8 md:h-9 flex items-center justify-center text-ivory/30 hover:text-accent transition-colors shrink-0"
             aria-label="Attach files"
             title="Attach files"
           >
@@ -2748,7 +2837,7 @@ export default function ChatWindow({
             <button
               type="button"
               onClick={() => setShowCreatePoll(true)}
-              className="w-9 h-9 flex items-center justify-center text-ivory/30 hover:text-accent transition-colors"
+              className="w-8 md:w-9 h-8 md:h-9 flex items-center justify-center text-ivory/30 hover:text-accent transition-colors shrink-0"
               title="Create Poll"
               aria-label="Create Poll"
             >
@@ -2773,7 +2862,7 @@ export default function ChatWindow({
           <div className="flex-1 relative min-w-0">
             <div
               ref={inputRef}
-              className="w-full bg-transparent outline-none text-sm text-ivory/80 px-3 placeholder:text-ivory/20 min-h-5 max-h-37.5 overflow-y-auto whitespace-pre-wrap wrap-break-word empty:before:content-[attr(placeholder)] empty:before:text-ivory/20"
+              className="w-full bg-transparent outline-none text-xs md:text-sm text-ivory/80 px-2 md:px-3 placeholder:text-ivory/20 min-h-5 max-h-37.5 overflow-y-auto whitespace-pre-wrap wrap-break-word empty:before:content-[attr(placeholder)] empty:before:text-ivory/20"
               contentEditable="true"
               placeholder="Type a message..."
               onInput={handleInput}
@@ -2797,11 +2886,10 @@ export default function ChatWindow({
                 <div
                   key={code}
                   onClick={() => insertEmoji(emoji)}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-                    i === suggestionIndex
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${i === suggestionIndex
                       ? "bg-accent/20 text-accent"
                       : "hover:bg-white/6 text-ivory/40"
-                  }`}
+                    }`}
                 >
                   <span className="text-lg">{emoji}</span>
                   <span className="text-xs font-mono">{code}</span>
@@ -2818,31 +2906,29 @@ export default function ChatWindow({
               setShowEmojiPicker(false);
               setScheduleMode(false);
             }}
-            className={`hidden sm:inline-flex px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${
-              showGifPicker
+            className={`hidden lg:inline-flex px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${showGifPicker
                 ? "bg-accent/20 border-accent/40 text-accent"
                 : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
-            }`}
+              }`}
           >
             GIF
           </button>
 
           <div
             ref={aiMenuRefDesktop}
-            className="relative hidden sm:inline-flex"
+            className="relative hidden lg:inline-flex"
           >
             <button
               type="button"
               onClick={() => setAiMenuOpen((v) => !v)}
               title="AI tools"
               aria-label="AI tools"
-              className={`inline-flex items-center gap-1 px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${
-                aiMenuOpen
+              className={`inline-flex items-center gap-1 px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${aiMenuOpen
                   ? "bg-accent/20 border-accent/40 text-accent"
                   : aiReplies.length > 0 || tonePickerOpen
                     ? "bg-accent/20 border-accent/40 text-accent"
                     : "bg-white/4 border-white/10 text-ivory/30 hover:bg-accent/10 hover:border-accent/30 hover:text-accent"
-              }`}
+                }`}
             >
               ✦ AI
             </button>
@@ -2861,11 +2947,10 @@ export default function ChatWindow({
                 <button
                   type="button"
                   disabled={!text.trim()}
-                  className={`w-full text-left px-3 py-2 text-[11px] transition-colors ${
-                    text.trim()
+                  className={`w-full text-left px-3 py-2 text-[11px] transition-colors ${text.trim()
                       ? "text-ivory/70 hover:bg-white/6 hover:text-ivory"
                       : "text-ivory/20 opacity-40 cursor-not-allowed"
-                  }`}
+                    }`}
                   onClick={() => {
                     if (!text.trim()) return;
                     setAiMenuOpen(false);
@@ -2888,7 +2973,7 @@ export default function ChatWindow({
                 setShowScheduledPanel((v) => !v);
                 refreshScheduled();
               }}
-              className="hidden sm:inline-flex px-2 py-1 mx-1 text-[10px] font-black rounded-md border bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+              className="hidden lg:inline-flex px-2 py-1 mx-1 text-[10px] font-black rounded-md border bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
             >
               PENDING
             </button>
@@ -2903,11 +2988,10 @@ export default function ChatWindow({
                 setScheduleMode((v) => !v);
                 setShowScheduledPanel(true);
               }}
-              className={`hidden sm:inline-flex px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${
-                scheduleMode
+              className={`hidden lg:inline-flex px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${scheduleMode
                   ? "bg-accent/20 border-accent/40 text-accent"
                   : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
-              }`}
+                }`}
             >
               SCHEDULE
             </button>
@@ -2929,11 +3013,10 @@ export default function ChatWindow({
               setShowEmojiPicker(!showEmojiPicker);
               setShowGifPicker(false);
             }}
-            className={`w-9 h-9 flex items-center justify-center transition-all ${
-              showEmojiPicker
+            className={`w-8 md:w-9 h-8 md:h-9 flex items-center justify-center transition-all shrink-0 ${showEmojiPicker
                 ? "text-accent"
                 : "text-ivory/30 hover:text-ivory/60"
-            }`}
+              }`}
             title="Emoji"
             aria-label="Emoji"
           >
@@ -2942,15 +3025,14 @@ export default function ChatWindow({
 
           {/* Schedule Dropdown */}
           {!isGroup && (
-            <div ref={scheduleDropdownRef} className="relative inline-flex">
+            <div ref={scheduleDropdownRef} className="relative hidden lg:inline-flex">
               <button
                 type="button"
                 onClick={() => setScheduleDropdownOpen((v) => !v)}
-                className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${
-                  scheduleDropdownOpen
+                className={`w-8 md:w-9 h-8 md:h-9 flex items-center justify-center rounded-xl transition-all shrink-0 ${scheduleDropdownOpen
                     ? "bg-accent/20 text-accent"
                     : "text-ivory/30 hover:text-ivory/60"
-                }`}
+                  }`}
                 title="Schedule or view pending"
               >
                 <Clock size={18} />
@@ -3035,30 +3117,46 @@ export default function ChatWindow({
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={
-              scheduling ||
-              fileUploading ||
-              fileErrors.some((e) => e !== null) ||
-              (!text.trim() && stagedFiles.length === 0)
-            }
-            className={`w-9 h-9 flex items-center justify-center rounded-xl ml-1 transition-all active:scale-95 shadow-lg ${
-              scheduling ||
-              fileUploading ||
-              fileErrors.some((e) => e !== null) ||
-              (!text.trim() && stagedFiles.length === 0)
-                ? "bg-slate-700 text-ivory/40 cursor-not-allowed opacity-50"
-                : "bg-accent hover:bg-accent/90 text-black shadow-accent/20"
-            }`}
-            title="Send"
-            aria-label="Send"
-          >
-            <Send size={18} />
-          </button>
+          {/* Show Send button, or Quick Emoji button if DM and input empty */}
+          {(!text.trim() && stagedFiles.length === 0) ? (
+            <button
+              type="button"
+              onClick={handleSendQuickEmoji}
+              disabled={scheduling || fileUploading || fileErrors.some((e) => e !== null)}
+              className="w-11 h-11 flex items-center justify-center rounded-xl ml-1 transition-all active:scale-[0.8] hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed group"
+              title={`Send ${dmEmoji}`}
+              aria-label={`Send ${dmEmoji}`}
+            >
+              <span className="text-2xl transition-transform group-hover:scale-110 drop-shadow-lg" style={{ filter: `drop-shadow(0 4px 12px ${dmColor}40)` }}>
+                {dmEmoji}
+              </span>
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={
+                scheduling ||
+                fileUploading ||
+                fileErrors.some((e) => e !== null) ||
+                (!text.trim() && stagedFiles.length === 0)
+              }
+              className={`w-9 h-9 flex items-center justify-center rounded-xl ml-1 transition-all active:scale-95 shadow-lg ${
+                scheduling ||
+                fileUploading ||
+                fileErrors.some((e) => e !== null) ||
+                (!text.trim() && stagedFiles.length === 0)
+                  ? "bg-slate-700 text-ivory/40 cursor-not-allowed opacity-50"
+                  : "bg-accent hover:bg-accent/90 text-black shadow-accent/20"
+              }`}
+              title="Send"
+              aria-label="Send"
+            >
+              <Send size={18} />
+            </button>
+          )}
 
           {/* Mobile-only expanded toolbar row */}
-          <div className="sm:hidden w-full flex items-center gap-1 pt-1 border-t border-white/5 mt-1">
+          <div className="lg:hidden w-full flex items-center gap-1 pt-1 border-t border-white/5 mt-1">
             {/* ✅ Poll Button (Mobile - Groups only) */}
             {isGroup && (
               <button
@@ -3075,11 +3173,10 @@ export default function ChatWindow({
                 setShowGifPicker(!showGifPicker);
                 setShowEmojiPicker(false);
               }}
-              className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${
-                showGifPicker
+              className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${showGifPicker
                   ? "bg-accent/20 border-accent/40 text-accent"
                   : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
-              }`}
+                }`}
             >
               GIF
             </button>
@@ -3090,13 +3187,12 @@ export default function ChatWindow({
                 onClick={() => setAiMenuOpen((v) => !v)}
                 title="AI tools"
                 aria-label="AI tools"
-                className={`inline-flex items-center gap-1 px-2 py-1 text-[10px] font-black rounded-md border transition-all ${
-                  aiMenuOpen
+                className={`inline-flex items-center gap-1 px-2 py-1 text-[10px] font-black rounded-md border transition-all ${aiMenuOpen
                     ? "bg-accent/20 border-accent/40 text-accent"
                     : aiReplies.length > 0 || tonePickerOpen
                       ? "bg-accent/20 border-accent/40 text-accent"
                       : "bg-white/4 border-white/10 text-ivory/30 hover:bg-accent/10 hover:border-accent/30 hover:text-accent"
-                }`}
+                  }`}
               >
                 ✦ AI
               </button>
@@ -3115,11 +3211,10 @@ export default function ChatWindow({
                   <button
                     type="button"
                     disabled={!text.trim()}
-                    className={`w-full text-left px-3 py-2 text-[11px] transition-colors ${
-                      text.trim()
+                    className={`w-full text-left px-3 py-2 text-[11px] transition-colors ${text.trim()
                         ? "text-ivory/70 hover:bg-white/6 hover:text-ivory"
                         : "text-ivory/20 opacity-40 cursor-not-allowed"
-                    }`}
+                      }`}
                     onClick={() => {
                       if (!text.trim()) return;
                       setAiMenuOpen(false);
@@ -3138,11 +3233,10 @@ export default function ChatWindow({
                 <button
                   type="button"
                   onClick={() => setScheduleDropdownOpen((v) => !v)}
-                  className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${
-                    scheduleDropdownOpen
+                  className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${scheduleDropdownOpen
                       ? "bg-accent/20 border-accent/40 text-accent"
                       : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
-                  }`}
+                    }`}
                   title="Schedule or view pending"
                 >
                   ⏱ Schedule

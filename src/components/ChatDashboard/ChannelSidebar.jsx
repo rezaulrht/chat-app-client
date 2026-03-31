@@ -1,6 +1,5 @@
 "use client";
 import React, { useEffect, useMemo } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   Hash,
@@ -18,7 +17,6 @@ import {
   MoreHorizontal,
   Pencil,
   Trash2,
-  LogOut,
 } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
@@ -34,8 +32,9 @@ export default function ChannelSidebar({
   onSettingsOpen, // () => void — opens WorkspaceSettingsPanel
   onCreateModule, // () => void — opens CreateModuleModal (later by Member 6)
   onModuleSettingsOpen, // (moduleId) => void — opens ModuleSettingsModal
+  collapsed = false,
 }) {
-  const { user: currentUser, logout } = useAuth();
+  const { user: currentUser } = useAuth();
   const {
     modulesCache,
     loadingModules,
@@ -146,34 +145,21 @@ export default function ChannelSidebar({
     return ordered;
   }, [modules, workspace]);
 
+  if (collapsed) return null;
+
   return (
-    <aside className="w-full glass-panel flex flex-col shrink-0 flex-1 min-h-0 overflow-hidden">
+    <aside className="w-full flex flex-col shrink-0 flex-1 min-h-0 overflow-hidden">
       {/* Workspace Header (click to open settings) */}
       <div
-        onClick={() => {
-          onSettingsOpen?.();
-        }}
-        className={`h-13 px-4 flex items-center justify-between border-b border-white/6 hover:bg-white/3 transition-all duration-300 group relative cursor-pointer`}
+        onClick={() => onSettingsOpen?.()}
+        className="px-3 py-2 flex items-center justify-between border-b border-white/[0.06] hover:bg-white/[0.03] transition-all duration-200 group relative cursor-pointer shrink-0"
       >
-        <div className="flex items-center gap-2 min-w-0">
-          {onBack && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onBack();
-              }}
-              className="hidden md:flex w-7 h-7 rounded-lg items-center justify-center text-ivory/20 hover:text-accent hover:bg-white/6 transition-all duration-200 -ml-1 shrink-0"
-            >
-              <ChevronLeft size={16} />
-            </button>
-          )}
-          <h2 className="text-ivory font-display font-bold text-[15px] truncate">
-            {workspace?.name || "Workspace"}
-          </h2>
-        </div>
-        <div className="flex items-center gap-1.5">
+        <h2 className="text-ivory/90 font-display font-bold text-[13px] truncate min-w-0 flex-1 pr-1">
+          {workspace?.name || "Workspace"}
+        </h2>
+        <div className="flex items-center gap-0.5 shrink-0">
           {(workspace?.myRole === "owner" || workspace?.myRole === "admin") && (
-            <div className="flex items-center gap-0.5">
+            <>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -181,9 +167,9 @@ export default function ChannelSidebar({
                   setNewCategoryName("");
                 }}
                 title="New category"
-                className="w-6 h-6 rounded-lg flex items-center justify-center text-ivory/25 hover:text-accent hover:bg-white/6 transition-all duration-200 shrink-0"
+                className="w-6 h-6 rounded-md flex items-center justify-center text-ivory/25 hover:text-accent hover:bg-white/[0.06] transition-all shrink-0"
               >
-                <FolderPlus size={13} />
+                <FolderPlus size={12} />
               </button>
               <button
                 onClick={(e) => {
@@ -191,18 +177,18 @@ export default function ChannelSidebar({
                   onCreateModule?.("General");
                 }}
                 title="New module"
-                className="w-6 h-6 rounded-lg flex items-center justify-center text-ivory/25 hover:text-accent hover:bg-white/6 transition-all duration-200 shrink-0"
+                className="w-6 h-6 rounded-md flex items-center justify-center text-ivory/25 hover:text-accent hover:bg-white/[0.06] transition-all shrink-0"
               >
-                <Plus size={14} />
+                <Plus size={13} />
               </button>
-            </div>
+            </>
           )}
           <ChevronDown
-            size={16}
-            className="text-ivory/20 group-hover:text-ivory/60 transition-colors duration-300"
+            size={14}
+            className="text-ivory/20 group-hover:text-ivory/50 transition-colors ml-0.5"
           />
         </div>
-        <div className="absolute bottom-0 left-4 right-4 h-px bg-linear-to-r from-transparent via-accent/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        <div className="absolute bottom-0 left-3 right-3 h-px bg-linear-to-r from-transparent via-accent/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
       </div>
 
       {/* Modules List */}
@@ -471,58 +457,6 @@ export default function ChannelSidebar({
       {/* Voice Channel Bar — shown above status bar when in a voice channel */}
       <VoiceChannelBar />
 
-      {/* User Status Bar (bottom) */}
-      <div className="mx-2 mb-2 p-2.5 glass-card rounded-2xl flex items-center gap-2.5">
-        <div
-          onClick={() => setShowProfile(true)}
-          className="relative shrink-0 cursor-pointer group/av"
-        >
-          {/* TODO: restore avatar overlay presence dot once socket presence is wired */}
-          <div className="w-8 h-8 rounded-xl overflow-hidden ring-1 ring-white/6 group-hover/av:ring-accent/40 transition-all duration-300">
-            <Image
-              src={
-                currentUser?.avatar ||
-                `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser?.name}`
-              }
-              width={32}
-              height={32}
-              className="rounded-xl"
-              alt="avatar"
-              unoptimized
-            />
-          </div>
-          <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-deep bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
-        </div>
-        <div
-          onClick={() => setShowProfile(true)}
-          className="flex-1 min-w-0 cursor-pointer group/u"
-        >
-          <p className="text-ivory text-[13px] font-display font-bold truncate leading-tight group-hover/u:text-accent transition-colors duration-200 hover:underline decoration-accent/40 underline-offset-2">
-            {currentUser?.name?.split(" ")[0]}
-          </p>
-          <p className="text-ivory/20 text-[10px] truncate leading-tight flex items-center gap-1 font-mono">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_4px_rgba(52,211,153,0.4)]" />
-            Online
-          </p>
-        </div>
-
-        <div className="flex items-center gap-0.5 opacity-40 group-hover/user:opacity-80 transition-opacity">
-          <button
-            onClick={() => onSettingsOpen?.()}
-            className="p-1.5 rounded-lg hover:bg-white/6 text-ivory/40 hover:text-ivory/60 transition-all duration-200"
-            title="Workspace Settings"
-          >
-            <Settings size={15} />
-          </button>
-          <button
-            onClick={() => logout()}
-            className="p-1.5 rounded-lg hover:bg-white/6 text-ivory/40 hover:text-ivory/60 transition-all duration-200"
-            title="Logout"
-          >
-            <LogOut size={15} />
-          </button>
-        </div>
-      </div>
     </aside>
   );
 }

@@ -92,44 +92,77 @@ export default function PinnedMessagesPanel({
 
     const members = membersCache?.[workspaceId] || [];
 
-    const processedMentions = mentionsArg.map(mentionItem => {
-      const userId = typeof mentionItem === "object" ? (mentionItem._id || mentionItem.id) : mentionItem;
-      const smuggled = (mentionData || []).find(d => String(d.id || d._id) === String(userId));
-      const memberName = (typeof mentionItem === "object" ? mentionItem.name : null) || smuggled?.name || member?.user?.name;
-      const avatar = (typeof mentionItem === "object" ? mentionItem.avatar : null) || smuggled?.avatar || member?.user?.avatar;
-      
-      return { userId, memberName, member, avatar };
-    }).filter(m => m.memberName).sort((a, b) => b.memberName.length - a.memberName.length);
+    const processedMentions = mentionsArg
+      .map((mentionItem) => {
+        const userId =
+          typeof mentionItem === "object"
+            ? mentionItem._id || mentionItem.id
+            : mentionItem;
 
-    processedMentions.forEach(({ userId, memberName, member }) => {
-      if (memberName) {
-        const nameStr = `@${memberName}`;
-        elements = elements.flatMap((el) => {
-          if (typeof el !== "string") return [el];
-          const parts = el.split(nameStr);
-          const result = [];
-          parts.forEach((part, i) => {
-            result.push(part);
-            if (i < parts.length - 1) {
-              result.push(
-                <span key={`${userId}-${i}`} className="inline-flex items-center gap-1 bg-[#5865f2]/20 text-white font-semibold px-1 py-0.5 mx-px rounded shadow-sm border border-[#5865f2]/30">
-                  <Image
-                    src={mention.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${memberName}`}
-                    alt=""
-                    width={14}
-                    height={14}
-                    className="w-3.5 h-3.5 rounded-full object-cover shrink-0"
-                    unoptimized
-                  />
-                  {nameStr}
-                </span>
-              );
-            }
+        const smuggled = (mentionData || []).find(
+          (d) => String(d.id || d._id) === String(userId),
+        );
+
+        // ✅ FIX: properly find member
+        const member = members.find(
+          (m) =>
+            String(m._id) === String(userId) ||
+            String(m.id) === String(userId) ||
+            String(m.user?._id) === String(userId),
+        );
+
+        const memberName =
+          (typeof mentionItem === "object" ? mentionItem.name : null) ||
+          smuggled?.name ||
+          member?.user?.name ||
+          member?.name;
+
+        const avatar =
+          (typeof mentionItem === "object" ? mentionItem.avatar : null) ||
+          smuggled?.avatar ||
+          member?.user?.avatar ||
+          member?.avatar;
+
+        return { userId, memberName, member, avatar };
+      })
+      .filter((m) => m.memberName)
+      .sort((a, b) => b.memberName.length - a.memberName.length);
+
+      processedMentions.forEach(({ userId, memberName, member, avatar }) => {
+        if (memberName) {
+          const nameStr = `@${memberName}`;
+          elements = elements.flatMap((el) => {
+            if (typeof el !== "string") return [el];
+            const parts = el.split(nameStr);
+            const result = [];
+            parts.forEach((part, i) => {
+              result.push(part);
+              if (i < parts.length - 1) {
+                result.push(
+                  <span
+                    key={`${userId}-${i}`}
+                    className="inline-flex items-center gap-1 bg-[#5865f2]/20 text-white font-semibold px-1 py-0.5 mx-px rounded shadow-sm border border-[#5865f2]/30"
+                  >
+                    <Image
+                      src={
+                        avatar ||
+                        `https://api.dicebear.com/7.x/avataaars/svg?seed=${memberName}`
+                      }
+                      alt=""
+                      width={14}
+                      height={14}
+                      className="w-3.5 h-3.5 rounded-full object-cover shrink-0"
+                      unoptimized
+                    />
+                    {nameStr}
+                  </span>,
+                );
+              }
+            });
+            return result;
           });
-          return result;
-        });
-      }
-    });
+        }
+      });
 
     return elements;
   };

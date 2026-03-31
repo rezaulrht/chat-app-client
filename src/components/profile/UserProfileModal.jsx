@@ -2,26 +2,15 @@
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import {
-  X,
-  Camera,
-  Mail,
-  Shield,
-  Calendar,
-  Github,
-  Chrome,
-  KeyRound,
-  Eye,
-  EyeOff,
-  Loader2,
-  CheckCircle2,
-  User,
-  MessageSquare,
-  FileText,
+  X, Camera, Mail, Shield, Calendar, Github, Chrome, KeyRound,
+  Eye, EyeOff, Loader2, CheckCircle2, User, MessageSquare, FileText,
+  Clock, Heart, Grid
 } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import useFeed from "@/hooks/useFeed";
 import toast from "react-hot-toast";
+import api from "@/app/api/Axios"; // for posts
 
 export default function UserProfileModal({ onClose }) {
   const { user, updateProfile, changePassword } = useAuth();
@@ -36,7 +25,7 @@ export default function UserProfileModal({ onClose }) {
   const [bio, setBio] = useState(user?.bio || "");
   const [statusMessage, setStatusMessage] = useState(user?.statusMessage || "");
   const [avatarPreview, setAvatarPreview] = useState(user?.avatar || "");
-  const [avatarData, setAvatarData] = useState(null); // base64 or null
+  const [avatarData, setAvatarData] = useState(null);
 
   // ── password change ──────────────────────────────────────────────────
   const [currentPw, setCurrentPw] = useState("");
@@ -45,11 +34,35 @@ export default function UserProfileModal({ onClose }) {
   const [showCurrentPw, setShowCurrentPw] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
 
+  // ── posts state ──────────────────────────────────────────────────────
+  const [myPosts, setMyPosts] = useState([]);
+  const [loadingPosts, setLoadingPosts] = useState(false);
+
   // ── ui state ─────────────────────────────────────────────────────────
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPw, setSavingPw] = useState(false);
-  const [activeTab, setActiveTab] = useState("profile"); // "profile" | "security"
+  const [activeTab, setActiveTab] = useState("activity"); // "activity" | "profile" | "security"
   const fileRef = useRef(null);
+
+  useEffect(() => {
+    if (activeTab === "activity" && myPosts.length === 0) {
+      loadMyPosts();
+    }
+  }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadMyPosts = async () => {
+    try {
+      setLoadingPosts(true);
+      const res = await api.get("/api/v1/posts/me?page=1&limit=10");
+      if (res.data?.success) {
+        setMyPosts(res.data.data.docs || []);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingPosts(false);
+    }
+  };
 
   // Close on Escape
   useEffect(() => {
@@ -60,7 +73,7 @@ export default function UserProfileModal({ onClose }) {
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
 
-  // ── avatar picker ──────────────────────────────────────────────────
+  // Handle avatar
   const handleAvatarChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -71,12 +84,11 @@ export default function UserProfileModal({ onClose }) {
     const reader = new FileReader();
     reader.onloadend = () => {
       setAvatarPreview(reader.result);
-      setAvatarData(reader.result); // full data URI
+      setAvatarData(reader.result);
     };
     reader.readAsDataURL(file);
   };
 
-  // ── save profile ───────────────────────────────────────────────────
   const handleSaveProfile = async () => {
     if (savingProfile) return;
     setSavingProfile(true);
@@ -88,443 +100,379 @@ export default function UserProfileModal({ onClose }) {
 
     if (result.success) {
       toast.success("Profile updated!");
-      setAvatarData(null); // clear pending upload
+      setAvatarData(null);
     } else {
       toast.error(result.message || "Could not save profile");
     }
   };
 
-  // ── change password ───────────────────────────────────────────────
   const handleChangePassword = async (e) => {
     e.preventDefault();
     if (savingPw) return;
     if (newPw !== confirmPw) {
-      toast.error("Passwords do not match");
-      return;
+      toast.error("Passwords do not match"); return;
     }
     if (newPw.length < 8) {
-      toast.error("Password must be at least 8 characters");
-      return;
+      toast.error("Password must be at least 8 characters"); return;
     }
     setSavingPw(true);
     const result = await changePassword(currentPw, newPw);
     setSavingPw(false);
     if (result.success) {
       toast.success("Password changed!");
-      setCurrentPw("");
-      setNewPw("");
-      setConfirmPw("");
+      setCurrentPw(""); setNewPw(""); setConfirmPw("");
     } else {
       toast.error(result.message || "Could not change password");
     }
   };
 
   // ── helpers ───────────────────────────────────────────────────────
-  const providerLabel =
-    user?.provider === "google"
-      ? "Google"
-      : user?.provider === "github"
-        ? "GitHub"
-        : "Email";
-
-  const ProviderIcon =
-    user?.provider === "google"
-      ? Chrome
-      : user?.provider === "github"
-        ? Github
-        : Mail;
-
-  const memberSince = user?.createdAt
-    ? new Date(user.createdAt).toLocaleDateString("en-US", {
-        month: "long",
-        year: "numeric",
-      })
-    : null;
-
-  const workspaceCount = workspaces?.length || 0;
+  const providerLabel = user?.provider === "google" ? "Google" : user?.provider === "github" ? "GitHub" : "Email";
+  const ProviderIcon = user?.provider === "google" ? Chrome : user?.provider === "github" ? Github : Mail;
   const isLocal = user?.provider === "local";
 
-  // ── render ────────────────────────────────────────────────────────
+  const memberSince = user?.createdAt
+    ? new Date(user.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : null;
+  const workspaceCount = workspaces?.length || 0;
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-200"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="relative w-full max-w-md glass-card rounded-3xl border border-white/[0.08] shadow-2xl shadow-black/60 overflow-hidden flex flex-col max-h-[90vh]">
-        {/* ── gradient top bar ─────────────────────────────────────── */}
-        <div className="h-1.5 w-full bg-linear-to-r from-accent/60 via-accent to-accent/60" />
+      <div className="relative w-full max-w-4xl bg-[#13141b] rounded-2xl shadow-2xl shadow-black/90 overflow-hidden flex flex-col md:flex-row max-h-[85vh] border border-white/8 animate-in zoom-in-95 duration-200">
 
-        {/* ── header ───────────────────────────────────────────────── */}
-        <div className="flex items-center justify-between px-6 pt-5 pb-3 shrink-0">
-          <h2 className="text-ivory font-display font-bold text-lg tracking-tight">
-            My Profile
-          </h2>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-xl flex items-center justify-center text-ivory/25 hover:text-ivory/60 hover:bg-white/[0.06] transition-all duration-200"
-          >
-            <X size={16} />
-          </button>
-        </div>
+        {/* left panel */}
+        <div className="w-full md:w-[320px] bg-[#1a1b23] flex-shrink-0 flex flex-col relative overflow-y-auto scrollbar-hide border-r border-white/4">
+          {/* Banner */}
+          <div className="h-32 bg-gradient-to-br from-accent/40 via-accent/15 to-[#0f1015] relative shrink-0 overflow-hidden">
+            {user?.banner?.imageUrl && <Image src={user.banner.imageUrl} fill className="object-cover" alt="Banner" unoptimized />}
+          </div>
 
-        {/* ── tabs ─────────────────────────────────────────────────── */}
-        <div className="flex gap-1 px-6 pb-3 shrink-0">
-          {["profile", ...(isLocal ? ["security"] : [])].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-3 py-1.5 rounded-xl text-[11px] font-mono font-bold uppercase tracking-[0.12em] transition-all duration-200 ${
-                activeTab === tab
-                  ? "bg-accent/15 text-accent border border-accent/30"
-                  : "text-ivory/30 hover:text-ivory/50 hover:bg-white/[0.04]"
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-
-        {/* ── scrollable body ──────────────────────────────────────── */}
-        <div className="flex-1 overflow-y-auto scrollbar-hide px-6 pb-6">
-          {/* ═══════════════ PROFILE TAB ═══════════════ */}
-          {activeTab === "profile" && (
-            <div className="space-y-5">
-              {/* Avatar + identity */}
-              <div className="flex items-start gap-4">
-                {/* Avatar picker */}
-                <div className="relative shrink-0 group/av">
-                  <div className="w-20 h-20 rounded-2xl overflow-hidden ring-2 ring-white/[0.08] group-hover/av:ring-accent/40 transition-all duration-300 shadow-[0_0_24px_rgba(19,200,236,0.08)]">
-                    <Image
-                      src={
-                        avatarPreview ||
-                        `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || "user"}`
-                      }
-                      width={80}
-                      height={80}
-                      className="w-full h-full object-cover"
-                      alt="avatar"
-                      unoptimized
-                    />
-                  </div>
-                  <button
-                    onClick={() => fileRef.current?.click()}
-                    className="absolute inset-0 rounded-2xl flex items-center justify-center bg-black/50 opacity-0 group-hover/av:opacity-100 transition-opacity duration-200"
-                    title="Change photo"
-                  >
-                    <Camera size={18} className="text-white" />
-                  </button>
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleAvatarChange}
-                  />
-                </div>
-
-                {/* Quick identity block */}
-                <div className="flex-1 min-w-0 pt-1 space-y-1">
-                  <p className="text-ivory font-display font-bold text-base truncate">
-                    {user?.name}
-                  </p>
-                  <p className="text-ivory/30 text-[12px] font-mono truncate">
-                    {user?.email}
-                  </p>
-                  {/* Provider badge */}
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-[10px] font-mono text-ivory/40">
-                    <ProviderIcon size={10} className="text-accent/60" />
-                    {providerLabel}
-                  </span>
-                </div>
-              </div>
-
-              {/* Status message */}
-              <div>
-                <label className="flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-ivory/30 mb-1.5">
-                  <MessageSquare size={10} className="text-accent/50" />
-                  Status
-                </label>
-                <input
-                  type="text"
-                  value={statusMessage}
-                  onChange={(e) => setStatusMessage(e.target.value)}
-                  maxLength={80}
-                  placeholder="What's on your mind?"
-                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-[13px] text-ivory placeholder:text-ivory/20 focus:outline-none focus:border-accent/40 focus:bg-white/[0.06] transition-all duration-200"
+          <div className="relative px-6 flex-shrink-0">
+            {/* Avatar edit */}
+            <div className="absolute top-[-50px] left-6 w-[100px] h-[100px] rounded-full bg-[#1a1b23] p-[6px] z-20">
+              <div className="w-full h-full rounded-full overflow-hidden relative group cursor-pointer" onClick={() => fileRef.current?.click()}>
+                <Image
+                  src={avatarPreview || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || "user"}`}
+                  fill
+                  className="object-cover"
+                  alt="avatar"
+                  unoptimized
                 />
-                <p className="text-right text-[9px] font-mono text-ivory/15 mt-1">
-                  {statusMessage.length}/80
-                </p>
-              </div>
-
-              {/* Name */}
-              <div>
-                <label className="flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-ivory/30 mb-1.5">
-                  <User size={10} className="text-accent/50" />
-                  Display Name
-                </label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  maxLength={50}
-                  placeholder="Your name"
-                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-[13px] text-ivory placeholder:text-ivory/20 focus:outline-none focus:border-accent/40 focus:bg-white/[0.06] transition-all duration-200"
-                />
-              </div>
-
-              {/* Bio */}
-              <div>
-                <label className="flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-ivory/30 mb-1.5">
-                  <FileText size={10} className="text-accent/50" />
-                  Bio
-                </label>
-                <textarea
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                  maxLength={160}
-                  rows={3}
-                  placeholder="Tell the world a little about yourself…"
-                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-[13px] text-ivory placeholder:text-ivory/20 focus:outline-none focus:border-accent/40 focus:bg-white/[0.06] transition-all duration-200 resize-none leading-relaxed"
-                />
-                <p className="text-right text-[9px] font-mono text-ivory/15 -mt-0.5">
-                  {bio.length}/160
-                </p>
-              </div>
-
-              {/* Divider */}
-              <div className="border-t border-white/[0.06]" />
-
-              {/* Read-only account info */}
-              <div className="space-y-2.5">
-                <p className="text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-ivory/20 mb-2">
-                  Account Info
-                </p>
-
-                {/* Email */}
-                <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-white/[0.02] rounded-xl border border-white/[0.05]">
-                  <Mail size={13} className="text-ivory/20 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[9px] font-mono text-ivory/20 uppercase tracking-wider mb-0.5">
-                      Email
-                    </p>
-                    <p className="text-[12px] text-ivory/50 truncate font-mono">
-                      {user?.email}
-                    </p>
-                  </div>
-                  {user?.isVerified && (
-                    <CheckCircle2
-                      size={13}
-                      className="text-emerald-400/70 shrink-0"
-                    />
-                  )}
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-200">
+                  <Camera size={20} className="text-white" />
                 </div>
-
-                {/* Auth provider */}
-                <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-white/[0.02] rounded-xl border border-white/[0.05]">
-                  <Shield size={13} className="text-ivory/20 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[9px] font-mono text-ivory/20 uppercase tracking-wider mb-0.5">
-                      Sign-in method
-                    </p>
-                    <div className="flex items-center gap-1.5">
-                      <ProviderIcon size={11} className="text-accent/50" />
-                      <p className="text-[12px] text-ivory/50 font-mono">
-                        {providerLabel}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Member since */}
-                {memberSince && (
-                  <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-white/[0.02] rounded-xl border border-white/[0.05]">
-                    <Calendar size={13} className="text-ivory/20 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[9px] font-mono text-ivory/20 uppercase tracking-wider mb-0.5">
-                        Member since
-                      </p>
-                      <p className="text-[12px] text-ivory/50 font-mono">
-                        {memberSince}
-                      </p>
-                    </div>
-                  </div>
-                )}
               </div>
-
-              {/* Stats row */}
-              <div className="grid grid-cols-4 gap-2">
-                {[
-                  { value: workspaceCount, label: "Workspaces" },
-                  { value: userStats.postCount, label: "Posts" },
-                  { value: userStats.followersCount, label: "Followers" },
-                  { value: userStats.followingCount, label: "Following" },
-                ].map(({ value, label }) => (
-                  <div key={label} className="flex flex-col items-center justify-center py-3 px-1 bg-white/[0.03] rounded-xl border border-white/[0.06]">
-                    <p className="text-[18px] font-display font-bold text-ivory leading-none">
-                      {value}
-                    </p>
-                    <p className="text-[8px] font-mono text-ivory/25 mt-1 uppercase tracking-wider text-center">
-                      {label}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Save button */}
-              <button
-                onClick={handleSaveProfile}
-                disabled={savingProfile}
-                className="w-full py-2.5 rounded-xl bg-accent/15 hover:bg-accent/25 border border-accent/30 hover:border-accent/50 text-accent font-display font-bold text-[13px] transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {savingProfile ? (
-                  <>
-                    <Loader2 size={14} className="animate-spin" />
-                    Saving…
-                  </>
-                ) : (
-                  "Save Changes"
-                )}
-              </button>
+              <div className="absolute bottom-1 right-1 w-5 h-5 rounded-full border-[3px] border-[#1a1b23] bg-emerald-400 z-30 shadow-[0_0_8px_rgba(52,211,153,0.4)]" />
+              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
             </div>
-          )}
+          </div>
 
-          {/* ═══════════════ SECURITY TAB ═══════════════ */}
-          {activeTab === "security" && isLocal && (
-            <form onSubmit={handleChangePassword} className="space-y-4">
-              <p className="text-[11px] text-ivory/30 font-mono leading-relaxed">
-                Choose a strong password with at least 8 characters.
-              </p>
+          <div className="pt-16 pb-6 px-6 flex-1 flex flex-col relative z-0">
+            <h2 className="text-ivory font-display font-bold text-[22px] leading-tight flex items-center gap-2">
+              {user?.name}
+              {user?.isVerified && (
+                <CheckCircle2 size={16} className="text-emerald-400" />
+              )}
+            </h2>
+            <p className="text-ivory/50 text-[13px] font-mono">{user?.email}</p>
 
-              {/* Current password */}
-              <div>
-                <label className="flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-ivory/30 mb-1.5">
-                  <KeyRound size={10} className="text-accent/50" />
-                  Current Password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showCurrentPw ? "text" : "password"}
-                    value={currentPw}
-                    onChange={(e) => setCurrentPw(e.target.value)}
-                    required
-                    placeholder="••••••••"
-                    className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3.5 py-2.5 pr-10 text-[13px] text-ivory placeholder:text-ivory/20 focus:outline-none focus:border-accent/40 focus:bg-white/[0.06] transition-all duration-200"
-                  />
+            <div className="mt-4 flex flex-wrap gap-2">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/[0.04] border border-white/[0.06] text-[11px] font-mono text-ivory/60">
+                <ProviderIcon size={12} className="text-accent/60" />
+                {providerLabel}
+              </span>
+              {memberSince && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/[0.04] border border-white/[0.06] text-[11px] font-mono text-ivory/60">
+                  <Calendar size={12} className="text-accent/60" />
+                  {memberSince}
+                </span>
+              )}
+            </div>
+
+            <div className="h-px bg-white/[0.06] my-5" />
+
+            {/* Custom Status Display */}
+            <div className="mb-5">
+              <div className="text-[11px] uppercase font-mono tracking-widest font-bold text-ivory/30 mb-2">About Me</div>
+              {bio ? (
+                <p className="text-[13px] text-ivory/70 leading-relaxed whitespace-pre-wrap">{bio}</p>
+              ) : (
+                <p className="text-[13px] text-ivory/30 italic">No bio provided.</p>
+              )}
+            </div>
+
+            <div className="h-px bg-white/[0.06] my-5" />
+
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              <div className="flex flex-col items-center justify-center py-3 bg-white/[0.02] rounded-xl border border-white/[0.04]">
+                <p className="text-[20px] font-display font-bold text-ivory">{userStats.postCount || 0}</p>
+                <p className="text-[9px] font-mono text-ivory/30 mt-1 uppercase tracking-wider">Posts</p>
+              </div>
+              <div className="flex flex-col items-center justify-center py-3 bg-white/[0.02] rounded-xl border border-white/[0.04]">
+                <p className="text-[20px] font-display font-bold text-ivory">{workspaces?.length || 0}</p>
+                <p className="text-[9px] font-mono text-ivory/30 mt-1 uppercase tracking-wider">Workspaces</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* right panel */}
+        <div className="flex-1 flex flex-col h-full bg-[#13141b] overflow-hidden relative">
+          {/* Header Actions & Close */}
+          <div className="absolute top-4 right-4 z-10 flex gap-2">
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-full flex items-center justify-center text-ivory/40 hover:text-ivory bg-white/[0.05] hover:bg-white/[0.1] backdrop-blur-md transition-all duration-200"
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          {/* Tabs */}
+          <div className="px-6 pt-5 bg-[#13141b] border-b border-white/[0.04] shrink-0">
+             <div className="flex gap-6">
+                {[
+                  { id: "activity", label: "Activity Feed" },
+                  { id: "profile", label: "Edit Profile" },
+                  ...(isLocal ? [{ id: "security", label: "Security" }] : [])
+                ].map((tab) => (
                   <button
-                    type="button"
-                    onClick={() => setShowCurrentPw((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-ivory/20 hover:text-ivory/40 transition-colors"
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`pb-3 text-[13px] font-display font-bold uppercase tracking-wider transition-colors border-b-2 ${
+                      activeTab === tab.id
+                        ? "text-accent border-accent"
+                        : "text-ivory/40 border-transparent hover:text-ivory/70 hover:border-ivory/20"
+                    }`}
                   >
-                    {showCurrentPw ? <EyeOff size={14} /> : <Eye size={14} />}
+                    {tab.label}
+                  </button>
+                ))}
+             </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-6 py-6 scrollbar-hide">
+            
+            {/* ═══════════════ ACTIVITY TAB ═══════════════ */}
+            {activeTab === "activity" && (
+              <div className="space-y-4 max-w-2xl">
+                 <h3 className="text-ivory font-display font-bold text-lg mb-4 flex items-center gap-2">
+                   <Grid size={18} className="text-accent" />
+                   Recently Posted
+                 </h3>
+                 {loadingPosts ? (
+                    <div className="flex items-center justify-center py-10 opacity-50">
+                       <Loader2 size={24} className="animate-spin text-ivory/30" />
+                    </div>
+                 ) : myPosts.length > 0 ? (
+                    <div className="space-y-4">
+                       {myPosts.map(post => (
+                         <div key={post._id} className="glass-card rounded-xl p-4 border border-white/[0.04] bg-white/[0.01] hover:bg-white/[0.03] transition-colors shadow-none">
+                           {post.imageUrl && (
+                             <div className="w-full h-32 md:h-48 rounded-lg overflow-hidden mb-3 relative bg-black/20">
+                                <Image src={post.imageUrl} fill className="object-cover" alt="Post media" unoptimized />
+                             </div>
+                           )}
+                           <p className="text-ivory/80 text-[14px] leading-relaxed mb-3 whitespace-pre-wrap break-words">{post.caption}</p>
+                           <div className="flex items-center gap-4 text-ivory/40 text-[12px] font-mono">
+                              <span className="flex items-center gap-1.5"><Heart size={14} className={post.likes?.includes(user?._id) ? "text-red-400" : ""} /> {post.likes?.length || 0}</span>
+                              <span className="flex items-center gap-1.5"><MessageSquare size={14} /> {post.comments?.length || 0}</span>
+                              <span className="flex items-center gap-1.5 ml-auto"><Clock size={14} /> {new Date(post.createdAt).toLocaleDateString()}</span>
+                           </div>
+                         </div>
+                       ))}
+                    </div>
+                 ) : (
+                    <div className="flex flex-col items-center justify-center py-12 text-ivory/30 text-center glass-card border border-white/[0.02] rounded-xl shadow-none">
+                      <FileText size={48} className="mb-4 opacity-50 text-accent/50" />
+                      <p className="font-display font-bold text-[16px] text-ivory/70">No Recent Activity</p>
+                      <p className="text-[13px] font-mono mt-1 opacity-60">Looks like it's quiet here.</p>
+                    </div>
+                 )}
+              </div>
+            )}
+
+            {/* ═══════════════ EDIT PROFILE TAB ═══════════════ */}
+            {activeTab === "profile" && (
+              <div className="space-y-6 max-w-lg">
+                <h3 className="text-ivory font-display font-bold text-lg mb-2 flex items-center gap-2">
+                   <User size={18} className="text-accent" />
+                   Profile Settings
+                </h3>
+                
+                {/* Status message */}
+                <div>
+                  <label className="flex items-center gap-1.5 text-[11px] font-mono font-bold uppercase tracking-widest text-ivory/40 mb-2">
+                    Custom Status
+                  </label>
+                  <input
+                    type="text"
+                    value={statusMessage}
+                    onChange={(e) => setStatusMessage(e.target.value)}
+                    maxLength={80}
+                    placeholder="What's on your mind?"
+                    className="w-full bg-black/20 border border-white/[0.08] rounded-xl px-4 py-3 text-[14px] text-ivory placeholder:text-ivory/20 focus:outline-none focus:border-accent/40 focus:bg-white/[0.03] transition-all duration-200"
+                  />
+                  <p className="text-right text-[10px] font-mono text-ivory/20 mt-1.5">
+                    {statusMessage.length}/80
+                  </p>
+                </div>
+
+                {/* Name */}
+                <div>
+                  <label className="flex items-center gap-1.5 text-[11px] font-mono font-bold uppercase tracking-widest text-ivory/40 mb-2">
+                    Display Name
+                  </label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    maxLength={50}
+                    placeholder="Your name"
+                    className="w-full bg-black/20 border border-white/[0.08] rounded-xl px-4 py-3 text-[14px] text-ivory placeholder:text-ivory/20 focus:outline-none focus:border-accent/40 focus:bg-white/[0.03] transition-all duration-200"
+                  />
+                </div>
+
+                {/* Bio */}
+                <div>
+                  <label className="flex items-center gap-1.5 text-[11px] font-mono font-bold uppercase tracking-widest text-ivory/40 mb-2">
+                    About Me
+                  </label>
+                  <textarea
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    maxLength={160}
+                    rows={4}
+                    placeholder="Tell the world a little about yourself"
+                    className="w-full bg-black/20 border border-white/[0.08] rounded-xl px-4 py-3 text-[14px] text-ivory placeholder:text-ivory/20 focus:outline-none focus:border-accent/40 focus:bg-white/[0.03] transition-all duration-200 resize-none"
+                  />
+                  <p className="text-right text-[10px] font-mono text-ivory/20 mt-1.5">
+                    {bio.length}/160
+                  </p>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    onClick={handleSaveProfile}
+                    disabled={savingProfile}
+                    className="bg-accent/15 hover:bg-accent/25 border border-accent/20 text-accent font-display font-bold text-[14px] px-6 py-2.5 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {savingProfile ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        Saving…
+                      </>
+                    ) : (
+                      "Save Profile Changes"
+                    )}
                   </button>
                 </div>
               </div>
+            )}
 
-              {/* New password */}
-              <div>
-                <label className="flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-ivory/30 mb-1.5">
-                  <KeyRound size={10} className="text-accent/50" />
-                  New Password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showNewPw ? "text" : "password"}
-                    value={newPw}
-                    onChange={(e) => setNewPw(e.target.value)}
-                    required
-                    minLength={8}
-                    placeholder="Min 8 characters"
-                    className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3.5 py-2.5 pr-10 text-[13px] text-ivory placeholder:text-ivory/20 focus:outline-none focus:border-accent/40 focus:bg-white/[0.06] transition-all duration-200"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowNewPw((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-ivory/20 hover:text-ivory/40 transition-colors"
-                  >
-                    {showNewPw ? <EyeOff size={14} /> : <Eye size={14} />}
-                  </button>
-                </div>
-                {/* Strength bar */}
-                {newPw.length > 0 && (
-                  <div className="flex items-center gap-1.5 mt-1.5">
-                    {[8, 10, 14].map((threshold, i) => (
-                      <div
-                        key={i}
-                        className={`flex-1 h-1 rounded-full transition-all duration-300 ${
-                          newPw.length >= threshold
-                            ? i === 0
-                              ? "bg-red-400/70"
-                              : i === 1
-                                ? "bg-amber-400/70"
-                                : "bg-emerald-400/70"
-                            : "bg-white/[0.06]"
+            {/* ═══════════════ SECURITY TAB ═══════════════ */}
+            {activeTab === "security" && isLocal && (
+              <div className="max-w-lg space-y-6">
+                <h3 className="text-ivory font-display font-bold text-lg mb-2 flex items-center gap-2">
+                   <Shield size={18} className="text-accent" />
+                   Security Settings
+                </h3>
+                
+                <form onSubmit={handleChangePassword} className="space-y-5">
+                  <p className="text-[13px] text-ivory/50 font-mono mb-4 leading-relaxed bg-white/[0.02] p-4 rounded-xl border border-white/[0.04]">
+                    Choose a strong password containing at least 8 characters. Consider using numbers and special symbols for better security.
+                  </p>
+
+                  <div className="space-y-4">
+                    {/* Current pw */}
+                    <div>
+                      <label className="flex items-center gap-1.5 text-[11px] font-mono font-bold uppercase tracking-widest text-ivory/40 mb-2">
+                        Current Password
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showCurrentPw ? "text" : "password"}
+                          value={currentPw}
+                          onChange={(e) => setCurrentPw(e.target.value)}
+                          required
+                          placeholder="••••••••"
+                          className="w-full bg-black/20 border border-white/[0.08] rounded-xl px-4 py-3 pr-10 text-[14px] text-ivory placeholder:text-ivory/20 focus:outline-none focus:border-accent/40 transition-all duration-200"
+                        />
+                        <button type="button" onClick={() => setShowCurrentPw((v) => !v)} className="absolute right-4 top-1/2 -translate-y-1/2 text-ivory/20 hover:text-ivory/60 transition-colors">
+                          {showCurrentPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* New pw */}
+                    <div>
+                      <label className="flex items-center gap-1.5 text-[11px] font-mono font-bold uppercase tracking-widest text-ivory/40 mb-2">
+                        New Password
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showNewPw ? "text" : "password"}
+                          value={newPw}
+                          onChange={(e) => setNewPw(e.target.value)}
+                          required
+                          minLength={8}
+                          placeholder="Min 8 characters"
+                          className="w-full bg-black/20 border border-white/[0.08] rounded-xl px-4 py-3 pr-10 text-[14px] text-ivory placeholder:text-ivory/20 focus:outline-none focus:border-accent/40 transition-all duration-200"
+                        />
+                        <button type="button" onClick={() => setShowNewPw((v) => !v)} className="absolute right-4 top-1/2 -translate-y-1/2 text-ivory/20 hover:text-ivory/60 transition-colors">
+                          {showNewPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Confirm pw */}
+                    <div>
+                      <label className="flex items-center gap-1.5 text-[11px] font-mono font-bold uppercase tracking-widest text-ivory/40 mb-2">
+                        Confirm Password
+                      </label>
+                      <input
+                        type="password"
+                        value={confirmPw}
+                        onChange={(e) => setConfirmPw(e.target.value)}
+                        required
+                        placeholder="Repeat new password"
+                        className={`w-full bg-black/20 border rounded-xl px-4 py-3 text-[14px] text-ivory placeholder:text-ivory/20 focus:outline-none transition-all duration-200 ${
+                          confirmPw && confirmPw !== newPw
+                            ? "border-red-400/50 focus:border-red-400/70"
+                            : "border-white/[0.08] focus:border-accent/40"
                         }`}
                       />
-                    ))}
-                    <span className="text-[9px] font-mono text-ivory/20 w-10 text-right">
-                      {newPw.length < 8
-                        ? "weak"
-                        : newPw.length < 10
-                          ? "fair"
-                          : newPw.length < 14
-                            ? "good"
-                            : "strong"}
-                    </span>
+                      {confirmPw && confirmPw !== newPw && (
+                        <p className="text-[11px] text-red-400/90 mt-2 font-mono">Passwords do not match</p>
+                      )}
+                    </div>
                   </div>
-                )}
-              </div>
 
-              {/* Confirm password */}
-              <div>
-                <label className="flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-ivory/30 mb-1.5">
-                  <KeyRound size={10} className="text-accent/50" />
-                  Confirm New Password
-                </label>
-                <input
-                  type="password"
-                  value={confirmPw}
-                  onChange={(e) => setConfirmPw(e.target.value)}
-                  required
-                  placeholder="Repeat new password"
-                  className={`w-full bg-white/[0.04] border rounded-xl px-3.5 py-2.5 text-[13px] text-ivory placeholder:text-ivory/20 focus:outline-none transition-all duration-200 ${
-                    confirmPw && confirmPw !== newPw
-                      ? "border-red-400/40 focus:border-red-400/60"
-                      : "border-white/[0.08] focus:border-accent/40 focus:bg-white/[0.06]"
-                  }`}
-                />
-                {confirmPw && confirmPw !== newPw && (
-                  <p className="text-[10px] text-red-400/70 mt-1 font-mono">
-                    Passwords don&apos;t match
-                  </p>
-                )}
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={savingPw || !currentPw || newPw !== confirmPw || newPw.length < 8}
+                      className="bg-accent/15 hover:bg-accent/25 border border-accent/20 text-accent font-display font-bold text-[14px] px-6 py-2.5 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {savingPw ? (
+                        <>
+                          <Loader2 size={16} className="animate-spin" />
+                          Updating…
+                        </>
+                      ) : (
+                        "Update Password"
+                      )}
+                    </button>
+                  </div>
+                </form>
               </div>
-
-              <button
-                type="submit"
-                disabled={
-                  savingPw ||
-                  !currentPw ||
-                  newPw !== confirmPw ||
-                  newPw.length < 8
-                }
-                className="w-full py-2.5 rounded-xl bg-accent/15 hover:bg-accent/25 border border-accent/30 hover:border-accent/50 text-accent font-display font-bold text-[13px] transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {savingPw ? (
-                  <>
-                    <Loader2 size={14} className="animate-spin" />
-                    Updating…
-                  </>
-                ) : (
-                  "Change Password"
-                )}
-              </button>
-            </form>
-          )}
-        </div>
-      </div>
-    </div>
+            )}
+          </div>
+        </div >
+      </div >
+    </div >
   );
 }

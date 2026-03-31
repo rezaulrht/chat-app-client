@@ -1,11 +1,13 @@
 // chat-app-client/src/components/app-shell/AppSidebar.jsx
 "use client";
-import React from "react";
+import React, { useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 import useSidebarStore from "@/stores/sidebarStore";
+import UserProfileCard from "@/components/profile/UserProfileCard";
+import UserProfileModal from "@/components/profile/UserProfileModal";
 
 const STORE_KEY_MAP = {
   chat: { flag: "chatCollapsed", toggle: "toggleChat" },
@@ -22,6 +24,9 @@ export default function AppSidebar({
 }) {
   const { user, logout } = useAuth();
   const store = useSidebarStore();
+  const [showUserCard, setShowUserCard] = useState(false);
+  const [showFullProfile, setShowFullProfile] = useState(false);
+  const userBarRef = useRef(null);
 
   const collapsed =
     storeKey && STORE_KEY_MAP[storeKey]
@@ -86,8 +91,12 @@ export default function AppSidebar({
 
       {/* User bar — hidden when collapsed */}
       {user && !collapsed && (
-        <div className="h-14 mx-2 mb-2 glass-card rounded-xl px-3 flex items-center gap-2.5 group/user shrink-0 ring-1 ring-white/[0.04]">
-          <Link href="/profile" className="relative shrink-0">
+        <div 
+           ref={userBarRef} 
+           onClick={() => setShowUserCard(!showUserCard)}
+           className="cursor-pointer h-14 mx-2 mb-2 glass-card rounded-xl px-3 flex items-center gap-2.5 group/user shrink-0 ring-1 ring-white/[0.04] hover:bg-white/[0.03] transition-all duration-200"
+        >
+          <div className="relative shrink-0">
             <div className="w-8 h-8 rounded-xl overflow-hidden ring-1 ring-white/[0.06] group-hover/user:ring-accent/30 transition-all">
               <Image
                 src={
@@ -102,8 +111,8 @@ export default function AppSidebar({
               />
             </div>
             <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-deep bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
-          </Link>
-          <Link href="/profile" className="flex-1 min-w-0">
+          </div>
+          <div className="flex-1 min-w-0">
             <p className="text-ivory text-[13px] font-display font-bold truncate leading-tight group-hover/user:text-accent transition-colors">
               {user.name?.split(" ")[0]}
             </p>
@@ -111,9 +120,9 @@ export default function AppSidebar({
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               Online
             </p>
-          </Link>
+          </div>
           <button
-            onClick={logout}
+            onClick={(e) => { e.stopPropagation(); logout(); }}
             className="p-1.5 rounded-lg hover:bg-red-500/10 text-ivory/30 hover:text-red-400 transition-all"
             title="Logout"
             aria-label="Logout"
@@ -142,6 +151,19 @@ export default function AppSidebar({
             </div>
           </Link>
         </div>
+      )}
+      {showUserCard && (
+        <UserProfileCard 
+           anchorRef={userBarRef} 
+           onClose={() => setShowUserCard(false)} 
+           onOpenFullProfile={() => {
+              setShowUserCard(false);
+              setShowFullProfile(true);
+           }}
+        />
+      )}
+      {showFullProfile && (
+        <UserProfileModal onClose={() => setShowFullProfile(false)} />
       )}
     </div>
   );

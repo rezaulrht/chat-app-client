@@ -8,11 +8,12 @@ import useFeed from "@/hooks/useFeed";
 import AppSidebar from "@/components/app-shell/AppSidebar";
 import { useAppShell } from "@/components/app-shell/AppShellContext";
 
-function ConnectedLeftSidebar({ onTagFilter }) {
+function ConnectedLeftSidebar({ onTagFilter, collapsed }) {
   const { userStats, followedTags } = useFeed();
   return (
     <FeedSidebar
       side="left"
+      collapsed={collapsed}
       userStats={userStats}
       followedTags={followedTags}
       onTagFilter={onTagFilter}
@@ -41,7 +42,7 @@ function FeedPageInner() {
   return (
     <div className="flex h-full w-full bg-obsidian overflow-hidden">
       {/* Desktop/tablet: tags sidebar */}
-      <AppSidebar label="Tags & Topics" style={{ "--sidebar-width": "320px" }}>
+      <AppSidebar label="Tags & Topics" style={{ "--sidebar-width": "320px" }} storeKey="feed">
         <ConnectedLeftSidebar onTagFilter={handleTagFilter} />
       </AppSidebar>
 

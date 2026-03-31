@@ -237,7 +237,7 @@ function ActiveFilters({
 
 // ── LEFT SIDEBAR ──────────────────────────────────────────────────────────────
 
-function LeftSidebar({ userStats, followedTags, onTagFilter }) {
+function LeftSidebar({ userStats, followedTags, onTagFilter, collapsed = false }) {
   const {
     setFilters,
     setPage,
@@ -292,6 +292,78 @@ function LeftSidebar({ userStats, followedTags, onTagFilter }) {
     setActiveTab?.("latest");
     setPage?.(1);
   };
+
+  if (collapsed) {
+    return (
+      <aside className="w-full flex flex-col items-center min-h-0 overflow-y-auto scrollbar-hide pt-2 gap-1 pb-4">
+        {/* User avatar */}
+        <div className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-accent/20 shrink-0 mb-1">
+          <Image
+            src={
+              userStats.avatar ||
+              `https://api.dicebear.com/7.x/avataaars/svg?seed=${userStats.name || "user"}`
+            }
+            alt="avatar"
+            width={36}
+            height={36}
+            unoptimized
+            className="w-full h-full object-cover"
+          />
+        </div>
+
+        <div className="w-7 h-px bg-white/[0.06] shrink-0 my-1" />
+
+        {/* My Profile */}
+        <button
+          type="button"
+          title="My Profile"
+          onClick={() => {
+            if (userStats._id) window.location.href = `/profile/${userStats._id}`;
+          }}
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-ivory/30 hover:text-accent hover:bg-accent/10 transition-all"
+        >
+          <User2 size={15} />
+        </button>
+
+        {/* Followers */}
+        <button
+          type="button"
+          title="Followers"
+          onClick={() => setShowFollowers((v) => !v)}
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-ivory/30 hover:text-accent hover:bg-accent/10 transition-all"
+        >
+          <Users2 size={15} />
+        </button>
+
+        {/* Following */}
+        <button
+          type="button"
+          title="Following"
+          onClick={() => {
+            setActiveTab?.("following");
+            setPage?.(1);
+          }}
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-ivory/30 hover:text-accent hover:bg-accent/10 transition-all"
+        >
+          <Zap size={15} />
+        </button>
+
+        <div className="w-7 h-px bg-white/[0.06] shrink-0 my-1" />
+
+        {/* Recent Posts */}
+        <button
+          type="button"
+          title="Recent Posts"
+          onClick={() => {
+            if (userStats._id) window.location.href = `/profile/${userStats._id}`;
+          }}
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-ivory/30 hover:text-accent hover:bg-accent/10 transition-all"
+        >
+          <FileText size={15} />
+        </button>
+      </aside>
+    );
+  }
 
   return (
     <aside className="w-full h-full flex flex-col overflow-y-auto scrollbar-hide">
@@ -817,6 +889,7 @@ export default function FeedSidebar({
   userStats = {},
   followedTags = [],
   onTagFilter,
+  collapsed = false,
 }) {
   if (side === "left") {
     return (
@@ -824,6 +897,7 @@ export default function FeedSidebar({
         userStats={userStats}
         followedTags={followedTags}
         onTagFilter={onTagFilter}
+        collapsed={collapsed}
       />
     );
   }

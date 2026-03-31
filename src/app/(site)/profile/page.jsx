@@ -35,6 +35,56 @@ import {
   Rss,
 } from "lucide-react";
 import PostCard from "@/components/Feed/PostCard";
+import { useTheme } from "@/context/ThemeContext";
+import { THEMES } from "@/context/ThemeContext";
+import { Paintbrush } from "lucide-react";
+
+// ── Appearance card ──────────────────────────────────────────────────────────
+function AppearanceCard() {
+  const { theme, setTheme } = useTheme();
+  return (
+    <div className="glass-card rounded-2xl border border-white/[0.08] p-5 space-y-3">
+      <h2 className="text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-ivory/25 flex items-center gap-1.5">
+        <Paintbrush size={10} className="text-accent/50" />
+        Appearance
+      </h2>
+      <div className="grid grid-cols-2 gap-2">
+        {THEMES.map((t) => {
+          const active = theme === t.id;
+          return (
+            <button
+              key={t.id}
+              onClick={() => setTheme(t.id)}
+              className={`flex items-center gap-2.5 p-3 rounded-xl border transition-all text-left group ${
+                active
+                  ? "border-accent/40 bg-accent/[0.07]"
+                  : "border-white/[0.06] hover:border-white/[0.14] hover:bg-white/[0.04]"
+              }`}
+            >
+              <div
+                className="w-8 h-8 rounded-xl shrink-0 border border-black/[0.12] flex items-center justify-center shadow-sm"
+                style={{ background: t.surface }}
+              >
+                <div className="w-3 h-3 rounded-full" style={{ background: t.accent }} />
+              </div>
+              <div>
+                <p className={`text-[11px] font-display font-bold leading-tight ${active ? "text-accent" : "text-ivory/70"}`}>
+                  {t.label}
+                </p>
+                <p className="text-[9px] font-mono text-ivory/25 capitalize leading-tight mt-0.5">
+                  {t.mode}
+                </p>
+              </div>
+              {active && (
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 // ── Role badge helper ───────────────────────────────────────────────────────
 function RoleBadge({ role }) {
@@ -789,6 +839,9 @@ function ProfilePage() {
                   </div>
                 ))}
               </div>
+
+              {/* ── Appearance ── */}
+              <AppearanceCard />
 
               {/* ── My Workspaces ── */}
               <div className="glass-card rounded-2xl border border-white/[0.08] p-5">

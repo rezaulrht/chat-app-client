@@ -44,6 +44,7 @@ const TABS = [
   { id: "overview", label: "Overview", Icon: Settings },
   { id: "roles", label: "Roles", Icon: Shield },
   { id: "members", label: "Members", Icon: Users },
+  { id: "bans", label: "Bans", Icon: Gavel },
   { id: "invites", label: "Invites", Icon: Link2 },
   { id: "danger", label: "Danger Zone", Icon: AlertTriangle },
 ];
@@ -51,7 +52,7 @@ const TABS = [
 import {
   Settings, Shield, Users, Link2, AlertTriangle, ChevronRight, X, Camera,
   Loader2, Check, Globe, Lock, Plus, Search, Crown, UserCog, UserMinus,
-  RefreshCw, Copy, LogOut, Trash2, Pencil, ChevronDown
+  RefreshCw, Copy, LogOut, Trash2, Pencil, ChevronDown, Gavel
 } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -664,7 +665,7 @@ function RolesTab({ workspace, onCreateRole, onUpdateRole, onDeleteRole }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // MEMBERS TAB
 // ─────────────────────────────────────────────────────────────────────────────
-function MembersTab({ workspace, members, currentUser, onUpdateMemberRole, onRemoveMember, onAssignRoles }) {
+function MembersTab({ workspace, members, currentUser, onUpdateMemberRole, onRemoveMember, onAssignRoles, onBanMember }) {
   const [search, setSearch] = useState("");
   const [actionUserId, setActionUserId] = useState(null);
   const [assigningUser, setAssigningUser] = useState(null);
@@ -818,6 +819,21 @@ function MembersTab({ workspace, members, currentUser, onUpdateMemberRole, onRem
                         <UserMinus size={14} />
                       </button>
                     )}
+                    {(isOwner || m.role === "member") && (
+                      <button
+                        title="Ban member"
+                        onClick={async () => {
+                          if (!confirm(`Ban ${m.user.name}? This will remove them and prevent re-joining.`)) return;
+                          try {
+                            await onBanMember(m.user._id);
+                            toast.success("Member banned");
+                          } catch { toast.error("Failed to ban member"); }
+                        }}
+                        className="p-1.5 rounded-lg text-ivory/25 hover:text-red-500 hover:bg-red-500/10 transition-all"
+                      >
+                        <Gavel size={14} />
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -825,6 +841,105 @@ function MembersTab({ workspace, members, currentUser, onUpdateMemberRole, onRem
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BANS TAB
+// ─────────────────────────────────────────────────────────────────────────────
+function BansTab({ workspace, onUnban, onFetchBans }) {
+  const [bans, setBans] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+
+  const loadBans = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await onFetchBans();
+      setBans(data || []);
+    } catch (err) {
+      toast.error("Failed to load bans");
+    } finally {
+      setLoading(false);
+    }
+  }, [onFetchBans]);
+
+  useEffect(() => {
+    loadBans();
+  }, [loadBans]);
+
+  const filtered = bans.filter(b => 
+    (b.user?.name || "").toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-4 max-w-lg">
+      <p className="text-ivory/30 text-[12px] font-mono">
+        Manage users who have been banned from this workspace. Banned users cannot join unless they are unbanned.
+      </p>
+
+      <div className="relative">
+        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-ivory/25" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search banned users..."
+          className="w-full bg-white/4 border border-white/8 rounded-xl pl-8 pr-3 py-2 text-[13px] text-ivory/70 placeholder:text-ivory/20 focus:outline-none focus:border-accent/40"
+        />
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="animate-spin text-accent/40" size={24} />
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 bg-white/2 rounded-3xl border border-dashed border-white/8">
+          <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
+            <Gavel size={32} className="text-ivory/10" />
+          </div>
+          <p className="text-[13px] text-ivory/40 font-medium">No banned users found</p>
+          <p className="text-[11px] text-ivory/20 font-mono mt-1">Peace reigns in this workspace.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map((ban) => (
+            <div key={ban.user?._id} className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/3 border border-white/6 hover:border-ivory/10 transition-all group">
+              <div className="w-10 h-10 rounded-2xl overflow-hidden ring-1 ring-white/6 bg-accent/5 flex items-center justify-center shrink-0">
+                <Image
+                  src={ban.user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${ban.user?.name}`}
+                  width={40} height={40} alt="" className="rounded-2xl object-cover w-full h-full" unoptimized
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-display font-bold text-ivory/80 truncate">
+                  {ban.user?.name}
+                </p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-[9px] font-mono font-bold text-red-400/60 uppercase bg-red-500/5 px-1.5 py-0.5 rounded border border-red-500/10">Banned</span>
+                  <p className="text-[10px] font-mono text-ivory/20">
+                    {new Date(ban.bannedAt).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={async () => {
+                  if (!confirm(`Unban ${ban.user?.name}?`)) return;
+                  try {
+                    await onUnban(ban.user?._id);
+                    toast.success("User unbanned");
+                    loadBans();
+                  } catch { toast.error("Failed to unban user"); }
+                }}
+                className="opacity-0 group-hover:opacity-100 px-3 py-1.5 bg-accent/10 hover:bg-accent/20 text-accent rounded-xl text-[11px] font-bold transition-all"
+              >
+                Unban
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -1050,12 +1165,14 @@ export default function WorkspaceSettingsModal({ workspaceId, onClose }) {
     generateInvite,
     revokeInvite,
     createRole,
-    updateRole,
     deleteRole,
     assignRolesToMember,
     updateMemberRole,
     removeMembers,
     fetchWorkspaceMembers,
+    banMember,
+    unbanMember,
+    getBannedUsers,
   } = useWorkspace();
 
   const workspace = workspaces.find((w) => w._id === workspaceId);
@@ -1119,7 +1236,7 @@ export default function WorkspaceSettingsModal({ workspaceId, onClose }) {
           {TABS.map((tab) => {
             const Icon = tab.Icon;
             const isActive = activeTab === tab.id;
-            if (tab.id === "danger" || tab.id === "invites") {
+            if (tab.id === "danger" || tab.id === "invites" || tab.id === "bans") {
               if (!isAdmin) return null;
             }
             return (
@@ -1151,7 +1268,7 @@ export default function WorkspaceSettingsModal({ workspaceId, onClose }) {
             {TABS.map((tab) => {
               const Icon = tab.Icon;
               const isActive = activeTab === tab.id;
-              if (tab.id === "danger" || tab.id === "invites") {
+              if (tab.id === "danger" || tab.id === "invites" || tab.id === "bans") {
                 if (!isAdmin) return null;
               }
               return (
@@ -1207,6 +1324,14 @@ export default function WorkspaceSettingsModal({ workspaceId, onClose }) {
                 onUpdateMemberRole={(uid, role) => updateMemberRole(workspaceId, uid, role)}
                 onRemoveMember={(uid) => removeMembers(workspaceId, [uid])}
                 onAssignRoles={(uid, rids) => assignRolesToMember(workspaceId, uid, rids)}
+                onBanMember={(uid) => banMember(workspaceId, uid)}
+              />
+            )}
+            {activeTab === "bans" && isAdmin && (
+              <BansTab
+                workspace={workspace}
+                onUnban={(uid) => unbanMember(workspaceId, uid)}
+                onFetchBans={() => getBannedUsers(workspaceId)}
               />
             )}
             {activeTab === "invites" && isAdmin && (

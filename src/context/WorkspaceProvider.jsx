@@ -533,6 +533,23 @@ export function WorkspaceProvider({ children }) {
       });
     };
 
+    const onMemberBanned = ({ workspaceId, userId }) => {
+      setWorkspaces((prev) =>
+        prev.map((w) =>
+          w._id === workspaceId
+            ? { ...w, memberCount: Math.max(0, (w.memberCount || 0) - 1) }
+            : w,
+        ),
+      );
+      setMembersCache((prev) => {
+        if (!prev[workspaceId]) return prev;
+        return {
+          ...prev,
+          [workspaceId]: prev[workspaceId].filter((m) => m.user._id.toString() !== userId.toString()),
+        };
+      });
+    };
+
     const onRoleUpdated = ({ workspaceId, targetUserId, newRole }) => {
       setMembersCache((prev) => {
         if (!prev[workspaceId]) return prev;
@@ -650,6 +667,7 @@ export function WorkspaceProvider({ children }) {
     socket.on("workspace:member-roles-updated", onMemberRolesUpdated);
     socket.on("workspace:owner-transferred", onOwnerTransferred);
     socket.on("workspace:kicked", onKicked);
+    socket.on("workspace:member-banned", onMemberBanned);
     socket.on("presence:update", onPresenceUpdate);
     socket.on("module:mention", onMention);
 
@@ -671,6 +689,7 @@ export function WorkspaceProvider({ children }) {
       socket.off("workspace:member-roles-updated", onMemberRolesUpdated);
       socket.off("workspace:owner-transferred", onOwnerTransferred);
       socket.off("workspace:kicked", onKicked);
+      socket.off("workspace:member-banned", onMemberBanned);
       socket.off("presence:update", onPresenceUpdate);
       socket.off("module:mention", onMention);
     };

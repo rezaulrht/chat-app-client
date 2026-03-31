@@ -30,14 +30,14 @@ export default function InviteMembersModal({ workspaceId, onClose }) {
   const members = workspace?.members || [];
 
   const modal = (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-4">
       <div
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="relative z-10 w-full max-w-sm glass-card rounded-3xl border border-white/[0.08] shadow-[0_24px_80px_rgba(0,0,0,0.6)] overflow-hidden">
+      <div className="relative z-10 w-full max-w-xs md:max-w-sm glass-card rounded-3xl border border-white/[0.08] shadow-[0_24px_80px_rgba(0,0,0,0.6)] overflow-hidden">
         {/* Header */}
-        <div className="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between">
+        <div className="px-4 md:px-5 py-3 md:py-4 border-b border-white/[0.06] flex items-center justify-between">
           <h2 className="font-display font-bold text-ivory">Members</h2>
           <button
             onClick={onClose}
@@ -48,7 +48,7 @@ export default function InviteMembersModal({ workspaceId, onClose }) {
         </div>
 
         {/* Member List */}
-        <div className="max-h-80 overflow-y-auto scrollbar-hide p-3 space-y-px">
+        <div className="max-h-80 overflow-y-auto scrollbar-hide p-2 md:p-3 space-y-px">
           {members.length === 0 && (
             <p className="text-ivory/20 text-[11px] font-mono text-center py-6">
               No members loaded yet

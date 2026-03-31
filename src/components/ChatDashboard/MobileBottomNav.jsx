@@ -24,7 +24,7 @@ export default function MobileBottomNav() {
   const activeId = getActiveId(pathname);
 
   return (
-    <nav className="xl:hidden shrink-0 bg-obsidian/95 backdrop-blur-lg supports-[backdrop-filter]:bg-obsidian/80 relative">
+    <nav className="lg:hidden shrink-0 bg-obsidian/95 backdrop-blur-lg supports-[backdrop-filter]:bg-obsidian/80 relative">
       <div
         className="absolute top-0 left-0 right-0 h-px pointer-events-none"
         style={{
@@ -50,9 +50,8 @@ export default function MobileBottomNav() {
                 }
               />
               <span
-                className={`text-[10px] font-mono font-bold uppercase tracking-[0.12em] ${
-                  isActive ? "text-accent" : "text-ivory/45"
-                }`}
+                className={`text-[10px] font-mono font-bold uppercase tracking-[0.12em] ${isActive ? "text-accent" : "text-ivory/45"
+                  }`}
               >
                 {label}
               </span>

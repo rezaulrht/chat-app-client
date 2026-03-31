@@ -84,9 +84,9 @@ function DeletePostModal({ post, open, deleting, onClose, onConfirm }) {
   const preview = post.title ?? post.content?.slice(0, 120) ?? "Untitled post";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-sm glass-card rounded-3xl overflow-hidden shadow-2xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-4 bg-black/60 backdrop-blur-sm">
+      <div className="w-full max-w-xs md:max-w-sm glass-card rounded-3xl overflow-hidden shadow-2xl">
+        <div className="flex items-center justify-between px-4 md:px-5 py-3 md:py-4 border-b border-white/[0.06]">
           <h2 className="font-display font-bold text-ivory text-sm">
             Delete Post
           </h2>
@@ -100,7 +100,7 @@ function DeletePostModal({ post, open, deleting, onClose, onConfirm }) {
           </button>
         </div>
 
-        <div className="px-5 py-4 flex flex-col gap-3">
+        <div className="px-4 md:px-5 py-3 md:py-4 flex flex-col gap-3">
           <div className="flex items-center gap-3 text-red-400/85">
             <div className="w-10 h-10 rounded-2xl bg-red-400/10 ring-1 ring-red-400/20 flex items-center justify-center">
               <Trash2 size={16} />
@@ -128,7 +128,7 @@ function DeletePostModal({ post, open, deleting, onClose, onConfirm }) {
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-white/[0.06]">
+        <div className="flex items-center justify-end gap-2 px-4 md:px-5 py-3 md:py-4 border-t border-white/[0.06]">
           <button
             type="button"
             onClick={onClose}
@@ -376,8 +376,8 @@ export default function FeedView() {
       typeof postOrId === "object" && postOrId?._id
         ? postOrId
         : posts.find((post) => post._id === targetId) ||
-          (activePost?._id === targetId ? activePost : null) ||
-          (editTarget?._id === targetId ? editTarget : null);
+        (activePost?._id === targetId ? activePost : null) ||
+        (editTarget?._id === targetId ? editTarget : null);
 
     if (!targetPost) return;
     setDeleteTarget(targetPost);
@@ -435,10 +435,10 @@ export default function FeedView() {
           typeof data?.commentsCount === "number"
             ? Math.max(0, data.commentsCount)
             : Math.max(
-                0,
-                (prev.commentCount ?? prev.commentsCount ?? 0) -
-                  (data?.removedCount ?? 1),
-              );
+              0,
+              (prev.commentCount ?? prev.commentsCount ?? 0) -
+              (data?.removedCount ?? 1),
+            );
         const acceptedId = prev.acceptedAnswer ?? prev.acceptedComment ?? null;
 
         return {
@@ -569,11 +569,10 @@ export default function FeedView() {
               key={tab.id}
               type="button"
               onClick={() => handleTabChange(tab.id)}
-              className={`shrink-0 whitespace-nowrap px-4 py-2.5 text-[13px] font-display font-semibold border-b-2 transition-all duration-150 -mb-px ${
-                activeTab === tab.id
+              className={`shrink-0 whitespace-nowrap px-4 py-2.5 text-[13px] font-display font-semibold border-b-2 transition-all duration-150 -mb-px ${activeTab === tab.id
                   ? "border-accent text-ivory"
                   : "border-transparent text-ivory/40 hover:text-ivory/70"
-              }`}
+                }`}
             >
               {tab.label}
             </button>

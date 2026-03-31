@@ -115,13 +115,13 @@ export default function CreatePollModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-deep border border-white/10 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 md:p-4">
+      <div className="bg-deep border border-white/10 rounded-2xl w-full max-w-md md:max-w-lg max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
         {/* ──────────────────────────────────────────────── */}
         {/* Header */}
         {/* ──────────────────────────────────────────────── */}
 
-        <div className="flex items-center justify-between p-4 border-b border-white/10">
+        <div className="flex items-center justify-between p-3 md:p-4 border-b border-white/10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center">
               <span className="text-xl">📊</span>
@@ -145,7 +145,7 @@ export default function CreatePollModal({
         {/* Body */}
         {/* ──────────────────────────────────────────────── */}
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
+        <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4 scrollbar-hide">
           {/* Question Input */}
           <div>
             <label className="block text-xs font-bold text-ivory/60 mb-2">
@@ -274,11 +274,10 @@ export default function CreatePollModal({
           <button
             onClick={handleCreatePoll}
             disabled={creating}
-            className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all shadow-lg ${
-              creating
+            className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all shadow-lg ${creating
                 ? "bg-slate-600 text-ivory/40 cursor-not-allowed"
                 : "bg-accent hover:bg-accent/90 text-black shadow-accent/20 active:scale-95"
-            }`}
+              }`}
           >
             {creating ? "Creating..." : "Create Poll"}
           </button>

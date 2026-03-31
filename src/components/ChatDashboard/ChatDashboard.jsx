@@ -102,11 +102,10 @@ export default function ChatDashboard() {
       toast.custom(
         (t) => (
           <div
-            className={`flex flex-col gap-1.5 px-4 py-3.5 rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.3)] glass-card ring-1 ring-accent/15 text-sm min-w-70 max-w-90 transition-all duration-300 ${
-              t.visible
-                ? "opacity-100 translate-y-0"
-                : "opacity-0 -translate-y-3"
-            }`}
+            className={`flex flex-col gap-1.5 px-4 py-3.5 rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.3)] glass-card ring-1 ring-accent/15 text-sm min-w-70 max-w-90 transition-all duration-300 ${t.visible
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 -translate-y-3"
+              }`}
           >
             <p className="font-display font-bold text-ivory text-[13px]">
               New message from {msg.sender.name}
@@ -163,17 +162,17 @@ export default function ChatDashboard() {
           const updated = prev.map((c) =>
             c._id === msg.conversationId
               ? {
-                  ...c,
-                  lastMessage: {
-                    text: msg.text,
-                    gifUrl: msg.gifUrl,
-                    attachments: msg.attachments || [],
-                    // Keep populated sender object for group last-message preview
-                    sender: msg.sender || null,
-                    timestamp: msg.createdAt,
-                  },
-                  updatedAt: msg.createdAt,
-                }
+                ...c,
+                lastMessage: {
+                  text: msg.text,
+                  gifUrl: msg.gifUrl,
+                  attachments: msg.attachments || [],
+                  // Keep populated sender object for group last-message preview
+                  sender: msg.sender || null,
+                  timestamp: msg.createdAt,
+                },
+                updatedAt: msg.createdAt,
+              }
               : c,
           );
           return sortConversations(updated);
@@ -326,16 +325,16 @@ export default function ChatDashboard() {
         const updated = prev.map((c) =>
           c._id === conversationId
             ? {
-                ...c,
-                lastMessage: {
-                  ...c.lastMessage,
-                  text,
-                  gifUrl,
-                  attachments,
-                  timestamp: new Date().toISOString(),
-                },
-                updatedAt: new Date().toISOString(),
-              }
+              ...c,
+              lastMessage: {
+                ...c.lastMessage,
+                text,
+                gifUrl,
+                attachments,
+                timestamp: new Date().toISOString(),
+              },
+              updatedAt: new Date().toISOString(),
+            }
             : c,
         );
         return sortConversations(updated);
@@ -444,24 +443,24 @@ export default function ChatDashboard() {
   }
 
   return (
-    <div className="flex flex-col md:flex-row h-full w-full bg-slate-surface overflow-hidden font-sans relative">
+    <div className="flex flex-col lg:flex-row h-full w-full bg-slate-surface overflow-hidden font-sans relative">
       {/* Mobile Backdrops */}
       {(isSidebarOpen ||
         (showGroupInfo && activeConversation?.type === "group")) && (
-        <div
-          className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-30 transition-all"
-          onClick={() => {
-            setIsSidebarOpen(false);
-            setShowGroupInfo(false);
-          }}
-        />
-      )}
+          <div
+            className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-30 transition-all"
+            onClick={() => {
+              setIsSidebarOpen(false);
+              setShowGroupInfo(false);
+            }}
+          />
+        )}
 
       <div className="flex flex-1 min-h-0 w-full">
         {/* ═══ Desktop: Unified Sidebar ═══ */}
         <AppSidebar
           label="Direct Messages"
-          className="w-80 overflow-hidden border-r border-white/[0.06]"
+          className="lg:flex w-80 overflow-hidden border-r border-white/[0.06]"
           storeKey="chat"
         >
           <Sidebar
@@ -478,9 +477,8 @@ export default function ChatDashboard() {
 
         {/* ═══ Mobile: Slide-in Sidebar ═══ */}
         <div
-          className={`md:hidden absolute z-40 h-full transition-transform duration-300 w-[85vw] sm:w-80 flex shrink-0 ${
-            isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
+          className={`lg:hidden absolute z-40 h-full transition-transform duration-300 w-[85vw] sm:w-80 flex shrink-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+            }`}
         >
           <Sidebar
             conversations={conversations}
@@ -488,7 +486,7 @@ export default function ChatDashboard() {
             setActiveConversationId={(id) => {
               setActiveConversationId(id);
               setShowGroupInfo(false);
-              if (window.innerWidth < 768) setIsSidebarOpen(false);
+              if (window.innerWidth < 1024) setIsSidebarOpen(false);
             }}
             onNewConversation={handleNewConversation}
             onConversationUpdate={handleConversationUpdate}
@@ -512,7 +510,7 @@ export default function ChatDashboard() {
         </div>
 
         {showGroupInfo && activeConversation?.type === "group" && (
-          <div className="absolute top-0 right-0 h-full md:relative z-40 shrink-0">
+          <div className="absolute top-0 right-0 h-full lg:relative z-40 shrink-0">
             <GroupInfoPanel
               conversation={activeConversation}
               currentUser={currentUser}

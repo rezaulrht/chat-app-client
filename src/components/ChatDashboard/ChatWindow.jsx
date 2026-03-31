@@ -84,10 +84,9 @@ function SharedPostCard({ parsed, isMe }) {
         type="button"
         onClick={handleClick}
         className={`text-left w-full max-w-[280px] rounded-2xl border transition-all hover:scale-[1.02] active:scale-[0.98] p-4 flex flex-col gap-2 group shadow-sm
-          ${
-            isMe
-              ? "bg-accent/10 border-accent/20 hover:bg-accent/15"
-              : "bg-white/[0.04] border-white/10 hover:border-accent/40 hover:bg-white/[0.08]"
+          ${isMe
+            ? "bg-accent/10 border-accent/20 hover:bg-accent/15"
+            : "bg-white/[0.04] border-white/10 hover:border-accent/40 hover:bg-white/[0.08]"
           }`}
       >
         <div className="flex items-center gap-1.5">
@@ -1057,8 +1056,8 @@ export default function ChatWindow({
     } catch (err) {
       toast.error(
         err?.response?.data?.error ||
-          err?.response?.data?.message ||
-          "Failed to load scheduled messages",
+        err?.response?.data?.message ||
+        "Failed to load scheduled messages",
       );
     } finally {
       setLoadingScheduled(false);
@@ -1111,8 +1110,8 @@ export default function ChatWindow({
     } catch (err) {
       toast.error(
         err?.response?.data?.error ||
-          err?.response?.data?.message ||
-          "Failed to cancel scheduled message",
+        err?.response?.data?.message ||
+        "Failed to cancel scheduled message",
       );
     }
   };
@@ -1186,8 +1185,8 @@ export default function ChatWindow({
     } catch (err) {
       toast.error(
         err?.response?.data?.error ||
-          err?.response?.data?.message ||
-          "Failed to schedule",
+        err?.response?.data?.message ||
+        "Failed to schedule",
       );
     } finally {
       setScheduling(false);
@@ -1406,8 +1405,8 @@ export default function ChatWindow({
     : 0;
   const groupOnlineCount = isGroup
     ? (conversation.participants || []).filter(
-        (p) => onlineUsers?.get(p._id)?.online,
-      ).length
+      (p) => onlineUsers?.get(p._id)?.online,
+    ).length
     : 0;
   const groupAvatarColors = isGroup
     ? getGroupAvatarColor(conversation.name)
@@ -1669,6 +1668,9 @@ export default function ChatWindow({
                               <p className="text-[13px] text-ivory/80 leading-relaxed break-words line-clamp-3">
                                 {renderMessageText(msg.text, msg.mentions)}
                               </p>
+                              <p className="text-[13px] text-ivory/80 leading-relaxed break-words line-clamp-3">
+                                {renderMessageText(msg.text, msg.mentions)}
+                              </p>
                             )}
                             <div className="flex items-center gap-2 mt-1.5">
                               <span className="text-[9px] text-ivory/20">
@@ -1687,10 +1689,10 @@ export default function ChatWindow({
                           {(() => {
                             const canUnpin = isGroup
                               ? conversation.admins?.some(
-                                  (adminId) =>
-                                    adminId === user?._id ||
-                                    adminId._id === user?._id,
-                                )
+                                (adminId) =>
+                                  adminId === user?._id ||
+                                  adminId._id === user?._id,
+                              )
                               : true;
                             if (!canUnpin) return null;
                             return (
@@ -2177,7 +2179,7 @@ export default function ChatWindow({
                               emojiStyle="native"
                               width={
                                 typeof window !== "undefined" &&
-                                window.innerWidth < 400
+                                  window.innerWidth < 400
                                   ? Math.min(window.innerWidth - 32, 300)
                                   : 320
                               }
@@ -2321,12 +2323,12 @@ export default function ChatWindow({
       {/* ── Input form ── */}
       <form
         onSubmit={handleSend}
-        className="p-4 relative z-20 bg-obsidian/80 backdrop-blur-sm border-t border-white/5"
+        className="p-3 md:p-4 relative z-20 bg-obsidian/80 backdrop-blur-sm border-t border-white/5"
       >
         {/* Rewrite preview + reply banners */}
         <div className="absolute bottom-full left-0 right-0">
           {rewritePreview && (
-            <div className="p-3 bg-slate-surface border-t border-accent/30 flex flex-col gap-2">
+            <div className="p-2 md:p-3 bg-slate-surface border-t border-accent/30 flex flex-col gap-2">
               <span className="text-[11px] font-bold text-accent">
                 AI rewrite · {activeTone}
               </span>
@@ -2368,7 +2370,7 @@ export default function ChatWindow({
             </div>
           )}
           {replyTo && (
-            <div className="p-3 bg-slate-surface border-t border-accent/30 flex items-center justify-between">
+            <div className="p-2 md:p-3 bg-slate-surface border-t border-accent/30 flex items-center justify-between">
               <div className="flex items-center gap-3 overflow-hidden">
                 <div className="w-1 bg-accent h-8 rounded-full" />
                 <div className="overflow-hidden">
@@ -2393,7 +2395,7 @@ export default function ChatWindow({
 
         {/* Scheduled panel */}
         {showScheduledPanel && (
-          <div className="mb-3 p-3 rounded-2xl bg-slate-surface border border-white/5">
+          <div className="mb-2 md:mb-3 p-2 md:p-3 rounded-2xl bg-slate-surface border border-white/5">
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs font-bold text-ivory/80">
                 Scheduled messages
@@ -2486,7 +2488,7 @@ export default function ChatWindow({
 
         {/* AI suggestions / tone picker */}
         {(aiReplies.length > 0 || loadingAiReplies || tonePickerOpen) && (
-          <div className="flex items-center gap-1.5 flex-wrap mb-2 px-1">
+          <div className="flex items-center gap-1.5 flex-wrap mb-2 px-1 md:px-2">
             {tonePickerOpen ? (
               <>
                 <span className="text-[9px] text-ivory/20 font-semibold uppercase tracking-wide">
@@ -2628,7 +2630,7 @@ export default function ChatWindow({
             <button
               type="button"
               onClick={() => setShowCreatePoll(true)}
-              className="w-9 h-9 flex items-center justify-center text-ivory/30 hover:text-accent transition-colors"
+              className="w-8 md:w-9 h-8 md:h-9 flex items-center justify-center text-ivory/30 hover:text-accent transition-colors shrink-0"
               title="Create Poll"
             >
               <svg
@@ -2653,7 +2655,7 @@ export default function ChatWindow({
           <div className="flex-1 relative min-w-0">
             <div
               ref={inputRef}
-              className="w-full bg-transparent outline-none text-sm text-ivory/80 px-3 placeholder:text-ivory/20 min-h-5 max-h-37.5 overflow-y-auto whitespace-pre-wrap wrap-break-word empty:before:content-[attr(placeholder)] empty:before:text-ivory/20"
+              className="w-full bg-transparent outline-none text-xs md:text-sm text-ivory/80 px-2 md:px-3 placeholder:text-ivory/20 min-h-5 max-h-37.5 overflow-y-auto whitespace-pre-wrap wrap-break-word empty:before:content-[attr(placeholder)] empty:before:text-ivory/20"
               contentEditable="true"
               placeholder="Type a message..."
               onInput={handleInput}
@@ -2703,7 +2705,7 @@ export default function ChatWindow({
           {/* AI — desktop */}
           <div
             ref={aiMenuRefDesktop}
-            className="relative hidden sm:inline-flex"
+            className="relative hidden lg:inline-flex"
           >
             <button
               type="button"
@@ -2786,7 +2788,7 @@ export default function ChatWindow({
 
           {/* Clock / Schedule dropdown (DM only) */}
           {!isGroup && (
-            <div ref={scheduleDropdownRef} className="relative inline-flex">
+            <div ref={scheduleDropdownRef} className="relative hidden lg:inline-flex">
               <button
                 type="button"
                 onClick={() => setScheduleDropdownOpen((v) => !v)}
@@ -2904,7 +2906,7 @@ export default function ChatWindow({
           )}
 
           {/* Mobile toolbar row */}
-          <div className="sm:hidden w-full flex items-center gap-1 pt-1 border-t border-white/5 mt-1">
+          <div className="lg:hidden w-full flex items-center gap-1 pt-1 border-t border-white/5 mt-1">
             {isGroup && (
               <button
                 type="button"

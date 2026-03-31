@@ -3,10 +3,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import {
-    X, Github, Mail, MessageCircle, Clock, Heart, MessageSquare, Shield, Circle, Edit2, Pencil, Check
+    X, Github, Mail, MessageCircle, Clock, Heart, MessageSquare, Shield, Circle, Edit2, Pencil, Check, Loader2
 } from "lucide-react";
 import toast from "react-hot-toast";
 import useAuth from "@/hooks/useAuth";
+import api from "@/app/api/Axios";
 
 export default function FullUserProfile({
     user,
@@ -14,7 +15,7 @@ export default function FullUserProfile({
     onClose,
     onMessage,
     onEdit,
-    recentPosts = []
+    recentPosts: initialPosts
 }) {
     const modalRef = useRef(null);
     const { user: authUser, updateProfile } = useAuth();
@@ -23,6 +24,40 @@ export default function FullUserProfile({
     const [editingStatus, setEditingStatus] = useState(false);
     const [statusInput, setStatusInput] = useState(user?.statusMessage || "");
     const [savingStatus, setSavingStatus] = useState(false);
+
+    // Posts state - fetch internally if not provided
+    const [posts, setPosts] = useState(initialPosts || []);
+    const [postsLoading, setPostsLoading] = useState(false);
+    const [postsError, setPostsError] = useState(null);
+
+    // Fetch user posts if not provided
+    useEffect(() => {
+        if (initialPosts && initialPosts.length > 0) {
+            setPosts(initialPosts);
+            return;
+        }
+        
+        if (!user?._id && !user?.id) return;
+
+        const fetchPosts = async () => {
+            setPostsLoading(true);
+            setPostsError(null);
+            try {
+                const userId = user._id || user.id;
+                const res = await api.get(`/api/feed/users/${userId}/posts`, {
+                    params: { page: 1, limit: 10 }
+                });
+                setPosts(res.data.posts || []);
+            } catch (err) {
+                console.error("Failed to fetch posts:", err);
+                setPostsError("Failed to load posts");
+            } finally {
+                setPostsLoading(false);
+            }
+        };
+
+        fetchPosts();
+    }, [initialPosts, user?._id, user?.id]);
 
     useEffect(() => {
         const handleEscape = (e) => {
@@ -34,15 +69,19 @@ export default function FullUserProfile({
 
     const handleSaveStatus = async () => {
         setSavingStatus(true);
-        const res = await updateProfile({ statusMessage: statusInput });
-        setSavingStatus(false);
-        if (res.success) {
-            toast.success("Status updated");
-            // If the user object isn't automatically reactive here via SWR/context, we assume the parent refreshes or page reloads.
-        } else {
-            toast.error(res.message || "Failed to update status");
+        try {
+            const res = await updateProfile({ statusMessage: statusInput });
+            if (res.success) {
+                toast.success("Status updated");
+                setEditingStatus(false);
+            } else {
+                toast.error(res.message || "Failed to update status");
+            }
+        } catch (error) {
+            toast.error(error.message || "Failed to update status");
+        } finally {
+            setSavingStatus(false);
         }
-        setEditingStatus(false);
     };
 
     const hasGithub = user?.socialConnections?.github;
@@ -218,9 +257,17 @@ export default function FullUserProfile({
                     </div>
 
                     <div className="flex-1 overflow-y-auto px-6 py-6 scrollbar-hide">
-                        {recentPosts && recentPosts.length > 0 ? (
+                        {postsLoading ? (
+                            <div className="flex items-center justify-center h-full pb-12">
+                                <Loader2 size={24} className="animate-spin text-accent/40" />
+                            </div>
+                        ) : postsError ? (
+                            <div className="flex flex-col items-center justify-center h-full text-center pb-12">
+                                <p className="text-red-400/60 text-[13px] font-mono">{postsError}</p>
+                            </div>
+                        ) : posts && posts.length > 0 ? (
                             <div className="space-y-4 max-w-2xl mx-auto">
-                                {recentPosts.map((post) => (
+                                {posts.map((post) => (
                                     <div key={post._id} className="glass-card rounded-xl p-4 border border-white/[0.04] bg-white/[0.01] hover:bg-white/[0.03] transition-colors shadow-none">
                                         {post.imageUrl && (
                                             <div className="w-full h-32 md:h-48 rounded-lg overflow-hidden mb-3 relative bg-black/20">

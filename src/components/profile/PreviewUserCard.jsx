@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Github, MoreVertical, MessageCircle, Flag, Send, Plus, Edit2 } from "lucide-react";
+import { Github, MoreVertical, MessageCircle, Flag, Send, Plus } from "lucide-react";
 
 /**
  * PreviewUserCard (Member Preview Card - Discord-inspired)
@@ -26,7 +26,6 @@ import { Github, MoreVertical, MessageCircle, Flag, Send, Plus, Edit2 } from "lu
 export default function PreviewUserCard({
     user,
     member,
-    workspaceId,
     isAdmin = false,
     onViewProfile,
     onMessage,
@@ -44,21 +43,29 @@ export default function PreviewUserCard({
     const menuRef = useRef(null);
     const [clampedPosition, setClampedPosition] = useState({ x: 0, y: 0 });
 
+    // Consolidated click outside handler
     useEffect(() => {
         const handleClickOutside = (e) => {
+            // Close menu if clicking outside menu
             if (menuRef.current && !menuRef.current.contains(e.target)) {
                 setShowMenu(false);
+            }
+            // Close card if clicking outside card (but not if clicking menu)
+            if (cardRef.current && !cardRef.current.contains(e.target) && 
+                (!menuRef.current || !menuRef.current.contains(e.target))) {
+                onClose?.();
             }
         };
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
+    }, [onClose]);
 
     // Smart positioning beside panel
     useEffect(() => {
         if (!position) return;
-        const cardWidth = 300;
-        const cardHeight = 520;
+        // Use actual DOM size if available, otherwise fall back to w-80 (320px)
+        const cardWidth = cardRef.current?.offsetWidth || 320;
+        const cardHeight = cardRef.current?.offsetHeight || 520;
         const gap = 16;
 
         let left = position.x + gap;
@@ -77,10 +84,7 @@ export default function PreviewUserCard({
         setClampedPosition({ x: left, y: top });
     }, [position]);
 
-    useEffect(() => {
-        const handleClickOutside = (e) => {
-            if (cardRef.current && !cardRef.current.contains(e.target)) {
-                onClose?.();
+    // Remove duplicate click outside effect - it's now consolidated above
             }
         };
         document.addEventListener("mousedown", handleClickOutside);
@@ -164,6 +168,9 @@ export default function PreviewUserCard({
                         <button
                             onClick={() => setShowMenu(!showMenu)}
                             className="p-1.5 hover:bg-white/8 rounded transition-all text-ivory/50 hover:text-ivory"
+                            aria-label="More options"
+                            aria-expanded={showMenu}
+                            aria-haspopup="menu"
                         >
                             <MoreVertical size={16} />
                         </button>
@@ -279,8 +286,9 @@ export default function PreviewUserCard({
                         type="text"
                         value={messageText}
                         onChange={(e) => setMessageText(e.target.value)}
-                        onKeyPress={(e) => {
-                            if (e.key === "Enter" && messageText.trim()) {
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey && messageText.trim()) {
+                                e.preventDefault();
                                 handleSendMessage();
                             }
                         }}
@@ -292,6 +300,8 @@ export default function PreviewUserCard({
                         onClick={handleSendMessage}
                         disabled={!messageText.trim() || isSending}
                         className="px-3 py-2 rounded-lg bg-accent/20 hover:bg-accent/30 border border-accent/40 text-accent disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                        aria-label={`Send message to ${user?.name || "user"}`}
+                        title="Send message"
                     >
                         <Send size={13} />
                     </button>

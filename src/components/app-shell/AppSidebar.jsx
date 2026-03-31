@@ -1,6 +1,6 @@
 // chat-app-client/src/components/app-shell/AppSidebar.jsx
 "use client";
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react";
@@ -39,6 +39,14 @@ export default function AppSidebar({
       : null;
 
   const width = collapsed ? "56px" : "var(--sidebar-width, 320px)";
+
+  // Clear user card state when sidebar collapses
+  useEffect(() => {
+    if (collapsed) {
+      setShowUserCard(false);
+      setShowFullProfile(false);
+    }
+  }, [collapsed]);
 
   // Pass collapsed as a direct prop to the single child
   const child = React.Children.only(children);
@@ -157,7 +165,7 @@ export default function AppSidebar({
           </Link>
         </div>
       )}
-      {showUserCard && (
+      {showUserCard && !collapsed && (
         <UserProfileCard 
            anchorRef={userBarRef} 
            onClose={() => setShowUserCard(false)} 

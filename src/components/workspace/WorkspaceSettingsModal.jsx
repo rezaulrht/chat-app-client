@@ -6,6 +6,11 @@ import { useWorkspace } from "@/hooks/useWorkspace";
 import useAuth from "@/hooks/useAuth";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import {
+  Settings, Shield, Users, Link2, AlertTriangle, ChevronRight, X, Camera,
+  Loader2, Check, Globe, Lock, Plus, Search, Crown, UserCog, UserMinus,
+  RefreshCw, Copy, LogOut, Trash2, Pencil, ChevronDown, Gavel
+} from "lucide-react";
 
 // ── Colour palette for role swatches ─────────────────────────────────────────
 const ROLE_COLORS = [
@@ -457,7 +462,10 @@ function RolesTab({ workspace, onCreateRole, onUpdateRole, onDeleteRole }) {
       setNewIsHoisted(false);
       setNewPermissions([]);
       toast.success("Role created!");
-    } catch { toast.error("Failed to create role"); }
+    } catch (err) {
+      console.error("Failed to create role:", err);
+      toast.error("Failed to create role");
+    }
     finally { setCreating(false); }
   };
 
@@ -848,22 +856,23 @@ function MembersTab({ workspace, members, currentUser, onUpdateMemberRole, onRem
 // ─────────────────────────────────────────────────────────────────────────────
 // BANS TAB
 // ─────────────────────────────────────────────────────────────────────────────
-function BansTab({ workspace, onUnban, onFetchBans }) {
+function BansTab({ workspace, onUnban, getBannedUsers, workspaceId }) {
   const [bans, setBans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
   const loadBans = useCallback(async () => {
+    if (!workspaceId) return;
     setLoading(true);
     try {
-      const data = await onFetchBans();
+      const data = await getBannedUsers(workspaceId);
       setBans(data || []);
     } catch (err) {
       toast.error("Failed to load bans");
     } finally {
       setLoading(false);
     }
-  }, [onFetchBans]);
+  }, [workspaceId, getBannedUsers]);
 
   useEffect(() => {
     loadBans();
@@ -1166,6 +1175,7 @@ export default function WorkspaceSettingsModal({ workspaceId, onClose }) {
     revokeInvite,
     createRole,
     deleteRole,
+    updateRole,
     assignRolesToMember,
     updateMemberRole,
     removeMembers,
@@ -1331,7 +1341,8 @@ export default function WorkspaceSettingsModal({ workspaceId, onClose }) {
               <BansTab
                 workspace={workspace}
                 onUnban={(uid) => unbanMember(workspaceId, uid)}
-                onFetchBans={() => getBannedUsers(workspaceId)}
+                getBannedUsers={getBannedUsers}
+                workspaceId={workspaceId}
               />
             )}
             {activeTab === "invites" && isAdmin && (

@@ -37,6 +37,7 @@ import {
   Unlink,
 } from "lucide-react";
 import PostCard from "@/components/Feed/PostCard";
+import BannerCropModal from "@/components/profile/BannerCropModal";
 import { useTheme } from "@/context/ThemeContext";
 import { THEMES } from "@/context/ThemeContext";
 import { Paintbrush } from "lucide-react";
@@ -430,16 +431,44 @@ function ProfilePage() {
         {/* HERO CARD                                                    */}
         {/* ════════════════════════════════════════════════════════════ */}
         <div className="relative rounded-3xl overflow-hidden border border-white/[0.08] shadow-2xl shadow-black/40">
-          {/* Banner gradient */}
-          <div className="h-20 md:h-32 bg-linear-to-br from-accent/20 via-accent/5 to-transparent" />
+          {/* Banner - uses bannerPreview or gradient fallback */}
+          <div 
+            className="h-20 md:h-32 relative group/banner cursor-pointer"
+            onClick={() => bannerFileRef.current?.click()}
+            style={bannerPreview ? {
+              backgroundImage: `url(${bannerPreview})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center"
+            } : undefined}
+          >
+            {!bannerPreview && (
+              <div className="absolute inset-0 bg-linear-to-br from-accent/20 via-accent/5 to-transparent" />
+            )}
+            {/* Banner edit overlay */}
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/banner:opacity-100 transition-opacity">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-black/60 backdrop-blur-sm">
+                <Camera size={14} className="text-white" />
+                <span className="text-[11px] font-mono text-white">
+                  {bannerPreview ? "Change Banner" : "Add Banner"}
+                </span>
+              </div>
+            </div>
 
-          {/* Overlay grid texture */}
-          <div
-            className="absolute inset-0 opacity-[0.03]"
-            style={{
-              backgroundImage:
-                "repeating-linear-gradient(0deg,transparent,transparent 30px,rgba(255,255,255,.5) 30px,rgba(255,255,255,.5) 31px),repeating-linear-gradient(90deg,transparent,transparent 30px,rgba(255,255,255,.5) 30px,rgba(255,255,255,.5) 31px)",
-            }}
+            {/* Overlay grid texture */}
+            <div
+              className="absolute inset-0 opacity-[0.03] pointer-events-none"
+              style={{
+                backgroundImage:
+                  "repeating-linear-gradient(0deg,transparent,transparent 30px,rgba(255,255,255,.5) 30px,rgba(255,255,255,.5) 31px),repeating-linear-gradient(90deg,transparent,transparent 30px,rgba(255,255,255,.5) 30px,rgba(255,255,255,.5) 31px)",
+              }}
+            />
+          </div>
+          <input
+            ref={bannerFileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleBannerChange}
           />
 
           {/* Avatar + identity */}
@@ -630,6 +659,36 @@ function ProfilePage() {
                     className="text-ivory/20 group-hover:text-accent/50 shrink-0 transition-colors duration-200"
                   />
                 </button>
+
+                {/* Banner upload hint */}
+                <div>
+                  <label className="flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-ivory/25 mb-1.5">
+                    Banner
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => bannerFileRef.current?.click()}
+                      className="flex-1 flex items-center gap-2 p-3 rounded-xl bg-white/[0.03] border border-dashed border-white/[0.10] hover:border-accent/30 hover:bg-accent/[0.03] transition-all duration-200 group"
+                    >
+                      <Camera size={14} className="text-ivory/20 group-hover:text-accent/50" />
+                      <span className="text-[11px] font-mono text-ivory/40 group-hover:text-ivory/60">
+                        {bannerPreview ? "Change Banner" : "Upload Banner"}
+                      </span>
+                    </button>
+                    {bannerPreview && (
+                      <button
+                        onClick={handleRemoveBanner}
+                        disabled={savingBanner}
+                        className="px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400/70 hover:text-red-400 hover:bg-red-500/20 transition-all text-[11px] font-mono"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-[9px] font-mono text-ivory/15 mt-1">
+                    16:9 ratio recommended · Max 5 MB
+                  </p>
+                </div>
 
                 {/* Status message */}
                 <div>

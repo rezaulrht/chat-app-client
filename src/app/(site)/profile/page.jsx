@@ -200,13 +200,22 @@ function ProfilePage() {
   const [myPostsLoaded, setMyPostsLoaded] = useState(false);
 
   // ── Banner state ───────────────────────────────────────────────
-  const [bannerPreview, setBannerPreview] = useState(user?.banner || "");
-  const [bannerData, setBannerData] = useState(null);
+  // user.banner is an object { imageUrl, cropData } or undefined
+  const [bannerPreview, setBannerPreview] = useState(user?.banner?.imageUrl || user?.banner || "");
+  const [bannerData, setBannerData] = useState(user?.banner || null);
   const [customColor, setCustomColor] = useState(user?.customColor || "");
   const [showBannerCrop, setShowBannerCrop] = useState(false);
   const [pendingBannerImage, setPendingBannerImage] = useState(null);
   const [savingBanner, setSavingBanner] = useState(false);
   const bannerFileRef = useRef(null);
+
+  // Sync banner when user data changes (e.g., after fetch)
+  useEffect(() => {
+    if (user?.banner?.imageUrl) {
+      setBannerPreview(user.banner.imageUrl);
+      setBannerData(user.banner);
+    }
+  }, [user?.banner?.imageUrl]);
 
   // ── Social links state ───────────────────────────────────────────────
   const [socialLinks, setSocialLinks] = useState([]);

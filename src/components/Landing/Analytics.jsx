@@ -47,8 +47,7 @@ function RingCard({ value, max, suffix, label, color, started }) {
 
   return (
     <div
-      className="stat-card rounded-3xl border border-white/[0.05] p-8 flex flex-col items-center gap-4 group hover:-translate-y-1 transition-transform duration-300"
-      style={{ background: "var(--color-slate-surface)" }}
+      className="stat-card rounded-3xl p-8 flex flex-col items-center gap-4 group hover:-translate-y-1 transition-transform duration-300 glass-card"
     >
       {/* Ring */}
       <div className="relative">

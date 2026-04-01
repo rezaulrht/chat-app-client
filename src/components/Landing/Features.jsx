@@ -44,7 +44,7 @@ function SmartRepliesDemo() {
     <div className="flex flex-col gap-3">
       <div className="flex items-end gap-2 mb-1">
         <div className="w-7 h-7 rounded-lg shrink-0 bg-purple-400/20 border border-purple-400/30 flex items-center justify-center text-[10px] font-bold text-purple-300">A</div>
-        <div className="px-3 py-2 rounded-2xl rounded-bl-sm text-xs text-ivory/80 max-w-[220px]" style={{ background: SURFACE }}>
+        <div className="px-3 py-2 rounded-2xl rounded-bl-sm text-xs text-ivory/80 max-w-[220px]" style={{ background: "var(--fi-demo-bg)", border: "1px solid var(--fi-demo-border)" }}>
           Can you review the PR before EOD?
         </div>
       </div>
@@ -56,7 +56,7 @@ function SmartRepliesDemo() {
           <motion.button key={r} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.09 }}
             onClick={() => setAccepted(i)}
             className="text-left px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200"
-            style={{ background: accepted === i ? "color-mix(in srgb, var(--color-accent) 13%, transparent)" : "rgba(255,255,255,0.04)", border: `1px solid ${accepted === i ? "color-mix(in srgb, var(--color-accent) 27%, transparent)" : "rgba(255,255,255,0.06)"}`, color: accepted === i ? "var(--color-accent)" : "rgba(250,248,245,0.6)" }}>
+            style={{ background: accepted === i ? "color-mix(in srgb, var(--color-accent) 13%, transparent)" : "var(--fi-bg)", border: `1px solid ${accepted === i ? "color-mix(in srgb, var(--color-accent) 27%, transparent)" : "var(--fi-border)"}`, color: accepted === i ? "var(--color-accent)" : "var(--fi-text)" }}>
             {accepted === i && <CheckCheck size={10} className="inline mr-1" style={{ color: ACCENT }} />}
             {r}
           </motion.button>
@@ -83,7 +83,7 @@ function ToneDemo() {
       <div className="flex flex-wrap gap-1.5">
         {TONES.map((t) => (
           <button key={t} onClick={() => pick(t)} className="px-2.5 py-1 rounded-lg text-[11px] font-mono font-semibold transition-all duration-150"
-            style={{ background: tone === t ? PURPLE + "22" : "transparent", border: `1px solid ${tone === t ? PURPLE + "45" : "rgba(255,255,255,0.08)"}`, color: tone === t ? PURPLE : "rgba(250,248,245,0.35)" }}>
+            style={{ background: tone === t ? PURPLE + "22" : "var(--fi-bg)", border: `1px solid ${tone === t ? PURPLE + "45" : "var(--fi-border)"}`, color: tone === t ? PURPLE : "var(--fi-text)" }}>
             {t}
           </button>
         ))}
@@ -165,8 +165,8 @@ function AICard({ cardRef }) {
   const Demo = tab.Demo;
 
   return (
-    <div ref={cardRef} className="relative overflow-hidden rounded-3xl border border-white/[0.06] p-0"
-      style={{ background: DEEP, willChange: "transform", transformStyle: "preserve-3d", opacity: 0 }}>
+    <div ref={cardRef} className="relative overflow-hidden rounded-3xl p-0 glass-card"
+      style={{ willChange: "transform", transformStyle: "preserve-3d", opacity: 0 }}>
       {/* Corner gradient tint */}
       <div className="absolute inset-0 pointer-events-none" style={{ background: `linear-gradient(135deg, ${tab.color}0a 0%, transparent 55%)`, transition: "background 0.5s ease" }} />
 
@@ -182,11 +182,11 @@ function AICard({ cardRef }) {
             return (
               <button key={t.id} onClick={() => setActive(i)}
                 className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all duration-200 whitespace-nowrap md:whitespace-normal border shrink-0 md:shrink"
-                style={{ background: isActive ? t.color + "14" : "transparent", border: `1px solid ${isActive ? t.color + "35" : "transparent"}`, color: isActive ? t.color : "rgba(250,248,245,0.38)" }}>
+                style={{ background: isActive ? t.color + "14" : "var(--fi-bg)", border: `1px solid ${isActive ? t.color + "35" : "var(--fi-border)"}`, color: isActive ? t.color : "var(--fi-text-3)" }}>
                 <Icon size={14} style={{ flexShrink: 0 }} />
                 <span className="text-[12px] font-display font-semibold">{t.label}</span>
                 <span className="ml-auto text-[8px] font-mono tracking-widest uppercase px-1.5 py-0.5 rounded-md hidden md:inline-flex"
-                  style={{ background: isActive ? t.color + "20" : "rgba(255,255,255,0.04)", color: isActive ? t.color : "rgba(250,248,245,0.2)" }}>
+                  style={{ background: isActive ? t.color + "20" : "var(--fi-bg)", color: isActive ? t.color : "var(--fi-text-2)" }}>
                   {t.tag}
                 </span>
               </button>
@@ -202,7 +202,7 @@ function AICard({ cardRef }) {
                 <h3 className="font-display font-bold text-ivory text-xl mb-1">{tab.label}</h3>
                 <p className="text-ivory/40 text-sm leading-relaxed">{tab.desc}</p>
               </div>
-              <div className="rounded-2xl flex-1 p-5" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)" }}>
+              <div className="rounded-2xl flex-1 p-5" style={{ background: "var(--fi-demo-bg)", border: "1px solid var(--fi-demo-border)" }}>
                 <Demo />
               </div>
             </motion.div>
@@ -229,8 +229,8 @@ function FeedCard({ cardRef }) {
   useEffect(() => { const id = setInterval(() => setActive((i) => (i + 1) % POST_TYPES.length), 2200); return () => clearInterval(id); }, []);
 
   return (
-    <div ref={cardRef} className="relative overflow-hidden rounded-3xl border border-white/[0.06] p-7"
-      style={{ background: DEEP, willChange: "transform", transformStyle: "preserve-3d", opacity: 0 }}>
+    <div ref={cardRef} className="relative overflow-hidden rounded-3xl p-7 glass-card"
+      style={{ willChange: "transform", transformStyle: "preserve-3d", opacity: 0 }}>
       <div className="absolute inset-0 pointer-events-none" style={{ background: `linear-gradient(135deg, ${color}08, transparent 60%)`, transition: "background 0.6s ease" }} />
 
       <div className="relative z-10 flex flex-col h-full">
@@ -252,9 +252,9 @@ function FeedCard({ cardRef }) {
           {POST_TYPES.map(({ label: l, icon: Ic, color: c }, i) => (
             <button key={l} onClick={() => setActive(i)}
               className="flex flex-col items-center gap-1.5 py-3 px-2 rounded-2xl transition-all duration-250 border"
-              style={{ background: active === i ? c + "16" : "rgba(255,255,255,0.02)", border: `1px solid ${active === i ? c + "40" : "rgba(255,255,255,0.05)"}` }}>
-              <Ic size={16} style={{ color: active === i ? c : "rgba(250,248,245,0.25)" }} />
-              <span className="text-[9px] font-mono font-bold uppercase tracking-wide" style={{ color: active === i ? c : "rgba(250,248,245,0.3)" }}>{l}</span>
+              style={{ background: active === i ? c + "16" : "var(--fi-bg)", border: `1px solid ${active === i ? c + "40" : "var(--fi-border)"}` }}>
+              <Ic size={16} style={{ color: active === i ? c : "var(--fi-text-2)" }} />
+              <span className="text-[9px] font-mono font-bold uppercase tracking-wide" style={{ color: active === i ? c : "var(--fi-text)" }}>{l}</span>
             </button>
           ))}
         </div>
@@ -284,7 +284,7 @@ const CHAT_TABS = [
     demo: (
       <div className="space-y-2">
         {[{ time: "Mon 09:00", msg: "Stand-up reminder 🔔", color: GREEN }, { time: "Tue 14:30", msg: "Deploy notification ✅", color: GREEN }].map((item, i) => (
-          <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-xl" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+          <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-xl" style={{ background: "var(--fi-msg-bg)", border: "1px solid var(--fi-msg-border)" }}>
             <CalendarClock size={12} style={{ color: GREEN, flexShrink: 0 }} />
             <span className="text-[10px] font-mono text-ivory/40 shrink-0">{item.time}</span>
             <span className="text-xs text-ivory/65 flex-1 truncate">{item.msg}</span>
@@ -330,8 +330,8 @@ function ChatCard({ cardRef }) {
   const tab = CHAT_TABS[active];
 
   return (
-    <div ref={cardRef} className="relative overflow-hidden rounded-3xl border border-white/[0.06] p-7"
-      style={{ background: DEEP, willChange: "transform", transformStyle: "preserve-3d", opacity: 0 }}>
+    <div ref={cardRef} className="relative overflow-hidden rounded-3xl p-7 glass-card"
+      style={{ willChange: "transform", transformStyle: "preserve-3d", opacity: 0 }}>
       <div className="absolute inset-0 pointer-events-none" style={{ background: `linear-gradient(135deg, ${tab.color}08, transparent 55%)`, transition: "background 0.4s ease" }} />
 
       <div className="relative z-10 flex flex-col h-full">
@@ -356,9 +356,9 @@ function ChatCard({ cardRef }) {
             return (
               <button key={t.id} onClick={() => setActive(i)}
                 className="flex-1 flex flex-col items-center gap-1 py-2.5 rounded-xl transition-all duration-200 border text-center"
-                style={{ background: isActive ? t.color + "16" : "rgba(255,255,255,0.02)", border: `1px solid ${isActive ? t.color + "38" : "rgba(255,255,255,0.05)"}` }}>
-                <Icon size={14} style={{ color: isActive ? t.color : "rgba(250,248,245,0.28)" }} />
-                <span className="text-[9px] font-mono uppercase tracking-wide" style={{ color: isActive ? t.color : "rgba(250,248,245,0.28)" }}>{t.label}</span>
+                style={{ background: isActive ? t.color + "16" : "var(--fi-bg)", border: `1px solid ${isActive ? t.color + "38" : "var(--fi-border)"}` }}>
+                <Icon size={14} style={{ color: isActive ? t.color : "var(--fi-text-2)" }} />
+                <span className="text-[9px] font-mono uppercase tracking-wide" style={{ color: isActive ? t.color : "var(--fi-text-2)" }}>{t.label}</span>
               </button>
             );
           })}
@@ -368,7 +368,7 @@ function ChatCard({ cardRef }) {
         <AnimatePresence mode="wait">
           <motion.div key={tab.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.25 }} className="flex flex-col gap-3 flex-1">
             <p className="text-xs text-ivory/40 leading-relaxed">{tab.desc}</p>
-            <div className="rounded-2xl p-4 flex-1" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)" }}>
+            <div className="rounded-2xl p-4 flex-1" style={{ background: "var(--fi-demo-bg)", border: "1px solid var(--fi-demo-border)" }}>
               {tab.demo}
             </div>
           </motion.div>

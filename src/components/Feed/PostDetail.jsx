@@ -60,6 +60,7 @@ function questionStatus(post) {
  * @param {object[]} comments       - flat comment list
  * @param {string}   currentUserId
  * @param {Function} onBack         - navigate back to feed list
+ * @param {string}   backLabel
  * @param {Function} onReact
  * @param {Function} onShare
  * @param {Function} onTagClick
@@ -77,6 +78,7 @@ export default function PostDetail({
   comments = [],
   currentUserId = "",
   onBack,
+  backLabel = "Back to feed",
   onReact,
   onShare,
   onTagClick,
@@ -115,7 +117,7 @@ export default function PostDetail({
           onClick={onBack}
           className="flex items-center gap-2 text-[12px] font-mono text-ivory/40 hover:text-ivory transition-colors"
         >
-          <ArrowLeft size={13} /> Back to feed
+          <ArrowLeft size={13} /> {backLabel}
         </button>
 
         <div className="flex items-center gap-3">

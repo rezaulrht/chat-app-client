@@ -132,8 +132,7 @@ const AboutSection = () => {
             {values.map((value, index) => (
               <div
                 key={index}
-                className="value-card relative rounded-3xl border border-white/[0.05] p-8 group overflow-hidden transition-all duration-500 hover:border-white/[0.1]"
-                style={{ background: DEEP }}
+              className="value-card relative rounded-3xl p-8 group overflow-hidden transition-all duration-500 hover:border-white/[0.1] page-card"
               >
                 <div
                   className="absolute -inset-1 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition duration-700"

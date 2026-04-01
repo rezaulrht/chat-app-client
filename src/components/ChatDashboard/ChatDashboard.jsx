@@ -43,6 +43,15 @@ export default function ChatDashboard() {
   activeConversationIdRef.current = activeConversationId;
   const { user: currentUser } = useAuth();
 
+  // Keep NotificationProvider mute map synced from conversation state,
+  // outside render/state-updater paths to avoid cross-component update warnings.
+  useEffect(() => {
+    if (!setMutedConversationIds) return;
+    setMutedConversationIds(
+      new Set(conversations.filter((c) => c.isMuted).map((c) => c._id)),
+    );
+  }, [conversations, setMutedConversationIds]);
+
   // Fetch all conversations for the logged-in user on mount (only once)
   useEffect(() => {
     const fetchConversations = async () => {
@@ -50,14 +59,6 @@ export default function ChatDashboard() {
         const res = await api.get("/api/chat/conversations");
         const sorted = sortConversations(res.data);
         setConversations(sorted);
-
-        // Sync muted conversations into NotificationProvider
-        if (setMutedConversationIds) {
-          const mutedIds = new Set(
-            sorted.filter((c) => c.isMuted).map((c) => c._id),
-          );
-          setMutedConversationIds(mutedIds);
-        }
 
         // Fetch last seen times for all conversation participants
         if (sorted.length > 0 && fetchLastSeenTimes) {
@@ -427,41 +428,26 @@ export default function ChatDashboard() {
   }, []);
 
   // Called when conversation is updated (pin/archive/mute)
-  const handleConversationUpdate = useCallback(
-    (updated) => {
-      // Array → full list refresh (from SidebarChats pin/mute/archive/leave)
-      if (Array.isArray(updated)) {
-        setConversations(sortConversations(updated));
-        if (setMutedConversationIds) {
-          setMutedConversationIds(
-            new Set(updated.filter((c) => c.isMuted).map((c) => c._id)),
-          );
-        }
-        return;
-      }
-      // Single object with _removed / _deleted flag → remove from list
-      if (updated._removed || updated._deleted) {
-        setConversations((prev) => prev.filter((c) => c._id !== updated._id));
-        setActiveConversationId((prev) => (prev === updated._id ? null : prev));
-        setShowGroupInfo(false);
-        return;
-      }
-      // Single updated conversation → merge into list
-      setConversations((prev) => {
-        const next = sortConversations(
-          prev.map((c) => (c._id === updated._id ? { ...c, ...updated } : c)),
-        );
-        // Keep muted set in sync
-        if (setMutedConversationIds) {
-          setMutedConversationIds(
-            new Set(next.filter((c) => c.isMuted).map((c) => c._id)),
-          );
-        }
-        return next;
-      });
-    },
-    [setMutedConversationIds],
-  );
+  const handleConversationUpdate = useCallback((updated) => {
+    // Array → full list refresh (from SidebarChats pin/mute/archive/leave)
+    if (Array.isArray(updated)) {
+      setConversations(sortConversations(updated));
+      return;
+    }
+    // Single object with _removed / _deleted flag → remove from list
+    if (updated._removed || updated._deleted) {
+      setConversations((prev) => prev.filter((c) => c._id !== updated._id));
+      setActiveConversationId((prev) => (prev === updated._id ? null : prev));
+      setShowGroupInfo(false);
+      return;
+    }
+    // Single updated conversation → merge into list
+    setConversations((prev) => {
+      return sortConversations(
+        prev.map((c) => (c._id === updated._id ? { ...c, ...updated } : c)),
+      );
+    });
+  }, []);
 
   const handleMessagesSeen = useCallback((conversationId) => {
     setConversations((prev) => {

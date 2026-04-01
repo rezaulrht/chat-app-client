@@ -118,7 +118,7 @@ function VerifyContent() {
       setError(res.message);
       setLoading(false);
     } else {
-      window.location.href = "/chat";
+      window.location.href = "/app";
     }
   };
 

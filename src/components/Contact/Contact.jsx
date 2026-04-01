@@ -75,8 +75,7 @@ const ContactPage = () => {
           {/* Contact Form */}
           <div
             ref={formRef}
-            className="lg:col-span-7 border border-white/[0.06] p-5 sm:p-8 md:p-12 rounded-2xl sm:rounded-[2rem] relative"
-            style={{ background: DEEP }}
+            className="lg:col-span-7 p-5 sm:p-8 md:p-12 rounded-2xl sm:rounded-[2rem] relative page-card"
           >
             <form className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -127,7 +126,7 @@ const ContactPage = () => {
           {/* Right Side */}
           <div ref={sideRef} className="lg:col-span-5 space-y-8">
             {/* Contact Info */}
-            <div className="side-card border border-white/[0.06] p-8 rounded-[2rem]" style={{ background: DEEP }}>
+            <div className="side-card p-8 rounded-[2rem] page-card">
               <h3 className="font-display text-xl font-bold mb-8 text-ivory">Contact Information</h3>
               <div className="space-y-8">
                 <div className="flex gap-4">
@@ -169,7 +168,7 @@ const ContactPage = () => {
             </div>
 
             {/* Common Questions */}
-            <div className="side-card border border-white/[0.06] p-8 rounded-[2rem]" style={{ background: DEEP }}>
+            <div className="side-card p-8 rounded-[2rem] page-card">
               <div className="flex items-center gap-2 mb-8">
                 <HelpCircle className="w-5 h-5" style={{ color: ACCENT }} />
                 <h3 className="font-display text-xl font-bold text-ivory">Common Questions</h3>

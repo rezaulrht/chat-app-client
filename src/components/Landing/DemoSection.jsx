@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useTheme } from "@/context/ThemeContext";
 import {
   Phone,
   Video,
@@ -18,14 +19,14 @@ import {
 
 gsap.registerPlugin(ScrollTrigger);
 
-const ACCENT   = "var(--color-accent)";
+const ACCENT = "var(--color-accent)";
 const OBSIDIAN = "var(--color-obsidian)";
-const DEEP     = "var(--color-slate-surface)";
-const SURFACE  = "var(--color-deep)";
-const IVORY    = "var(--color-ivory)";
+const DEEP = "var(--color-slate-surface)";
+const SURFACE = "var(--color-deep)";
+const IVORY = "var(--color-ivory)";
 
 const TEXT_MUTED = `color-mix(in srgb, ${IVORY} 40%, transparent)`;
-const TEXT_BASE  = `color-mix(in srgb, ${IVORY} 50%, transparent)`;
+const TEXT_BASE = `color-mix(in srgb, ${IVORY} 50%, transparent)`;
 const TEXT_LIGHT = `color-mix(in srgb, ${IVORY} 70%, transparent)`;
 
 const BORDER_LIGHT = `color-mix(in srgb, ${IVORY} 8%, transparent)`;
@@ -255,7 +256,8 @@ function SidebarMock() {
                     width: 32,
                     height: 32,
                     borderRadius: "50%",
-                    outline: "1.5px solid color-mix(in srgb, var(--color-accent) 50%, transparent)",
+                    outline:
+                      "1.5px solid color-mix(in srgb, var(--color-accent) 50%, transparent)",
                     outlineOffset: 1,
                   }}
                 />
@@ -307,7 +309,9 @@ function SidebarMock() {
               gap: 8,
               padding: "6px 8px",
               borderRadius: 6,
-              background: conv.active ? "color-mix(in srgb, var(--color-slate-surface) 70%, transparent)" : "transparent",
+              background: conv.active
+                ? "color-mix(in srgb, var(--color-slate-surface) 70%, transparent)"
+                : "transparent",
               position: "relative",
               cursor: "default",
             }}
@@ -379,8 +383,7 @@ function SidebarMock() {
                   style={{
                     fontSize: 12,
                     fontWeight: 500,
-                    color:
-                      conv.active || conv.unread > 0 ? IVORY : TEXT_BASE,
+                    color: conv.active || conv.unread > 0 ? IVORY : TEXT_BASE,
                     whiteSpace: "nowrap",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
@@ -482,7 +485,8 @@ function OutgoingBubble({ text, showReaction, showSeen }) {
           fontSize: 12,
           lineHeight: 1.5,
           maxWidth: 220,
-          boxShadow: "0 4px 14px color-mix(in srgb, var(--color-accent) 20%, transparent)",
+          boxShadow:
+            "0 4px 14px color-mix(in srgb, var(--color-accent) 20%, transparent)",
         }}
       >
         {text}
@@ -530,7 +534,8 @@ function OutgoingBubble({ text, showReaction, showSeen }) {
               gap: 4,
               padding: "1px 8px",
               borderRadius: 99,
-              background: "color-mix(in srgb, var(--color-accent) 13%, transparent)",
+              background:
+                "color-mix(in srgb, var(--color-accent) 13%, transparent)",
               color: ACCENT,
               fontSize: 8,
               fontWeight: 700,
@@ -593,6 +598,8 @@ function TypingIndicator() {
 }
 
 export default function DemoSection() {
+  const { theme } = useTheme();
+  const isLight = theme === "luxe-mint-light" || theme === "luxe-cyan-light";
   const sectionRef = useRef(null);
   const frameRef = useRef(null);
   const [step, setStep] = useState(0);
@@ -715,8 +722,9 @@ export default function DemoSection() {
             display: "flex",
             height: "clamp(320px, 60vw, 460px)",
             border: `1px solid ${BORDER_LIGHT}`,
-            boxShadow:
-              `0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px ${BORDER_LIGHT}, 0 0 80px color-mix(in srgb, var(--color-accent) 7%, transparent)`,
+            boxShadow: isLight
+              ? "none"
+              : `0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px ${BORDER_LIGHT}, 0 0 80px color-mix(in srgb, var(--color-accent) 7%, transparent)`,
           }}
         >
           <WorkspaceSidebarMock />
@@ -735,7 +743,8 @@ export default function DemoSection() {
               style={{
                 height: 56,
                 borderBottom: `1px solid ${BORDER_LIGHT}`,
-                background: "color-mix(in srgb, var(--color-obsidian) 85%, transparent)",
+                background:
+                  "color-mix(in srgb, var(--color-obsidian) 85%, transparent)",
                 backdropFilter: "blur(12px)",
                 display: "flex",
                 alignItems: "center",
@@ -753,7 +762,8 @@ export default function DemoSection() {
                       width: 34,
                       height: 34,
                       borderRadius: 10,
-                      outline: "2px solid color-mix(in srgb, var(--color-accent) 40%, transparent)",
+                      outline:
+                        "2px solid color-mix(in srgb, var(--color-accent) 40%, transparent)",
                       outlineOffset: 1,
                     }}
                   />
@@ -937,7 +947,11 @@ export default function DemoSection() {
                 <Smile size={16} style={{ color: TEXT_MUTED, flexShrink: 0 }} />
                 <motion.div
                   animate={{
-                    background: ["color-mix(in srgb, var(--color-accent) 20%, transparent)", "color-mix(in srgb, var(--color-accent) 53%, transparent)", "color-mix(in srgb, var(--color-accent) 20%, transparent)"],
+                    background: [
+                      "color-mix(in srgb, var(--color-accent) 20%, transparent)",
+                      "color-mix(in srgb, var(--color-accent) 53%, transparent)",
+                      "color-mix(in srgb, var(--color-accent) 20%, transparent)",
+                    ],
                   }}
                   transition={{
                     repeat: Infinity,

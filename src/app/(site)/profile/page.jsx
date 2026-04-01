@@ -303,7 +303,9 @@ function ProfilePage() {
       });
 
       if (res.data?.banner) {
-        setUser((prev) => ({ ...prev, banner: res.data.banner }));
+        // Update local banner state
+        setBannerPreview(croppedImage);
+        setBannerData(res.data.banner);
         toast.success("Banner updated!");
       }
     } catch (err) {
@@ -318,7 +320,6 @@ function ProfilePage() {
     setSavingBanner(true);
     try {
       await api.patch("/auth/me/banner", { banner: "" });
-      setUser((prev) => ({ ...prev, banner: null }));
       setBannerPreview("");
       setBannerData(null);
       toast.success("Banner removed");

@@ -147,12 +147,9 @@ export default function MemberListPanel({
   const [contextMenu, setContextMenu] = useState(null);
 
   const handleProfileClick = useCallback(({ member, x, y, openFull }) => {
-    if (openFull) {
-      // Open full profile directly with member data
-      setFullProfile({ user: member.user, member });
-    } else {
-      setProfileTarget({ member, x, y });
-    }
+    // Always open FullUserProfile directly when clicking a member
+    setFullProfile({ user: member.user, member });
+    setProfileTarget(null);
     setContextMenu(null);
   }, []);
 

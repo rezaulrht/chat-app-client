@@ -137,7 +137,7 @@ export default function PreviewUserCard({
                         onClick={onViewProfile}
                         className="shrink-0 group focus:outline-none"
                     >
-                        <div className="w-20 h-20 rounded-2xl bg-obsidian border-4 border-obsidian overflow-hidden hover:border-accent/40 transition-all ring-4 ring-obsidian group-hover:ring-accent/20">
+                        <div className="w-20 h-20 rounded-full bg-obsidian border-4 border-obsidian overflow-hidden hover:border-accent/40 transition-all ring-4 ring-obsidian group-hover:ring-accent/20">
                             {user?.avatar ? (
                                 <Image
                                     src={user.avatar}

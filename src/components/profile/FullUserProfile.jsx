@@ -10,7 +10,7 @@ import useAuth from "@/hooks/useAuth";
 import api from "@/app/api/Axios";
 
 export default function FullUserProfile({
-    user,
+    user: initialUser,
     member, // workspace member data with role, roleIds
     workspaceRoles, // array of workspace role objects
     isOwnProfile,
@@ -22,9 +22,12 @@ export default function FullUserProfile({
     const modalRef = useRef(null);
     const { user: authUser, updateProfile } = useAuth();
 
+    // Local user state that can be updated
+    const [user, setUser] = useState(initialUser);
+
     // Inline status edit state
     const [editingStatus, setEditingStatus] = useState(false);
-    const [statusInput, setStatusInput] = useState(user?.statusMessage || "");
+    const [statusInput, setStatusInput] = useState(initialUser?.statusMessage || "");
     const [savingStatus, setSavingStatus] = useState(false);
 
     // Posts state - fetch internally if not provided
@@ -74,6 +77,8 @@ export default function FullUserProfile({
         try {
             const res = await updateProfile({ statusMessage: statusInput });
             if (res.success) {
+                // Update local user state
+                setUser(prev => ({ ...prev, statusMessage: statusInput }));
                 toast.success("Status updated");
                 setEditingStatus(false);
             } else {

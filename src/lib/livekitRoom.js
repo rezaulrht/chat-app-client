@@ -30,12 +30,14 @@ export function getParticipants() {
 }
 
 export async function connectRoom(url, token, callType = "audio") {
-  // Force-reset stale connecting flag — can get stuck if previous call
-  // threw before reaching the finally block
   if (room) {
     console.warn(
       "[LiveKit] connectRoom called but room already exists, skipping",
     );
+    return;
+  }
+  if (connecting) {
+    console.warn("[LiveKit] connectRoom already in progress, skipping");
     return;
   }
   connecting = true;
@@ -131,6 +133,13 @@ export async function connectRoom(url, token, callType = "audio") {
   } catch (err) {
     console.error("[LiveKit] connection failed:", err);
     room = null;
+    // If newRoom already connected before the error, disconnect it so
+    // we don't leak media resources with no reference to clean up later.
+    if (typeof newRoom !== "undefined") {
+      try {
+        await newRoom.disconnect();
+      } catch (_) {}
+    }
     notify();
   } finally {
     connecting = false;

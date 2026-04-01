@@ -591,7 +591,7 @@ export default function PostComposer({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm p-0 md:p-6 flex items-center justify-center">
+    <div className="fixed inset-0 z-[200] bg-black/65 backdrop-blur-sm p-0 md:p-6 flex items-center justify-center">
       <div className="h-full md:h-[92vh] w-full md:max-w-5xl mx-auto glass-card rounded-none md:rounded-3xl overflow-hidden flex flex-col md:flex-row">
         {/* Left selector panel */}
         <aside className="w-full md:w-[260px] md:shrink-0 border-b md:border-b-0 md:border-r border-white/[0.07] bg-white/[0.01] flex flex-col md:min-h-0 md:overflow-y-auto">

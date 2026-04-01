@@ -76,7 +76,7 @@ export default function CreateWorkspaceModal({ trigger = null }) {
           </div>
           <button
             onClick={handleClose}
-            className="w-8 h-8 rounded-xl flex items-center justify-center text-ivory/20 hover:text-ivory/60 hover:bg-white/[0.06] transition-all"
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-ivory/20 hover:text-ivory/60 hover:bg-white/6 transition-all"
           >
             <X size={16} />
           </button>
@@ -94,7 +94,7 @@ export default function CreateWorkspaceModal({ trigger = null }) {
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. My Team"
               maxLength={50}
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 text-ivory text-sm font-mono placeholder:text-ivory/20 focus:outline-none focus:border-accent/40 focus:bg-white/[0.06] transition-all"
+              className="w-full bg-white/4 border border-white/8 rounded-xl px-4 py-2.5 text-ivory text-sm font-mono placeholder:text-ivory/20 focus:outline-none focus:border-accent/40 focus:bg-white/6 transition-all"
               autoFocus
             />
           </div>
@@ -110,7 +110,7 @@ export default function CreateWorkspaceModal({ trigger = null }) {
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Optional — what's this workspace for?"
               maxLength={120}
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 text-ivory text-sm font-mono placeholder:text-ivory/20 focus:outline-none focus:border-accent/40 focus:bg-white/[0.06] transition-all"
+              className="w-full bg-white/4 border border-white/8 rounded-xl px-4 py-2.5 text-ivory text-sm font-mono placeholder:text-ivory/20 focus:outline-none focus:border-accent/40 focus:bg-white/6 transition-all"
             />
           </div>
 

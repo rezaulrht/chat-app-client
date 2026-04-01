@@ -53,6 +53,7 @@ export default function ChannelSidebar({
 
   // Per-category menu state
   const [openMenuCat, setOpenMenuCat] = React.useState(null);
+  const [menuPosition, setMenuPosition] = React.useState({ top: 0, left: 0 });
   const [renamingCat, setRenamingCat] = React.useState(null);
   const [renameValue, setRenameValue] = React.useState("");
 
@@ -256,7 +257,37 @@ export default function ChannelSidebar({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setOpenMenuCat(isMenuOpen ? null : group.name);
+                            if (isMenuOpen) {
+                              setOpenMenuCat(null);
+                              return;
+                            }
+
+                            const MENU_WIDTH = 176;
+                            const MENU_HEIGHT = 132;
+                            const EDGE_PADDING = 8;
+                            const rect = e.currentTarget.getBoundingClientRect();
+
+                            const left = Math.max(
+                              EDGE_PADDING,
+                              Math.min(
+                                rect.right - MENU_WIDTH,
+                                window.innerWidth - MENU_WIDTH - EDGE_PADDING,
+                              ),
+                            );
+
+                            const shouldOpenUp =
+                              rect.bottom + MENU_HEIGHT >
+                              window.innerHeight - EDGE_PADDING;
+
+                            const top = shouldOpenUp
+                              ? Math.max(EDGE_PADDING, rect.top - MENU_HEIGHT)
+                              : Math.min(
+                                  rect.bottom + 6,
+                                  window.innerHeight - MENU_HEIGHT - EDGE_PADDING,
+                                );
+
+                            setMenuPosition({ top, left });
+                            setOpenMenuCat(group.name);
                           }}
                           title="Category options"
                           className="w-5 h-5 flex items-center justify-center rounded text-ivory/15 hover:text-accent opacity-0 group-hover/cat:opacity-100 transition-all duration-200"
@@ -271,7 +302,13 @@ export default function ChannelSidebar({
                               className="fixed inset-0 z-40"
                               onClick={() => setOpenMenuCat(null)}
                             />
-                            <div className="absolute right-0 top-6 z-50 w-44 bg-[#13131c] border border-white/8 rounded-xl shadow-2xl shadow-black/50 overflow-hidden py-1">
+                            <div
+                              className="fixed z-50 w-44 bg-[#13131c] border border-white/8 rounded-xl shadow-2xl shadow-black/50 overflow-hidden py-1"
+                              style={{
+                                top: `${menuPosition.top}px`,
+                                left: `${menuPosition.left}px`,
+                              }}
+                            >
                               <button
                                 onClick={() => {
                                   setOpenMenuCat(null);

@@ -35,6 +35,8 @@ import {
   Rss,
 } from "lucide-react";
 import PostCard from "@/components/Feed/PostCard";
+import PostDetail from "@/components/Feed/PostDetail";
+import useFeed from "@/hooks/useFeed";
 import { useTheme } from "@/context/ThemeContext";
 import { THEMES } from "@/context/ThemeContext";
 import { Paintbrush } from "lucide-react";
@@ -65,10 +67,15 @@ function AppearanceCard() {
                 className="w-8 h-8 rounded-xl shrink-0 border border-black/[0.12] flex items-center justify-center shadow-sm"
                 style={{ background: t.surface }}
               >
-                <div className="w-3 h-3 rounded-full" style={{ background: t.accent }} />
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ background: t.accent }}
+                />
               </div>
               <div>
-                <p className={`text-[11px] font-display font-bold leading-tight ${active ? "text-accent" : "text-ivory/70"}`}>
+                <p
+                  className={`text-[11px] font-display font-bold leading-tight ${active ? "text-accent" : "text-ivory/70"}`}
+                >
                   {t.label}
                 </p>
                 <p className="text-[9px] font-mono text-ivory/25 capitalize leading-tight mt-0.5">
@@ -147,6 +154,16 @@ function StrengthBar({ password }) {
 function ProfilePage() {
   const { user, updateProfile, changePassword } = useAuth();
   const { workspaces } = useWorkspace();
+  const {
+    commentsByPost,
+    fetchComments,
+    addComment,
+    reactToComment,
+    editComment,
+    deleteComment,
+    voteOnPoll,
+    acceptAnswer,
+  } = useFeed();
 
   // Edit fields
   const [name, setName] = useState(user?.name || "");
@@ -214,6 +231,160 @@ function ProfilePage() {
       loadMyPosts(1);
     }
   }, [activeSection, loadMyPosts]);
+
+  useEffect(() => {
+    if (activeSection !== "posts") {
+      setActivePost(null);
+    }
+  }, [activeSection]);
+
+  useEffect(() => {
+    if (!activePost?._id) return;
+    fetchComments(activePost._id).catch((error) => {
+      console.error("Failed to fetch post comments:", error);
+    });
+  }, [activePost?._id, fetchComments]);
+
+  const updateLocalPost = useCallback((postId, updater) => {
+    setMyPosts((prev) =>
+      prev.map((post) => (post._id === postId ? updater(post) : post)),
+    );
+    setActivePost((prev) => {
+      if (!prev || prev._id !== postId) return prev;
+      return updater(prev);
+    });
+  }, []);
+
+  const handleReactPost = useCallback(
+    async (postId, emoji) => {
+      try {
+        const res = await api.post(`/api/feed/posts/${postId}/react`, {
+          emoji,
+        });
+        updateLocalPost(postId, (post) => ({
+          ...post,
+          reactions: res.data.reactions,
+          reactionCount: res.data.reactionCount,
+        }));
+      } catch (error) {
+        console.error("Failed to react to post:", error);
+        toast.error("Failed to react to post");
+      }
+    },
+    [updateLocalPost],
+  );
+
+  const handleAddComment = useCallback(
+    async (postId, payload) => {
+      try {
+        await addComment(postId, payload);
+        updateLocalPost(postId, (post) => {
+          const nextCount = (post.commentCount ?? post.commentsCount ?? 0) + 1;
+          return { ...post, commentCount: nextCount, commentsCount: nextCount };
+        });
+      } catch (error) {
+        console.error("Failed to add comment:", error);
+        toast.error("Failed to add comment");
+      }
+    },
+    [addComment, updateLocalPost],
+  );
+
+  const handleReactComment = useCallback(
+    async (postId, commentId, emoji) => {
+      try {
+        await reactToComment(postId, commentId, emoji);
+      } catch (error) {
+        console.error("Failed to react to comment:", error);
+        toast.error("Failed to react to comment");
+      }
+    },
+    [reactToComment],
+  );
+
+  const handleEditComment = useCallback(
+    async (postId, commentId, content) => {
+      try {
+        await editComment(postId, commentId, content);
+      } catch (error) {
+        console.error("Failed to update comment:", error);
+        toast.error("Failed to update comment");
+        throw error;
+      }
+    },
+    [editComment],
+  );
+
+  const handleDeleteComment = useCallback(
+    async (postId, commentId) => {
+      try {
+        const data = await deleteComment(postId, commentId);
+        updateLocalPost(postId, (post) => {
+          const nextCount =
+            typeof data?.commentsCount === "number"
+              ? Math.max(0, data.commentsCount)
+              : Math.max(
+                  0,
+                  (post.commentCount ?? post.commentsCount ?? 0) -
+                    (data?.removedCount ?? 1),
+                );
+          const acceptedId =
+            post.acceptedAnswer ?? post.acceptedComment ?? null;
+          const deletedAccepted = String(acceptedId) === String(commentId);
+
+          return {
+            ...post,
+            commentCount: nextCount,
+            commentsCount: nextCount,
+            acceptedAnswer: deletedAccepted ? null : post.acceptedAnswer,
+            acceptedComment: deletedAccepted ? null : post.acceptedComment,
+            status: deletedAccepted ? "open" : post.status,
+          };
+        });
+      } catch (error) {
+        console.error("Failed to delete comment:", error);
+        toast.error("Failed to delete comment");
+        throw error;
+      }
+    },
+    [deleteComment, updateLocalPost],
+  );
+
+  const handleVotePoll = useCallback(
+    async (postId, optionIndex) => {
+      try {
+        const data = await voteOnPoll(postId, optionIndex);
+        updateLocalPost(postId, (post) => ({ ...post, poll: data.poll }));
+      } catch (error) {
+        console.error("Failed to vote on poll:", error);
+        toast.error("Failed to vote on poll");
+      }
+    },
+    [updateLocalPost, voteOnPoll],
+  );
+
+  const handleAcceptAnswer = useCallback(
+    async (postId, commentId) => {
+      try {
+        const data = await acceptAnswer(postId, commentId);
+        const acceptedCommentId =
+          typeof data.acceptedComment === "string"
+            ? data.acceptedComment
+            : data.acceptedComment?._id;
+
+        updateLocalPost(postId, (post) => ({
+          ...post,
+          acceptedAnswer: acceptedCommentId ?? null,
+          acceptedComment: acceptedCommentId ?? null,
+          status: data.status,
+        }));
+      } catch (error) {
+        console.error("Failed to accept answer:", error);
+        toast.error("Failed to update accepted answer");
+      }
+    },
+    [acceptAnswer, updateLocalPost],
+  );
 
   // ── Avatar picker ─────────────────────────────────────────────────────
   const handleAvatarChange = (e) => {
@@ -441,7 +612,12 @@ function ProfilePage() {
           <div className="space-y-4">
             {/* Section tabs */}
             <div className="flex gap-1 p-1 bg-white/[0.03] rounded-xl border border-white/[0.06]">
-              {["edit", ...(isLocal ? ["security"] : []), "posts", "account"].map((s) => (
+              {[
+                "edit",
+                ...(isLocal ? ["security"] : []),
+                "posts",
+                "account",
+              ].map((s) => (
                 <button
                   key={s}
                   onClick={() => setActiveSection(s)}
@@ -594,6 +770,27 @@ function ProfilePage() {
                       Loading posts...
                     </span>
                   </div>
+                ) : activePost ? (
+                  <div className="glass-card rounded-2xl border border-white/[0.08] overflow-hidden">
+                    <PostDetail
+                      post={activePost}
+                      comments={commentsByPost[activePost._id] || []}
+                      currentUserId={user?._id || user?.id || ""}
+                      onBack={() => setActivePost(null)}
+                      backLabel="Back to profile"
+                      onReact={handleReactPost}
+                      onShare={() => {}}
+                      onTagClick={() => {}}
+                      onEdit={() => {}}
+                      onDelete={() => {}}
+                      onAddComment={handleAddComment}
+                      onReactComment={handleReactComment}
+                      onAcceptAnswer={handleAcceptAnswer}
+                      onVotePoll={handleVotePoll}
+                      onEditComment={handleEditComment}
+                      onDeleteComment={handleDeleteComment}
+                    />
+                  </div>
                 ) : myPostsError ? (
                   <div className="glass-card rounded-2xl border border-white/[0.08] p-10 flex flex-col items-center justify-center gap-3 text-center">
                     <p className="text-red-400/50 text-[13px] font-mono">
@@ -624,8 +821,8 @@ function ProfilePage() {
                         key={post._id}
                         post={post}
                         currentUserId={user?._id || user?.id || "me"}
-                        onOpen={() => setActivePost(post)}
-                        onReact={() => {}}
+                        onOpen={setActivePost}
+                        onReact={handleReactPost}
                         onShare={() => {}}
                         onTagClick={() => {}}
                         onEdit={() => {}}
@@ -769,7 +966,9 @@ function ProfilePage() {
           {/*              — on mobile only visible via "Account" tab     */}
           {/* ════════════════════════════════════════════════════════════ */}
           {activeSection !== "posts" && (
-            <div className={`space-y-4 ${activeSection !== "account" ? "hidden md:block" : ""}`}>
+            <div
+              className={`space-y-4 ${activeSection !== "account" ? "hidden md:block" : ""}`}
+            >
               {/* ── Account Details ── */}
               <div className="glass-card rounded-2xl border border-white/[0.08] p-5 space-y-3">
                 <h2 className="text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-ivory/25 flex items-center gap-1.5 mb-3">

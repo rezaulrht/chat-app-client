@@ -61,7 +61,7 @@ export default function AppTopBar() {
   }, [dropdownOpen]);
 
   return (
-    <header className="h-12 md:h-14 shrink-0 flex items-center px-4 gap-3 bg-deep/95 backdrop-blur-xl border-b border-white/[0.06] relative z-40">
+    <header className="h-12 md:h-14 shrink-0 flex items-center px-4 gap-3 bg-deep/95 backdrop-blur-xl border-b border-white/[0.06] relative z-[90]">
       {/* Gradient bottom border — same as footer top border */}
       <div
         className="absolute bottom-0 left-0 right-0 h-px pointer-events-none"
@@ -164,7 +164,7 @@ export default function AppTopBar() {
           </button>
 
           {dropdownOpen && (
-            <div className="absolute right-0 top-full mt-2 w-52 glass-card rounded-2xl border border-white/[0.08] shadow-[0_16px_48px_rgba(0,0,0,0.4)] overflow-hidden z-50">
+            <div className="absolute right-0 top-full mt-2 w-52 glass-card rounded-2xl border border-white/[0.08] shadow-[0_16px_48px_rgba(0,0,0,0.4)] overflow-hidden z-[110]">
               {/* User info */}
               <div className="px-4 py-3 border-b border-white/[0.06]">
                 <p className="text-ivory text-[13px] font-display font-bold truncate">

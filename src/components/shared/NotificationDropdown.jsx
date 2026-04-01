@@ -167,7 +167,7 @@ export default function NotificationDropdown({ onClose }) {
   }
 
   return (
-    <div className="absolute right-0 top-full mt-2 w-80 glass-card rounded-2xl border border-white/[0.08] shadow-[0_16px_48px_rgba(0,0,0,0.4)] overflow-hidden z-50 flex flex-col max-h-[480px]">
+    <div className="absolute right-0 top-full mt-2 w-80 bg-slate-surface rounded-2xl border border-white/[0.08] shadow-[0_16px_48px_rgba(0,0,0,0.4)] overflow-hidden z-[120] flex flex-col max-h-[480px]">
       {/* ── Header ─────────────────────────────────────────────── */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06] shrink-0">
         {view === "prefs" ? (

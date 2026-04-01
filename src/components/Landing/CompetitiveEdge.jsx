@@ -108,8 +108,7 @@ export default function CompetitiveEdge() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
           {/* Left: Differentiators */}
           <div
-            className="edge-card-wrap rounded-3xl border border-white/[0.06] p-8 flex flex-col justify-between gap-6"
-            style={{ background: DEEP }}
+            className="edge-card-wrap rounded-3xl p-8 flex flex-col justify-between gap-6 glass-card"
           >
             <h3 className="font-display text-xl font-bold text-ivory">
               Why We&apos;re Different
@@ -121,8 +120,7 @@ export default function CompetitiveEdge() {
                   <motion.div
                     key={i}
                     whileHover={{ borderColor: item.color + "40" }}
-                    className="edge-card flex gap-4 p-5 rounded-2xl border border-white/[0.05] group transition-colors"
-                    style={{ background: "rgba(255,255,255,0.02)" }}
+                    className="edge-card flex gap-4 p-5 rounded-2xl group transition-colors glass-panel"
                   >
                     <div
                       className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300 group-hover:scale-110"
@@ -149,11 +147,7 @@ export default function CompetitiveEdge() {
 
           {/* Right: Comparison Table */}
           <div
-            className="edge-table rounded-3xl p-4 sm:p-8 border border-white/[0.07] relative overflow-hidden"
-            style={{
-              background: DEEP,
-              boxShadow: "0 32px 64px rgba(0,0,0,0.4)",
-            }}
+            className="edge-table rounded-3xl p-4 sm:p-8 relative overflow-hidden glass-card"
           >
             <div className="absolute -top-10 -right-10 opacity-[0.03] pointer-events-none">
               <Zap size={192} />

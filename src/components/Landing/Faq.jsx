@@ -74,11 +74,7 @@ export default function Faq() {
           {faqs.map((faq, index) => (
             <div
               key={index}
-              className="faq-item rounded-2xl border overflow-hidden transition-colors duration-300"
-              style={{
-                background: openIndex === index ? DEEP : "rgba(255,255,255,0.02)",
-                borderColor: openIndex === index ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.04)",
-              }}
+              className={`faq-item rounded-2xl overflow-hidden transition-colors duration-300 ${openIndex === index ? "glass-card" : "glass-panel"}`}
             >
               <button
                 onClick={() => setOpenIndex(openIndex === index ? -1 : index)}

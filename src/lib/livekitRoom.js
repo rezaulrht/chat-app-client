@@ -131,7 +131,14 @@ export async function connectRoom(url, token, callType = "audio") {
 
     notify();
   } catch (err) {
-    console.error("[LiveKit] connection failed:", err);
+    const denied =
+      err?.name === "NotAllowedError" ||
+      /permission denied/i.test(err?.message || "");
+    if (denied) {
+      console.warn("[LiveKit] microphone permission denied");
+    } else {
+      console.warn("[LiveKit] connection failed:", err?.message || err);
+    }
     room = null;
     // If newRoom already connected before the error, disconnect it so
     // we don't leak media resources with no reference to clean up later.
@@ -141,6 +148,7 @@ export async function connectRoom(url, token, callType = "audio") {
       } catch (_) {}
     }
     notify();
+    throw err;
   } finally {
     connecting = false;
   }

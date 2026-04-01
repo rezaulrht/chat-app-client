@@ -298,7 +298,7 @@ function ProfilePage() {
       const blob = await response.blob();
       formData.append("image", blob, "banner.jpg");
 
-      const res = await api.patch("/api/auth/me/banner", formData, {
+      const res = await api.patch("/auth/me/banner", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
@@ -317,7 +317,7 @@ function ProfilePage() {
   const handleRemoveBanner = async () => {
     setSavingBanner(true);
     try {
-      await api.patch("/api/auth/me/banner", { banner: "" });
+      await api.patch("/auth/me/banner", { banner: "" });
       setUser((prev) => ({ ...prev, banner: null }));
       setBannerPreview("");
       setBannerData(null);

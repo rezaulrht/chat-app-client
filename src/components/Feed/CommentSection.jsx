@@ -89,7 +89,8 @@ function CommentItem({
   const [isEditing, setIsEditing] = useState(false);
   const [draftText, setDraftText] = useState(comment.content || "");
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
-  const authorId = comment.author?._id?.toString?.() || String(comment.author?._id || "");
+  const authorId =
+    comment.author?._id?.toString?.() || String(comment.author?._id || "");
   const isOwn = authorId && String(currentUserId || "") === authorId;
   const commentTime = timeAgo(comment.createdAt);
 
@@ -110,9 +111,7 @@ function CommentItem({
 
   return (
     <>
-      <div
-        className={`flex gap-2.5 ${depth > 0 ? "ml-10" : ""}`}
-      >
+      <div className={`flex gap-2.5 ${depth > 0 ? "ml-10" : ""}`}>
         <CommentAvatar author={comment.author} />
 
         <div className="flex-1 min-w-0">
@@ -319,17 +318,29 @@ export default function CommentSection({
     comments.filter((c) => c.replyTo === parentId);
 
   // Sort: accepted answer first, then by time
-  const sorted = [...tops].sort((a, b) => {
-    if (a._id === acceptedAnswerId) return -1;
-    if (b._id === acceptedAnswerId) return 1;
-    return new Date(a.createdAt) - new Date(b.createdAt);
-  });
+  // Dedup by _id as a safety net against race between addComment + socket event
+  const seen = new Set();
+  const sorted = [...tops]
+    .filter((c) => {
+      const id = String(c._id);
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    })
+    .sort((a, b) => {
+      if (a._id === acceptedAnswerId) return -1;
+      if (b._id === acceptedAnswerId) return 1;
+      return new Date(a.createdAt) - new Date(b.createdAt);
+    });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!text.trim()) return;
     try {
-      await onAddComment?.({ content: text, replyTo: replyTarget?._id ?? null });
+      await onAddComment?.({
+        content: text,
+        replyTo: replyTarget?._id ?? null,
+      });
       setText("");
       setReplyTarget(null);
     } catch (error) {
@@ -347,7 +358,10 @@ export default function CommentSection({
         {visibleCommentCount !== 1 ? "s" : ""}
       </h4>
 
-      <form onSubmit={handleSubmit} className="flex gap-3 rounded-2xl bg-white/4 px-3 py-3 ring-1 ring-white/7">
+      <form
+        onSubmit={handleSubmit}
+        className="flex gap-3 rounded-2xl bg-white/4 px-3 py-3 ring-1 ring-white/7"
+      >
         <CommentAvatar
           author={{
             name: currentUserId ? "You" : "?",
@@ -372,11 +386,7 @@ export default function CommentSection({
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder={
-                replyTarget
-                  ? "Write a reply…"
-                  : "Add a comment…"
-              }
+              placeholder={replyTarget ? "Write a reply…" : "Add a comment…"}
               rows={2}
               className="flex-1 rounded-2xl bg-white/4 px-3 py-2 text-[13px] text-ivory/80 placeholder:text-ivory/20 outline-none ring-1 ring-white/7 transition-all focus:ring-accent/30 resize-none font-sans"
             />

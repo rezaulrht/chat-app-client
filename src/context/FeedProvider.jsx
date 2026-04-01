@@ -203,6 +203,10 @@ export function FeedProvider({ children }) {
     fetchMyStats();
   }, [fetchMyStats]);
 
+  // Tick that increments whenever any reputation change is broadcast.
+  // RightSidebar watches this to know when to re-fetch the leaderboard.
+  const [reputationTick, setReputationTick] = useState(0);
+
   useEffect(() => {
     if (!socket) return;
     const handleReacted = ({ postId, reactions, reactionCount }) => {
@@ -212,9 +216,100 @@ export function FeedProvider({ children }) {
         ),
       );
     };
+
+    // Real-time comment count updates
+    const handleCommentCreated = ({ comment }) => {
+      if (!comment?.post) return;
+      const postId = String(comment.post);
+
+      setCommentsByPost((prev) => {
+        const existing = Array.isArray(prev[postId]) ? prev[postId] : [];
+        // Skip if already inserted by addComment (same _id)
+        if (existing.some((c) => String(c._id) === String(comment._id)))
+          return prev;
+        // Only here do we know it's a NEW comment from another user — also bump count
+        setPosts((posts) =>
+          posts.map((p) =>
+            p._id === postId
+              ? normalizePost({
+                  ...p,
+                  commentsCount: (p.commentsCount ?? p.commentCount ?? 0) + 1,
+                })
+              : p,
+          ),
+        );
+        return {
+          ...prev,
+          [postId]: [
+            ...existing,
+            { ...comment, replyTo: toId(comment.parentComment) },
+          ],
+        };
+      });
+    };
+
+    const handleCommentDeleted = ({ commentId, postId, commentsCount }) => {
+      if (!postId) return;
+      setPosts((prev) =>
+        prev.map((p) =>
+          p._id === String(postId)
+            ? normalizePost({
+                ...p,
+                commentsCount:
+                  typeof commentsCount === "number"
+                    ? Math.max(0, commentsCount)
+                    : Math.max(0, (p.commentsCount ?? p.commentCount ?? 0) - 1),
+              })
+            : p,
+        ),
+      );
+      if (commentId) {
+        setCommentsByPost((prev) => {
+          const existing = Array.isArray(prev[String(postId)])
+            ? prev[String(postId)]
+            : [];
+          return {
+            ...prev,
+            [String(postId)]: existing.filter(
+              (c) => String(c._id) !== String(commentId),
+            ),
+          };
+        });
+      }
+    };
+
+    // When any user's reputation changes, refresh own stats and ping the
+    // leaderboard sidebar to re-fetch via reputationTick.
+    const handleReputationUpdated = ({ userId: changedId }) => {
+      // Always bump the tick so the leaderboard refreshes
+      setReputationTick((t) => t + 1);
+      // If it's our own reputation, refresh the user stats card immediately
+      const myId = (() => {
+        try {
+          const token = localStorage.getItem("token");
+          if (!token) return null;
+          const b64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+          return JSON.parse(atob(b64))?.id ?? null;
+        } catch {
+          return null;
+        }
+      })();
+      if (myId && String(changedId) === String(myId)) {
+        fetchMyStats();
+      }
+    };
+
     socket.on("feed:post:reacted", handleReacted);
-    return () => socket.off("feed:post:reacted", handleReacted);
-  }, [socket]);
+    socket.on("feed:comment:created", handleCommentCreated);
+    socket.on("feed:comment:deleted", handleCommentDeleted);
+    socket.on("feed:reputation:updated", handleReputationUpdated);
+    return () => {
+      socket.off("feed:post:reacted", handleReacted);
+      socket.off("feed:comment:created", handleCommentCreated);
+      socket.off("feed:comment:deleted", handleCommentDeleted);
+      socket.off("feed:reputation:updated", handleReputationUpdated);
+    };
+  }, [socket, normalizePost, toId, fetchMyStats]);
 
   const createPost = useCallback(
     async (payload) => {
@@ -447,6 +542,9 @@ export function FeedProvider({ children }) {
 
       setCommentsByPost((prev) => {
         const existing = Array.isArray(prev[postId]) ? prev[postId] : [];
+        // Dedup: socket feed:comment:created may have already inserted this
+        if (existing.some((c) => String(c._id) === String(created._id)))
+          return prev;
         return { ...prev, [postId]: [...existing, created] };
       });
 
@@ -463,7 +561,7 @@ export function FeedProvider({ children }) {
 
       return created;
     },
-    [normalizePost],
+    [normalizePost, toId],
   );
 
   const reactToComment = useCallback(async (postId, commentId, emoji) => {
@@ -810,6 +908,9 @@ export function FeedProvider({ children }) {
     userStats,
     followedTags: userStats.followedTags ?? [],
     fetchMyStats,
+    reputationTick,
+    // Socket (for join/leave room in FeedView)
+    socket,
     // Social state
     followingSet,
     profileCache,

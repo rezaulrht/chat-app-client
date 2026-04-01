@@ -17,6 +17,7 @@ import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
 import { sortConversations } from "@/utils/sortConversations";
 import toast from "react-hot-toast";
+import useNotification from "@/hooks/useNotification";
 
 export default function ChatDashboard() {
   const searchParams = useSearchParams();
@@ -30,6 +31,7 @@ export default function ChatDashboard() {
   const [showDmInfo, setShowDmInfo] = useState(false);
   const { socket, fetchLastSeenTimes } = useSocket() || {};
   const { user } = useAuth(); // ← New (for self-message check)
+  const { setMutedConversationIds } = useNotification() || {};
 
   // Responsive sidebar state — driven by AppTopBar hamburger via context
   const { isSidebarOpen, setIsSidebarOpen } = useAppShell();
@@ -49,6 +51,14 @@ export default function ChatDashboard() {
         const sorted = sortConversations(res.data);
         setConversations(sorted);
 
+        // Sync muted conversations into NotificationProvider
+        if (setMutedConversationIds) {
+          const mutedIds = new Set(
+            sorted.filter((c) => c.isMuted).map((c) => c._id),
+          );
+          setMutedConversationIds(mutedIds);
+        }
+
         // Fetch last seen times for all conversation participants
         if (sorted.length > 0 && fetchLastSeenTimes) {
           const userIds = sorted
@@ -62,7 +72,8 @@ export default function ChatDashboard() {
         }
 
         if (sorted.length > 0) {
-          const target = initialConvId && sorted.find((c) => c._id === initialConvId);
+          const target =
+            initialConvId && sorted.find((c) => c._id === initialConvId);
           setActiveConversationId(target ? target._id : sorted[0]._id);
         }
       } catch (err) {
@@ -91,10 +102,11 @@ export default function ChatDashboard() {
       toast.custom(
         (t) => (
           <div
-            className={`flex flex-col gap-1.5 px-4 py-3.5 rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.3)] glass-card ring-1 ring-accent/15 text-sm min-w-70 max-w-90 transition-all duration-300 ${t.visible
-              ? "opacity-100 translate-y-0"
-              : "opacity-0 -translate-y-3"
-              }`}
+            className={`flex flex-col gap-1.5 px-4 py-3.5 rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.3)] glass-card ring-1 ring-accent/15 text-sm min-w-70 max-w-90 transition-all duration-300 ${
+              t.visible
+                ? "opacity-100 translate-y-0"
+                : "opacity-0 -translate-y-3"
+            }`}
           >
             <p className="font-display font-bold text-ivory text-[13px]">
               New message from {msg.sender.name}
@@ -126,13 +138,17 @@ export default function ChatDashboard() {
     if (!socket) return;
 
     const handleGlobalMessage = async (msg) => {
-      // 🔥 TOAST ONLY WHEN NOT IN THIS CHAT AND NOT OUR OWN MESSAGE
+      // 🔥 TOAST ONLY WHEN NOT IN THIS CHAT, NOT OUR OWN MESSAGE, AND NOT MUTED
       const isInActiveChat =
         activeConversationIdRef.current === msg.conversationId;
       const isMyMessage =
         user?._id && String(msg.sender?._id) === String(user._id);
+      const conv = conversationsRef.current.find(
+        (c) => c._id === msg.conversationId,
+      );
+      const isMuted = !!conv?.isMuted;
 
-      if (!isInActiveChat && !isMyMessage) {
+      if (!isInActiveChat && !isMyMessage && !isMuted) {
         showNewMessageToast(msg);
       }
 
@@ -147,17 +163,34 @@ export default function ChatDashboard() {
           const updated = prev.map((c) =>
             c._id === msg.conversationId
               ? {
-                ...c,
-                lastMessage: {
-                  text: msg.text,
-                  gifUrl: msg.gifUrl,
-                  attachments: msg.attachments || [],
-                  // Keep populated sender object for group last-message preview
-                  sender: msg.sender || null,
-                  timestamp: msg.createdAt,
-                },
-                updatedAt: msg.createdAt,
-              }
+                  ...c,
+                  lastMessage: {
+                    text: msg.callLog
+                      ? msg.callLog.status === "missed"
+                        ? "Missed call"
+                        : msg.callLog.status === "declined"
+                          ? "Call declined"
+                          : (msg.callLog.callType === "video"
+                              ? "Video"
+                              : "Audio") +
+                            " call" +
+                            (msg.callLog.duration
+                              ? " · " +
+                                Math.floor(msg.callLog.duration / 60) +
+                                "m " +
+                                (msg.callLog.duration % 60) +
+                                "s"
+                              : "")
+                      : msg.text,
+                    gifUrl: msg.gifUrl,
+                    attachments: msg.attachments || [],
+                    callLog: msg.callLog || null,
+                    // Keep populated sender object for group last-message preview
+                    sender: msg.sender || null,
+                    createdAt: msg.createdAt,
+                  },
+                  updatedAt: msg.createdAt,
+                }
               : c,
           );
           return sortConversations(updated);
@@ -270,6 +303,54 @@ export default function ChatDashboard() {
       );
     };
 
+    // Update sidebar lastMessage when a call log is created
+    const handleCallLog = async (payload) => {
+      if (!payload) return;
+      // Case 1: full message object with conversationId + callLog populated
+      if (payload._id && payload.conversationId) {
+        const cl = payload.callLog || {};
+        const label =
+          cl.status === "missed"
+            ? "Missed call"
+            : cl.status === "declined"
+              ? "Call declined"
+              : (cl.callType === "video" ? "Video" : "Audio") +
+                " call" +
+                (cl.duration
+                  ? " · " +
+                    Math.floor(cl.duration / 60) +
+                    "m " +
+                    (cl.duration % 60) +
+                    "s"
+                  : "");
+        setConversations((prev) => {
+          const updated = prev.map((c) =>
+            c._id === payload.conversationId
+              ? {
+                  ...c,
+                  lastMessage: {
+                    text: label,
+                    callLog: cl,
+                    createdAt: payload.createdAt,
+                    sender: payload.sender || null,
+                  },
+                  updatedAt: payload.createdAt,
+                }
+              : c,
+          );
+          return sortConversations(updated);
+        });
+        return;
+      }
+      // Case 2: minimal { callId } only — refetch conversations to get updated lastMessage
+      try {
+        const res = await api.get("/api/chat/conversations");
+        setConversations(sortConversations(res.data));
+      } catch (err) {
+        console.error("[call log] sidebar refetch failed:", err);
+      }
+    };
+
     socket.on("message:new", handleGlobalMessage);
     socket.on("unread:update", handleUnreadUpdate);
     socket.on("message:status", handleMessageStatus);
@@ -282,6 +363,10 @@ export default function ChatDashboard() {
     socket.on("group:member-left", handleGroupRefetch);
     socket.on("group:admin-updated", handleGroupRefetch);
     socket.on("conversation:customise:updated", handleCustomiseUpdated);
+    socket.on("call:log", handleCallLog);
+    socket.on("call:ended", handleCallLog);
+    socket.on("call:declined", handleCallLog);
+    socket.on("call:missed", handleCallLog);
 
     return () => {
       socket.off("message:new", handleGlobalMessage);
@@ -296,6 +381,10 @@ export default function ChatDashboard() {
       socket.off("group:member-left", handleGroupRefetch);
       socket.off("group:admin-updated", handleGroupRefetch);
       socket.off("conversation:customise:updated", handleCustomiseUpdated);
+      socket.off("call:log", handleCallLog);
+      socket.off("call:ended", handleCallLog);
+      socket.off("call:declined", handleCallLog);
+      socket.off("call:missed", handleCallLog);
     };
   }, [socket, fetchLastSeenTimes, user, showNewMessageToast]);
 
@@ -310,16 +399,16 @@ export default function ChatDashboard() {
         const updated = prev.map((c) =>
           c._id === conversationId
             ? {
-              ...c,
-              lastMessage: {
-                ...c.lastMessage,
-                text,
-                gifUrl,
-                attachments,
-                timestamp: new Date().toISOString(),
-              },
-              updatedAt: new Date().toISOString(),
-            }
+                ...c,
+                lastMessage: {
+                  ...c.lastMessage,
+                  text,
+                  gifUrl,
+                  attachments,
+                  createdAt: new Date().toISOString(),
+                },
+                updatedAt: new Date().toISOString(),
+              }
             : c,
         );
         return sortConversations(updated);
@@ -338,26 +427,41 @@ export default function ChatDashboard() {
   }, []);
 
   // Called when conversation is updated (pin/archive/mute)
-  const handleConversationUpdate = useCallback((updated) => {
-    // Array → full list refresh (from SidebarChats pin/mute/archive/leave)
-    if (Array.isArray(updated)) {
-      setConversations(sortConversations(updated));
-      return;
-    }
-    // Single object with _removed / _deleted flag → remove from list
-    if (updated._removed || updated._deleted) {
-      setConversations((prev) => prev.filter((c) => c._id !== updated._id));
-      setActiveConversationId((prev) => (prev === updated._id ? null : prev));
-      setShowGroupInfo(false);
-      return;
-    }
-    // Single updated conversation → merge into list
-    setConversations((prev) =>
-      sortConversations(
-        prev.map((c) => (c._id === updated._id ? { ...c, ...updated } : c)),
-      ),
-    );
-  }, []);
+  const handleConversationUpdate = useCallback(
+    (updated) => {
+      // Array → full list refresh (from SidebarChats pin/mute/archive/leave)
+      if (Array.isArray(updated)) {
+        setConversations(sortConversations(updated));
+        if (setMutedConversationIds) {
+          setMutedConversationIds(
+            new Set(updated.filter((c) => c.isMuted).map((c) => c._id)),
+          );
+        }
+        return;
+      }
+      // Single object with _removed / _deleted flag → remove from list
+      if (updated._removed || updated._deleted) {
+        setConversations((prev) => prev.filter((c) => c._id !== updated._id));
+        setActiveConversationId((prev) => (prev === updated._id ? null : prev));
+        setShowGroupInfo(false);
+        return;
+      }
+      // Single updated conversation → merge into list
+      setConversations((prev) => {
+        const next = sortConversations(
+          prev.map((c) => (c._id === updated._id ? { ...c, ...updated } : c)),
+        );
+        // Keep muted set in sync
+        if (setMutedConversationIds) {
+          setMutedConversationIds(
+            new Set(next.filter((c) => c.isMuted).map((c) => c._id)),
+          );
+        }
+        return next;
+      });
+    },
+    [setMutedConversationIds],
+  );
 
   const handleMessagesSeen = useCallback((conversationId) => {
     setConversations((prev) => {
@@ -417,18 +521,22 @@ export default function ChatDashboard() {
       {/* Mobile Backdrops */}
       {(isSidebarOpen ||
         (showGroupInfo && activeConversation?.type === "group")) && (
-          <div
-            className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-30 transition-all"
-            onClick={() => {
-              setIsSidebarOpen(false);
-              setShowGroupInfo(false);
-            }}
-          />
-        )}
+        <div
+          className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-30 transition-all"
+          onClick={() => {
+            setIsSidebarOpen(false);
+            setShowGroupInfo(false);
+          }}
+        />
+      )}
 
       <div className="flex flex-1 min-h-0 w-full">
         {/* ═══ Desktop: Unified Sidebar ═══ */}
-        <AppSidebar label="Direct Messages" className="lg:flex w-80 overflow-hidden border-r border-white/[0.06]" storeKey="chat">
+        <AppSidebar
+          label="Direct Messages"
+          className="lg:flex w-80 overflow-hidden border-r border-white/[0.06]"
+          storeKey="chat"
+        >
           <Sidebar
             conversations={conversations}
             activeConversationId={activeConversationId}
@@ -443,8 +551,9 @@ export default function ChatDashboard() {
 
         {/* ═══ Mobile: Slide-in Sidebar ═══ */}
         <div
-          className={`lg:hidden absolute z-40 h-full transition-transform duration-300 w-[85vw] sm:w-80 flex shrink-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-            }`}
+          className={`lg:hidden absolute z-40 h-full transition-transform duration-300 w-[85vw] sm:w-80 flex shrink-0 ${
+            isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
         >
           <Sidebar
             conversations={conversations}
@@ -482,6 +591,9 @@ export default function ChatDashboard() {
               currentUser={currentUser}
               onClose={() => setShowGroupInfo(false)}
               onConversationUpdate={handleConversationUpdate}
+              onMuteChange={(convId, isMuted) =>
+                handleConversationUpdate({ _id: convId, isMuted })
+              }
             />
           </div>
         )}
@@ -492,6 +604,9 @@ export default function ChatDashboard() {
               conversation={activeConversation}
               currentUser={currentUser}
               onClose={() => setShowDmInfo(false)}
+              onMuteChange={(convId, isMuted) =>
+                handleConversationUpdate({ _id: convId, isMuted })
+              }
             />
           </div>
         )}

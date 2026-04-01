@@ -219,8 +219,6 @@ export default function Sidebar({
     if (!socket) return;
 
     const handleMessageDeleted = (payload) => {
-      console.log("Sidebar: message:deleted event RECEIVED!", payload);
-
       const { conversationId } = payload;
 
       setSearchedConversations((prev) =>
@@ -354,9 +352,7 @@ export default function Sidebar({
           const hasUnread = conv.unreadCount > 0 && !conv.isMuted;
           const isUserOnline =
             !isGroup && onlineUsers?.get(conv.participant?._id)?.online;
-          const groupColor = isGroup
-            ? getGroupAvatarColor(conv.name)
-            : null;
+          const groupColor = isGroup ? getGroupAvatarColor(conv.name) : null;
           const groupInitials = isGroup ? getGroupInitials(conv.name) : null;
 
           return (
@@ -375,10 +371,14 @@ export default function Sidebar({
               {isGroup ? (
                 <div
                   className={`w-8 h-8 rounded-xl flex items-center justify-center font-display font-bold text-[10px] ring-1 transition-all ${
-                    isActive ? "ring-accent/40" : "ring-white/[0.06] hover:ring-accent/20"
+                    isActive
+                      ? "ring-accent/40"
+                      : "ring-white/[0.06] hover:ring-accent/20"
                   }`}
                   style={{
-                    backgroundColor: conv.avatar ? "transparent" : groupColor.bg,
+                    backgroundColor: conv.avatar
+                      ? "transparent"
+                      : groupColor.bg,
                     color: groupColor.text,
                   }}
                 >
@@ -397,9 +397,13 @@ export default function Sidebar({
                 </div>
               ) : (
                 <div className="relative">
-                  <div className={`w-8 h-8 rounded-xl overflow-hidden ring-1 transition-all ${
-                    isActive ? "ring-accent/40" : "ring-white/[0.06] hover:ring-accent/20"
-                  }`}>
+                  <div
+                    className={`w-8 h-8 rounded-xl overflow-hidden ring-1 transition-all ${
+                      isActive
+                        ? "ring-accent/40"
+                        : "ring-white/[0.06] hover:ring-accent/20"
+                    }`}
+                  >
                     <Image
                       src={
                         conv.participant?.avatar ||
@@ -562,7 +566,24 @@ export default function Sidebar({
                   : lm.sender?.toString() === currentUser?._id;
                 const prefix = isMe ? "You" : null;
                 let label;
-                if (lm.gifUrl) {
+                if (lm.callLog) {
+                  const cl = lm.callLog;
+                  if (cl.status === "missed") label = "Missed call";
+                  else if (cl.status === "declined") label = "Call declined";
+                  else {
+                    const dur = cl.duration
+                      ? " · " +
+                        Math.floor(cl.duration / 60) +
+                        "m " +
+                        (cl.duration % 60) +
+                        "s"
+                      : "";
+                    label =
+                      (cl.callType === "video" ? "Video" : "Audio") +
+                      " call" +
+                      dur;
+                  }
+                } else if (lm.gifUrl) {
                   label = "sent a GIF";
                 } else if (lm.attachments?.length > 0) {
                   const att = lm.attachments[0];
@@ -789,7 +810,6 @@ export default function Sidebar({
             )}
           </div>
         </div>
-
       </aside>
 
       {/* ── New Chat Modal ── */}

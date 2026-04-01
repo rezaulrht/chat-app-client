@@ -103,15 +103,22 @@ export function getGroupLastMessagePreview(lastMessage, currentUserId) {
     typeof lastMessage.sender === "object" ? lastMessage.sender?.name : null;
 
   const isMe = senderId === currentUserId;
-  const prefix = isMe
-    ? "You"
-    : senderName
-      ? senderName.split(" ")[0]
-      : null;
+  const prefix = isMe ? "You" : senderName ? senderName.split(" ")[0] : null;
 
   // Determine content label
   let content;
-  if (lastMessage.gifUrl) {
+  if (lastMessage.callLog) {
+    const cl = lastMessage.callLog;
+    if (cl.status === "missed") content = "Missed call";
+    else if (cl.status === "declined") content = "Call declined";
+    else {
+      const dur = cl.duration
+        ? " · " + Math.floor(cl.duration / 60) + "m " + (cl.duration % 60) + "s"
+        : "";
+      content = (cl.callType === "video" ? "Video" : "Audio") + " call" + dur;
+    }
+    return prefix ? prefix + ": " + content : content;
+  } else if (lastMessage.gifUrl) {
     content = "sent a GIF";
   } else if (lastMessage.attachments?.length > 0) {
     const att = lastMessage.attachments[0];

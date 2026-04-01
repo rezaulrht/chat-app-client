@@ -17,7 +17,7 @@ export default function WorkspacePage() {
   const { id } = useParams();
   const router = useRouter();
   const { workspaceCollapsed } = useSidebarStore();
-  const { modulesCache, fetchModules } = useWorkspace();
+  const { modulesCache, loadingModules, fetchModules } = useWorkspace();
 
   const [showSettings, setShowSettings] = useState(false);
   const [showCreateModule, setShowCreateModule] = useState(false);
@@ -32,11 +32,12 @@ export default function WorkspacePage() {
     const cached = modulesCache?.[id];
 
     if (cached === undefined) {
-      // Not in cache yet — fetch it; when modulesCache updates this effect re-runs
+      // Not in cache yet — kick off fetch (idempotent, guarded by fetchedWorkspaceIds ref)
       fetchModules(id);
       return;
     }
 
+    // Cache is now populated (modules array, or empty array on API error)
     const sorted = cached
       .filter((m) => m.type !== "voice")
       .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
@@ -44,9 +45,17 @@ export default function WorkspacePage() {
     if (sorted.length > 0) {
       router.replace(`/app/workspace/${id}/${sorted[0]._id}`);
     } else {
+      // No text modules exist — show the "create a module" empty state
       setRedirecting(false);
     }
   }, [id, modulesCache, fetchModules, router]);
+
+  // Safety net: if still stuck redirecting after 8s, fall through to empty state
+  useEffect(() => {
+    if (!redirecting) return;
+    const t = setTimeout(() => setRedirecting(false), 8000);
+    return () => clearTimeout(t);
+  }, [redirecting]);
 
   if (redirecting) {
     return (
@@ -62,7 +71,6 @@ export default function WorkspacePage() {
   return (
     <ProtectedRoute>
       <div className="flex h-full w-full bg-obsidian overflow-hidden">
-        {/* Desktop: workspace strip + channel sidebar */}
         <WorkspaceStrip />
         <div
           className="hidden md:flex flex-col shrink-0 h-full border-r border-white/6 bg-deep overflow-hidden transition-[width] duration-300 ease-in-out"
@@ -80,7 +88,6 @@ export default function WorkspacePage() {
           />
         </div>
 
-        {/* Mobile */}
         <MobileWorkspaceSidebar
           activeWorkspaceId={id}
           onSettingsOpen={() => setShowSettings(true)}
@@ -91,7 +98,6 @@ export default function WorkspacePage() {
           }}
         />
 
-        {/* Empty state */}
         <div className="hidden md:flex flex-1 flex-col items-center justify-center h-full text-center space-y-3">
           <p className="font-display text-sm text-ivory/20">
             No modules yet — create one to get started
@@ -100,7 +106,10 @@ export default function WorkspacePage() {
       </div>
 
       {showSettings && (
-        <WorkspaceSettingsModal workspaceId={id} onClose={() => setShowSettings(false)} />
+        <WorkspaceSettingsModal
+          workspaceId={id}
+          onClose={() => setShowSettings(false)}
+        />
       )}
       {activeSettingsModuleId && (
         <ModuleSettingsModal

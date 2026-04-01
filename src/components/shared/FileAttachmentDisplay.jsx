@@ -29,6 +29,12 @@ function AudioPlayer({ att }) {
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
+    // Prime from element immediately in case loadedmetadata already fired
+    // (common for cached clips whose metadata is already available)
+    if (audio.readyState >= 1) {
+      setDuration(audio.duration);
+      setCurrentTime(audio.currentTime);
+    }
     const onTime = () => setCurrentTime(audio.currentTime);
     const onMeta = () => setDuration(audio.duration);
     const onEnded = () => setIsPlaying(false);

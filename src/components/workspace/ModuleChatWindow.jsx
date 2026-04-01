@@ -215,6 +215,7 @@ export default function ModuleChatWindow({
     setReactionPickerMsgId(null);
     setShowEmojiPicker(false);
     setShowGifPicker(false);
+    setShowVoiceRecorder(false);
     setShowSeenBy(null);
     resetFiles();
   }, [moduleId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -325,7 +326,6 @@ export default function ModuleChatWindow({
 
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
-
 
   const handleTouchEnd = useCallback(() => {
     if (longPressTimer.current) clearTimeout(longPressTimer.current);
@@ -467,14 +467,12 @@ export default function ModuleChatWindow({
       span.contentEditable = "false";
       span.dataset.id = suggestion.user?._id || suggestion.key;
 
-
       const img = document.createElement("img");
       img.src =
         suggestion.user?.avatar ||
         `https://api.dicebear.com/7.x/avataaars/svg?seed=${suggestion.value}`;
       img.alt = "";
       span.appendChild(img);
-
 
       const nameText = document.createTextNode(`@${suggestion.value}`);
       span.appendChild(nameText);
@@ -488,7 +486,6 @@ export default function ModuleChatWindow({
       range.setEndAfter(space);
       selection.removeAllRanges();
       selection.addRange(range);
-
 
       const parsed = parseMessage(inputRef.current);
       setText(parsed.text);
@@ -843,10 +840,12 @@ export default function ModuleChatWindow({
 
   const handleVoiceSend = useCallback(
     (attachment) => {
-      sendMessage({ attachments: [attachment] });
+      sendMessage({ attachments: [attachment], replyTo });
       setShowVoiceRecorder(false);
+      setReplyTo(null);
+      sendTyping(false);
     },
-    [sendMessage],
+    [sendMessage, replyTo, sendTyping],
   );
 
   // ── Edit ──────────────────────────────────────────────────────────────────
@@ -1844,7 +1843,10 @@ export default function ModuleChatWindow({
             </div>
 
             {/* Schedule Dropdown */}
-            <div ref={scheduleDropdownRef} className="relative hidden lg:inline-flex">
+            <div
+              ref={scheduleDropdownRef}
+              className="relative hidden lg:inline-flex"
+            >
               <button
                 type="button"
                 onClick={() => setScheduleDropdownOpen((v) => !v)}

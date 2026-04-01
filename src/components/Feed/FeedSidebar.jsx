@@ -721,9 +721,6 @@ function RightSidebar({ onTagFilter }) {
                       <p className="text-[12px] font-bold text-ivory truncate leading-tight">
                         {c.name}
                       </p>
-                      <span className="text-[10px] leading-none shrink-0">
-                        {levelInfo.icon}
-                      </span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <span

@@ -8,7 +8,7 @@ import NotificationDropdown from "./NotificationDropdown";
 export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
-  const { unreadCount } = useNotification();
+  const { unreadCount } = useNotification() || {};
 
   // Close dropdown on outside click — same pattern as profile dropdown in AppTopBar
   useEffect(() => {

@@ -16,9 +16,7 @@ export const SocketProvider = ({ children }) => {
     if (!userIds || userIds.length === 0) return;
 
     try {
-      console.log("Batch fetching presence status for users:", userIds);
       const res = await api.post("/api/chat/last-seen", { userIds });
-      console.log("Batch presence response:", res.data);
 
       setOnlineUsers((prev) => {
         const updated = new Map(prev);
@@ -32,7 +30,6 @@ export const SocketProvider = ({ children }) => {
         });
         return updated;
       });
-      console.log("Online users updated with batch data");
     } catch (err) {
       console.error("Failed to batch fetch presence status:", err);
     }
@@ -50,7 +47,6 @@ export const SocketProvider = ({ children }) => {
     });
 
     newSocket.on("connect", () => {
-      console.log("✅ Socket connected:", newSocket.id);
       setSocket(newSocket);
       setIsConnected(true);
     });
@@ -61,16 +57,11 @@ export const SocketProvider = ({ children }) => {
     });
 
     newSocket.on("disconnect", () => {
-      console.log("❌ Socket disconnected");
       setIsConnected(false);
     });
 
     // --- Handle presence updates (user comes online/goes offline) ---
     newSocket.on("presence:update", async ({ userId, online }) => {
-      console.log(
-        `Presence update: User ${userId} is ${online ? "online" : "offline"}`,
-      );
-
       if (online) {
         // User came online
         setOnlineUsers((prev) => {
@@ -78,7 +69,6 @@ export const SocketProvider = ({ children }) => {
           updated.set(userId, { online: true, lastSeen: null });
           return updated;
         });
-        console.log(`User ${userId} is now ONLINE`);
       } else {
         // User went offline - immediately mark as offline
         setOnlineUsers((prev) => {
@@ -86,13 +76,10 @@ export const SocketProvider = ({ children }) => {
           updated.set(userId, { online: false, lastSeen: Date.now() }); // Use current time as fallback
           return updated;
         });
-        console.log(`User ${userId} marked as OFFLINE immediately`);
 
         // Fetch last seen time for offline users
         try {
-          console.log(`Fetching last seen for user ${userId}...`);
           const res = await api.get(`/api/chat/last-seen/${userId}`);
-          console.log(`API response for ${userId}:`, res.data);
 
           if (res.data && res.data.lastSeen) {
             setOnlineUsers((prev) => {

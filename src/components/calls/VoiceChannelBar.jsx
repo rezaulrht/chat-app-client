@@ -8,13 +8,15 @@ import { useLiveKit } from "@/hooks/useLiveKit";
 import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
 
-function ParticipantAvatar({ name, avatar, size = 24 }) {
+function ParticipantAvatar({ name, avatar, size = 24, isSpeaking = false }) {
   const seed = encodeURIComponent(name || "user");
   const fallback = `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`;
   const src = avatar || fallback;
   return (
     <div
-      className="rounded-full overflow-hidden shrink-0 ring-1 ring-white/10"
+      className={`rounded-full overflow-hidden shrink-0 transition-all ${
+        isSpeaking ? "ring-2 ring-green-400" : "ring-1 ring-white/10"
+      }`}
       style={{ width: size, height: size }}
     >
       <Image
@@ -34,11 +36,22 @@ export default function VoiceChannelBar() {
   const { socket } = useSocket();
   const { user } = useAuth();
   const [isMuted, setIsMuted] = useState(false);
-  const { room, isConnected, participants, connect, disconnect } = useLiveKit();
+  const {
+    room,
+    isConnected,
+    participants,
+    activeSpeakers,
+    connect,
+    disconnect,
+  } = useLiveKit();
   const hasConnected = useRef(false);
 
   useEffect(() => {
-    if (activeCall?.isVoiceChannel && activeCall?.roomName && !hasConnected.current) {
+    if (
+      activeCall?.isVoiceChannel &&
+      activeCall?.roomName &&
+      !hasConnected.current
+    ) {
       hasConnected.current = true;
       connect(activeCall.roomName, "audio");
     }
@@ -47,31 +60,57 @@ export default function VoiceChannelBar() {
     }
   }, [activeCall?.roomName, activeCall?.isVoiceChannel, connect]);
 
-  const handleDisconnect = async () => {
+  const handleDisconnect = () => {
     if (activeCall?.moduleId && activeCall?.workspaceId) {
       socket?.emit("voice_channel:leave", {
         moduleId: activeCall.moduleId,
         workspaceId: activeCall.workspaceId,
       });
     }
-    await disconnect();
     hasConnected.current = false;
-    endCall();
+    endCall(); // close UI immediately
+    disconnect(); // release mic in background
   };
 
+  // Reset mute state whenever we join a new voice channel
+  useEffect(() => {
+    if (activeCall?.isVoiceChannel) {
+      setIsMuted(false);
+    }
+  }, [activeCall?.roomName]);
+
   const toggleMute = () => {
-    room?.localParticipant?.setMicrophoneEnabled(isMuted);
-    setIsMuted((v) => !v);
+    const lp = room?.localParticipant;
+    if (!lp) return;
+    const nowMuted = !isMuted;
+    lp.setMicrophoneEnabled(!nowMuted);
+    setIsMuted(nowMuted);
   };
 
   if (!activeCall?.isVoiceChannel) return null;
 
+  const localIdentity = room?.localParticipant?.identity ?? "";
+
   const allParticipants = [
-    { id: "local", name: user?.name || "You", avatar: user?.avatar || "", isLocal: true },
+    {
+      id: "local",
+      name: user?.name || "You",
+      avatar: user?.avatar || "",
+      isLocal: true,
+      identity: localIdentity,
+    },
     ...participants.map((p) => {
       let avatar = "";
-      try { avatar = JSON.parse(p.metadata || "{}").avatar || ""; } catch {}
-      return { id: p.sid, name: p.name || p.identity, avatar, isLocal: false };
+      try {
+        avatar = JSON.parse(p.metadata || "{}").avatar || "";
+      } catch {}
+      return {
+        id: p.sid,
+        name: p.name || p.identity,
+        avatar,
+        isLocal: false,
+        identity: p.identity,
+      };
     }),
   ];
 
@@ -85,7 +124,7 @@ export default function VoiceChannelBar() {
             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
           </span>
           <span className="text-[10px] font-mono font-bold text-emerald-400 uppercase tracking-widest">
-            Voice Connected
+            {isConnected ? "Voice Connected" : "Connecting..."}
           </span>
         </div>
         <div className="flex items-center gap-1.5">
@@ -97,18 +136,43 @@ export default function VoiceChannelBar() {
       </div>
 
       {/* Participants */}
-      <div className="px-3 py-2 space-y-1 max-h-[120px] overflow-y-auto">
-        {allParticipants.map((p) => (
-          <div key={p.id} className="flex items-center gap-2">
-            <ParticipantAvatar name={p.name} avatar={p.avatar} size={22} />
-            <span className="text-[11px] font-mono text-ivory/60 truncate flex-1">
-              {p.isLocal ? `${p.name} (you)` : p.name}
-            </span>
-            {p.isLocal && isMuted && (
-              <MicOff size={10} className="text-red-400 shrink-0" />
-            )}
-          </div>
-        ))}
+      <div className="px-3 py-2 space-y-1.5 max-h-[140px] overflow-y-auto">
+        {allParticipants.map((p) => {
+          const isSpeaking = activeSpeakers?.has(p.identity);
+          return (
+            <div key={p.id} className="flex items-center gap-2">
+              <ParticipantAvatar
+                name={p.name}
+                avatar={p.avatar}
+                size={22}
+                isSpeaking={isSpeaking}
+              />
+              <span className="text-[11px] font-mono text-ivory/60 truncate flex-1">
+                {p.isLocal ? `${p.name} (you)` : p.name}
+              </span>
+              {/* Speaking bars */}
+              {isSpeaking && (
+                <span className="flex gap-px items-end h-3 shrink-0">
+                  <span
+                    className="w-0.5 bg-green-400 rounded-full animate-[soundbar_0.6s_ease-in-out_infinite]"
+                    style={{ height: "40%", animationDelay: "0ms" }}
+                  />
+                  <span
+                    className="w-0.5 bg-green-400 rounded-full animate-[soundbar_0.6s_ease-in-out_infinite]"
+                    style={{ height: "100%", animationDelay: "100ms" }}
+                  />
+                  <span
+                    className="w-0.5 bg-green-400 rounded-full animate-[soundbar_0.6s_ease-in-out_infinite]"
+                    style={{ height: "60%", animationDelay: "200ms" }}
+                  />
+                </span>
+              )}
+              {p.isLocal && isMuted && (
+                <MicOff size={10} className="text-red-400 shrink-0" />
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {/* Controls */}

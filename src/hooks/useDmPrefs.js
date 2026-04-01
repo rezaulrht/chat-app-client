@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
+import api from "@/app/api/Axios";
 
 const STORAGE_KEY = (convId) => `dmprefs_${convId}`;
 
@@ -66,22 +67,34 @@ export function useDmPrefs(conversation) {
       if (!convId) return;
 
       if (key === "muted") {
+        // Optimistic update
+        const previousMuted = muted;
         setMuted(value);
-        // Persist locally so the toggle feels instant
         try {
           localStorage.setItem(
             STORAGE_KEY(convId),
             JSON.stringify({ muted: value }),
           );
         } catch {}
-        // Sync to server
+        // Sync to server — roll back on failure
         try {
-          require("@/app/api/Axios")
-            .default.patch(`/api/chat/conversations/${convId}/mute`, {
+          api
+            .patch(`/api/chat/conversations/${convId}/mute`, {
               muted: value,
             })
-            .catch(() => {});
-        } catch {}
+            .catch(() => {
+              // Server rejected — revert optimistic update
+              setMuted(previousMuted);
+              try {
+                localStorage.setItem(
+                  STORAGE_KEY(convId),
+                  JSON.stringify({ muted: previousMuted }),
+                );
+              } catch {}
+            });
+        } catch {
+          setMuted(previousMuted);
+        }
         return;
       }
 

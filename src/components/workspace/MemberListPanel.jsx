@@ -47,9 +47,21 @@ function MemberRow({ member, roles, isOnline, onProfileClick, onContextMenu }) {
     });
   };
 
+  // Double click opens full profile
+  const handleDoubleClick = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    onProfileClick?.({
+      member,
+      x: rect.right + 8,
+      y: rect.top,
+      openFull: true,
+    });
+  };
+
   return (
     <div
       onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
       onContextMenu={onContextMenu ? (e) => onContextMenu(e, member) : undefined}
       className={`flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all group ${onProfileClick ? "hover:bg-white/4 cursor-pointer" : ""
         }`}
@@ -134,8 +146,13 @@ export default function MemberListPanel({
   const [fullProfile, setFullProfile] = useState(null);
   const [contextMenu, setContextMenu] = useState(null);
 
-  const handleProfileClick = useCallback(({ member, x, y }) => {
-    setProfileTarget({ member, x, y });
+  const handleProfileClick = useCallback(({ member, x, y, openFull }) => {
+    if (openFull) {
+      // Open full profile directly with member data
+      setFullProfile({ user: member.user, member });
+    } else {
+      setProfileTarget({ member, x, y });
+    }
     setContextMenu(null);
   }, []);
 
@@ -314,7 +331,10 @@ export default function MemberListPanel({
           isAdmin={isAdmin}
           position={{ x: profileTarget.x, y: profileTarget.y }}
           onViewProfile={() => {
-            setFullProfile({ user: profileTarget.member.user });
+            setFullProfile({ 
+              user: profileTarget.member.user,
+              member: profileTarget.member 
+            });
             setProfileTarget(null);
           }}
           onMessage={handleQuickMessage}
@@ -361,15 +381,12 @@ export default function MemberListPanel({
       {fullProfile && (
         <FullUserProfile
           user={fullProfile.user}
+          member={fullProfile.member}
+          workspaceRoles={roles}
           isOwnProfile={fullProfile.user._id === currentUser?._id}
           onClose={() => setFullProfile(null)}
           onMessage={() => {
             handleMessage("", fullProfile.user._id);
-          }}
-          onEdit={() => {
-            setFullProfile(null);
-            // Might open native settings or let the native auth context update
-            toast("Editing from Member Panel routed to Sidebar Profile");
           }}
         />
       )}

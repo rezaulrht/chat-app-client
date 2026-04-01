@@ -11,6 +11,8 @@ import api from "@/app/api/Axios";
 
 export default function FullUserProfile({
     user,
+    member, // workspace member data with role, roleIds
+    workspaceRoles, // array of workspace role objects
     isOwnProfile,
     onClose,
     onMessage,
@@ -202,6 +204,51 @@ export default function FullUserProfile({
                         <div className="text-[11px] uppercase font-mono tracking-widest font-bold text-ivory/30 mb-2">Member Since</div>
                         <p className="text-[13px] text-ivory mb-5">{joinDate}</p>
 
+                        {/* Workspace Role (if member data provided) */}
+                        {member && (
+                            <>
+                                <div className="h-px bg-white/[0.06] mb-5" />
+                                <div className="text-[11px] uppercase font-mono tracking-widest font-bold text-ivory/30 mb-2">Workspace Role</div>
+                                <div className="flex flex-wrap gap-2 mb-5">
+                                    {/* Main role badge */}
+                                    {member.role === "owner" && (
+                                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-yellow-500/15 border border-yellow-500/30 text-yellow-400 text-[11px] font-bold">
+                                            👑 Owner
+                                        </span>
+                                    )}
+                                    {member.role === "admin" && (
+                                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-pink-500/15 border border-pink-500/30 text-pink-400 text-[11px] font-bold">
+                                            🛡️ Admin
+                                        </span>
+                                    )}
+                                    {member.role === "member" && (
+                                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-white/5 border border-white/10 text-ivory/50 text-[11px] font-bold">
+                                            Member
+                                        </span>
+                                    )}
+                                    {/* Custom roles */}
+                                    {member.roleIds?.map((roleId) => {
+                                        const role = workspaceRoles?.find(r => r._id === roleId);
+                                        if (!role) return null;
+                                        return (
+                                            <span 
+                                                key={roleId}
+                                                className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-bold"
+                                                style={{ 
+                                                    backgroundColor: role.color + "15",
+                                                    borderColor: role.color + "50",
+                                                    color: role.color,
+                                                    borderWidth: 1
+                                                }}
+                                            >
+                                                {role.name}
+                                            </span>
+                                        );
+                                    })}
+                                </div>
+                            </>
+                        )}
+
                         <div className="h-px bg-white/[0.06] mb-5" />
 
                         {/* Connections */}
@@ -227,15 +274,7 @@ export default function FullUserProfile({
 
                         {/* Action buttons footer aligned to left side layout */}
                         <div className="mt-auto pt-6">
-                            {isOwnProfile ? (
-                                <button
-                                    onClick={onEdit}
-                                    className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-accent/15 hover:bg-accent/25 border border-accent/20 text-accent font-display font-bold text-[13px] transition-all"
-                                >
-                                    <Edit2 size={14} />
-                                    Edit Profile
-                                </button>
-                            ) : (
+                            {!isOwnProfile && (
                                 <button
                                     onClick={onMessage}
                                     className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-accent/20 hover:bg-accent/30 border border-accent/40 text-accent font-display font-bold text-[13px] transition-all"

@@ -180,6 +180,7 @@ export default function FeedView() {
     deleteComment,
     userStats,
     followedTags,
+    socket,
   } = useFeed();
 
   const [activePost, setActivePost] = useState(null); // PostDetail view
@@ -189,6 +190,7 @@ export default function FeedView() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [currentUserId, setCurrentUserId] = useState("");
+  const [mobileRightOpen, setMobileRightOpen] = useState(false);
 
   const searchParams = useSearchParams();
   const searchTimerRef = useRef(null);
@@ -241,15 +243,19 @@ export default function FeedView() {
 
   useEffect(() => {
     if (!activePost?._id) return;
+    const postId = activePost._id;
+    socket?.emit("feed:post:join", postId);
     (async () => {
       try {
-        await fetchComments(activePost._id);
+        await fetchComments(postId);
       } catch (error) {
         console.error("Failed to fetch comments:", error);
-        // UI will show empty array or error state via commentsByPost
       }
     })();
-  }, [activePost?._id, fetchComments]);
+    return () => {
+      socket?.emit("feed:post:leave", postId);
+    };
+  }, [activePost?._id, fetchComments, socket]);
 
   useEffect(() => {
     const node = loadMoreRef.current;
@@ -376,8 +382,8 @@ export default function FeedView() {
       typeof postOrId === "object" && postOrId?._id
         ? postOrId
         : posts.find((post) => post._id === targetId) ||
-        (activePost?._id === targetId ? activePost : null) ||
-        (editTarget?._id === targetId ? editTarget : null);
+          (activePost?._id === targetId ? activePost : null) ||
+          (editTarget?._id === targetId ? editTarget : null);
 
     if (!targetPost) return;
     setDeleteTarget(targetPost);
@@ -435,10 +441,10 @@ export default function FeedView() {
           typeof data?.commentsCount === "number"
             ? Math.max(0, data.commentsCount)
             : Math.max(
-              0,
-              (prev.commentCount ?? prev.commentsCount ?? 0) -
-              (data?.removedCount ?? 1),
-            );
+                0,
+                (prev.commentCount ?? prev.commentsCount ?? 0) -
+                  (data?.removedCount ?? 1),
+              );
         const acceptedId = prev.acceptedAnswer ?? prev.acceptedComment ?? null;
 
         return {
@@ -569,10 +575,11 @@ export default function FeedView() {
               key={tab.id}
               type="button"
               onClick={() => handleTabChange(tab.id)}
-              className={`shrink-0 whitespace-nowrap px-4 py-2.5 text-[13px] font-display font-semibold border-b-2 transition-all duration-150 -mb-px ${activeTab === tab.id
+              className={`shrink-0 whitespace-nowrap px-4 py-2.5 text-[13px] font-display font-semibold border-b-2 transition-all duration-150 -mb-px ${
+                activeTab === tab.id
                   ? "border-accent text-ivory"
                   : "border-transparent text-ivory/40 hover:text-ivory/70"
-                }`}
+              }`}
             >
               {tab.label}
             </button>
@@ -647,10 +654,56 @@ export default function FeedView() {
         </div>
       </div>
 
-      {/* ── Right sidebar ── */}
+      {/* ── Right sidebar (desktop) ── */}
       <div className="hidden lg:block w-[220px] shrink-0">
         <FeedSidebar side="right" onTagFilter={handleTagFilter} />
       </div>
+
+      {/* ── Mobile: floating Explore button ── */}
+      <button
+        type="button"
+        onClick={() => setMobileRightOpen(true)}
+        className="lg:hidden fixed bottom-20 right-4 z-40 flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-accent text-obsidian font-display font-bold text-[12px] shadow-lg shadow-accent/20 active:scale-95 transition-all"
+      >
+        <span className="text-[14px]">📊</span>
+        Explore
+      </button>
+
+      {/* ── Mobile: right sidebar drawer ── */}
+      {mobileRightOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-50"
+          onClick={() => setMobileRightOpen(false)}
+        >
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div
+            className="absolute right-0 top-0 bottom-0 w-72 bg-deep border-l border-accent/[0.12] flex flex-col overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06] shrink-0">
+              <span className="font-display font-bold text-ivory text-[14px]">
+                Explore
+              </span>
+              <button
+                type="button"
+                onClick={() => setMobileRightOpen(false)}
+                className="w-7 h-7 flex items-center justify-center rounded-xl text-ivory/40 hover:text-ivory hover:bg-white/[0.08] transition-all"
+              >
+                <X size={14} />
+              </button>
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <FeedSidebar
+                side="right"
+                onTagFilter={(tag) => {
+                  handleTagFilter(tag);
+                  setMobileRightOpen(false);
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Modals ── */}
       <PostComposer

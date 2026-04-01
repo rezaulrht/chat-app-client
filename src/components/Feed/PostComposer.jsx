@@ -591,10 +591,10 @@ export default function PostComposer({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm p-0 md:p-6">
-      <div className="h-full md:h-auto md:max-h-[92vh] w-full md:max-w-5xl mx-auto glass-card rounded-none md:rounded-3xl overflow-hidden flex flex-col md:flex-row">
+    <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm p-0 md:p-6 flex items-center justify-center">
+      <div className="h-full md:h-[92vh] w-full md:max-w-5xl mx-auto glass-card rounded-none md:rounded-3xl overflow-hidden flex flex-col md:flex-row">
         {/* Left selector panel */}
-        <aside className="w-full md:w-[260px] md:shrink-0 border-b md:border-b-0 md:border-r border-white/[0.07] bg-white/[0.01] flex flex-col">
+        <aside className="w-full md:w-[260px] md:shrink-0 border-b md:border-b-0 md:border-r border-white/[0.07] bg-white/[0.01] flex flex-col md:min-h-0 md:overflow-y-auto">
           <div className="px-5 pt-4 pb-3 border-b border-white/[0.06]">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-xl bg-accent/15 border border-accent/25 flex items-center justify-center text-accent font-display font-bold">
@@ -1123,7 +1123,10 @@ export default function PostComposer({
                                 disabled={tags.length >= 5}
                                 className="group inline-flex items-center gap-1 rounded-full border border-accent/15 bg-accent/[0.06] px-2.5 py-0.5 text-[11px] font-mono font-semibold text-accent/70 hover:bg-accent/15 hover:text-accent hover:border-accent/30 transition-all duration-150 disabled:opacity-30"
                               >
-                                <Plus size={10} className="opacity-50 group-hover:opacity-100" />
+                                <Plus
+                                  size={10}
+                                  className="opacity-50 group-hover:opacity-100"
+                                />
                                 #{tag}
                                 <span
                                   role="button"
@@ -1199,7 +1202,10 @@ export default function PostComposer({
                             disabled={tags.length >= 5}
                             className="group inline-flex items-center gap-1 rounded-full border border-accent/15 bg-accent/[0.06] px-2.5 py-0.5 text-[11px] font-mono font-semibold text-accent/70 hover:bg-accent/15 hover:text-accent hover:border-accent/30 transition-all duration-150 disabled:opacity-30"
                           >
-                            <Plus size={10} className="opacity-50 group-hover:opacity-100" />
+                            <Plus
+                              size={10}
+                              className="opacity-50 group-hover:opacity-100"
+                            />
                             #{tag}
                             <span
                               role="button"

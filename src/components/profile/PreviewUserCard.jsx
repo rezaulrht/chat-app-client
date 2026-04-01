@@ -43,6 +43,15 @@ export default function PreviewUserCard({
     const menuRef = useRef(null);
     const [clampedPosition, setClampedPosition] = useState({ x: 0, y: 0 });
 
+    // Animation state
+    const [isVisible, setIsVisible] = useState(false);
+    
+    useEffect(() => {
+        // Trigger animation after position is calculated
+        const timer = setTimeout(() => setIsVisible(true), 10);
+        return () => clearTimeout(timer);
+    }, []);
+
     // Consolidated click outside handler
     useEffect(() => {
         const handleClickOutside = (e) => {
@@ -108,11 +117,13 @@ export default function PreviewUserCard({
         <div
             ref={cardRef}
             onClick={(e) => e.stopPropagation()}
-            className="fixed z-50 w-80 rounded-xl border border-white/8 bg-obsidian shadow-2xl overflow-hidden animate-in fade-in duration-300"
+            className="fixed z-50 w-80 rounded-xl border border-white/8 bg-obsidian shadow-2xl overflow-hidden"
             style={{
                 left: clampedPosition.x,
                 top: clampedPosition.y,
-                animation: "slideFromMemberList 0.3s ease-out",
+                opacity: isVisible ? 1 : 0,
+                transform: isVisible ? "translateX(0)" : "translateX(-60px)",
+                transition: "opacity 0.25s ease-out, transform 0.25s ease-out",
             }}
         >
             {/* BANNER */}

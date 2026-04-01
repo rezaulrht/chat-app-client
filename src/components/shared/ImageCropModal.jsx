@@ -1,11 +1,18 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { X, RotateCcw, ZoomIn, ZoomOut } from "lucide-react";
+import { X, RotateCcw, ZoomIn, ZoomOut, AlertCircle } from "lucide-react";
 
 /**
  * ImageCropModal
  * Banner cropper with 16:9 aspect ratio overlay
+ * 
+ * Features:
+ * - Drag to position image
+ * - Scroll or slider to zoom
+ * - Keyboard navigation support
+ * - Error handling for failed images
+ * - App theme integration
  */
 export default function ImageCropModal({
     imageUrl,
@@ -16,23 +23,78 @@ export default function ImageCropModal({
     const containerRef = useRef(null);
     const imageRef = useRef(null);
     const [image, setImage] = useState(null);
+    const [imageError, setImageError] = useState(false);
     const [zoom, setZoom] = useState(1);
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
     const [containerSize, setContainerSize] = useState({ width: 800, height: 500 });
 
-    // Load image
+    // Load image with error handling
     useEffect(() => {
+        setImageError(false);
         const img = new Image();
         img.crossOrigin = "anonymous";
         img.src = imageUrl;
+        
         img.onload = () => {
             setImage(img);
             setZoom(1);
             setPosition({ x: 0, y: 0 });
         };
+        
+        img.onerror = () => {
+            setImageError(true);
+            console.error("Failed to load image for cropping");
+        };
     }, [imageUrl]);
+
+    // Keyboard navigation
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (isLoading) return;
+            
+            const step = 10;
+            switch (e.key) {
+                case "ArrowUp":
+                    e.preventDefault();
+                    setPosition((p) => ({ ...p, y: p.y + step }));
+                    break;
+                case "ArrowDown":
+                    e.preventDefault();
+                    setPosition((p) => ({ ...p, y: p.y - step }));
+                    break;
+                case "ArrowLeft":
+                    e.preventDefault();
+                    setPosition((p) => ({ ...p, x: p.x + step }));
+                    break;
+                case "ArrowRight":
+                    e.preventDefault();
+                    setPosition((p) => ({ ...p, x: p.x - step }));
+                    break;
+                case "+":
+                case "=":
+                    e.preventDefault();
+                    setZoom((z) => Math.min(3, z + 0.2));
+                    break;
+                case "-":
+                    e.preventDefault();
+                    setZoom((z) => Math.max(0.5, z - 0.2));
+                    break;
+                case "Escape":
+                    e.preventDefault();
+                    onCancel();
+                    break;
+                case "Enter":
+                    e.preventDefault();
+                    if (!isLoading) handleSave();
+                    break;
+            }
+        };
+        
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [isLoading, onCancel]);
 
     // Measure container
     useEffect(() => {
@@ -156,10 +218,30 @@ export default function ImageCropModal({
         onSave(croppedDataUrl);
     };
 
-    if (!image) {
+    // Loading or error state
+    if (!image || imageError) {
         return (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-                <div className="w-10 h-10 border-2 border-accent/40 border-t-accent rounded-full animate-spin" />
+                <div className="flex flex-col items-center gap-4 text-center p-6">
+                    {imageError ? (
+                        <>
+                            <AlertCircle size={48} className="text-red-400" />
+                            <p className="text-ivory text-lg font-medium">Failed to load image</p>
+                            <p className="text-ivory/50 text-sm">Please try again or select a different image</p>
+                            <button
+                                onClick={onCancel}
+                                className="mt-4 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm transition-all"
+                            >
+                                Cancel
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <div className="w-10 h-10 border-2 border-accent/40 border-t-accent rounded-full animate-spin" />
+                            <p className="text-ivory/50 text-sm">Loading image...</p>
+                        </>
+                    )}
+                </div>
             </div>
         );
     }

@@ -390,6 +390,32 @@ export function WorkspaceProvider({ children }) {
           w._id === workspaceId ? { ...w, roles: data.roles || [] } : w,
         ),
       );
+      
+      // Fetch presence/last-seen for all members when they're loaded
+      const userIds = members
+        .map((m) => m.user?._id)
+        .filter((id) => id);
+      
+      if (userIds.length > 0) {
+        try {
+          const response = await api.get("/api/chat/last-seen", {
+            params: { userIds: userIds.join(",") },
+          });
+          // Update onlineUsers set based on presence data
+          const presenceData = response.data || {};
+          const onlineUserIds = Object.keys(presenceData).filter(
+            (uid) => presenceData[uid]?.online
+          );
+          setOnlineUsers((prev) => {
+            const updated = new Set(prev);
+            onlineUserIds.forEach((id) => updated.add(id));
+            return updated;
+          });
+        } catch (presenceErr) {
+          console.warn("Failed to fetch presence for members:", presenceErr.message);
+        }
+      }
+      
       return members;
     } catch (err) {
       console.error("Failed to load members:", err);

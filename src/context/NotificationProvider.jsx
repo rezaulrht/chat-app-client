@@ -35,6 +35,39 @@ export function NotificationProvider({ children }) {
   const [prefs, setPrefs] = useState({});
   const [loading, setLoading] = useState(false);
 
+  // Cache key for localStorage
+  const PREFS_CACHE_KEY = "notification_prefs";
+  const PREFS_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+  // Load cached prefs from localStorage on mount
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem(PREFS_CACHE_KEY);
+      if (cached) {
+        const { data, timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp < PREFS_CACHE_TTL) {
+          setPrefs(data);
+        }
+      }
+    } catch (e) {
+      // Ignore localStorage errors
+    }
+  }, []);
+
+  // Cache prefs to localStorage when they change
+  useEffect(() => {
+    if (Object.keys(prefs).length > 0) {
+      try {
+        localStorage.setItem(
+          PREFS_CACHE_KEY,
+          JSON.stringify({ data: prefs, timestamp: Date.now() })
+        );
+      } catch (e) {
+        // Ignore localStorage errors
+      }
+    }
+  }, [prefs]);
+
   // Track which conversation the user is currently viewing so we can
   // suppress toast for chat_message notifications from that conversation.
   const [activeConversationId, setActiveConversationId] = useState(null);

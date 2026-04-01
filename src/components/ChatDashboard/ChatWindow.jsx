@@ -364,9 +364,8 @@ export default function ChatWindow({
 
   const renderMessageText = (text, mentions, mentionData = []) => {
     if (!text) return null;
-    if (!mentions || mentions.length === 0) return text;
     const participants = conversation.participants || [];
-    const resolvedMentions = mentions
+    let resolvedMentions = (mentions || [])
       .map((m) => {
         const id = typeof m === "object" ? m._id || m.id : m;
         const participant = participants.find(
@@ -386,6 +385,25 @@ export default function ChatWindow({
         return { id, name, avatar, participant };
       })
       .filter((m) => m.name);
+
+    // Fallback for older/untyped messages: infer mentions from plain @name text in groups.
+    if (resolvedMentions.length === 0 && isGroup) {
+      const inferred = participants
+        .filter(
+          (p) =>
+            p?._id &&
+            p?.name &&
+            text.toLowerCase().includes(`@${p.name.toLowerCase()}`),
+        )
+        .map((p) => ({
+          id: p._id,
+          name: p.name,
+          avatar: p.avatar,
+          participant: p,
+        }));
+      resolvedMentions = inferred;
+    }
+
     if (resolvedMentions.length === 0) return text;
     const sorted = [...resolvedMentions].sort(
       (a, b) => b.name.length - a.name.length,
@@ -521,6 +539,16 @@ export default function ChatWindow({
   };
 
   const insertSuggestion = (suggestion) => {
+    if (Array.isArray(suggestion)) {
+      suggestion = {
+        type: "emoji",
+        key: suggestion[0],
+        value: suggestion[1],
+      };
+    }
+    if (!suggestion || typeof suggestion !== "object") return;
+    if (suggestion.type === "mention" && !isGroup) return;
+
     if (suggestion.type === "emoji") {
       insertEmoji(suggestion.value);
     } else if (suggestion.type === "mention") {
@@ -561,13 +589,20 @@ export default function ChatWindow({
     const emojiMatch = textBeforeCursor.match(/:([a-zA-Z0-9_]*)$/);
     if (emojiMatch) {
       const query = emojiMatch[1].toLowerCase();
-      const filtered = Object.entries(EMOJI_MAP).filter(([code]) => {
-        const name = code.slice(1, -1);
-        return (
-          name.startsWith(query) ||
-          name.split("_").some((w) => w.startsWith(query))
-        );
-      });
+      const filtered = Object.entries(EMOJI_MAP)
+        .filter(([code]) => {
+          const name = code.slice(1, -1);
+          return (
+            name.startsWith(query) ||
+            name.split("_").some((w) => w.startsWith(query))
+          );
+        })
+        .map(([code, emoji]) => ({
+          type: "emoji",
+          key: code,
+          code,
+          value: emoji,
+        }));
       if (filtered.length > 0) {
         setSuggestions(filtered);
         setSuggestionIndex(0);
@@ -575,7 +610,7 @@ export default function ChatWindow({
       }
     }
     const mentionMatch = textBeforeCursor.match(/@([a-zA-Z0-9_\s]*)$/);
-    if (mentionMatch) {
+    if (isGroup && mentionMatch) {
       const query = mentionMatch[1].toLowerCase();
       const participants = conversation.participants || [];
       const currentMentions = parsed.mentions.map((m) =>
@@ -1342,7 +1377,7 @@ export default function ChatWindow({
       }
     }
     const tempId = `temp-${Date.now()}`;
-    const mentionData = parsed.mentions
+    const mentionData = (isGroup ? parsed.mentions : [])
       .map((m) => (typeof m === "object" ? m : null))
       .filter(Boolean);
     const optimistic = {
@@ -1350,7 +1385,7 @@ export default function ChatWindow({
       conversationId: conversation._id,
       sender: { _id: user?._id, name: user?.name },
       text: parsed.text.trim(),
-      mentions: parsed.mentions,
+      mentions: isGroup ? parsed.mentions : [],
       mentionData,
       attachments,
       createdAt: new Date().toISOString(),
@@ -1379,10 +1414,10 @@ export default function ChatWindow({
         conversationId: conversation._id,
         ...(isGrp ? {} : { receiverId: conversation.participant?._id }),
         text: optimistic.text,
-        mentions: optimistic.mentions.map((m) =>
+        mentions: (isGrp ? optimistic.mentions : []).map((m) =>
           typeof m === "object" ? m.id : m,
         ),
-        mentionData,
+        mentionData: isGrp ? mentionData : [],
         tempId,
         replyTo: replyTo?._id || null,
         attachments,
@@ -2729,16 +2764,65 @@ export default function ChatWindow({
           {/* Emoji suggestions dropdown */}
           {suggestions.length > 0 && (
             <div className="absolute bottom-20 left-2 sm:left-10 bg-deep/95 backdrop-blur-md border border-white/6 rounded-xl p-1 shadow-2xl z-50 min-w-37.5 max-w-[calc(100vw-2rem)]">
-              {suggestions.map(([code, emoji], i) => (
-                <div
-                  key={code}
-                  onClick={() => insertEmoji(emoji)}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${i === suggestionIndex ? "bg-accent/20 text-accent" : "hover:bg-white/6 text-ivory/40"}`}
-                >
-                  <span className="text-lg">{emoji}</span>
-                  <span className="text-xs font-mono">{code}</span>
-                </div>
-              ))}
+              {suggestions.map((rawSuggestion, i) => {
+                const suggestion = Array.isArray(rawSuggestion)
+                  ? {
+                      type: "emoji",
+                      key: rawSuggestion[0],
+                      code: rawSuggestion[0],
+                      value: rawSuggestion[1],
+                    }
+                  : rawSuggestion;
+
+                if (!suggestion || typeof suggestion !== "object") return null;
+
+                const isEmoji = suggestion.type === "emoji";
+                const isMention = suggestion.type === "mention";
+                const key = suggestion.key || suggestion.code || `${i}`;
+
+                return (
+                  <div
+                    key={key}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      insertSuggestion(suggestion);
+                    }}
+                    onTouchStart={(e) => {
+                      e.preventDefault();
+                      insertSuggestion(suggestion);
+                    }}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${i === suggestionIndex ? "bg-accent/20 text-accent" : "hover:bg-white/6 text-ivory/40"}`}
+                  >
+                    {isEmoji && (
+                      <span className="text-lg">{suggestion.value}</span>
+                    )}
+                    {isEmoji && (
+                      <span className="text-xs font-mono">
+                        {suggestion.code || suggestion.key}
+                      </span>
+                    )}
+
+                    {isMention && (
+                      <Image
+                        src={
+                          suggestion.user?.avatar ||
+                          `https://api.dicebear.com/7.x/avataaars/svg?seed=${suggestion.value}`
+                        }
+                        alt=""
+                        width={20}
+                        height={20}
+                        className="w-5 h-5 rounded-full object-cover shrink-0"
+                        unoptimized
+                      />
+                    )}
+                    {isMention && (
+                      <span className="text-xs font-medium">
+                        @{suggestion.value}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
 

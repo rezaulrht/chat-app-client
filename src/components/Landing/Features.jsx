@@ -165,8 +165,8 @@ function AICard({ cardRef }) {
   const Demo = tab.Demo;
 
   return (
-    <div ref={cardRef} className="relative overflow-hidden rounded-3xl border border-white/[0.06] p-0"
-      style={{ background: DEEP, willChange: "transform", transformStyle: "preserve-3d", opacity: 0 }}>
+    <div ref={cardRef} className="relative overflow-hidden rounded-3xl p-0 glass-card"
+      style={{ willChange: "transform", transformStyle: "preserve-3d", opacity: 0 }}>
       {/* Corner gradient tint */}
       <div className="absolute inset-0 pointer-events-none" style={{ background: `linear-gradient(135deg, ${tab.color}0a 0%, transparent 55%)`, transition: "background 0.5s ease" }} />
 
@@ -229,8 +229,8 @@ function FeedCard({ cardRef }) {
   useEffect(() => { const id = setInterval(() => setActive((i) => (i + 1) % POST_TYPES.length), 2200); return () => clearInterval(id); }, []);
 
   return (
-    <div ref={cardRef} className="relative overflow-hidden rounded-3xl border border-white/[0.06] p-7"
-      style={{ background: DEEP, willChange: "transform", transformStyle: "preserve-3d", opacity: 0 }}>
+    <div ref={cardRef} className="relative overflow-hidden rounded-3xl p-7 glass-card"
+      style={{ willChange: "transform", transformStyle: "preserve-3d", opacity: 0 }}>
       <div className="absolute inset-0 pointer-events-none" style={{ background: `linear-gradient(135deg, ${color}08, transparent 60%)`, transition: "background 0.6s ease" }} />
 
       <div className="relative z-10 flex flex-col h-full">
@@ -330,8 +330,8 @@ function ChatCard({ cardRef }) {
   const tab = CHAT_TABS[active];
 
   return (
-    <div ref={cardRef} className="relative overflow-hidden rounded-3xl border border-white/[0.06] p-7"
-      style={{ background: DEEP, willChange: "transform", transformStyle: "preserve-3d", opacity: 0 }}>
+    <div ref={cardRef} className="relative overflow-hidden rounded-3xl p-7 glass-card"
+      style={{ willChange: "transform", transformStyle: "preserve-3d", opacity: 0 }}>
       <div className="absolute inset-0 pointer-events-none" style={{ background: `linear-gradient(135deg, ${tab.color}08, transparent 55%)`, transition: "background 0.4s ease" }} />
 
       <div className="relative z-10 flex flex-col h-full">

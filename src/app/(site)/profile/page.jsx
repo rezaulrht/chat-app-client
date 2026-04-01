@@ -397,7 +397,7 @@ function ProfilePage() {
   return (
     <div>
       {/* ── Page content ─────────────────────────────────────────────── */}
-      <div className="max-w-3xl mx-auto px-4 py-4 md:py-10 space-y-4 md:space-y-6">
+      <div className="max-w-3xl mx-auto px-4 pt-20 pb-4 md:pt-24 md:pb-10 space-y-4 md:space-y-6">
         {/* ════════════════════════════════════════════════════════════ */}
         {/* HERO CARD                                                    */}
         {/* ════════════════════════════════════════════════════════════ */}

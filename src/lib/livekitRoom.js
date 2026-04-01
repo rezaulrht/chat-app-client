@@ -29,7 +29,12 @@ export function getParticipants() {
   return [...room.remoteParticipants.values()];
 }
 
-export async function connectRoom(url, token, callType = "audio") {
+export async function connectRoom(
+  url,
+  token,
+  callType = "audio",
+  options = {},
+) {
   if (room) {
     console.warn(
       "[LiveKit] connectRoom called but room already exists, skipping",
@@ -133,11 +138,12 @@ export async function connectRoom(url, token, callType = "audio") {
   } catch (err) {
     const denied =
       err?.name === "NotAllowedError" ||
-      /permission denied/i.test(err?.message || "");
+      err?.name === "PermissionDeniedError";
+
     if (denied) {
       console.warn("[LiveKit] microphone permission denied");
     } else {
-      console.warn("[LiveKit] connection failed:", err?.message || err);
+      console.error("[LiveKit] connection failed:", err);
     }
     room = null;
     // If newRoom already connected before the error, disconnect it so
@@ -145,10 +151,12 @@ export async function connectRoom(url, token, callType = "audio") {
     if (typeof newRoom !== "undefined") {
       try {
         await newRoom.disconnect();
-      } catch (_) {}
+      } catch (_) { }
     }
     notify();
-    throw err;
+    if (options?.throwOnError) {
+      throw err;
+    }
   } finally {
     connecting = false;
   }
@@ -189,11 +197,11 @@ export async function disconnectRoom() {
         try {
           pub.track?.mediaStreamTrack?.stop();
           pub.track?.stop();
-        } catch (_) {}
+        } catch (_) { }
       });
-    } catch (_) {}
+    } catch (_) { }
     try {
       await r.disconnect();
-    } catch (_) {}
+    } catch (_) { }
   }
 }

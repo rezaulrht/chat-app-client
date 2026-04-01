@@ -53,15 +53,14 @@ export default function VoiceChannelStrip({ module, workspaceId }) {
     <div className="px-2 py-1">
       {/* Channel row */}
       <div
-        className={`flex items-center gap-2 px-2 py-1.5 rounded-lg group cursor-pointer transition-all ${
-          isJoined ? "bg-accent/10" : "hover:bg-white/[0.04]"
-        }`}
+        className={`flex items-center gap-2 px-2 py-1.5 rounded-lg group cursor-pointer transition-all ${isJoined ? "bg-accent/10" : "hover:bg-white/[0.04]"
+          }`}
       >
         <Volume2
           className={`w-4 h-4 shrink-0 ${isJoined ? "text-accent" : "text-gray-400"}`}
         />
         <span
-          className={`flex-1 text-sm truncate ${isJoined ? "text-accent font-medium" : "text-gray-300"}`}
+          className={`flex-1 text-sm truncate ${isJoined ? "text-accent font-medium" : "text-ivory/70"}`}
         >
           {module.name}
         </span>
@@ -75,11 +74,10 @@ export default function VoiceChannelStrip({ module, workspaceId }) {
 
         <button
           onClick={isJoined ? handleLeave : handleJoin}
-          className={`text-[11px] font-bold px-2 py-0.5 rounded-md opacity-0 group-hover:opacity-100 transition-all ${
-            isJoined
+          className={`text-[11px] font-bold px-2 py-0.5 rounded-md opacity-0 group-hover:opacity-100 transition-all ${isJoined
               ? "bg-red-500/20 text-red-400 hover:bg-red-500/30"
               : "bg-accent/20 text-accent hover:bg-accent/30"
-          }`}
+            }`}
         >
           {isJoined ? "Leave" : "Join"}
         </button>
@@ -102,11 +100,10 @@ export default function VoiceChannelStrip({ module, workspaceId }) {
               >
                 {/* Avatar */}
                 <div
-                  className={`w-5 h-5 rounded-full overflow-hidden shrink-0 transition-all ${
-                    isSpeaking
+                  className={`w-5 h-5 rounded-full overflow-hidden shrink-0 transition-all ${isSpeaking
                       ? "ring-2 ring-green-400"
                       : "ring-1 ring-white/10"
-                  }`}
+                    }`}
                 >
                   {avatar ? (
                     <Image

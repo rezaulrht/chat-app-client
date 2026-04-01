@@ -33,7 +33,7 @@ const WordSpyTimer = ({ phaseEndsAt, totalDurationMs }) => {
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className={`text-xs font-mono tabular-nums ${isUrgent ? "text-red-400" : "text-white/50"}`}>
+      <span className={`text-xs font-mono tabular-nums ${isUrgent ? "text-red-400" : "text-ivory/50"}`}>
         {seconds}s
       </span>
     </div>

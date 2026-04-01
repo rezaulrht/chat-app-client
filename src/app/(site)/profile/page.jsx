@@ -40,6 +40,7 @@ import PostCard from "@/components/Feed/PostCard";
 import PostDetail from "@/components/Feed/PostDetail";
 import useFeed from "@/hooks/useFeed";
 import ImageCropModal from "@/components/shared/ImageCropModal";
+import { confirmSweetAlert } from "@/utils/sweetAlert";
 import { useTheme } from "@/context/ThemeContext";
 import { THEMES } from "@/context/ThemeContext";
 import { Paintbrush } from "lucide-react";
@@ -60,11 +61,10 @@ function AppearanceCard() {
             <button
               key={t.id}
               onClick={() => setTheme(t.id)}
-              className={`flex items-center gap-2.5 p-3 rounded-xl border transition-all text-left group ${
-                active
-                  ? "border-accent/40 bg-accent/[0.07]"
-                  : "border-white/[0.06] hover:border-white/[0.14] hover:bg-white/[0.04]"
-              }`}
+              className={`flex items-center gap-2.5 p-3 rounded-xl border transition-all text-left group ${active
+                ? "border-accent/40 bg-accent/[0.07]"
+                : "border-white/[0.06] hover:border-white/[0.14] hover:bg-white/[0.04]"
+                }`}
             >
               <div
                 className="w-8 h-8 rounded-xl shrink-0 border border-black/[0.12] flex items-center justify-center shadow-sm"
@@ -350,10 +350,10 @@ function ProfilePage() {
             typeof data?.commentsCount === "number"
               ? Math.max(0, data.commentsCount)
               : Math.max(
-                  0,
-                  (post.commentCount ?? post.commentsCount ?? 0) -
-                    (data?.removedCount ?? 1),
-                );
+                0,
+                (post.commentCount ?? post.commentsCount ?? 0) -
+                (data?.removedCount ?? 1),
+              );
           const acceptedId =
             post.acceptedAnswer ?? post.acceptedComment ?? null;
           const deletedAccepted = String(acceptedId) === String(commentId);
@@ -514,7 +514,12 @@ function ProfilePage() {
   };
 
   const handleUnlinkAccount = async (provider) => {
-    if (!confirm(`Are you sure you want to disconnect ${provider}?`)) return;
+    if (!(await confirmSweetAlert({
+      title: "Disconnect Account?",
+      text: `Are you sure you want to disconnect ${provider}?`,
+      confirmButtonText: "Disconnect",
+      icon: "warning",
+    }))) return;
     setUnlinkingProvider(provider);
     try {
       await api.delete(`/api/user/social-links/${provider}`);
@@ -585,10 +590,10 @@ function ProfilePage() {
         : Mail;
   const memberSince = user?.createdAt
     ? new Date(user.createdAt).toLocaleDateString("en-US", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      })
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    })
     : "—";
   const memberSinceYear = user?.createdAt
     ? new Date(user.createdAt).getFullYear()
@@ -608,7 +613,7 @@ function ProfilePage() {
         {/* ════════════════════════════════════════════════════════════ */}
         <div className="relative rounded-3xl overflow-hidden border border-white/[0.08] shadow-2xl shadow-black/40">
           {/* Banner - uses bannerPreview or gradient fallback */}
-          <div 
+          <div
             className="h-20 md:h-32 relative group/banner cursor-pointer"
             onClick={() => bannerFileRef.current?.click()}
             style={bannerPreview ? {
@@ -775,13 +780,11 @@ function ProfilePage() {
                 <button
                   key={s}
                   onClick={() => setActiveSection(s)}
-                  className={`flex-1 py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase tracking-[0.1em] transition-all duration-200 ${
-                    s === "account" ? "md:hidden" : ""
-                  } ${
-                    activeSection === s
+                  className={`flex-1 py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase tracking-[0.1em] transition-all duration-200 ${s === "account" ? "md:hidden" : ""
+                    } ${activeSection === s
                       ? "bg-accent/15 text-accent border border-accent/20"
                       : "text-ivory/25 hover:text-ivory/50"
-                  }`}
+                    }`}
                 >
                   {s === "edit"
                     ? "Edit"
@@ -1071,10 +1074,10 @@ function ProfilePage() {
                       onBack={() => setActivePost(null)}
                       backLabel="Back to profile"
                       onReact={handleReactPost}
-                      onShare={() => {}}
-                      onTagClick={() => {}}
-                      onEdit={() => {}}
-                      onDelete={() => {}}
+                      onShare={() => { }}
+                      onTagClick={() => { }}
+                      onEdit={() => { }}
+                      onDelete={() => { }}
                       onAddComment={handleAddComment}
                       onReactComment={handleReactComment}
                       onAcceptAnswer={handleAcceptAnswer}
@@ -1115,10 +1118,10 @@ function ProfilePage() {
                         currentUserId={user?._id || user?.id || "me"}
                         onOpen={setActivePost}
                         onReact={handleReactPost}
-                        onShare={() => {}}
-                        onTagClick={() => {}}
-                        onEdit={() => {}}
-                        onDelete={() => {}}
+                        onShare={() => { }}
+                        onTagClick={() => { }}
+                        onEdit={() => { }}
+                        onDelete={() => { }}
                       />
                     ))}
                     {myPostsHasMore && (
@@ -1217,11 +1220,10 @@ function ProfilePage() {
                     onChange={(e) => setConfirmPw(e.target.value)}
                     required
                     placeholder="Repeat new password"
-                    className={`w-full bg-white/[0.04] border rounded-xl px-3.5 py-2.5 text-[13px] text-ivory placeholder:text-ivory/20 focus:outline-none transition-all duration-200 ${
-                      confirmPw && confirmPw !== newPw
-                        ? "border-red-400/40"
-                        : "border-white/[0.08] focus:border-accent/40"
-                    }`}
+                    className={`w-full bg-white/[0.04] border rounded-xl px-3.5 py-2.5 text-[13px] text-ivory placeholder:text-ivory/20 focus:outline-none transition-all duration-200 ${confirmPw && confirmPw !== newPw
+                      ? "border-red-400/40"
+                      : "border-white/[0.08] focus:border-accent/40"
+                      }`}
                   />
                   {confirmPw && confirmPw !== newPw && (
                     <p className="text-[10px] text-red-400/70 mt-1 font-mono">

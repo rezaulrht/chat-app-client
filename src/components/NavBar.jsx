@@ -116,7 +116,7 @@ export default function NavBar() {
                         </li>
                         <li>
                           <Link
-                            href="/chat"
+                            href="/app"
                             className="text-ivory/70 hover:text-ivory font-medium text-sm"
                           >
                             Go to ConvoX
@@ -211,7 +211,7 @@ export default function NavBar() {
                       </span>
                     </Link>
                     <Link
-                      href="/chat"
+                      href="/app"
                       className="hidden sm:flex items-center justify-center px-5 py-2 text-[13px] font-bold rounded-xl text-obsidian bg-accent hover:bg-accent/90 transition-all duration-300 shadow-lg shadow-accent/20 hover:scale-[1.03] active:scale-[0.98]"
                     >
                       Go to ConvoX

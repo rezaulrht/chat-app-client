@@ -170,9 +170,14 @@ function ProfilePage() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPw, setSavingPw] = useState(false);
   const searchParams = useSearchParams();
-  const [activeSection, setActiveSection] = useState(
-    searchParams?.get("tab") === "posts" ? "posts" : "edit",
-  );
+  const getInitialTab = () => {
+    const tab = searchParams?.get("tab");
+    if (tab === "posts" || tab === "connections" || tab === "security" || tab === "account") {
+      return tab;
+    }
+    return "edit";
+  };
+  const [activeSection, setActiveSection] = useState(getInitialTab);
   const [activePost, setActivePost] = useState(null);
 
   // ── My posts (real API) ───────────────────────────────────────────────

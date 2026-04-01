@@ -145,17 +145,15 @@ export async function connectRoom(
     } else {
       console.error("[LiveKit] connection failed:", err);
     }
-
     room = null;
     // If newRoom already connected before the error, disconnect it so
     // we don't leak media resources with no reference to clean up later.
     if (typeof newRoom !== "undefined") {
       try {
         await newRoom.disconnect();
-      } catch (_) { }
+      } catch (_) {}
     }
     notify();
-
     if (options?.throwOnError) {
       throw err;
     }

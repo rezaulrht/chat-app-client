@@ -28,6 +28,7 @@ import useAuth from "@/hooks/useAuth";
 import { useCall } from "@/hooks/useCall";
 import { useRouter } from "next/navigation";
 import { useDmPrefs } from "@/hooks/useDmPrefs";
+import { useTheme } from "@/context/ThemeContext";
 import { EMOJI_MAP } from "@/utils/emojis";
 import { formatLastSeen } from "@/utils/formatLastSeen";
 import CreatePollModal from "../CreatePollModal";
@@ -178,13 +179,20 @@ export default function ChatWindow({
 
   const _isDm = conversation?.type !== "group";
   const { prefs: dmPrefs } = useDmPrefs(conversation);
+  const { theme } = useTheme();
   const dmColor = dmPrefs.color || "#00d3bb";
   const dmEmoji = dmPrefs.emoji || "👍";
   const dmNickname = _isDm ? dmPrefs.nickname?.trim() : null;
+  const isLightTheme =
+    theme === "luxe-mint-light" || theme === "luxe-cyan-light";
+
+  const gifPickerStyles = isLightTheme
+    ? `.gpr-picker { --gpr-bg-color: #f5f7f8 !important; --gpr-secondary-bg: #eef2f4 !important; --gpr-text-color: #1f2937 !important; --gpr-text-secondary: #4b5563 !important; --gpr-border-color: #d1d5db !important; --gpr-highlight-color: #14b8a6 !important; --gpr-highlight-hover: #0d9488 !important; --gpr-input-bg: #ffffff !important; --gpr-hover-bg: rgba(20, 184, 166, 0.12) !important; --gpr-radius: 16px !important; border: none !important; } .gpr-trending-terms { display: none !important; }`
+    : `.gpr-picker { --gpr-bg-color: #15191C !important; --gpr-secondary-bg: #1C2227 !important; --gpr-text-color: #cbd5e1 !important; --gpr-text-secondary: #94a3b8 !important; --gpr-border-color: #1e293b !important; --gpr-highlight-color: #2dd4bf !important; --gpr-highlight-hover: #5eead4 !important; --gpr-input-bg: #0B0E11 !important; --gpr-hover-bg: rgba(45, 212, 191, 0.1) !important; --gpr-radius: 16px !important; border: none !important; } .gpr-trending-terms { display: none !important; }`;
 
   if (!conversation) {
     return (
-      <div className="flex flex-1 items-center justify-center h-full text-gray-400">
+      <div className="flex flex-1 items-center justify-center h-full text-ivory/40">
         Select a conversation to start chatting
       </div>
     );
@@ -238,7 +246,6 @@ export default function ChatWindow({
   const [showScheduledPanel, setShowScheduledPanel] = useState(false);
   const [loadingScheduled, setLoadingScheduled] = useState(false);
   const scheduleDropdownRef = useRef(null);
-  const scheduleMobileTriggerRef = useRef(null);
 
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editedText, setEditedText] = useState("");
@@ -307,17 +314,10 @@ export default function ChatWindow({
       if (aiMenuOpen && outsideDesktop && outsideMobile) {
         setAiMenuOpen(false);
       }
-      const outsideScheduleDesktop =
+      const outsideScheduleDropdown =
         !scheduleDropdownRef.current ||
         !scheduleDropdownRef.current.contains(e.target);
-      const outsideScheduleMobile =
-        !scheduleMobileTriggerRef.current ||
-        !scheduleMobileTriggerRef.current.contains(e.target);
-      if (
-        scheduleDropdownOpen &&
-        outsideScheduleDesktop &&
-        outsideScheduleMobile
-      ) {
+      if (scheduleDropdownOpen && outsideScheduleDropdown) {
         setScheduleDropdownOpen(false);
       }
     };
@@ -364,9 +364,8 @@ export default function ChatWindow({
 
   const renderMessageText = (text, mentions, mentionData = []) => {
     if (!text) return null;
-    if (!mentions || mentions.length === 0) return text;
     const participants = conversation.participants || [];
-    const resolvedMentions = mentions
+    let resolvedMentions = (mentions || [])
       .map((m) => {
         const id = typeof m === "object" ? m._id || m.id : m;
         const participant = participants.find(
@@ -386,6 +385,25 @@ export default function ChatWindow({
         return { id, name, avatar, participant };
       })
       .filter((m) => m.name);
+
+    // Fallback for older/untyped messages: infer mentions from plain @name text in groups.
+    if (resolvedMentions.length === 0 && isGroup) {
+      const inferred = participants
+        .filter(
+          (p) =>
+            p?._id &&
+            p?.name &&
+            text.toLowerCase().includes(`@${p.name.toLowerCase()}`),
+        )
+        .map((p) => ({
+          id: p._id,
+          name: p.name,
+          avatar: p.avatar,
+          participant: p,
+        }));
+      resolvedMentions = inferred;
+    }
+
     if (resolvedMentions.length === 0) return text;
     const sorted = [...resolvedMentions].sort(
       (a, b) => b.name.length - a.name.length,
@@ -521,6 +539,16 @@ export default function ChatWindow({
   };
 
   const insertSuggestion = (suggestion) => {
+    if (Array.isArray(suggestion)) {
+      suggestion = {
+        type: "emoji",
+        key: suggestion[0],
+        value: suggestion[1],
+      };
+    }
+    if (!suggestion || typeof suggestion !== "object") return;
+    if (suggestion.type === "mention" && !isGroup) return;
+
     if (suggestion.type === "emoji") {
       insertEmoji(suggestion.value);
     } else if (suggestion.type === "mention") {
@@ -561,13 +589,20 @@ export default function ChatWindow({
     const emojiMatch = textBeforeCursor.match(/:([a-zA-Z0-9_]*)$/);
     if (emojiMatch) {
       const query = emojiMatch[1].toLowerCase();
-      const filtered = Object.entries(EMOJI_MAP).filter(([code]) => {
-        const name = code.slice(1, -1);
-        return (
-          name.startsWith(query) ||
-          name.split("_").some((w) => w.startsWith(query))
-        );
-      });
+      const filtered = Object.entries(EMOJI_MAP)
+        .filter(([code]) => {
+          const name = code.slice(1, -1);
+          return (
+            name.startsWith(query) ||
+            name.split("_").some((w) => w.startsWith(query))
+          );
+        })
+        .map(([code, emoji]) => ({
+          type: "emoji",
+          key: code,
+          code,
+          value: emoji,
+        }));
       if (filtered.length > 0) {
         setSuggestions(filtered);
         setSuggestionIndex(0);
@@ -575,7 +610,7 @@ export default function ChatWindow({
       }
     }
     const mentionMatch = textBeforeCursor.match(/@([a-zA-Z0-9_\s]*)$/);
-    if (mentionMatch) {
+    if (isGroup && mentionMatch) {
       const query = mentionMatch[1].toLowerCase();
       const participants = conversation.participants || [];
       const currentMentions = parsed.mentions.map((m) =>
@@ -1342,7 +1377,7 @@ export default function ChatWindow({
       }
     }
     const tempId = `temp-${Date.now()}`;
-    const mentionData = parsed.mentions
+    const mentionData = (isGroup ? parsed.mentions : [])
       .map((m) => (typeof m === "object" ? m : null))
       .filter(Boolean);
     const optimistic = {
@@ -1350,7 +1385,7 @@ export default function ChatWindow({
       conversationId: conversation._id,
       sender: { _id: user?._id, name: user?.name },
       text: parsed.text.trim(),
-      mentions: parsed.mentions,
+      mentions: isGroup ? parsed.mentions : [],
       mentionData,
       attachments,
       createdAt: new Date().toISOString(),
@@ -1379,10 +1414,10 @@ export default function ChatWindow({
         conversationId: conversation._id,
         ...(isGrp ? {} : { receiverId: conversation.participant?._id }),
         text: optimistic.text,
-        mentions: optimistic.mentions.map((m) =>
+        mentions: (isGrp ? optimistic.mentions : []).map((m) =>
           typeof m === "object" ? m.id : m,
         ),
-        mentionData,
+        mentionData: isGrp ? mentionData : [],
         tempId,
         replyTo: replyTo?._id || null,
         attachments,
@@ -1529,7 +1564,7 @@ export default function ChatWindow({
                 className="relative block"
               >
                 <div
-                  className={`rounded-2xl overflow-hidden ${isParticipantOnline ? "ring-2 ring-accent/60 ring-offset-1 ring-offset-[#0a0e13]" : ""}`}
+                  className={`rounded-2xl overflow-hidden ${isParticipantOnline ? "ring-2 ring-accent/60 ring-offset-1 ring-offset-obsidian" : ""}`}
                 >
                   <Image
                     src={
@@ -2103,7 +2138,7 @@ export default function ChatWindow({
                           }
                         >
                           {msg.replyTo && (
-                            <div className="mb-2 p-2 bg-black/20 rounded-lg border-l-2 border-accent text-[11px] opacity-80 line-clamp-2">
+                            <div className="mb-2 p-2 bg-white/5 rounded-lg border-l-2 border-accent text-[11px] opacity-80 line-clamp-2">
                               <p className="font-bold mb-0.5">
                                 {msg.replyTo.sender?.name === user?.name ||
                                 msg.replyTo.sender === user?._id
@@ -2469,7 +2504,7 @@ export default function ChatWindow({
                 {scheduledItems.map((s) => (
                   <div
                     key={s._id}
-                    className="flex items-center justify-between gap-3 p-2 rounded-xl bg-black/20 border border-white/5"
+                    className="flex items-center justify-between gap-3 p-2 rounded-xl bg-white/5 border border-white/5"
                   >
                     <div className="min-w-0">
                       <p className="text-xs text-ivory/80 truncate">
@@ -2499,11 +2534,11 @@ export default function ChatWindow({
             ref={gifPickerRef}
             className="absolute bottom-20 right-0 sm:right-4 left-0 sm:left-auto z-50 shadow-2xl rounded-2xl overflow-hidden border border-white/6 mx-2 sm:mx-0"
           >
-            <style>{`.gpr-picker { --gpr-bg-color: #15191C !important; --gpr-secondary-bg: #1C2227 !important; --gpr-text-color: #cbd5e1 !important; --gpr-text-secondary: #94a3b8 !important; --gpr-border-color: #1e293b !important; --gpr-highlight-color: #2dd4bf !important; --gpr-highlight-hover: #5eead4 !important; --gpr-input-bg: #0B0E11 !important; --gpr-hover-bg: rgba(45, 212, 191, 0.1) !important; --gpr-radius: 16px !important; border: none !important; } .gpr-trending-terms { display: none !important; }`}</style>
+            <style>{gifPickerStyles}</style>
             <GifPicker
               klipyApiKey={process.env.NEXT_PUBLIC_KLIPY_API_KEY}
               onGifClick={handleGifClick}
-              theme="dark"
+              theme={isLightTheme ? "light" : "dark"}
               width={
                 typeof window !== "undefined" && window.innerWidth < 400
                   ? window.innerWidth - 32
@@ -2729,16 +2764,65 @@ export default function ChatWindow({
           {/* Emoji suggestions dropdown */}
           {suggestions.length > 0 && (
             <div className="absolute bottom-20 left-2 sm:left-10 bg-deep/95 backdrop-blur-md border border-white/6 rounded-xl p-1 shadow-2xl z-50 min-w-37.5 max-w-[calc(100vw-2rem)]">
-              {suggestions.map(([code, emoji], i) => (
-                <div
-                  key={code}
-                  onClick={() => insertEmoji(emoji)}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${i === suggestionIndex ? "bg-accent/20 text-accent" : "hover:bg-white/6 text-ivory/40"}`}
-                >
-                  <span className="text-lg">{emoji}</span>
-                  <span className="text-xs font-mono">{code}</span>
-                </div>
-              ))}
+              {suggestions.map((rawSuggestion, i) => {
+                const suggestion = Array.isArray(rawSuggestion)
+                  ? {
+                      type: "emoji",
+                      key: rawSuggestion[0],
+                      code: rawSuggestion[0],
+                      value: rawSuggestion[1],
+                    }
+                  : rawSuggestion;
+
+                if (!suggestion || typeof suggestion !== "object") return null;
+
+                const isEmoji = suggestion.type === "emoji";
+                const isMention = suggestion.type === "mention";
+                const key = suggestion.key || suggestion.code || `${i}`;
+
+                return (
+                  <div
+                    key={key}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      insertSuggestion(suggestion);
+                    }}
+                    onTouchStart={(e) => {
+                      e.preventDefault();
+                      insertSuggestion(suggestion);
+                    }}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${i === suggestionIndex ? "bg-accent/20 text-accent" : "hover:bg-white/6 text-ivory/40"}`}
+                  >
+                    {isEmoji && (
+                      <span className="text-lg">{suggestion.value}</span>
+                    )}
+                    {isEmoji && (
+                      <span className="text-xs font-mono">
+                        {suggestion.code || suggestion.key}
+                      </span>
+                    )}
+
+                    {isMention && (
+                      <Image
+                        src={
+                          suggestion.user?.avatar ||
+                          `https://api.dicebear.com/7.x/avataaars/svg?seed=${suggestion.value}`
+                        }
+                        alt=""
+                        width={20}
+                        height={20}
+                        className="w-5 h-5 rounded-full object-cover shrink-0"
+                        unoptimized
+                      />
+                    )}
+                    {isMention && (
+                      <span className="text-xs font-medium">
+                        @{suggestion.value}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
 
@@ -2768,7 +2852,7 @@ export default function ChatWindow({
               ✦ AI
             </button>
             {aiMenuOpen && (
-              <div className="absolute bottom-full mb-1 right-0 w-44 bg-deep border border-white/10 rounded-lg shadow-lg overflow-hidden z-50">
+              <div className="absolute bottom-full mb-1 left-0 sm:left-auto sm:right-0 w-44 max-w-[calc(100vw-1rem)] bg-deep border border-white/10 rounded-lg shadow-lg overflow-hidden z-50">
                 <button
                   type="button"
                   className="w-full text-left px-3 py-2 text-[11px] text-ivory/70 hover:bg-white/6 hover:text-ivory transition-colors"
@@ -2838,91 +2922,86 @@ export default function ChatWindow({
             <Smile size={20} />
           </button>
 
-          {/* Clock / Schedule dropdown (DM only) */}
-          {!isGroup && (
-            <div
-              ref={scheduleDropdownRef}
-              className="relative hidden lg:inline-flex"
+          {/* Clock / Schedule dropdown */}
+          <div ref={scheduleDropdownRef} className="relative inline-flex">
+            <button
+              type="button"
+              onClick={() => setScheduleDropdownOpen((v) => !v)}
+              className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${scheduleDropdownOpen ? "bg-accent/20 text-accent" : "text-ivory/30 hover:text-ivory/60"}`}
+              title="Schedule message"
             >
-              <button
-                type="button"
-                onClick={() => setScheduleDropdownOpen((v) => !v)}
-                className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${scheduleDropdownOpen ? "bg-accent/20 text-accent" : "text-ivory/30 hover:text-ivory/60"}`}
-                title="Schedule message"
-              >
-                <Clock size={18} />
-              </button>
+              <Clock size={18} />
+            </button>
 
-              {scheduleDropdownOpen && (
-                <div className="absolute bottom-full right-0 mb-2 w-56 bg-deep border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                  <div className="px-4 py-3 border-b border-white/8 flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-ivory/40">
-                      Schedule Message
-                    </span>
+            {scheduleDropdownOpen && (
+              <div className="absolute bottom-full right-0 mb-2 w-56 bg-deep border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                <div className="px-4 py-3 border-b border-white/8 flex items-center justify-between">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-ivory/40">
+                    Schedule Message
+                  </span>
+                  <button
+                    onClick={() => setScheduleDropdownOpen(false)}
+                    className="text-ivory/20 hover:text-ivory transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+                <div className="p-3 space-y-2">
+                  <div>
+                    <label className="text-[11px] font-mono text-ivory/50 mb-2 block">
+                      Send at
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={sendAt}
+                      min={new Date(
+                        Date.now() - new Date().getTimezoneOffset() * 60000,
+                      )
+                        .toISOString()
+                        .slice(0, 16)}
+                      onChange={(e) => setSendAt(e.target.value)}
+                      className="w-full bg-white/4 border border-white/10 rounded-lg px-2.5 py-2 text-xs text-ivory/80 outline-none focus:border-accent/40 transition-colors"
+                    />
                     <button
-                      onClick={() => setScheduleDropdownOpen(false)}
-                      className="text-ivory/20 hover:text-ivory transition-colors"
+                      type="button"
+                      onClick={async () => {
+                        if (!sendAt) {
+                          toast.error("Please select a date and time");
+                          return;
+                        }
+                        await scheduleMessage();
+                        setScheduleDropdownOpen(false);
+                      }}
+                      disabled={!sendAt || scheduling}
+                      className="w-full mt-2 px-3 py-1.5 bg-accent/20 hover:bg-accent/30 disabled:opacity-50 disabled:cursor-not-allowed text-accent text-[11px] font-bold rounded-lg transition-all"
                     >
-                      <X size={14} />
+                      {scheduling ? "Scheduling..." : "Schedule"}
                     </button>
                   </div>
-                  <div className="p-3 space-y-2">
-                    <div>
-                      <label className="text-[11px] font-mono text-ivory/50 mb-2 block">
-                        Send at
-                      </label>
-                      <input
-                        type="datetime-local"
-                        value={sendAt}
-                        min={new Date(
-                          Date.now() - new Date().getTimezoneOffset() * 60000,
-                        )
-                          .toISOString()
-                          .slice(0, 16)}
-                        onChange={(e) => setSendAt(e.target.value)}
-                        className="w-full bg-white/4 border border-white/10 rounded-lg px-2.5 py-2 text-xs text-ivory/80 outline-none focus:border-accent/40 transition-colors"
-                      />
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          if (!sendAt) {
-                            toast.error("Please select a date and time");
-                            return;
-                          }
-                          await scheduleMessage();
-                          setScheduleDropdownOpen(false);
-                        }}
-                        disabled={!sendAt || scheduling}
-                        className="w-full mt-2 px-3 py-1.5 bg-accent/20 hover:bg-accent/30 disabled:opacity-50 disabled:cursor-not-allowed text-accent text-[11px] font-bold rounded-lg transition-all"
-                      >
-                        {scheduling ? "Scheduling..." : "Schedule"}
-                      </button>
-                    </div>
-                    <div className="h-px bg-white/5" />
-                    <div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowScheduledPanel(true);
-                          refreshScheduled();
-                          setScheduleDropdownOpen(false);
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-semibold text-ivory/70 hover:bg-white/5 rounded-lg transition-colors"
-                      >
-                        <Calendar size={14} className="text-accent/60" />
-                        View Pending
-                        {scheduledItems.length > 0 && (
-                          <span className="ml-auto px-2 py-0.5 bg-accent/20 text-accent text-[10px] font-mono rounded">
-                            {scheduledItems.length}
-                          </span>
-                        )}
-                      </button>
-                    </div>
+                  <div className="h-px bg-white/5" />
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowScheduledPanel(true);
+                        refreshScheduled();
+                        setScheduleDropdownOpen(false);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-semibold text-ivory/70 hover:bg-white/5 rounded-lg transition-colors"
+                    >
+                      <Calendar size={14} className="text-accent/60" />
+                      View Pending
+                      {scheduledItems.length > 0 && (
+                        <span className="ml-auto px-2 py-0.5 bg-accent/20 text-accent text-[10px] font-mono rounded">
+                          {scheduledItems.length}
+                        </span>
+                      )}
+                    </button>
                   </div>
                 </div>
-              )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
 
           {/* Send / Quick Emoji button */}
           {!text.trim() && stagedFiles.length === 0 ? (
@@ -2953,7 +3032,7 @@ export default function ChatWindow({
                 fileErrors.some((e) => e !== null) ||
                 (!text.trim() && stagedFiles.length === 0)
               }
-              className={`w-9 h-9 flex items-center justify-center rounded-xl ml-1 transition-all active:scale-95 shadow-lg ${scheduling || fileUploading || fileErrors.some((e) => e !== null) || (!text.trim() && stagedFiles.length === 0) ? "bg-slate-700 text-ivory/40 cursor-not-allowed opacity-50" : "bg-accent hover:bg-accent/90 text-black shadow-accent/20"}`}
+              className={`w-9 h-9 flex items-center justify-center rounded-xl ml-1 transition-all active:scale-95 shadow-lg ${scheduling || fileUploading || fileErrors.some((e) => e !== null) || (!text.trim() && stagedFiles.length === 0) ? "bg-white/10 text-ivory/40 cursor-not-allowed opacity-50" : "bg-accent hover:bg-accent/90 text-black shadow-accent/20"}`}
               title="Send"
             >
               <Send size={18} />
@@ -3002,7 +3081,7 @@ export default function ChatWindow({
                 ✦ AI
               </button>
               {aiMenuOpen && (
-                <div className="absolute bottom-full mb-1 right-0 w-44 bg-deep border border-white/10 rounded-lg shadow-lg overflow-hidden z-50">
+                <div className="absolute bottom-full mb-1 left-0 sm:left-auto sm:right-0 w-44 max-w-[calc(100vw-1rem)] bg-deep border border-white/10 rounded-lg shadow-lg overflow-hidden z-50">
                   <button
                     type="button"
                     className="w-full text-left px-3 py-2 text-[11px] text-ivory/70 hover:bg-white/6 hover:text-ivory transition-colors"
@@ -3029,17 +3108,6 @@ export default function ChatWindow({
                 </div>
               )}
             </div>
-            {/* Mobile schedule button (DM only) */}
-            {!isGroup && (
-              <button
-                type="button"
-                onClick={() => setScheduleDropdownOpen((v) => !v)}
-                className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${scheduleDropdownOpen ? "bg-accent/20 border-accent/40 text-accent" : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"}`}
-                title="Schedule message"
-              >
-                ⏱ Schedule
-              </button>
-            )}
           </div>
         </div>
       </form>

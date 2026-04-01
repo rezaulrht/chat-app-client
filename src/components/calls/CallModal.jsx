@@ -14,6 +14,7 @@ import { useCall } from "@/hooks/useCall";
 import { useLiveKit } from "@/hooks/useLiveKit";
 import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
+import toast from "react-hot-toast";
 
 export default function CallModal() {
   const { activeCall, endCall, minimizeCall, isMinimized } = useCall();
@@ -67,18 +68,40 @@ export default function CallModal() {
     }
   }, [activeCall?.roomName]);
 
-  const toggleMute = () => {
+  const toggleMute = async () => {
     if (!localParticipant) return;
     const nowMuted = !isMuted;
-    localParticipant.setMicrophoneEnabled(!nowMuted);
-    setIsMuted(nowMuted);
+    try {
+      await localParticipant.setMicrophoneEnabled(!nowMuted);
+      setIsMuted(nowMuted);
+    } catch (err) {
+      const denied =
+        err?.name === "NotAllowedError" ||
+        /permission denied/i.test(err?.message || "");
+      toast.error(
+        denied
+          ? "Microphone permission denied. Please allow mic access."
+          : "Unable to toggle microphone",
+      );
+    }
   };
 
-  const toggleVideo = () => {
+  const toggleVideo = async () => {
     if (!localParticipant) return;
     if (activeCall?.callType === "video") {
-      localParticipant.setCameraEnabled(isVideoOff);
-      setIsVideoOff(!isVideoOff);
+      try {
+        await localParticipant.setCameraEnabled(isVideoOff);
+        setIsVideoOff(!isVideoOff);
+      } catch (err) {
+        const denied =
+          err?.name === "NotAllowedError" ||
+          /permission denied/i.test(err?.message || "");
+        toast.error(
+          denied
+            ? "Camera permission denied. Please allow camera access."
+            : "Unable to toggle camera",
+        );
+      }
     }
   };
 

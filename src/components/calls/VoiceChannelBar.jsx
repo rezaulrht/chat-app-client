@@ -7,6 +7,7 @@ import { useCall } from "@/hooks/useCall";
 import { useLiveKit } from "@/hooks/useLiveKit";
 import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
+import toast from "react-hot-toast";
 import { showSweetAlert } from "@/utils/sweetAlert";
 
 function ParticipantAvatar({ name, avatar, size = 24, isSpeaking = false }) {
@@ -138,12 +139,23 @@ export default function VoiceChannelBar() {
     }
   }, [activeCall?.roomName]);
 
-  const toggleMute = () => {
+  const toggleMute = async () => {
     const lp = room?.localParticipant;
     if (!lp) return;
     const nowMuted = !isMuted;
-    lp.setMicrophoneEnabled(!nowMuted);
-    setIsMuted(nowMuted);
+    try {
+      await lp.setMicrophoneEnabled(!nowMuted);
+      setIsMuted(nowMuted);
+    } catch (err) {
+      const denied =
+        err?.name === "NotAllowedError" ||
+        /permission denied/i.test(err?.message || "");
+      toast.error(
+        denied
+          ? "Microphone permission denied. Please allow mic access."
+          : "Unable to toggle microphone",
+      );
+    }
   };
 
   if (!activeCall?.isVoiceChannel) return null;

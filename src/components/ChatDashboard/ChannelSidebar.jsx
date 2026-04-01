@@ -375,10 +375,11 @@ export default function ChannelSidebar({
                               `/app/workspace/${selectedWorkspaceId}/${mod._id}`,
                             )
                           }
-                          className={`flex items-center gap-2.5 px-2 py-1.75 rounded-xl cursor-pointer group/ch transition-all duration-200 relative ${isActive
+                          className={`flex items-center gap-2.5 px-2 py-1.75 rounded-xl cursor-pointer group/ch transition-all duration-200 relative ${
+                            isActive
                             ? "bg-white/6 text-ivory backdrop-blur-sm"
                             : "hover:bg-white/3 text-ivory/30 hover:text-ivory/60"
-                            }`}
+                          }`}
                         >
                           {isActive && (
                             <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.75 h-4 bg-accent rounded-r-full shadow-[0_0_6px_rgba(0,211,187,0.4)]" />
@@ -472,14 +473,14 @@ export default function ChannelSidebar({
                 </p>
                 {(workspace?.myRole === "owner" ||
                   workspace?.myRole === "admin") && (
-                    <button
-                      onClick={() => onCreateModule?.("General")}
-                      className="flex items-center gap-1.5 mx-auto text-[11px] font-mono text-accent/60 hover:text-accent transition-colors duration-200"
-                    >
-                      <Plus size={12} />
-                      Add a module
-                    </button>
-                  )}
+                  <button
+                    onClick={() => onCreateModule?.("General")}
+                    className="flex items-center gap-1.5 mx-auto text-[11px] font-mono text-accent/60 hover:text-accent transition-colors duration-200"
+                  >
+                    <Plus size={12} />
+                    Add a module
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -493,7 +494,6 @@ export default function ChannelSidebar({
 
       {/* Voice Channel Bar — shown above status bar when in a voice channel */}
       <VoiceChannelBar />
-
     </aside>
   );
 }

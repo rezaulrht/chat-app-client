@@ -121,6 +121,19 @@
   --spacing-4_5: 1.125rem;
 }
 
+/* ─── Feature card inactive state tokens (theme-aware) ──────────────────── */
+:root {
+  --fi-bg: rgba(255, 255, 255, 0.03); /* inactive button bg      */
+  --fi-border: rgba(255, 255, 255, 0.06); /* inactive button border  */
+  --fi-text: rgba(250, 248, 245, 0.3); /* inactive icon/label     */
+  --fi-text-2: rgba(250, 248, 245, 0.25); /* extra-faint variant     */
+  --fi-text-3: rgba(250, 248, 245, 0.38); /* mid-faint variant       */
+  --fi-demo-bg: rgba(255, 255, 255, 0.02); /* demo pane bg         */
+  --fi-demo-border: rgba(255, 255, 255, 0.04); /* demo pane border     */
+  --fi-msg-bg: rgba(255, 255, 255, 0.03); /* message row bg       */
+  --fi-msg-border: rgba(255, 255, 255, 0.06); /* message row border   */
+}
+
 /* ─── Light theme surface token overrides ───────────────────────────────── */
 /* Must come AFTER @theme so these [data-theme] rules win in the cascade.    */
 [data-theme="luxe-mint-light"],
@@ -131,6 +144,17 @@
   --color-ivory: #1a1824;
   --color-background-dark: #f0ede8;
   --color-surface-dark: #fafaf8;
+
+  /* flip inactive tokens for light backgrounds */
+  --fi-bg: rgba(0, 0, 0, 0.05);
+  --fi-border: rgba(0, 0, 0, 0.09);
+  --fi-text: rgba(26, 24, 36, 0.52);
+  --fi-text-2: rgba(26, 24, 36, 0.42);
+  --fi-text-3: rgba(26, 24, 36, 0.6);
+  --fi-demo-bg: rgba(0, 0, 0, 0.03);
+  --fi-demo-border: rgba(0, 0, 0, 0.07);
+  --fi-msg-bg: rgba(0, 0, 0, 0.04);
+  --fi-msg-border: rgba(0, 0, 0, 0.08);
 }
 
 @layer base {
@@ -155,18 +179,30 @@
 
 @layer components {
   .glass-card {
-    background: rgba(18, 18, 26, 0.6);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.07) 0%,
+      rgba(255, 255, 255, 0.02) 100%
+    );
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    border-left: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
   }
 
   .glass-panel {
-    background: rgba(13, 13, 18, 0.7);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: linear-gradient(
+      135deg,
+      rgba(20, 20, 28, 0.6) 0%,
+      rgba(13, 13, 18, 0.8) 100%
+    );
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.25);
   }
 
   /* Magnetic button base */
@@ -237,23 +273,75 @@
     display: none;
   }
 
-  /* Light theme overrides for glass components */
+  .hero-overlay-t {
+    @apply bg-gradient-to-t from-obsidian via-obsidian/85 to-obsidian/30;
+  }
+  .hero-overlay-r {
+    @apply bg-gradient-to-r from-obsidian/60 to-transparent;
+  }
+
+  /* Light theme overrides for beautiful glass components */
+  :is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+    .hero-overlay-t {
+    background: linear-gradient(
+      to top,
+      var(--color-obsidian) 10%,
+      rgba(255, 255, 255, 0.25) 50%,
+      rgba(255, 255, 255, 0.1) 100%
+    );
+    backdrop-filter: blur(60px);
+    -webkit-backdrop-filter: blur(60px);
+  }
+  :is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+    .hero-overlay-r {
+    background: linear-gradient(
+      to right,
+      rgba(255, 255, 255, 0.5) 0%,
+      transparent 80%
+    );
+  }
+
   :is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
     .glass-card {
-    background: rgba(255, 255, 255, 0.75);
-    border-color: rgba(0, 0, 0, 0.07);
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.06);
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.7) 0%,
+      rgba(255, 255, 255, 0.25) 100%
+    );
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-top: 1px solid rgba(255, 255, 255, 1);
+    border-left: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
   }
   :is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
     .glass-panel {
-    background: rgba(240, 237, 232, 0.88);
-    border-color: rgba(0, 0, 0, 0.05);
+    background: linear-gradient(
+      135deg,
+      rgba(253, 253, 253, 0.65) 0%,
+      rgba(240, 237, 232, 0.35) 100%
+    );
+    backdrop-filter: blur(36px);
+    -webkit-backdrop-filter: blur(36px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-top: 1px solid rgba(255, 255, 255, 0.9);
+    border-left: 1px solid rgba(255, 255, 255, 0.7);
+    box-shadow: 0 4px 24px 0 rgba(31, 38, 135, 0.05);
   }
   :is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
     .btn-cta-glass {
-    background: rgba(255, 255, 255, 0.7);
-    border-color: rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
     color: #1a1824;
+  }
+  :is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+    .btn-cta-glass:hover {
+    background: rgba(255, 255, 255, 0.45);
+    border-color: rgba(255, 255, 255, 1);
   }
 
   .chat-bubble-glass {
@@ -265,9 +353,11 @@
   }
   :is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
     .chat-bubble-glass {
-    background: rgba(255, 255, 255, 0.35);
-    border-color: rgba(255, 255, 255, 0.6);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+    background: rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
   }
 
   /* Floating Label Logic for Tailwind v4 */
@@ -283,6 +373,81 @@
   .floating-group input:focus + label {
     @apply -top-3 scale-90 bg-transparent;
     color: var(--color-primary);
+  }
+
+  /* ── NavBar nav links: theme-aware ── */
+  .nav-link {
+    color: rgba(250, 248, 245, 0.5); /* ivory/50 in dark */
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    padding-bottom: 2px;
+    transition:
+      color 220ms ease,
+      transform 220ms ease;
+  }
+  .nav-link::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -4px;
+    width: 100%;
+    height: 2px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-accent) 85%, transparent);
+    transform: scaleX(0);
+    transform-origin: left;
+    opacity: 0.45;
+    transition:
+      transform 220ms ease,
+      opacity 220ms ease;
+  }
+  .nav-link:hover,
+  .nav-link--active {
+    color: rgba(250, 248, 245, 1); /* ivory in dark */
+  }
+  .nav-link:hover::after,
+  .nav-link--active::after {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+  :is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+    .nav-link {
+    color: rgba(20, 18, 28, 0.8); /* near-black in light */
+  }
+  :is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+    .nav-link:hover,
+  :is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+    .nav-link--active {
+    color: rgb(20, 18, 28);
+  }
+
+  /* ── Page cards (About / Contact) — glassmorphic surface ── */
+  .page-card {
+    background: linear-gradient(
+      135deg,
+      rgba(30, 30, 50, 0.7) 0%,
+      rgba(18, 18, 26, 0.9) 100%
+    );
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.28);
+  }
+  :is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+    .page-card {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.65) 0%,
+      rgba(255, 255, 255, 0.22) 100%
+    );
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    border-top: 1px solid rgba(255, 255, 255, 0.95);
+    border-left: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.08);
   }
 }
 
@@ -780,6 +945,62 @@
 :is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
   .bg-\[rgba\(13\,13\,18\,0\.85\)\] {
   background-color: rgb(240 237 232 / 0.9);
+}
+
+/* ── Features section: light theme inline-style overrides ── */
+/* The Features cards use hardcoded rgba(255,255,255,0.XX)
+   inline styles that are invisible in light mode. These rules
+   patch the inner demo pane background + tab/sidebar colours.
+   We target the parent #features section to scope them. */
+
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  #features
+  .glass-card {
+  /* glass-card already overridden globally; also ensure section bg adapts */
+  color: var(--color-ivory);
+}
+
+/* ── Features: fix AnimatePresence demo pane (rgba white → rgba black) ── */
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  #features
+  [style*="rgba(255,255,255,0.02)"] {
+  background: rgba(0, 0, 0, 0.03) !important;
+  border-color: rgba(0, 0, 0, 0.06) !important;
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  #features
+  [style*="rgba(255,255,255,0.03)"] {
+  background: rgba(0, 0, 0, 0.04) !important;
+  border-color: rgba(0, 0, 0, 0.07) !important;
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  #features
+  [style*="rgba(255,255,255,0.04)"] {
+  background: rgba(0, 0, 0, 0.05) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  #features
+  [style*="rgba(255,255,255,0.06)"] {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  #features
+  [style*="rgba(255,255,255,0.08)"] {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Tab sidebar border in AI card */
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  #features
+  .border-white\/\[0\.05\] {
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+/* Section background — swap obsidian for light page bg */
+:is([data-theme="luxe-mint-light"], [data-theme="luxe-cyan-light"])
+  #features.bg-obsidian {
+  background-color: var(--color-obsidian);
 }
 
 /* ── Speaking soundbar animation ── */

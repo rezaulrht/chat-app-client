@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/app/api/Axios";
+import toast from "react-hot-toast";
 import {
   connectRoom,
   disconnectRoom,
@@ -46,8 +47,21 @@ export const useLiveKit = () => {
 
   const connect = useCallback(async (roomName, callType = "audio", options = {}) => {
     if (!roomName) return;
-    const { data } = await api.post("/api/calls/token", { roomName });
-    await connectRoom(data.url, data.token, callType, options);
+    try {
+      const { data } = await api.post("/api/calls/token", { roomName });
+      await connectRoom(data.url, data.token, callType);
+      return true;
+    } catch (err) {
+      const denied =
+        err?.name === "NotAllowedError" ||
+        /permission denied/i.test(err?.message || "");
+      toast.error(
+        denied
+          ? "Microphone permission denied. Please allow mic access to continue."
+          : err?.response?.data?.error || "Failed to connect call",
+      );
+      return false;
+    }
   }, []);
 
   const disconnect = useCallback(async () => {

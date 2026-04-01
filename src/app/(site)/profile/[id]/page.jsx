@@ -21,8 +21,10 @@ import toast from "react-hot-toast";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import useAuth from "@/hooks/useAuth";
 import useFeed from "@/hooks/useFeed";
+import api from "@/app/api/Axios";
 import ReputationBadge, { getLevel } from "@/components/Feed/ReputationBadge";
 import PostCard from "@/components/Feed/PostCard";
+import PostDetail from "@/components/Feed/PostDetail";
 import TagChip from "@/components/Feed/TagChip";
 
 const TABS = [
@@ -58,7 +60,19 @@ function PublicProfilePage() {
   const params = useParams();
   const profileId = params?.id;
   const { user: me } = useAuth();
-  const { getUserProfile, getUserPosts, followUser } = useFeed();
+  const {
+    getUserProfile,
+    getUserPosts,
+    followUser,
+    commentsByPost,
+    fetchComments,
+    addComment,
+    reactToComment,
+    editComment,
+    deleteComment,
+    voteOnPoll,
+    acceptAnswer,
+  } = useFeed();
 
   const [activeTab, setActiveTab] = useState("posts");
   const [profile, setProfile] = useState(null);
@@ -69,6 +83,7 @@ function PublicProfilePage() {
   const [followLoading, setFollowLoading] = useState(false);
   const [postsPage, setPostsPage] = useState(1);
   const [hasMorePosts, setHasMorePosts] = useState(false);
+  const [activePost, setActivePost] = useState(null);
 
   // ── Load profile ───────────────────────────────────────────────────────────
   useEffect(() => {
@@ -133,6 +148,160 @@ function PublicProfilePage() {
       loadPosts(1);
     }
   }, [activeTab, loadPosts]);
+
+  useEffect(() => {
+    if (activeTab !== "posts") {
+      setActivePost(null);
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (!activePost?._id) return;
+    fetchComments(activePost._id).catch((error) => {
+      console.error("Failed to fetch post comments:", error);
+    });
+  }, [activePost?._id, fetchComments]);
+
+  const updateLocalPost = useCallback((postId, updater) => {
+    setPosts((prev) =>
+      prev.map((post) => (post._id === postId ? updater(post) : post)),
+    );
+    setActivePost((prev) => {
+      if (!prev || prev._id !== postId) return prev;
+      return updater(prev);
+    });
+  }, []);
+
+  const handleReactPost = useCallback(
+    async (postId, emoji) => {
+      try {
+        const res = await api.post(`/api/feed/posts/${postId}/react`, {
+          emoji,
+        });
+        updateLocalPost(postId, (post) => ({
+          ...post,
+          reactions: res.data.reactions,
+          reactionCount: res.data.reactionCount,
+        }));
+      } catch (error) {
+        console.error("Failed to react to post:", error);
+        toast.error("Failed to react to post");
+      }
+    },
+    [updateLocalPost],
+  );
+
+  const handleAddComment = useCallback(
+    async (postId, payload) => {
+      try {
+        await addComment(postId, payload);
+        updateLocalPost(postId, (post) => {
+          const nextCount = (post.commentCount ?? post.commentsCount ?? 0) + 1;
+          return { ...post, commentCount: nextCount, commentsCount: nextCount };
+        });
+      } catch (error) {
+        console.error("Failed to add comment:", error);
+        toast.error("Failed to add comment");
+      }
+    },
+    [addComment, updateLocalPost],
+  );
+
+  const handleReactComment = useCallback(
+    async (postId, commentId, emoji) => {
+      try {
+        await reactToComment(postId, commentId, emoji);
+      } catch (error) {
+        console.error("Failed to react to comment:", error);
+        toast.error("Failed to react to comment");
+      }
+    },
+    [reactToComment],
+  );
+
+  const handleEditComment = useCallback(
+    async (postId, commentId, content) => {
+      try {
+        await editComment(postId, commentId, content);
+      } catch (error) {
+        console.error("Failed to update comment:", error);
+        toast.error("Failed to update comment");
+        throw error;
+      }
+    },
+    [editComment],
+  );
+
+  const handleDeleteComment = useCallback(
+    async (postId, commentId) => {
+      try {
+        const data = await deleteComment(postId, commentId);
+        updateLocalPost(postId, (post) => {
+          const nextCount =
+            typeof data?.commentsCount === "number"
+              ? Math.max(0, data.commentsCount)
+              : Math.max(
+                  0,
+                  (post.commentCount ?? post.commentsCount ?? 0) -
+                    (data?.removedCount ?? 1),
+                );
+          const acceptedId =
+            post.acceptedAnswer ?? post.acceptedComment ?? null;
+          const deletedAccepted = String(acceptedId) === String(commentId);
+
+          return {
+            ...post,
+            commentCount: nextCount,
+            commentsCount: nextCount,
+            acceptedAnswer: deletedAccepted ? null : post.acceptedAnswer,
+            acceptedComment: deletedAccepted ? null : post.acceptedComment,
+            status: deletedAccepted ? "open" : post.status,
+          };
+        });
+      } catch (error) {
+        console.error("Failed to delete comment:", error);
+        toast.error("Failed to delete comment");
+        throw error;
+      }
+    },
+    [deleteComment, updateLocalPost],
+  );
+
+  const handleVotePoll = useCallback(
+    async (postId, optionIndex) => {
+      try {
+        const data = await voteOnPoll(postId, optionIndex);
+        updateLocalPost(postId, (post) => ({ ...post, poll: data.poll }));
+      } catch (error) {
+        console.error("Failed to vote on poll:", error);
+        toast.error("Failed to vote on poll");
+      }
+    },
+    [updateLocalPost, voteOnPoll],
+  );
+
+  const handleAcceptAnswer = useCallback(
+    async (postId, commentId) => {
+      try {
+        const data = await acceptAnswer(postId, commentId);
+        const acceptedCommentId =
+          typeof data.acceptedComment === "string"
+            ? data.acceptedComment
+            : data.acceptedComment?._id;
+
+        updateLocalPost(postId, (post) => ({
+          ...post,
+          acceptedAnswer: acceptedCommentId ?? null,
+          acceptedComment: acceptedCommentId ?? null,
+          status: data.status,
+        }));
+      } catch (error) {
+        console.error("Failed to accept answer:", error);
+        toast.error("Failed to update accepted answer");
+      }
+    },
+    [acceptAnswer, updateLocalPost],
+  );
 
   // ── Follow toggle ──────────────────────────────────────────────────────────
   const handleFollow = async () => {
@@ -357,6 +526,27 @@ function PublicProfilePage() {
                       className="text-accent/40 animate-spin"
                     />
                   </div>
+                ) : activePost ? (
+                  <div className="glass-card rounded-2xl border border-white/[0.08] overflow-hidden">
+                    <PostDetail
+                      post={activePost}
+                      comments={commentsByPost[activePost._id] || []}
+                      currentUserId={me?._id ?? me?.id ?? ""}
+                      onBack={() => setActivePost(null)}
+                      backLabel="Back to profile"
+                      onReact={handleReactPost}
+                      onShare={() => {}}
+                      onTagClick={() => {}}
+                      onEdit={() => {}}
+                      onDelete={() => {}}
+                      onAddComment={handleAddComment}
+                      onReactComment={handleReactComment}
+                      onAcceptAnswer={handleAcceptAnswer}
+                      onVotePoll={handleVotePoll}
+                      onEditComment={handleEditComment}
+                      onDeleteComment={handleDeleteComment}
+                    />
+                  </div>
                 ) : posts.length === 0 ? (
                   <p className="text-center text-[12px] font-mono text-ivory/20 py-10">
                     No posts yet.
@@ -368,6 +558,12 @@ function PublicProfilePage() {
                         key={post._id}
                         post={post}
                         currentUserId={me?._id ?? me?.id ?? ""}
+                        onOpen={setActivePost}
+                        onReact={handleReactPost}
+                        onShare={() => {}}
+                        onTagClick={() => {}}
+                        onEdit={() => {}}
+                        onDelete={() => {}}
                       />
                     ))}
                     {hasMorePosts && (

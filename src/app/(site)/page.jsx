@@ -6,7 +6,6 @@ import DemoSection      from "@/components/Landing/DemoSection";
 import Features         from "@/components/Landing/Features";
 import StickyStory      from "@/components/Landing/StickyStory";
 import UseCases         from "@/components/Landing/UseCases";
-import Integrations     from "@/components/Landing/Integrations";
 import CompetitiveEdge  from "@/components/Landing/CompetitiveEdge";
 import Analytics        from "@/components/Landing/Analytics";
 import Faq              from "@/components/Landing/Faq";
@@ -21,7 +20,6 @@ export default function HomePage() {
         <Features />
         <StickyStory />
         <UseCases />
-        <Integrations />
         <CompetitiveEdge />
         <Analytics />
         <Faq />

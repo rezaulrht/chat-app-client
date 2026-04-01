@@ -81,7 +81,7 @@ export default function CustomerSlider() {
               className="w-[calc(100vw-3rem)]! sm:w-87.5! md:w-100!"
             >
               <div
-                className="p-8 rounded-3xl border border-white/[0.06] relative h-full flex flex-col justify-between bg-slate-surface"
+                className="p-8 rounded-3xl relative h-full flex flex-col justify-between glass-card"
               >
                 {/* Decorative quote mark */}
                 <div

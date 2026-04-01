@@ -350,11 +350,14 @@ export default function DMInfoPanel({
                 <div className="flex flex-wrap gap-2">
                   {PALETTE.map((c) => (
                     <button
+                      type="button"
                       key={c}
                       onClick={() => {
                         update("color", c);
                         setShowPalette(false);
                       }}
+                      aria-label={`Select chat colour ${c}`}
+                      aria-pressed={themeColor === c}
                       className={`w-8 h-8 rounded-xl transition-all hover:scale-110 border-2 ${themeColor === c ? "scale-110" : "border-transparent"}`}
                       style={{
                         background: c,

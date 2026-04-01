@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useTheme } from "@/context/ThemeContext";
 import {
   Phone,
   Video,
@@ -18,10 +19,19 @@ import {
 
 gsap.registerPlugin(ScrollTrigger);
 
-const ACCENT   = "var(--color-accent)";
+const ACCENT = "var(--color-accent)";
 const OBSIDIAN = "var(--color-obsidian)";
-const DEEP     = "var(--color-slate-surface)";
-const SURFACE  = "var(--color-deep)";
+const DEEP = "var(--color-slate-surface)";
+const SURFACE = "var(--color-deep)";
+const IVORY = "var(--color-ivory)";
+
+const TEXT_MUTED = `color-mix(in srgb, ${IVORY} 40%, transparent)`;
+const TEXT_BASE = `color-mix(in srgb, ${IVORY} 50%, transparent)`;
+const TEXT_LIGHT = `color-mix(in srgb, ${IVORY} 70%, transparent)`;
+
+const BORDER_LIGHT = `color-mix(in srgb, ${IVORY} 8%, transparent)`;
+const OVERLAY_LIGHT = `color-mix(in srgb, ${IVORY} 4%, transparent)`;
+const OVERLAY_MED = `color-mix(in srgb, ${IVORY} 8%, transparent)`;
 
 const SIDEBAR_CONVERSATIONS = [
   {
@@ -87,20 +97,20 @@ function WorkspaceSidebarMock() {
       style={{
         width: 56,
         background: OBSIDIAN,
-        borderRight: "1px solid rgba(255,255,255,0.05)",
+        borderRight: `1px solid ${BORDER_LIGHT}`,
       }}
     >
       <div className="relative mb-1">
         <div
           className="absolute left-0 top-1/2 -translate-y-1/2 rounded-r-full"
-          style={{ width: 3, height: 32, background: "white" }}
+          style={{ width: 3, height: 32, background: IVORY }}
         />
         <div
           style={{
             width: 40,
             height: 40,
             borderRadius: 12,
-            background: "rgba(255,255,255,0.08)",
+            background: OVERLAY_MED,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -118,7 +128,7 @@ function WorkspaceSidebarMock() {
           width: 40,
           height: 40,
           borderRadius: 14,
-          background: "rgba(255,255,255,0.04)",
+          background: OVERLAY_LIGHT,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -131,7 +141,7 @@ function WorkspaceSidebarMock() {
         style={{
           width: 28,
           height: 1.5,
-          background: "rgba(255,255,255,0.05)",
+          background: BORDER_LIGHT,
           borderRadius: 99,
           margin: "4px 0",
         }}
@@ -149,7 +159,7 @@ function WorkspaceSidebarMock() {
             justifyContent: "center",
             fontWeight: 700,
             fontSize: 14,
-            color: "white",
+            color: IVORY,
           }}
         >
           {letter}
@@ -160,8 +170,8 @@ function WorkspaceSidebarMock() {
           width: 40,
           height: 40,
           borderRadius: 14,
-          background: "rgba(255,255,255,0.03)",
-          border: "1px solid rgba(255,255,255,0.06)",
+          background: OVERLAY_LIGHT,
+          border: `1px solid ${BORDER_LIGHT}`,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -181,13 +191,13 @@ function SidebarMock() {
       style={{
         width: 220,
         background: DEEP,
-        borderRight: "1px solid rgba(255,255,255,0.05)",
+        borderRight: `1px solid ${BORDER_LIGHT}`,
       }}
     >
       <div
         style={{
           height: 52,
-          borderBottom: "1px solid rgba(255,255,255,0.05)",
+          borderBottom: `1px solid ${BORDER_LIGHT}`,
           display: "flex",
           alignItems: "center",
           padding: "0 10px",
@@ -205,12 +215,12 @@ function SidebarMock() {
             padding: "5px 8px",
           }}
         >
-          <Search size={11} style={{ color: "#64748b" }} />
-          <span style={{ fontSize: 11, color: "#475569" }}>
+          <Search size={11} style={{ color: TEXT_BASE }} />
+          <span style={{ fontSize: 11, color: TEXT_MUTED }}>
             Find conversation
           </span>
         </div>
-        <Edit3 size={13} style={{ color: "#64748b" }} />
+        <Edit3 size={13} style={{ color: TEXT_BASE }} />
       </div>
       <div style={{ padding: "10px 10px 6px" }}>
         <p
@@ -219,7 +229,7 @@ function SidebarMock() {
             fontWeight: 700,
             letterSpacing: "0.08em",
             textTransform: "uppercase",
-            color: "#475569",
+            color: TEXT_MUTED,
             marginBottom: 8,
           }}
         >
@@ -246,7 +256,8 @@ function SidebarMock() {
                     width: 32,
                     height: 32,
                     borderRadius: "50%",
-                    outline: "1.5px solid color-mix(in srgb, var(--color-accent) 50%, transparent)",
+                    outline:
+                      "1.5px solid color-mix(in srgb, var(--color-accent) 50%, transparent)",
                     outlineOffset: 1,
                   }}
                 />
@@ -263,7 +274,7 @@ function SidebarMock() {
                   }}
                 />
               </div>
-              <span style={{ fontSize: 9, color: "#64748b" }}>{name}</span>
+              <span style={{ fontSize: 9, color: TEXT_BASE }}>{name}</span>
             </div>
           ))}
         </div>
@@ -274,7 +285,7 @@ function SidebarMock() {
           fontWeight: 700,
           letterSpacing: "0.08em",
           textTransform: "uppercase",
-          color: "#475569",
+          color: TEXT_MUTED,
           padding: "8px 14px 4px",
         }}
       >
@@ -298,7 +309,9 @@ function SidebarMock() {
               gap: 8,
               padding: "6px 8px",
               borderRadius: 6,
-              background: conv.active ? "color-mix(in srgb, var(--color-slate-surface) 70%, transparent)" : "transparent",
+              background: conv.active
+                ? "color-mix(in srgb, var(--color-slate-surface) 70%, transparent)"
+                : "transparent",
               position: "relative",
               cursor: "default",
             }}
@@ -312,7 +325,7 @@ function SidebarMock() {
                   transform: "translateY(-50%)",
                   width: 3,
                   height: 24,
-                  background: "white",
+                  background: IVORY,
                   borderRadius: "0 3px 3px 0",
                 }}
               />
@@ -330,7 +343,7 @@ function SidebarMock() {
                     justifyContent: "center",
                     fontSize: 10,
                     fontWeight: 700,
-                    color: "white",
+                    color: IVORY,
                   }}
                 >
                   {conv.initials}
@@ -370,8 +383,7 @@ function SidebarMock() {
                   style={{
                     fontSize: 12,
                     fontWeight: 500,
-                    color:
-                      conv.active || conv.unread > 0 ? "#FAF8F5" : "#94a3b8",
+                    color: conv.active || conv.unread > 0 ? IVORY : TEXT_BASE,
                     whiteSpace: "nowrap",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
@@ -392,7 +404,7 @@ function SidebarMock() {
                       justifyContent: "center",
                       fontSize: 8,
                       fontWeight: 900,
-                      color: "white",
+                      color: IVORY,
                       flexShrink: 0,
                     }}
                   >
@@ -403,7 +415,7 @@ function SidebarMock() {
               <p
                 style={{
                   fontSize: 10,
-                  color: conv.unread > 0 ? "#cbd5e1" : "#475569",
+                  color: conv.unread > 0 ? TEXT_LIGHT : TEXT_MUTED,
                   fontWeight: conv.unread > 0 ? 600 : 400,
                   whiteSpace: "nowrap",
                   overflow: "hidden",
@@ -436,7 +448,7 @@ function IncomingBubble({ text }) {
       <div
         style={{
           background: SURFACE,
-          color: "#FAF8F5",
+          color: IVORY,
           padding: "9px 13px",
           borderRadius: "14px 14px 14px 3px",
           fontSize: 12,
@@ -473,7 +485,8 @@ function OutgoingBubble({ text, showReaction, showSeen }) {
           fontSize: 12,
           lineHeight: 1.5,
           maxWidth: 220,
-          boxShadow: "0 4px 14px color-mix(in srgb, var(--color-accent) 20%, transparent)",
+          boxShadow:
+            "0 4px 14px color-mix(in srgb, var(--color-accent) 20%, transparent)",
         }}
       >
         {text}
@@ -491,7 +504,7 @@ function OutgoingBubble({ text, showReaction, showSeen }) {
               marginRight: 6,
               marginBottom: 4,
               background: DEEP,
-              border: "1px solid rgba(255,255,255,0.1)",
+              border: `1px solid ${BORDER_LIGHT}`,
               borderRadius: 99,
               padding: "2px 7px",
               fontSize: 12,
@@ -503,7 +516,7 @@ function OutgoingBubble({ text, showReaction, showSeen }) {
             }}
           >
             ❤️{" "}
-            <span style={{ fontSize: 9, color: "#94a3b8", fontWeight: 700 }}>
+            <span style={{ fontSize: 9, color: TEXT_BASE, fontWeight: 700 }}>
               1
             </span>
           </motion.div>
@@ -521,7 +534,8 @@ function OutgoingBubble({ text, showReaction, showSeen }) {
               gap: 4,
               padding: "1px 8px",
               borderRadius: 99,
-              background: "color-mix(in srgb, var(--color-accent) 13%, transparent)",
+              background:
+                "color-mix(in srgb, var(--color-accent) 13%, transparent)",
               color: ACCENT,
               fontSize: 8,
               fontWeight: 700,
@@ -584,6 +598,8 @@ function TypingIndicator() {
 }
 
 export default function DemoSection() {
+  const { theme } = useTheme();
+  const isLight = theme === "luxe-mint-light" || theme === "luxe-cyan-light";
   const sectionRef = useRef(null);
   const frameRef = useRef(null);
   const [step, setStep] = useState(0);
@@ -654,13 +670,13 @@ export default function DemoSection() {
       <div
         style={{ maxWidth: 860, margin: "0 auto", opacity: 0 }}
         ref={frameRef}
-        className="overflow-hidden"
+        className=""
       >
         <div
           className="rounded-t-3xl overflow-hidden"
           style={{
             background: DEEP,
-            border: "1px solid rgba(255,255,255,0.07)",
+            border: `1px solid ${BORDER_LIGHT}`,
             borderBottom: "none",
             padding: "12px 16px",
             display: "flex",
@@ -688,11 +704,11 @@ export default function DemoSection() {
               flex: 1,
               maxWidth: 320,
               background: OBSIDIAN,
-              border: "1px solid rgba(255,255,255,0.06)",
+              border: `1px solid ${BORDER_LIGHT}`,
               borderRadius: 8,
               padding: "5px 14px",
               fontSize: 11,
-              color: "#475569",
+              color: TEXT_MUTED,
               textAlign: "center",
             }}
           >
@@ -705,9 +721,10 @@ export default function DemoSection() {
           style={{
             display: "flex",
             height: "clamp(320px, 60vw, 460px)",
-            border: "1px solid rgba(255,255,255,0.07)",
-            boxShadow:
-              "0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04), 0 0 80px color-mix(in srgb, var(--color-accent) 7%, transparent)",
+            border: `1px solid ${BORDER_LIGHT}`,
+            boxShadow: isLight
+              ? "none"
+              : `0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px ${BORDER_LIGHT}, 0 0 80px color-mix(in srgb, var(--color-accent) 7%, transparent)`,
           }}
         >
           <WorkspaceSidebarMock />
@@ -725,8 +742,9 @@ export default function DemoSection() {
             <header
               style={{
                 height: 56,
-                borderBottom: "1px solid rgba(255,255,255,0.05)",
-                background: "color-mix(in srgb, var(--color-obsidian) 85%, transparent)",
+                borderBottom: `1px solid ${BORDER_LIGHT}`,
+                background:
+                  "color-mix(in srgb, var(--color-obsidian) 85%, transparent)",
                 backdropFilter: "blur(12px)",
                 display: "flex",
                 alignItems: "center",
@@ -744,7 +762,8 @@ export default function DemoSection() {
                       width: 34,
                       height: 34,
                       borderRadius: 10,
-                      outline: "2px solid color-mix(in srgb, var(--color-accent) 40%, transparent)",
+                      outline:
+                        "2px solid color-mix(in srgb, var(--color-accent) 40%, transparent)",
                       outlineOffset: 1,
                     }}
                   />
@@ -766,7 +785,7 @@ export default function DemoSection() {
                     style={{
                       fontSize: 13,
                       fontWeight: 700,
-                      color: "#FAF8F5",
+                      color: IVORY,
                       lineHeight: 1,
                     }}
                   >
@@ -803,11 +822,11 @@ export default function DemoSection() {
                       width: 30,
                       height: 30,
                       borderRadius: 9,
-                      background: "rgba(255,255,255,0.04)",
+                      background: OVERLAY_LIGHT,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      color: "#64748b",
+                      color: TEXT_BASE,
                     }}
                   >
                     <Icon size={14} />
@@ -839,18 +858,18 @@ export default function DemoSection() {
                   style={{
                     flex: 1,
                     height: 1,
-                    background: "rgba(255,255,255,0.05)",
+                    background: BORDER_LIGHT,
                   }}
                 />
                 <span
                   className="font-mono"
                   style={{
                     fontSize: 9,
-                    color: "#475569",
+                    color: TEXT_MUTED,
                     padding: "3px 10px",
                     borderRadius: 99,
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(255,255,255,0.06)",
+                    background: OVERLAY_LIGHT,
+                    border: `1px solid ${BORDER_LIGHT}`,
                     fontWeight: 500,
                   }}
                 >
@@ -860,7 +879,7 @@ export default function DemoSection() {
                   style={{
                     flex: 1,
                     height: 1,
-                    background: "rgba(255,255,255,0.05)",
+                    background: BORDER_LIGHT,
                   }}
                 />
               </div>
@@ -903,7 +922,7 @@ export default function DemoSection() {
               <div
                 style={{
                   background: DEEP,
-                  border: "1px solid rgba(255,255,255,0.05)",
+                  border: `1px solid ${BORDER_LIGHT}`,
                   borderRadius: 14,
                   display: "flex",
                   alignItems: "center",
@@ -913,22 +932,26 @@ export default function DemoSection() {
               >
                 <Paperclip
                   size={16}
-                  style={{ color: "#475569", flexShrink: 0 }}
+                  style={{ color: TEXT_MUTED, flexShrink: 0 }}
                 />
                 <div
                   style={{
                     flex: 1,
                     fontSize: 12,
-                    color: "#475569",
+                    color: TEXT_MUTED,
                     padding: "2px 4px",
                   }}
                 >
                   Type a message...
                 </div>
-                <Smile size={16} style={{ color: "#475569", flexShrink: 0 }} />
+                <Smile size={16} style={{ color: TEXT_MUTED, flexShrink: 0 }} />
                 <motion.div
                   animate={{
-                    background: ["color-mix(in srgb, var(--color-accent) 20%, transparent)", "color-mix(in srgb, var(--color-accent) 53%, transparent)", "color-mix(in srgb, var(--color-accent) 20%, transparent)"],
+                    background: [
+                      "color-mix(in srgb, var(--color-accent) 20%, transparent)",
+                      "color-mix(in srgb, var(--color-accent) 53%, transparent)",
+                      "color-mix(in srgb, var(--color-accent) 20%, transparent)",
+                    ],
                   }}
                   transition={{
                     repeat: Infinity,
@@ -967,8 +990,7 @@ export default function DemoSection() {
         <div
           style={{
             height: 1,
-            background:
-              "linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-accent) 25%, transparent), transparent)",
+            background: `linear-gradient(90deg, transparent, ${BORDER_LIGHT}, transparent)`,
             borderRadius: 99,
             marginTop: -1,
           }}

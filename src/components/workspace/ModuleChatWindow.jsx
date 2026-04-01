@@ -28,6 +28,7 @@ import {
 import WordSpyGame from "@/components/wordspy/WordSpyGame";
 import useWordSpyStore from "@/stores/wordSpyStore";
 import useWordSpy from "@/hooks/useWordSpy";
+import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
 import { useModule } from "@/hooks/useModule";
 import { useWorkspace } from "@/hooks/useWorkspace";
@@ -94,6 +95,7 @@ export default function ModuleChatWindow({
   showMembers,
 }) {
   const { user } = useAuth();
+  const { socket } = useSocket() || {};
   const { workspaces, modulesCache, membersCache, fetchWorkspaceMembers } =
     useWorkspace();
   const {
@@ -171,6 +173,10 @@ export default function ModuleChatWindow({
   const [rewritePreview, setRewritePreview] = useState(null);
   const [originalText, setOriginalText] = useState("");
 
+  // Read Receipts Popover
+  const [showSeenBy, setShowSeenBy] = useState(null); // stores msgId
+  const [workspaceNotices, setWorkspaceNotices] = useState([]);
+
   const bottomRef = useRef(null);
 
   // File upload
@@ -212,8 +218,95 @@ export default function ModuleChatWindow({
     setShowEmojiPicker(false);
     setShowGifPicker(false);
     setShowVoiceRecorder(false);
+    setShowSeenBy(null);
+    setWorkspaceNotices([]);
     resetFiles();
   }, [moduleId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const pushWorkspaceNotice = useCallback((text) => {
+    if (!text) return;
+    setWorkspaceNotices((prev) => [
+      ...prev.slice(-5),
+      {
+        _id: `sys-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        text,
+        createdAt: new Date().toISOString(),
+      },
+    ]);
+  }, []);
+
+  useEffect(() => {
+    if (!socket || !workspaceId) return;
+
+    const resolveMemberName = (id) => {
+      const members = membersCache?.[workspaceId] || [];
+      const member = members.find((m) => String(m.user?._id) === String(id));
+      return member?.user?.name || null;
+    };
+
+    const onWorkspaceMemberJoined = ({ workspaceId: wsId, newMembers }) => {
+      if (String(wsId) !== String(workspaceId)) return;
+      const names = (newMembers || []).map((m) => m?.name).filter(Boolean);
+      if (names.length === 1) {
+        pushWorkspaceNotice(`${names[0]} joined the workspace.`);
+        return;
+      }
+      if (names.length > 1) {
+        pushWorkspaceNotice(`${names.length} members joined the workspace.`);
+      }
+    };
+
+    const onWorkspaceMemberLeft = ({
+      workspaceId: wsId,
+      removedUserIds,
+      userId,
+      removedBy,
+    }) => {
+      if (String(wsId) !== String(workspaceId)) return;
+
+      const ids = Array.isArray(removedUserIds)
+        ? removedUserIds
+        : userId
+          ? [userId]
+          : [];
+
+      if (ids.length === 0) return;
+
+      const names = ids.map((id) => resolveMemberName(id)).filter(Boolean);
+      const actionText = removedBy ? "was removed from" : "left";
+
+      if (names.length === 1) {
+        pushWorkspaceNotice(`${names[0]} ${actionText} the workspace.`);
+        return;
+      }
+
+      if (names.length > 1) {
+        pushWorkspaceNotice(
+          `${names.length} members ${removedBy ? "were removed from" : "left"} the workspace.`,
+        );
+        return;
+      }
+
+      pushWorkspaceNotice(
+        `${ids.length} member${ids.length > 1 ? "s" : ""} ${removedBy ? "were removed from" : "left"} the workspace.`,
+      );
+    };
+
+    const onWorkspaceKicked = ({ workspaceId: wsId }) => {
+      if (String(wsId) !== String(workspaceId)) return;
+      pushWorkspaceNotice("You were removed from this workspace.");
+    };
+
+    socket.on("workspace:member-joined", onWorkspaceMemberJoined);
+    socket.on("workspace:member-left", onWorkspaceMemberLeft);
+    socket.on("workspace:kicked", onWorkspaceKicked);
+
+    return () => {
+      socket.off("workspace:member-joined", onWorkspaceMemberJoined);
+      socket.off("workspace:member-left", onWorkspaceMemberLeft);
+      socket.off("workspace:kicked", onWorkspaceKicked);
+    };
+  }, [socket, workspaceId, membersCache, pushWorkspaceNotice, user?._id]);
 
   // Fetch members if not present
   useEffect(() => {
@@ -1377,6 +1470,14 @@ export default function ModuleChatWindow({
           });
         })()}
 
+        {workspaceNotices.map((notice) => (
+          <div key={notice._id} className="flex justify-center my-1">
+            <div className="px-3 py-1 rounded-full bg-white/4 border border-white/8 text-[11px] font-mono text-ivory/45">
+              {notice.text}
+            </div>
+          </div>
+        ))}
+
         {/* Typing indicator */}
         {typingUsers.length > 0 && (
           <div className="flex items-center gap-2 px-1">
@@ -1842,10 +1943,11 @@ export default function ModuleChatWindow({
                   setShowGifPicker(!showGifPicker);
                   setShowEmojiPicker(false);
                 }}
-                className={`shrink-0 px-2.5 py-1.5 text-[11px] font-black rounded-lg border transition-all ${showGifPicker
-                  ? "bg-accent/20 border-accent/40 text-accent"
-                  : "bg-white/4 border-white/10 text-ivory/50 hover:text-ivory"
-                  }`}
+                className={`shrink-0 px-2.5 py-1.5 text-[11px] font-black rounded-lg border transition-all ${
+                  showGifPicker
+                    ? "bg-accent/20 border-accent/40 text-accent"
+                    : "bg-white/4 border-white/10 text-ivory/50 hover:text-ivory"
+                }`}
               >
                 GIF
               </button>
@@ -1882,7 +1984,7 @@ export default function ModuleChatWindow({
                   ✦ AI
                 </button>
                 {aiMenuOpen && (
-                  <div className="absolute bottom-full mb-1 right-0 w-44 bg-deep border border-white/10 rounded-lg shadow-lg overflow-hidden z-50">
+                  <div className="absolute bottom-full mb-1 left-0 sm:left-auto sm:right-0 w-44 max-w-[calc(100vw-1rem)] bg-deep border border-white/10 rounded-lg shadow-lg overflow-hidden z-50">
                     <button
                       type="button"
                       className="w-full text-left px-3 py-2 text-[11px] text-ivory/70 hover:bg-white/6 hover:text-ivory transition-colors"
@@ -1916,10 +2018,11 @@ export default function ModuleChatWindow({
               <button
                 type="button"
                 onClick={() => setScheduleDropdownOpen((v) => !v)}
-                className={`mobile-schedule-trigger shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-black rounded-lg border transition-all ${scheduleDropdownOpen
-                  ? "bg-accent/20 border-accent/40 text-accent"
-                  : "bg-white/4 border-white/10 text-ivory/50 hover:text-ivory"
-                  }`}
+                className={`mobile-schedule-trigger shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-black rounded-lg border transition-all ${
+                  scheduleDropdownOpen
+                    ? "bg-accent/20 border-accent/40 text-accent"
+                    : "bg-white/4 border-white/10 text-ivory/50 hover:text-ivory"
+                }`}
                 title="Schedule or view pending"
               >
                 ⏱ Schedule

@@ -117,7 +117,16 @@ export function WorkspaceProvider({ children }) {
     setLoadingModules(true);
     try {
       const data = await listModules(workspaceId);
-      setModulesCache((prev) => ({ ...prev, [workspaceId]: data }));
+      const normalized = (data || []).map((m) => ({
+        ...m,
+        unreadCount:
+          typeof m?.myUnread === "number"
+            ? m.myUnread
+            : typeof m?.unreadCount === "number"
+              ? m.unreadCount
+              : 0,
+      }));
+      setModulesCache((prev) => ({ ...prev, [workspaceId]: normalized }));
     } catch (err) {
       console.error("Failed to load modules:", err);
       // Set empty array so callers see a defined value and don't retry infinitely
@@ -196,10 +205,10 @@ export function WorkspaceProvider({ children }) {
         prev.map((w) =>
           w._id === workspaceId
             ? {
-                ...w,
-                inviteCode: data.inviteCode,
-                inviteCodeExpiresAt: data.expiresAt,
-              }
+              ...w,
+              inviteCode: data.inviteCode,
+              inviteCodeExpiresAt: data.expiresAt,
+            }
             : w,
         ),
       );
@@ -278,9 +287,9 @@ export function WorkspaceProvider({ children }) {
       prev.map((w) =>
         w._id === workspaceId
           ? {
-              ...w,
-              roles: (w.roles || []).map((r) => (r._id === roleId ? role : r)),
-            }
+            ...w,
+            roles: (w.roles || []).map((r) => (r._id === roleId ? role : r)),
+          }
           : w,
       ),
     );
@@ -468,7 +477,13 @@ export function WorkspaceProvider({ children }) {
       setModulesCache((prev) => {
         const existing = prev[module.workspaceId] || [];
         if (existing.find((m) => m._id === module._id)) return prev;
-        return { ...prev, [module.workspaceId]: [...existing, module] };
+        return {
+          ...prev,
+          [module.workspaceId]: [
+            ...existing,
+            { ...module, unreadCount: module.unreadCount || 0 },
+          ],
+        };
       });
     };
 
@@ -477,7 +492,39 @@ export function WorkspaceProvider({ children }) {
       setModulesCache((prev) => ({
         ...prev,
         [module.workspaceId]: (prev[module.workspaceId] || []).map((m) =>
-          m._id === module._id ? { ...m, ...module } : m,
+          String(m._id) === String(module._id)
+            ? {
+              ...m,
+              ...module,
+              unreadCount:
+                typeof module.myUnread === "number"
+                  ? module.myUnread
+                  : typeof module.unreadCount === "number"
+                    ? module.unreadCount
+                    : m.unreadCount || 0,
+            }
+            : m,
+        ),
+      }));
+    };
+
+    const onModuleUnreadUpdate = ({
+      moduleId,
+      workspaceId,
+      unreadCount,
+      lastMessage,
+    }) => {
+      if (!moduleId || !workspaceId) return;
+      setModulesCache((prev) => ({
+        ...prev,
+        [workspaceId]: (prev[workspaceId] || []).map((m) =>
+          String(m._id) === String(moduleId)
+            ? {
+              ...m,
+              unreadCount: typeof unreadCount === "number" ? unreadCount : m.unreadCount || 0,
+              ...(lastMessage ? { lastMessage } : {}),
+            }
+            : m,
         ),
       }));
     };
@@ -486,7 +533,7 @@ export function WorkspaceProvider({ children }) {
       setModulesCache((prev) => ({
         ...prev,
         [workspaceId]: (prev[workspaceId] || []).filter(
-          (m) => m._id !== moduleId,
+          (m) => String(m._id) !== String(moduleId),
         ),
       }));
     };
@@ -546,7 +593,7 @@ export function WorkspaceProvider({ children }) {
             <span className="text-[10px] font-medium text-ivory/40">in {workspaceName} &gt; #{moduleName}</span>
           </div>
           <div className="flex gap-3 items-start">
-            <img 
+            <img
               src={senderAvatar}
               className="w-10 h-10 rounded-full border border-white/10"
               alt=""
@@ -570,9 +617,9 @@ export function WorkspaceProvider({ children }) {
         prev.map((w) =>
           w._id === workspaceId
             ? {
-                ...w,
-                memberCount: (w.memberCount || 0) + (newMembers?.length || 1),
-              }
+              ...w,
+              memberCount: (w.memberCount || 0) + (newMembers?.length || 1),
+            }
             : w,
         ),
       );
@@ -599,12 +646,12 @@ export function WorkspaceProvider({ children }) {
         prev.map((w) =>
           w._id === workspaceId
             ? {
-                ...w,
-                memberCount: Math.max(
-                  0,
-                  (w.memberCount || 0) - (removedUserIds?.length || 1),
-                ),
-              }
+              ...w,
+              memberCount: Math.max(
+                0,
+                (w.memberCount || 0) - (removedUserIds?.length || 1),
+              ),
+            }
             : w,
         ),
       );
@@ -669,11 +716,11 @@ export function WorkspaceProvider({ children }) {
         prev.map((w) =>
           w._id === workspaceId
             ? {
-                ...w,
-                roles: (w.roles || []).map((r) =>
-                  r._id === role._id ? role : r,
-                ),
-              }
+              ...w,
+              roles: (w.roles || []).map((r) =>
+                r._id === role._id ? role : r,
+              ),
+            }
             : w,
         ),
       );
@@ -773,6 +820,7 @@ export function WorkspaceProvider({ children }) {
     socket.on("workspace:member-banned", onMemberBanned);
     socket.on("presence:update", onPresenceUpdate);
     socket.on("module:mention", onMention);
+    socket.on("module:unread:update", onModuleUnreadUpdate);
 
     return () => {
       socket.off("workspace:updated", onWorkspaceUpdated);
@@ -795,6 +843,7 @@ export function WorkspaceProvider({ children }) {
       socket.off("workspace:member-banned", onMemberBanned);
       socket.off("presence:update", onPresenceUpdate);
       socket.off("module:mention", onMention);
+      socket.off("module:unread:update", onModuleUnreadUpdate);
     };
   }, [socket]);
 

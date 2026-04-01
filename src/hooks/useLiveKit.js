@@ -45,7 +45,7 @@ export const useLiveKit = () => {
     return () => clearInterval(interval);
   }, [isConnected]);
 
-  const connect = useCallback(async (roomName, callType = "audio") => {
+  const connect = useCallback(async (roomName, callType = "audio", options = {}) => {
     if (!roomName) return;
     try {
       const { data } = await api.post("/api/calls/token", { roomName });

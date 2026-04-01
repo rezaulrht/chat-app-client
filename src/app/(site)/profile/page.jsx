@@ -183,8 +183,7 @@ function ProfilePage() {
     const cancelled = searchParams?.get("cancelled");
     if (cancelled === "true") {
       toast.error("Account linking was cancelled");
-      // Clean up URL without reload
-      window.history.replaceState({}, "", "/profile?tab=connections");
+      window.history.replaceState({}, "", "/profile");
     }
   }, [searchParams]);
 
@@ -567,7 +566,7 @@ function ProfilePage() {
           <div className="space-y-4">
             {/* Section tabs */}
             <div className="flex gap-1 p-1 bg-white/[0.03] rounded-xl border border-white/[0.06]">
-              {["edit", "connections", ...(isLocal ? ["security"] : []), "posts", "account"].map((s) => (
+              {["edit", ...(isLocal ? ["security"] : []), "posts", "account"].map((s) => (
                 <button
                   key={s}
                   onClick={() => setActiveSection(s)}
@@ -585,9 +584,7 @@ function ProfilePage() {
                       ? "Security"
                       : s === "posts"
                         ? "Posts"
-                        : s === "connections"
-                          ? "Connections"
-                          : "Account"}
+                        : "Account"}
                 </button>
               ))}
             </div>

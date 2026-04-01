@@ -7,7 +7,7 @@ import { LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 import useSidebarStore from "@/stores/sidebarStore";
 import UserProfileCard from "@/components/profile/UserProfileCard";
-import UserProfileModal from "@/components/profile/UserProfileModal";
+import FullUserProfile from "@/components/profile/FullUserProfile";
 
 const STORE_KEY_MAP = {
   chat: { flag: "chatCollapsed", toggle: "toggleChat" },
@@ -170,13 +170,17 @@ export default function AppSidebar({
            anchorRef={userBarRef} 
            onClose={() => setShowUserCard(false)} 
            onOpenFullProfile={() => {
-              setShowUserCard(false);
-              setShowFullProfile(true);
+             setShowUserCard(false);
+             setShowFullProfile(true);
            }}
         />
       )}
       {showFullProfile && (
-        <UserProfileModal onClose={() => setShowFullProfile(false)} />
+        <FullUserProfile 
+          user={user}
+          isOwnProfile={true}
+          onClose={() => setShowFullProfile(false)} 
+        />
       )}
     </div>
   );

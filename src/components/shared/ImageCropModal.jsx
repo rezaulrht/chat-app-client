@@ -94,7 +94,7 @@ export default function ImageCropModal({
         
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [isLoading, onCancel]);
+    }, [isLoading, onCancel, handleSave]);
 
     // Measure container
     useEffect(() => {
@@ -113,9 +113,13 @@ export default function ImageCropModal({
 
     // Calculate 16:9 crop dimensions
     const getCropDimensions = useCallback(() => {
+        // Use default dimensions if container not measured yet
+        const width = containerSize.width || 800;
+        const height = containerSize.height || 500;
+        
         const padding = 40;
-        const availableWidth = containerSize.width - padding * 2;
-        const availableHeight = containerSize.height - padding * 2;
+        const availableWidth = width - padding * 2;
+        const availableHeight = height - padding * 2;
 
         let cropWidth, cropHeight;
         
@@ -130,8 +134,8 @@ export default function ImageCropModal({
         return {
             width: cropWidth,
             height: cropHeight,
-            x: (containerSize.width - cropWidth) / 2,
-            y: (containerSize.height - cropHeight) / 2,
+            x: (width - cropWidth) / 2,
+            y: (height - cropHeight) / 2,
         };
     }, [containerSize]);
 
@@ -215,7 +219,7 @@ export default function ImageCropModal({
         );
 
         const croppedDataUrl = outputCanvas.toDataURL("image/jpeg", 0.9);
-        onSave(croppedDataUrl);
+        onSave(croppedDataUrl, outputCanvas);
     };
 
     // Loading or error state

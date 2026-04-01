@@ -53,12 +53,15 @@ export default function UserProfileModal({ onClose }) {
   const loadMyPosts = async () => {
     try {
       setLoadingPosts(true);
-      const res = await api.get("/api/v1/posts/me?page=1&limit=10");
-      if (res.data?.success) {
-        setMyPosts(res.data.data.docs || []);
-      }
+      const userId = user?._id || user?.id;
+      if (!userId) return;
+      
+      const res = await api.get(`/api/feed/users/${userId}/posts`, {
+        params: { page: 1, limit: 10 },
+      });
+      setMyPosts(res.data.posts || []);
     } catch (err) {
-      console.error(err);
+      console.error("Failed to load posts:", err);
     } finally {
       setLoadingPosts(false);
     }
@@ -236,7 +239,6 @@ export default function UserProfileModal({ onClose }) {
              <div className="flex gap-6">
                 {[
                   { id: "activity", label: "Activity Feed" },
-                  { id: "profile", label: "Edit Profile" },
                   ...(isLocal ? [{ id: "security", label: "Security" }] : [])
                 ].map((tab) => (
                   <button

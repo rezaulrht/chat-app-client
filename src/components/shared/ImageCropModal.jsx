@@ -49,6 +49,9 @@ export default function ImageCropModal({
         };
     }, [imageUrl]);
 
+    // Use ref for handleSave to avoid circular dependency
+    const handleSaveRef = useRef(null);
+
     // Keyboard navigation
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -87,14 +90,14 @@ export default function ImageCropModal({
                     break;
                 case "Enter":
                     e.preventDefault();
-                    if (!isLoading) handleSave();
+                    if (!isLoading && handleSaveRef.current) handleSaveRef.current();
                     break;
             }
         };
         
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [isLoading, onCancel, handleSave]);
+    }, [isLoading, onCancel]);
 
     // Measure container
     useEffect(() => {
@@ -221,6 +224,9 @@ export default function ImageCropModal({
         const croppedDataUrl = outputCanvas.toDataURL("image/jpeg", 0.9);
         onSave(croppedDataUrl, outputCanvas);
     };
+    
+    // Keep ref updated with latest handleSave
+    handleSaveRef.current = handleSave;
 
     // Loading or error state
     if (!image || imageError) {

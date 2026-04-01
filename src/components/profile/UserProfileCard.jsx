@@ -150,15 +150,6 @@ export default function UserProfileCard({ onClose, anchorRef, onOpenFullProfile 
               {new Date(user.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
            </p>
         </div>
-        
-        <div className="flex items-center gap-2 mt-5">
-           <button 
-             onClick={() => onOpenFullProfile?.({ initialTab: "profile" })}
-             className="flex-1 bg-accent/15 hover:bg-accent/25 border border-accent/20 text-accent rounded-lg py-2 text-[13px] font-bold font-display transition-colors"
-           >
-             Edit Profile
-           </button>
-        </div>
       </div>
     </div>,
     document.body

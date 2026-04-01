@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import PostCard from "@/components/Feed/PostCard";
 import ImageCropModal from "@/components/shared/ImageCropModal";
+import { confirmSweetAlert } from "@/utils/sweetAlert";
 import { useTheme } from "@/context/ThemeContext";
 import { THEMES } from "@/context/ThemeContext";
 import { Paintbrush } from "lucide-react";
@@ -343,7 +344,12 @@ function ProfilePage() {
   };
 
   const handleUnlinkAccount = async (provider) => {
-    if (!confirm(`Are you sure you want to disconnect ${provider}?`)) return;
+    if (!(await confirmSweetAlert({
+      title: "Disconnect Account?",
+      text: `Are you sure you want to disconnect ${provider}?`,
+      confirmButtonText: "Disconnect",
+      icon: "warning",
+    }))) return;
     setUnlinkingProvider(provider);
     try {
       await api.delete(`/api/user/social-links/${provider}`);

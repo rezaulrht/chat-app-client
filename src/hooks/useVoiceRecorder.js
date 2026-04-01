@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from "react";
+import { showSweetAlert } from "@/utils/sweetAlert";
 
 export const useVoiceRecorder = () => {
   const [isRecording, setIsRecording] = useState(false);
@@ -51,7 +52,11 @@ export const useVoiceRecorder = () => {
       }, 1000);
     } catch (error) {
       console.error("Failed to start recording:", error);
-      alert("Could not access microphone. Please grant permission.");
+      showSweetAlert({
+        title: "Microphone Access Required",
+        text: "Could not access microphone. Please grant permission.",
+        icon: "error",
+      });
     }
   }, []);
 

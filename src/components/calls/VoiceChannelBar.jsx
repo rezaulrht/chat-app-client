@@ -7,6 +7,7 @@ import { useCall } from "@/hooks/useCall";
 import { useLiveKit } from "@/hooks/useLiveKit";
 import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
+import { showSweetAlert } from "@/utils/sweetAlert";
 
 function ParticipantAvatar({ name, avatar, size = 24, isSpeaking = false }) {
   const seed = encodeURIComponent(name || "user");
@@ -90,9 +91,11 @@ export default function VoiceChannelBar() {
           err?.name === "NotAllowedError" ||
           err?.name === "PermissionDeniedError";
         if (denied) {
-          alert(
-            "Microphone permission was denied. Please allow microphone access in your browser settings to join voice channels.",
-          );
+          showSweetAlert({
+            title: "Microphone Access Required",
+            text: "Microphone permission was denied. Please allow microphone access in your browser settings to join voice channels.",
+            icon: "error",
+          });
         }
       }
     };

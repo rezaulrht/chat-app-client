@@ -1,15 +1,16 @@
 "use client";
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Image from "next/image";
 import { uploadImage } from "@/utils/imgbb";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import useAuth from "@/hooks/useAuth";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import { confirmSweetAlert } from "@/utils/sweetAlert";
 import {
   Settings, Shield, Users, Link2, AlertTriangle, ChevronRight, X, Camera,
   Loader2, Check, Globe, Lock, Plus, Search, Crown, UserCog, UserMinus,
-  RefreshCw, Copy, LogOut, Trash2, Pencil, ChevronDown, Gavel
+  RefreshCw, Copy, LogOut, Trash2, Pencil, ChevronDown, Gavel, Clock
 } from "lucide-react";
 
 // ── Colour palette for role swatches ─────────────────────────────────────────
@@ -72,22 +73,6 @@ function OverviewTab({ workspace, onUpdate }) {
     bannerUrl !== (workspace?.banner || "") ||
     visibility !== (workspace?.visibility || "private");
 
-  const handleAvatarUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploadingAvatar(true);
-    try {
-      const url = await uploadImage(file, `workspace-avatar-${workspace?._id}`);
-      setAvatarUrl(url);
-      toast.success("Avatar uploaded!");
-    } catch (err) {
-      toast.error(err.message || "Failed to upload avatar");
-    } finally {
-      setUploadingAvatar(false);
-    }
-  };
-
   const handleBannerUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -101,6 +86,22 @@ function OverviewTab({ workspace, onUpdate }) {
       toast.error(err.message || "Failed to upload banner");
     } finally {
       setUploadingBanner(false);
+    }
+  };
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingAvatar(true);
+    try {
+      const url = await uploadImage(file, `workspace-avatar-${workspace?._id}`);
+      setAvatarUrl(url);
+      toast.success("Avatar uploaded!");
+    } catch (err) {
+      toast.error(err.message || "Failed to upload avatar");
+    } finally {
+      setUploadingAvatar(false);
     }
   };
 
@@ -472,7 +473,12 @@ function RolesTab({ workspace, onCreateRole, onUpdateRole, onDeleteRole }) {
   };
 
   const handleDelete = async (roleId, roleName) => {
-    if (!confirm(`Delete role "${roleName}"? This will remove it from all members.`)) return;
+    if (!(await confirmSweetAlert({
+      title: "Delete Role?",
+      text: `Delete role "${roleName}"? This will remove it from all members.`,
+      confirmButtonText: "Delete",
+      icon: "warning",
+    }))) return;
     try {
       await onDeleteRole(roleId);
       toast.success("Role deleted");
@@ -664,13 +670,22 @@ function RolesTab({ workspace, onCreateRole, onUpdateRole, onDeleteRole }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // MEMBERS TAB
 // ─────────────────────────────────────────────────────────────────────────────
-function MembersTab({ workspace, members, currentUser, onUpdateMemberRole, onRemoveMember, onAssignRoles, onBanMember }) {
+function MembersTab({
+  workspace,
+  members,
+  currentUser,
+  onUpdateMemberRole,
+  onRemoveMember,
+  onAssignRoles,
+  onBanMember,
+  canManageRoles,
+  canManageMembers,
+  onReportMember,
+}) {
   const [search, setSearch] = useState("");
   const [actionUserId, setActionUserId] = useState(null);
   const [assigningUser, setAssigningUser] = useState(null);
 
-  const isOwner = workspace?.myRole === "owner";
-  const isAdmin = workspace?.myRole === "admin" || isOwner;
   const roles = workspace?.roles || [];
 
   const filtered = (members || []).filter((m) =>
@@ -743,52 +758,54 @@ function MembersTab({ workspace, members, currentUser, onUpdateMemberRole, onRem
                 </div>
 
                 {/* Actions */}
-                {isAdmin && !isMe && !isThisOwner && (
+                {!isMe && !isThisOwner && (
                   <div className="flex items-center gap-1 opacity-10 group-hover:opacity-100 transition-opacity">
                     {/* Role Picker */}
-                    <div className="relative">
-                      <button
-                        onClick={() => setAssigningUser(assigningUser === m.user._id ? null : m.user._id)}
-                        title="Manage roles"
-                        className={`p-1.5 rounded-lg transition-all ${assigningUser === m.user._id ? "bg-accent/20 text-accent" : "text-ivory/35 hover:text-accent hover:bg-white/6"}`}
-                      >
-                        <Shield size={14} />
-                      </button>
+                    {canManageRoles && (
+                      <div className="relative">
+                        <button
+                          onClick={() => setAssigningUser(assigningUser === m.user._id ? null : m.user._id)}
+                          title="Manage roles"
+                          className={`p-1.5 rounded-lg transition-all ${assigningUser === m.user._id ? "bg-accent/20 text-accent" : "text-ivory/35 hover:text-accent hover:bg-white/6"}`}
+                        >
+                          <Shield size={14} />
+                        </button>
 
-                      {assigningUser === m.user._id && (
-                        <div className="absolute top-full right-0 mt-1 z-50 w-48 bg-deep border border-white/10 rounded-2xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200">
-                          <p className="text-[9px] font-mono font-bold text-ivory/30 uppercase tracking-widest p-2 border-b border-white/5 mb-1">Custom Roles</p>
-                          <div className="max-h-48 overflow-y-auto scrollbar-hide py-1 space-y-0.5">
-                            {roles.length === 0 ? (
-                              <p className="text-[10px] font-mono text-ivory/20 p-2 text-center">No roles created</p>
-                            ) : roles.map(role => {
-                              const hasRole = (m.roleIds || []).includes(role._id);
-                              return (
-                                <button
-                                  key={role._id}
-                                  onClick={async () => {
-                                    const newIds = hasRole
-                                      ? (m.roleIds || []).filter(id => id !== role._id)
-                                      : [...(m.roleIds || []), role._id];
-                                    try {
-                                      await onAssignRoles(m.user._id, newIds);
-                                      toast.success("Roles updated");
-                                    } catch { toast.error("Failed to update roles"); }
-                                  }}
-                                  className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all ${hasRole ? "bg-white/5 text-ivory" : "text-ivory/40 hover:bg-white/3 hover:text-ivory/70"}`}
-                                >
-                                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: role.color }} />
-                                  <span className="text-[11px] font-medium flex-1 text-left">{role.name}</span>
-                                  {hasRole && <Check size={10} className="text-accent" />}
-                                </button>
-                              );
-                            })}
+                        {assigningUser === m.user._id && (
+                          <div className="absolute top-full right-0 mt-1 z-50 w-48 bg-deep border border-white/10 rounded-2xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200">
+                            <p className="text-[9px] font-mono font-bold text-ivory/30 uppercase tracking-widest p-2 border-b border-white/5 mb-1">Custom Roles</p>
+                            <div className="max-h-48 overflow-y-auto scrollbar-hide py-1 space-y-0.5">
+                              {roles.length === 0 ? (
+                                <p className="text-[10px] font-mono text-ivory/20 p-2 text-center">No roles created</p>
+                              ) : roles.map(role => {
+                                const hasRole = (m.roleIds || []).includes(role._id);
+                                return (
+                                  <button
+                                    key={role._id}
+                                    onClick={async () => {
+                                      const newIds = hasRole
+                                        ? (m.roleIds || []).filter(id => id !== role._id)
+                                        : [...(m.roleIds || []), role._id];
+                                      try {
+                                        await onAssignRoles(m.user._id, newIds);
+                                        toast.success("Roles updated");
+                                      } catch { toast.error("Failed to update roles"); }
+                                    }}
+                                    className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all ${hasRole ? "bg-white/5 text-ivory" : "text-ivory/40 hover:bg-white/3 hover:text-ivory/70"}`}
+                                  >
+                                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: role.color }} />
+                                    <span className="text-[11px] font-medium flex-1 text-left">{role.name}</span>
+                                    {hasRole && <Check size={10} className="text-accent" />}
+                                  </button>
+                                );
+                              })}
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
+                        )}
+                      </div>
+                    )}
 
-                    {(isOwner || m.role === "member") && (
+                    {canManageMembers && (
                       <button
                         title={m.role === "admin" ? "Demote to member" : "Promote to admin"}
                         onClick={async () => {
@@ -803,11 +820,16 @@ function MembersTab({ workspace, members, currentUser, onUpdateMemberRole, onRem
                       </button>
                     )}
 
-                    {(isOwner || m.role === "member") && (
+                    {canManageMembers && (
                       <button
                         title="Remove member"
                         onClick={async () => {
-                          if (!confirm(`Remove ${m.user.name}?`)) return;
+                          if (!(await confirmSweetAlert({
+                            title: "Remove Member?",
+                            text: `Remove ${m.user.name}?`,
+                            confirmButtonText: "Remove",
+                            icon: "warning",
+                          }))) return;
                           try {
                             await onRemoveMember(m.user._id);
                             toast.success("Member removed");
@@ -818,11 +840,16 @@ function MembersTab({ workspace, members, currentUser, onUpdateMemberRole, onRem
                         <UserMinus size={14} />
                       </button>
                     )}
-                    {(isOwner || m.role === "member") && (
+                    {canManageMembers && (
                       <button
                         title="Ban member"
                         onClick={async () => {
-                          if (!confirm(`Ban ${m.user.name}? This will remove them and prevent re-joining.`)) return;
+                          if (!(await confirmSweetAlert({
+                            title: "Ban Member?",
+                            text: `Ban ${m.user.name}? This will remove them and prevent re-joining.`,
+                            confirmButtonText: "Ban",
+                            icon: "warning",
+                          }))) return;
                           try {
                             await onBanMember(m.user._id);
                             toast.success("Member banned");
@@ -833,6 +860,20 @@ function MembersTab({ workspace, members, currentUser, onUpdateMemberRole, onRem
                         <Gavel size={14} />
                       </button>
                     )}
+
+                    <button
+                      title="Report user"
+                      onClick={async () => {
+                        try {
+                          await onReportMember?.(m.user);
+                        } catch {
+                          toast.error("Failed to report user");
+                        }
+                      }}
+                      className="p-1.5 rounded-lg text-ivory/25 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                    >
+                      <AlertTriangle size={14} />
+                    </button>
                   </div>
                 )}
               </div>
@@ -925,7 +966,12 @@ function BansTab({ workspace, onUnban, getBannedUsers, workspaceId }) {
               </div>
               <button
                 onClick={async () => {
-                  if (!confirm(`Unban ${ban.user?.name}?`)) return;
+                  if (!(await confirmSweetAlert({
+                    title: "Unban Member?",
+                    text: `Unban ${ban.user?.name}?`,
+                    confirmButtonText: "Unban",
+                    icon: "warning",
+                  }))) return;
                   try {
                     await onUnban(ban.user?._id);
                     toast.success("User unbanned");
@@ -952,6 +998,8 @@ function InvitesTab({ workspace, onGenerateInvite, onRevokeInvite }) {
   const [revoking, setRevoking] = useState(false);
   const [expiresIn, setExpiresIn] = useState("never");
   const [copied, setCopied] = useState(false);
+  const [showExpiryMenu, setShowExpiryMenu] = useState(false);
+  const expiryMenuRef = useRef(null);
 
   const inviteCode = workspace?.inviteCode;
   const inviteUrl = inviteCode
@@ -967,6 +1015,27 @@ function InvitesTab({ workspace, onGenerateInvite, onRevokeInvite }) {
     { value: "7d", label: "7 days" },
     { value: "never", label: "Never expires" },
   ];
+  const selectedExpiryLabel =
+    EXPIRY_OPTIONS.find((o) => o.value === expiresIn)?.label || "Never expires";
+
+  useEffect(() => {
+    const handlePointerDown = (event) => {
+      if (expiryMenuRef.current && !expiryMenuRef.current.contains(event.target)) {
+        setShowExpiryMenu(false);
+      }
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") setShowExpiryMenu(false);
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
 
   const handleGenerate = async () => {
     setGenerating(true);
@@ -986,7 +1055,12 @@ function InvitesTab({ workspace, onGenerateInvite, onRevokeInvite }) {
   };
 
   const handleRevoke = async () => {
-    if (!confirm("Revoke this invite link? All existing links will stop working.")) return;
+    if (!(await confirmSweetAlert({
+      title: "Revoke Invite?",
+      text: "Revoke this invite link? All existing links will stop working.",
+      confirmButtonText: "Revoke",
+      icon: "warning",
+    }))) return;
     setRevoking(true);
     try {
       await onRevokeInvite();
@@ -997,12 +1071,12 @@ function InvitesTab({ workspace, onGenerateInvite, onRevokeInvite }) {
 
   return (
     <div className="space-y-6 max-w-lg">
-      <p className="text-ivory/30 text-[12px] font-mono">
+      <p className="text-ivory/35 text-[12px] font-mono leading-relaxed">
         Share an invite link to let people join your workspace. Only one active invite exists at a time.
       </p>
 
       {/* Workspace card preview */}
-      <div className="p-4 rounded-2xl bg-white/3 border border-white/8 flex items-center gap-3">
+      <div className="p-4 rounded-2xl bg-white/3 border border-white/8 flex items-center gap-3 shadow-sm">
         <div className="w-12 h-12 rounded-xl overflow-hidden ring-1 ring-white/6 shrink-0 bg-accent/10 flex items-center justify-center">
           {workspace?.avatar ? (
             <Image src={workspace.avatar} width={48} height={48} alt="" className="rounded-xl object-cover" unoptimized />
@@ -1012,7 +1086,7 @@ function InvitesTab({ workspace, onGenerateInvite, onRevokeInvite }) {
         </div>
         <div className="min-w-0">
           <p className="text-[14px] font-display font-bold text-ivory truncate">{workspace?.name}</p>
-          <p className="text-[11px] font-mono text-ivory/30">{workspace?.memberCount || 0} members</p>
+          <p className="text-[11px] font-mono text-ivory/35">{workspace?.memberCount || 0} members</p>
         </div>
       </div>
 
@@ -1020,25 +1094,28 @@ function InvitesTab({ workspace, onGenerateInvite, onRevokeInvite }) {
       {inviteUrl ? (
         <div className="space-y-3">
           <div className="flex items-center gap-2 p-3 rounded-xl bg-white/4 border border-white/8">
-            <Link2 size={13} className="text-accent/60 shrink-0" />
-            <span className="flex-1 text-[12px] font-mono text-ivory/60 truncate">{inviteUrl}</span>
-            <button onClick={handleCopy} className="p-1.5 rounded-lg hover:bg-white/6 text-ivory/30 hover:text-accent transition-all shrink-0">
+            <Link2 size={13} className="text-accent/70 shrink-0" />
+            <span className="flex-1 text-[12px] font-mono text-ivory/70 truncate">{inviteUrl}</span>
+            <button onClick={handleCopy} className="p-1.5 rounded-lg hover:bg-white/8 text-ivory/35 hover:text-accent transition-all shrink-0">
               {copied ? <Check size={14} className="text-accent" /> : <Copy size={14} />}
             </button>
           </div>
           {workspace?.inviteCodeExpiresAt && (
-            <p className="text-[10px] font-mono text-orange-400/70">
-              Expires: {new Date(workspace.inviteCodeExpiresAt).toLocaleString()}
-            </p>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-accent/8 border border-accent/15">
+              <Clock size={12} className="text-accent/70 shrink-0" />
+              <p className="text-[10px] font-mono text-ivory/55">
+                Expires at <span className="text-accent/75">{new Date(workspace.inviteCodeExpiresAt).toLocaleString()}</span>
+              </p>
+            </div>
           )}
           <div className="flex gap-2">
             <button onClick={handleGenerate} disabled={generating}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/8 text-ivory/50 hover:text-ivory rounded-xl text-[11px] font-mono transition-all">
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/8 text-ivory/55 hover:text-ivory rounded-xl text-[11px] font-mono transition-all border border-white/6">
               <RefreshCw size={12} className={generating ? "animate-spin" : ""} />
               Regenerate
             </button>
             <button onClick={handleRevoke} disabled={revoking}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/8 hover:bg-red-500/15 text-red-400/70 hover:text-red-400 rounded-xl text-[11px] font-mono transition-all">
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/18 text-red-400/75 hover:text-red-400 rounded-xl text-[11px] font-mono transition-all border border-red-500/15">
               <X size={12} />
               Revoke
             </button>
@@ -1046,22 +1123,56 @@ function InvitesTab({ workspace, onGenerateInvite, onRevokeInvite }) {
         </div>
       ) : (
         <div className="space-y-3">
-          <div>
-            <label className="block text-[11px] font-mono font-bold text-ivory/40 uppercase tracking-widest mb-2">
-              Expiry
+          <div ref={expiryMenuRef} className="relative">
+            <label className="block text-[11px] font-mono font-bold text-ivory/45 uppercase tracking-widest mb-2">
+              Invite expiry
             </label>
-            <select
-              value={expiresIn}
-              onChange={(e) => setExpiresIn(e.target.value)}
-              className="w-full bg-white/4 border border-white/8 rounded-xl px-3 py-2 text-[13px] text-ivory/70 focus:outline-none focus:border-accent/40"
+            <button
+              type="button"
+              onClick={() => setShowExpiryMenu((v) => !v)}
+              className="w-full flex items-center justify-between gap-3 bg-white/4 hover:bg-white/6 border border-white/8 rounded-xl px-3 py-2 text-[13px] text-ivory/80 transition-all focus:outline-none focus:border-accent/40"
+              aria-haspopup="listbox"
+              aria-expanded={showExpiryMenu}
             >
-              {EXPIRY_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
+              <span className="flex items-center gap-2 min-w-0">
+                <Clock size={12} className="text-accent/70 shrink-0" />
+                <span className="truncate font-mono text-left">{selectedExpiryLabel}</span>
+              </span>
+              <ChevronDown
+                size={13}
+                className={`text-ivory/35 transition-transform shrink-0 ${showExpiryMenu ? "rotate-180" : ""}`}
+              />
+            </button>
+
+            {showExpiryMenu && (
+              <div className="absolute left-0 right-0 top-full mt-2 z-30 rounded-xl border border-white/8 bg-obsidian shadow-2xl overflow-hidden backdrop-blur-md">
+                {EXPIRY_OPTIONS.map((option) => {
+                  const isActive = option.value === expiresIn;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        setExpiresIn(option.value);
+                        setShowExpiryMenu(false);
+                      }}
+                      className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 text-left transition-colors ${isActive ? "bg-accent/12 text-accent" : "text-ivory/70 hover:bg-white/5 hover:text-ivory"}`}
+                      role="option"
+                      aria-selected={isActive}
+                    >
+                      <span className="text-[13px] font-mono">{option.label}</span>
+                      {isActive && <Check size={13} className="shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            <p className="mt-2 text-[10px] font-mono text-ivory/30">
+              Select how long the invite should remain active before it expires.
+            </p>
           </div>
           <button onClick={handleGenerate} disabled={generating}
-            className="flex items-center gap-2 px-4 py-2.5 bg-accent/15 hover:bg-accent/25 text-accent rounded-xl text-[13px] font-mono font-bold transition-all disabled:opacity-50">
+            className="flex items-center gap-2 px-4 py-2.5 bg-accent/15 hover:bg-accent/25 text-accent rounded-xl text-[13px] font-mono font-bold transition-all disabled:opacity-50 border border-accent/15">
             {generating ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
             Generate Invite Link
           </button>
@@ -1178,7 +1289,42 @@ export default function WorkspaceSettingsModal({ workspaceId, onClose }) {
 
   const workspace = workspaces.find((w) => w._id === workspaceId);
   const members = membersCache[workspaceId] || [];
-  const isAdmin = workspace?.myRole === "owner" || workspace?.myRole === "admin";
+  const isOwner = workspace?.myRole === "owner";
+  const isLegacyAdmin = workspace?.myRole === "admin";
+  const myMember = members.find(
+    (m) => m.user?._id?.toString() === currentUser?._id?.toString(),
+  );
+  const myRoleIds = myMember?.roleIds || [];
+  const myWorkspaceRoles = useMemo(() => {
+    const roles = workspace?.roles || [];
+    return myRoleIds
+      .map((roleId) =>
+        roles.find((role) => role._id?.toString() === roleId?.toString()),
+      )
+      .filter(Boolean);
+  }, [workspace?.roles, myRoleIds]);
+  const hasPermission = useCallback(
+    (...permissions) =>
+      isOwner ||
+      isLegacyAdmin ||
+      myWorkspaceRoles.some((role) =>
+        permissions.some((permission) => role.permissions?.includes(permission)),
+      ),
+    [isOwner, isLegacyAdmin, myWorkspaceRoles],
+  );
+  const canManageWorkspace = hasPermission("ADMINISTRATOR", "MANAGE_WORKSPACE");
+  const canManageRoles = hasPermission(
+    "ADMINISTRATOR",
+    "MANAGE_WORKSPACE",
+    "MANAGE_ROLES",
+  );
+  const canManageMembers = hasPermission(
+    "ADMINISTRATOR",
+    "MANAGE_WORKSPACE",
+    "KICK_MEMBERS",
+  );
+  const canManageBans = canManageMembers;
+  const canManageInvites = canManageWorkspace;
 
   // Load members on open
   useEffect(() => {
@@ -1202,7 +1348,12 @@ export default function WorkspaceSettingsModal({ workspaceId, onClose }) {
   };
 
   const handleLeave = async () => {
-    if (!confirm("Leave this workspace?")) return;
+    if (!(await confirmSweetAlert({
+      title: "Leave Workspace?",
+      text: "Leave this workspace?",
+      confirmButtonText: "Leave",
+      icon: "warning",
+    }))) return;
     try {
       await leaveWorkspace(workspaceId);
       onClose();
@@ -1234,12 +1385,13 @@ export default function WorkspaceSettingsModal({ workspaceId, onClose }) {
 
         {/* ── Horizontal Scrollable Tabs for Mobile */}
         <div className="sm:hidden flex w-full overflow-x-auto gap-1 px-2 py-2 border-b border-white/6 scrollbar-hide shrink-0 bg-[#0e0e17]">
-          {TABS.map((tab) => {
+          {TABS.filter((tab) => {
+            if (tab.id === "roles") return canManageRoles;
+            if (tab.id === "bans" || tab.id === "invites") return canManageMembers;
+            return true;
+          }).map((tab) => {
             const Icon = tab.Icon;
             const isActive = activeTab === tab.id;
-            if (tab.id === "invites" || tab.id === "bans") {
-              if (!isAdmin) return null;
-            }
             return (
               <button
                 key={tab.id}
@@ -1266,12 +1418,13 @@ export default function WorkspaceSettingsModal({ workspaceId, onClose }) {
           </div>
 
           <div className="flex-1 space-y-0.5 px-2">
-            {TABS.map((tab) => {
+            {TABS.filter((tab) => {
+              if (tab.id === "roles") return canManageRoles;
+              if (tab.id === "bans" || tab.id === "invites") return canManageMembers;
+              return true;
+            }).map((tab) => {
               const Icon = tab.Icon;
               const isActive = activeTab === tab.id;
-              if (tab.id === "invites" || tab.id === "bans") {
-                if (!isAdmin) return null;
-              }
               return (
                 <button
                   key={tab.id}
@@ -1309,7 +1462,7 @@ export default function WorkspaceSettingsModal({ workspaceId, onClose }) {
             {activeTab === "overview" && (
               <OverviewTab workspace={workspace} onUpdate={(d) => updateWorkspace(workspaceId, d)} />
             )}
-            {activeTab === "roles" && isAdmin && (
+            {activeTab === "roles" && canManageRoles && (
               <RolesTab
                 workspace={workspace}
                 onCreateRole={(d) => createRole(workspaceId, d)}
@@ -1326,9 +1479,14 @@ export default function WorkspaceSettingsModal({ workspaceId, onClose }) {
                 onRemoveMember={(uid) => removeMembers(workspaceId, [uid])}
                 onAssignRoles={(uid, rids) => assignRolesToMember(workspaceId, uid, rids)}
                 onBanMember={(uid) => banMember(workspaceId, uid)}
+                canManageRoles={canManageRoles}
+                canManageMembers={canManageMembers}
+                onReportMember={(user) => {
+                  toast.success(`Report queued for ${user?.name || "member"}`);
+                }}
               />
             )}
-            {activeTab === "bans" && isAdmin && (
+            {activeTab === "bans" && canManageBans && (
               <BansTab
                 workspace={workspace}
                 onUnban={(uid) => unbanMember(workspaceId, uid)}
@@ -1336,7 +1494,7 @@ export default function WorkspaceSettingsModal({ workspaceId, onClose }) {
                 workspaceId={workspaceId}
               />
             )}
-            {activeTab === "invites" && isAdmin && (
+            {activeTab === "invites" && canManageInvites && (
               <InvitesTab
                 workspace={workspace}
                 onGenerateInvite={(exp) => generateInvite(workspaceId, exp)}

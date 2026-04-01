@@ -28,6 +28,7 @@ import toast from "react-hot-toast";
 import { getGroupInitials, getGroupAvatarColor } from "@/utils/groupAvatar";
 import { isAdmin, isCreator, getMemberRole } from "@/utils/groupHelpers";
 import { useDmPrefs } from "@/hooks/useDmPrefs";
+import { confirmSweetAlert } from "@/utils/sweetAlert";
 
 const QUICK_EMOJIS = [
   "❤️",
@@ -246,7 +247,12 @@ export default function GroupInfoPanel({
 
   /* ── Leave group ── */
   const handleLeave = async () => {
-    if (!confirm("Are you sure you want to leave this group?")) return;
+    if (!(await confirmSweetAlert({
+      title: "Leave Group?",
+      text: "Are you sure you want to leave this group?",
+      confirmButtonText: "Leave",
+      icon: "warning",
+    }))) return;
     try {
       await api.post(`/api/chat/conversations/${convId}/leave`);
       onConversationUpdate?.({ _id: convId, _removed: true });
@@ -258,11 +264,12 @@ export default function GroupInfoPanel({
 
   /* ── Delete group (creator only) ── */
   const handleDelete = async () => {
-    if (
-      !confirm(
-        `Delete "${conversation.name}"? This action cannot be undone and all messages will be lost.`,
-      )
-    )
+    if (!(await confirmSweetAlert({
+      title: "Delete Group?",
+      text: `Delete "${conversation.name}"? This action cannot be undone and all messages will be lost.`,
+      confirmButtonText: "Delete",
+      icon: "warning",
+    })))
       return;
     try {
       await api.delete(`/api/chat/conversations/${convId}`);

@@ -407,9 +407,7 @@ export function WorkspaceProvider({ children }) {
       
       if (userIds.length > 0) {
         try {
-          const response = await api.get("/api/chat/last-seen", {
-            params: { userIds: userIds.join(",") },
-          });
+          const response = await api.post("/api/chat/last-seen", { userIds });
           // Update onlineUsers set based on presence data
           const presenceData = response.data || {};
           const onlineUserIds = Object.keys(presenceData).filter(

@@ -1824,7 +1824,8 @@ export default function ModuleChatWindow({
               )}
             </div>
 
-            {/* Schedule Dropdown */}
+            {/* Schedule Dropdown - Hidden in Workspace */}
+            {false && (
             <div
               ref={scheduleDropdownRef}
               className="relative hidden lg:inline-flex"
@@ -1914,6 +1915,8 @@ export default function ModuleChatWindow({
                 </div>
               )}
             </div>
+            )}
+            {/* End Schedule Dropdown - Hidden */}
 
             <button
               type="submit"
@@ -2015,6 +2018,8 @@ export default function ModuleChatWindow({
                 )}
               </div>
 
+              {/* Schedule button hidden in workspace */}
+              {false && (
               <button
                 type="button"
                 onClick={() => setScheduleDropdownOpen((v) => !v)}
@@ -2027,6 +2032,7 @@ export default function ModuleChatWindow({
               >
                 ⏱ Schedule
               </button>
+              )}
             </div>
           </div>
         </form>

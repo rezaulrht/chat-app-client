@@ -336,7 +336,7 @@ export function WorkspaceProvider({ children }) {
       });
       return mod;
     },
-    [socket],
+    [],
   );
 
   const updateModule = useCallback(async (workspaceId, moduleId, data) => {
@@ -533,47 +533,36 @@ export function WorkspaceProvider({ children }) {
     };
 
     const onMention = ({ message, workspaceName, moduleName }) => {
-      toast.custom(
-        (t) => (
-          <div
-            className={`${t.visible ? "animate-in fade-in slide-in-from-top-4" : "animate-out fade-out slide-out-to-top-4"} max-w-sm w-full bg-obsidian border border-accent/30 shadow-2xl rounded-xl p-4 flex flex-col gap-2 pointer-events-auto`}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-                <span className="text-xs font-bold uppercase tracking-wider text-accent">
-                  New Mention
-                </span>
-              </div>
-              <span className="text-[10px] font-medium text-ivory/40">
-                in {workspaceName} &gt; #{moduleName}
-              </span>
+      if (!message) return;
+      const senderName = message.sender?.name ?? message.senderName ?? 'Someone';
+      const senderAvatar = message.sender?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${senderName}`;
+      toast.custom((t) => (
+        <div className={`${t.visible ? 'animate-in fade-in slide-in-from-top-4' : 'animate-out fade-out slide-out-to-top-4'} max-w-sm w-full bg-obsidian border border-accent/30 shadow-2xl rounded-xl p-4 flex flex-col gap-2 pointer-events-auto`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+              <span className="text-xs font-bold uppercase tracking-wider text-accent">New Mention</span>
             </div>
-            <div className="flex gap-3 items-start">
-              <img
-                src={
-                  message.sender?.avatar ||
-                  `https://api.dicebear.com/7.x/avataaars/svg?seed=${message.sender?.name}`
-                }
-                className="w-10 h-10 rounded-full border border-white/10"
-                alt=""
-              />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-ivory truncate">
-                  {message.sender?.name}
-                </p>
-                <p className="text-xs text-ivory/60 line-clamp-2 leading-relaxed">
-                  {message.text}
-                </p>
-              </div>
+            <span className="text-[10px] font-medium text-ivory/40">in {workspaceName} &gt; #{moduleName}</span>
+          </div>
+          <div className="flex gap-3 items-start">
+            <img 
+              src={senderAvatar}
+              className="w-10 h-10 rounded-full border border-white/10"
+              alt=""
+            />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-ivory truncate">{senderName}</p>
+              <p className="text-xs text-ivory/60 line-clamp-2 leading-relaxed">
+                {message.text}
+              </p>
             </div>
           </div>
-        ),
-        {
-          duration: 6000,
-          position: "top-right",
-        },
-      );
+        </div>
+      ), {
+        duration: 6000,
+        position: "top-right",
+      });
     };
 
     const onMemberJoined = ({ workspaceId, newMembers }) => {
@@ -627,6 +616,23 @@ export function WorkspaceProvider({ children }) {
           [workspaceId]: prev[workspaceId].filter(
             (m) => !idSet.has(m.user._id.toString()),
           ),
+        };
+      });
+    };
+
+    const onMemberBanned = ({ workspaceId, userId }) => {
+      setWorkspaces((prev) =>
+        prev.map((w) =>
+          w._id === workspaceId
+            ? { ...w, memberCount: Math.max(0, (w.memberCount || 0) - 1) }
+            : w,
+        ),
+      );
+      setMembersCache((prev) => {
+        if (!prev[workspaceId]) return prev;
+        return {
+          ...prev,
+          [workspaceId]: prev[workspaceId].filter((m) => m.user._id.toString() !== userId.toString()),
         };
       });
     };
@@ -735,14 +741,15 @@ export function WorkspaceProvider({ children }) {
     };
 
     // Online presence
-    const onPresenceOnline = ({ userId }) => {
-      setOnlineUsers((prev) => new Set([...prev, userId]));
-    };
-    const onPresenceOffline = ({ userId }) => {
+    const onPresenceUpdate = ({ userId, online }) => {
       setOnlineUsers((prev) => {
-        const n = new Set(prev);
-        n.delete(userId);
-        return n;
+        const updated = new Set(prev);
+        if (online) {
+          updated.add(userId);
+        } else {
+          updated.delete(userId);
+        }
+        return updated;
       });
     };
 
@@ -763,8 +770,8 @@ export function WorkspaceProvider({ children }) {
     socket.on("workspace:member-roles-updated", onMemberRolesUpdated);
     socket.on("workspace:owner-transferred", onOwnerTransferred);
     socket.on("workspace:kicked", onKicked);
-    socket.on("user:online", onPresenceOnline);
-    socket.on("user:offline", onPresenceOffline);
+    socket.on("workspace:member-banned", onMemberBanned);
+    socket.on("presence:update", onPresenceUpdate);
     socket.on("module:mention", onMention);
 
     return () => {
@@ -785,8 +792,8 @@ export function WorkspaceProvider({ children }) {
       socket.off("workspace:member-roles-updated", onMemberRolesUpdated);
       socket.off("workspace:owner-transferred", onOwnerTransferred);
       socket.off("workspace:kicked", onKicked);
-      socket.off("user:online", onPresenceOnline);
-      socket.off("user:offline", onPresenceOffline);
+      socket.off("workspace:member-banned", onMemberBanned);
+      socket.off("presence:update", onPresenceUpdate);
       socket.off("module:mention", onMention);
     };
   }, [socket]);

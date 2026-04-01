@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Search, Globe, Users, ChevronRight, Loader2, ArrowLeft } from "lucide-react";
+import { Search, Globe, Users, ChevronRight, Loader2, ArrowLeft, X } from "lucide-react";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import toast from "react-hot-toast";
 
@@ -14,6 +14,7 @@ export default function DiscoverWorkspacesPage() {
   const [search, setSearch] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedWorkspace, setSelectedWorkspace] = useState(null);
   const [joiningId, setJoiningId] = useState(null);
   const joiningRef = useRef(null);
 
@@ -34,6 +35,10 @@ export default function DiscoverWorkspacesPage() {
     const timer = setTimeout(fetchDiscover, 400);
     return () => clearTimeout(timer);
   }, [search, discoverWorkspaces]);
+
+  const handleCardClick = (workspace) => {
+    setSelectedWorkspace(workspace);
+  };
 
   const handleJoin = async (workspace) => {
     if (joiningRef.current === workspace._id || joiningRef.current) return;
@@ -86,7 +91,7 @@ export default function DiscoverWorkspacesPage() {
           <div className="relative rounded-3xl overflow-hidden bg-white/4 border border-white/8 p-8 md:p-12">
             <div className="absolute top-0 right-0 w-96 h-96 bg-accent/20 rounded-full blur-[100px] opacity-20 pointer-events-none" />
             <div className="relative z-10 max-w-xl">
-              <h2 className="text-3xl md:text-5xl font-display font-bold text-ivory mb-4 leading-tight">
+              <h2 className="text-2xl md:text-5xl font-display font-bold text-ivory mb-4 leading-tight wrap-break-word">
                 Find your community on microtask.
               </h2>
               <p className="text-ivory/50 text-[14px] font-mono mb-8">
@@ -131,11 +136,14 @@ export default function DiscoverWorkspacesPage() {
                   const isJoined = workspaces.some((hw) => hw._id === ws._id);
                   const isJoining = joiningId === ws._id;
                   
+                  // Ensure previewMembers is always an array
+                  const previewMembers = ws.previewMembers || [];
+                  
                   return (
                     <div
                       key={ws._id}
                       className="group flex flex-col bg-white/3 border border-white/6 rounded-3xl overflow-hidden hover:bg-white/6 hover:border-white/10 transition-all cursor-pointer shadow-lg shadow-black/20"
-                      onClick={() => handleJoin(ws)}
+                      onClick={() => handleCardClick(ws)}
                     >
                       {/* Banner */}
                       <div className="h-28 w-full bg-white/4 relative shrink-0">
@@ -172,7 +180,28 @@ export default function DiscoverWorkspacesPage() {
                           </p>
                         </div>
                         
-                        <div className="mt-auto pt-4 flex items-center justify-between">
+                        {/* Preview Members */}
+                        {previewMembers.length > 0 && (
+                          <div className="flex items-center gap-2 mb-4">
+                            <div className="flex items-center -space-x-2">
+                              {previewMembers.slice(0, 3).map((m, i) => (
+                                <img
+                                  key={i}
+                                  src={m.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.name}`}
+                                  className="w-6 h-6 rounded-full border border-obsidian bg-white/10 object-cover"
+                                  alt={m.name}
+                                />
+                              ))}
+                            </div>
+                            <span className="text-[10px] font-mono text-ivory/30">
+                              {previewMembers.length > 3 
+                                ? `${previewMembers[0]?.name} & ${previewMembers.length - 1} others`
+                                : `${previewMembers.slice(0, 2).map(m => m.name).join(', ')}`}
+                            </span>
+                          </div>
+                        )}
+                        
+                        <div className="mt-auto pt-4 flex items-center justify-between border-t border-white/5">
                           <div className="flex items-center gap-1.5 text-[11px] font-mono text-ivory/30">
                             <Users size={12} />
                             <span>{ws.memberCount} members</span>
@@ -206,6 +235,120 @@ export default function DiscoverWorkspacesPage() {
           
         </div>
       </div>
+
+      {/* ── Slide-Out Drawer / Bottom Sheet Preview ── */}
+      {selectedWorkspace && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" 
+            onClick={() => setSelectedWorkspace(null)} 
+          />
+          
+          {/* Drawer */}
+          <div className="relative w-full max-w-sm sm:max-w-md h-[90vh] sm:h-full mt-auto sm:mt-0 bg-[#0e0e17] sm:border-l border-t sm:border-t-0 border-white/10 rounded-t-3xl sm:rounded-none shadow-2xl flex flex-col overflow-hidden animate-in sm:slide-in-from-right slide-in-from-bottom duration-300">
+            
+            {/* Banner Area */}
+            <div className="h-40 w-full bg-white/4 relative shrink-0">
+              {selectedWorkspace.banner ? (
+                <div
+                  className="absolute inset-0 bg-cover bg-center"
+                  style={{ backgroundImage: `url(${selectedWorkspace.banner})` }}
+                />
+              ) : (
+                <div className="absolute inset-0 bg-linear-to-br from-accent/20 to-transparent" />
+              )}
+              <div className="absolute inset-0 bg-linear-to-t from-[#0e0e17] to-transparent" />
+              
+              <button 
+                onClick={() => setSelectedWorkspace(null)}
+                className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-ivory/60 hover:text-ivory hover:bg-black/60 transition-all border border-white/10"
+              >
+                <X size={16} />
+              </button>
+
+              <div className="absolute -bottom-8 left-6 w-20 h-20 rounded-2xl bg-[#0e0e17] p-1 shadow-2xl">
+                <div className="w-full h-full rounded-xl overflow-hidden bg-accent/10 flex items-center justify-center border border-white/10">
+                  {selectedWorkspace.avatar ? (
+                    <Image src={selectedWorkspace.avatar} width={80} height={80} alt="" className="w-full h-full object-cover" unoptimized />
+                  ) : (
+                    <span className="text-3xl font-bold text-accent/60">{selectedWorkspace.name?.[0]?.toUpperCase()}</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Content Area */}
+            <div className="pt-12 px-6 pb-6 overflow-y-auto flex-1 flex flex-col">
+              <h2 className="text-2xl font-display font-bold text-ivory mb-2 leading-tight">
+                {selectedWorkspace.name}
+              </h2>
+              
+              <div className="flex items-center gap-4 mb-6">
+                <div className="flex items-center gap-1.5 text-[12px] font-mono text-ivory/50">
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  <span>{selectedWorkspace.memberCount} members</span>
+                </div>
+                {selectedWorkspace.categories?.length > 0 && (
+                  <div className="flex gap-1.5">
+                    {selectedWorkspace.categories.map((cat, i) => (
+                      <span key={i} className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[10px] font-mono text-ivory/40 uppercase tracking-wider">
+                        {cat}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="mb-8">
+                <h3 className="text-[11px] font-mono font-bold text-ivory/30 uppercase tracking-widest mb-3">About</h3>
+                <p className="text-[14px] text-ivory/70 leading-relaxed font-mono">
+                  {selectedWorkspace.description || "No description provided for this community."}
+                </p>
+              </div>
+
+              {selectedWorkspace.previewMembers?.length > 0 && (
+                <div className="mb-8">
+                  <h3 className="text-[11px] font-mono font-bold text-ivory/30 uppercase tracking-widest mb-3">Recent Members</h3>
+                  <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                    {selectedWorkspace.previewMembers.map((m, i) => (
+                      <div key={i} className="flex flex-col items-center gap-1.5 w-14 shrink-0">
+                        <img
+                          src={m.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.name}`}
+                          className="w-10 h-10 rounded-full border border-white/10 object-cover"
+                          alt={m.name}
+                        />
+                        <span className="text-[10px] font-display text-ivory/60 truncate w-full text-center">{m.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-auto pt-6 border-t border-white/10">
+                <button
+                  disabled={joiningId === selectedWorkspace._id}
+                  onClick={() => handleJoin(selectedWorkspace)}
+                  className={`w-full py-3.5 rounded-2xl text-[14px] font-display font-bold transition-all flex items-center justify-center gap-2 ${
+                    workspaces.some((hw) => hw._id === selectedWorkspace._id)
+                      ? "bg-white/10 text-ivory hover:bg-white/15"
+                      : "bg-accent/20 text-accent hover:bg-accent hover:text-deep border border-accent/30 hover:shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)] pointer-events-auto"
+                  }`}
+                >
+                  {joiningId === selectedWorkspace._id ? (
+                    <><Loader2 size={16} className="animate-spin" /> Joining...</>
+                  ) : workspaces.some((hw) => hw._id === selectedWorkspace._id) ? (
+                    "Open Workspace"
+                  ) : (
+                    "Join Community"
+                  )}
+                </button>
+              </div>
+            </div>
+            
+          </div>
+        </div>
+      )}
     </div>
   );
 }

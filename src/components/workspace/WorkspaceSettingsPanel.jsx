@@ -152,10 +152,10 @@ export default function WorkspaceSettingsPanel({ workspaceId, onClose }) {
   const members = membersCache[workspaceId] || [];
   const filteredMembers = memberSearch.trim()
     ? members.filter(
-        ({ user: m }) =>
-          m.name?.toLowerCase().includes(memberSearch.toLowerCase()) ||
-          m.email?.toLowerCase().includes(memberSearch.toLowerCase()),
-      )
+      ({ user: m }) =>
+        m.name?.toLowerCase().includes(memberSearch.toLowerCase()) ||
+        m.email?.toLowerCase().includes(memberSearch.toLowerCase()),
+    )
     : members;
 
   const handleUserQuery = (q) => {
@@ -213,9 +213,9 @@ export default function WorkspaceSettingsPanel({ workspaceId, onClose }) {
 
   return (
     <>
-      <div className="absolute top-0 right-0 h-full w-80 glass-panel border-l border-white/[0.06] flex flex-col z-30 shadow-[-12px_0_40px_rgba(0,0,0,0.3)]">
+      <div className="absolute top-0 right-0 h-full w-80 glass-panel border-l border-white/6 flex flex-col z-30 shadow-[-12px_0_40px_rgba(0,0,0,0.3)]">
         {/* Header */}
-        <div className="h-13 px-4 flex items-center justify-between border-b border-white/[0.06]">
+        <div className="h-13 px-4 flex items-center justify-between border-b border-white/6">
           <div className="flex items-center gap-2">
             <Settings size={15} className="text-accent/60" />
             <span className="font-display font-bold text-ivory text-[14px]">
@@ -224,7 +224,7 @@ export default function WorkspaceSettingsPanel({ workspaceId, onClose }) {
           </div>
           <button
             onClick={onClose}
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-ivory/20 hover:text-ivory/60 hover:bg-white/[0.06] transition-all"
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-ivory/20 hover:text-ivory/60 hover:bg-white/6 transition-all"
           >
             <X size={15} />
           </button>
@@ -242,14 +242,14 @@ export default function WorkspaceSettingsPanel({ workspaceId, onClose }) {
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
                 maxLength={50}
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-ivory text-sm font-mono placeholder:text-ivory/20 focus:outline-none focus:border-accent/40 transition-all"
+                className="w-full bg-white/4 border border-white/8 rounded-xl px-3 py-2 text-ivory text-sm font-mono placeholder:text-ivory/20 focus:outline-none focus:border-accent/40 transition-all"
                 placeholder="Workspace name"
               />
               <input
                 value={editDesc}
                 onChange={(e) => setEditDesc(e.target.value)}
                 maxLength={120}
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-ivory text-sm font-mono placeholder:text-ivory/20 focus:outline-none focus:border-accent/40 transition-all"
+                className="w-full bg-white/4 border border-white/8 rounded-xl px-3 py-2 text-ivory text-sm font-mono placeholder:text-ivory/20 focus:outline-none focus:border-accent/40 transition-all"
                 placeholder="Description (optional)"
               />
               <button
@@ -270,7 +270,7 @@ export default function WorkspaceSettingsPanel({ workspaceId, onClose }) {
               </p>
               {inviteUrl ? (
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2 bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-2">
+                  <div className="flex items-center gap-2 bg-white/3 border border-white/6 rounded-xl px-3 py-2">
                     <Link2 size={13} className="text-accent/50 shrink-0" />
                     <span className="text-ivory/40 text-[11px] font-mono flex-1 truncate">
                       {inviteUrl}
@@ -297,7 +297,7 @@ export default function WorkspaceSettingsPanel({ workspaceId, onClose }) {
                   <select
                     value={inviteExpiry}
                     onChange={(e) => setInviteExpiry(e.target.value)}
-                    className="w-full bg-[#0f0f17] border border-white/[0.08] rounded-xl px-3 py-2 text-ivory/60 text-[12px] font-mono focus:outline-none focus:border-accent/40 transition-all appearance-none cursor-pointer"
+                    className="w-full bg-[#0f0f17] border border-white/8 rounded-xl px-3 py-2 text-ivory/60 text-[12px] font-mono focus:outline-none focus:border-accent/40 transition-all appearance-none cursor-pointer"
                   >
                     <option value="30m" className="bg-[#0f0f17] text-ivory/80">
                       Expires in 30 minutes
@@ -327,7 +327,7 @@ export default function WorkspaceSettingsPanel({ workspaceId, onClose }) {
                   <button
                     onClick={handleGenerateInvite}
                     disabled={generatingInvite}
-                    className="w-full h-9 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] text-ivory/50 hover:text-ivory text-[12px] font-display font-bold border border-white/[0.06] transition-all disabled:opacity-40 flex items-center justify-center gap-1.5"
+                    className="w-full h-9 rounded-xl bg-white/4 hover:bg-white/7 text-ivory/50 hover:text-ivory text-[12px] font-display font-bold border border-white/6 transition-all disabled:opacity-40 flex items-center justify-center gap-1.5"
                   >
                     <RefreshCw
                       size={13}
@@ -363,7 +363,7 @@ export default function WorkspaceSettingsPanel({ workspaceId, onClose }) {
                   setUserQuery("");
                   setUserResults([]);
                 }}
-                className="w-full h-9 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] text-ivory/50 hover:text-ivory text-[12px] font-display font-bold border border-white/[0.06] transition-all flex items-center justify-center gap-1.5"
+                className="w-full h-9 rounded-xl bg-white/4 hover:bg-white/7 text-ivory/50 hover:text-ivory text-[12px] font-display font-bold border border-white/6 transition-all flex items-center justify-center gap-1.5"
               >
                 <UserPlus size={13} />
                 {addingMember ? "Cancel" : "Add Member"}
@@ -381,7 +381,7 @@ export default function WorkspaceSettingsPanel({ workspaceId, onClose }) {
                       value={userQuery}
                       onChange={(e) => handleUserQuery(e.target.value)}
                       placeholder="Search by name or email..."
-                      className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl pl-8 pr-3 py-2 text-ivory text-[12px] font-mono placeholder:text-ivory/20 focus:outline-none focus:border-accent/40 transition-all"
+                      className="w-full bg-white/4 border border-white/8 rounded-xl pl-8 pr-3 py-2 text-ivory text-[12px] font-mono placeholder:text-ivory/20 focus:outline-none focus:border-accent/40 transition-all"
                     />
                   </div>
                   {searchingUsers && (
@@ -393,12 +393,12 @@ export default function WorkspaceSettingsPanel({ workspaceId, onClose }) {
                     </div>
                   )}
                   {userResults.length > 0 && (
-                    <div className="space-y-px max-h-36 overflow-y-auto scrollbar-hide rounded-xl bg-white/[0.02] border border-white/[0.06] p-1">
+                    <div className="space-y-px max-h-36 overflow-y-auto scrollbar-hide rounded-xl bg-white/2 border border-white/6 p-1">
                       {userResults.map((u) => (
                         <button
                           key={u._id}
                           onClick={() => handleAddMember(u._id)}
-                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-white/[0.05] transition-all text-left"
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-white/5 transition-all text-left"
                         >
                           <Image
                             src={
@@ -444,7 +444,7 @@ export default function WorkspaceSettingsPanel({ workspaceId, onClose }) {
                     value={memberSearch}
                     onChange={(e) => setMemberSearch(e.target.value)}
                     placeholder="Filter members..."
-                    className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl pl-8 pr-3 py-2 text-ivory text-[12px] font-mono placeholder:text-ivory/20 focus:outline-none focus:border-accent/40 transition-all"
+                    className="w-full bg-white/4 border border-white/8 rounded-xl pl-8 pr-3 py-2 text-ivory text-[12px] font-mono placeholder:text-ivory/20 focus:outline-none focus:border-accent/40 transition-all"
                   />
                 </div>
               )}
@@ -469,7 +469,7 @@ export default function WorkspaceSettingsPanel({ workspaceId, onClose }) {
                   return (
                     <div
                       key={member._id}
-                      className="flex items-center gap-2 px-2 py-2 rounded-xl hover:bg-white/[0.03] group"
+                      className="flex items-center gap-2 px-2 py-2 rounded-xl hover:bg-white/3 group"
                     >
                       {/* Avatar */}
                       <Image
@@ -479,7 +479,7 @@ export default function WorkspaceSettingsPanel({ workspaceId, onClose }) {
                         }
                         width={28}
                         height={28}
-                        className="rounded-lg shrink-0 ring-1 ring-white/[0.06]"
+                        className="rounded-lg shrink-0 ring-1 ring-white/6"
                         alt={member.name}
                         unoptimized
                       />
@@ -552,7 +552,7 @@ export default function WorkspaceSettingsPanel({ workspaceId, onClose }) {
                   } catch (err) {
                     toast.error(
                       err?.response?.data?.message ||
-                        "Failed to leave workspace",
+                      "Failed to leave workspace",
                     );
                   }
                 }}
@@ -565,11 +565,10 @@ export default function WorkspaceSettingsPanel({ workspaceId, onClose }) {
               <button
                 onClick={handleDelete}
                 disabled={deleting}
-                className={`w-full h-9 rounded-xl text-[12px] font-display font-bold border transition-all flex items-center justify-center gap-1.5 ${
-                  confirmDelete
+                className={`w-full h-9 rounded-xl text-[12px] font-display font-bold border transition-all flex items-center justify-center gap-1.5 ${confirmDelete
                     ? "bg-red-500/25 border-red-500/50 text-red-300"
                     : "bg-red-500/8 border-red-500/15 text-red-400/70 hover:bg-red-500/15 hover:text-red-400"
-                }`}
+                  }`}
               >
                 <Trash2 size={13} />
                 {deleting

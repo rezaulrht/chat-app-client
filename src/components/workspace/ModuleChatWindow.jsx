@@ -925,7 +925,9 @@ export default function ModuleChatWindow({
             onClick={onToggleSidebar}
             className="md:hidden w-8 h-8 rounded-xl bg-white/4 flex items-center justify-center text-ivory/30 hover:text-ivory transition-colors"
           >
-            <Menu size={18} />
+            <div className="relative w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center shrink-0 ring-1 ring-white/6 overflow-hidden">
+              <Menu size={18} />
+            </div>
           </button>
           <ModuleIcon size={17} className="text-accent/60 shrink-0" />
           <div>
@@ -1091,7 +1093,7 @@ export default function ModuleChatWindow({
                   onTouchMove={handleTouchEnd}
                 >
                   {/* Sender avatar — always shown in modules */}
-                  <div className="w-8 h-8 rounded-xl overflow-hidden shrink-0 mt-0.5 ring-1 ring-white/[0.06]">
+                  <div className="w-8 h-8 rounded-xl overflow-hidden shrink-0 mt-0.5 ring-1 ring-white/6">
                     <Image
                       src={
                         msg.sender?.avatar ||
@@ -1956,18 +1958,17 @@ export default function ModuleChatWindow({
             </button>
 
             {/* Mobile-only expanded toolbar row */}
-            <div className="lg:hidden w-full flex items-center gap-1 pt-1 border-t border-white/5 mt-1">
+            <div className="sm:hidden w-full flex items-center gap-1.5 pt-2 border-t border-white/5 mt-1 overflow-x-auto scrollbar-hide pb-1">
               <button
                 type="button"
                 onClick={() => {
                   setShowGifPicker(!showGifPicker);
                   setShowEmojiPicker(false);
                 }}
-                className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${
-                  showGifPicker
-                    ? "bg-accent/20 border-accent/40 text-accent"
-                    : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
-                }`}
+                className={`shrink-0 px-2.5 py-1.5 text-[11px] font-black rounded-lg border transition-all ${showGifPicker
+                  ? "bg-accent/20 border-accent/40 text-accent"
+                  : "bg-white/4 border-white/10 text-ivory/50 hover:text-ivory"
+                  }`}
               >
                 GIF
               </button>
@@ -1995,12 +1996,12 @@ export default function ModuleChatWindow({
                   onClick={() => setAiMenuOpen((v) => !v)}
                   title="AI tools"
                   aria-label="AI tools"
-                  className={`inline-flex items-center gap-1 px-2 py-1 text-[10px] font-black rounded-md border transition-all ${
+                  className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-black rounded-lg border transition-all ${
                     aiMenuOpen
                       ? "bg-accent/20 border-accent/40 text-accent"
                       : aiReplies.length > 0 || tonePickerOpen
                         ? "bg-accent/20 border-accent/40 text-accent"
-                        : "bg-white/4 border-white/10 text-ivory/30 hover:bg-accent/10 hover:border-accent/30 hover:text-accent"
+                        : "bg-white/4 border-white/10 text-ivory/50 hover:text-ivory"
                   }`}
                 >
                   ✦ AI
@@ -2041,11 +2042,10 @@ export default function ModuleChatWindow({
               <button
                 type="button"
                 onClick={() => setScheduleDropdownOpen((v) => !v)}
-                className={`mobile-schedule-trigger px-2 py-1 text-[10px] font-black rounded-md border transition-all ${
-                  scheduleDropdownOpen
-                    ? "bg-accent/20 border-accent/40 text-accent"
-                    : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
-                }`}
+                className={`mobile-schedule-trigger shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-black rounded-lg border transition-all ${scheduleDropdownOpen
+                  ? "bg-accent/20 border-accent/40 text-accent"
+                  : "bg-white/4 border-white/10 text-ivory/50 hover:text-ivory"
+                  }`}
                 title="Schedule or view pending"
               >
                 ⏱ Schedule

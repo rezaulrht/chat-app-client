@@ -18,7 +18,7 @@ export default function MobileWorkspaceSidebar({
   const { workspaces, loadingWorkspaces } = useWorkspace();
 
   return (
-    <div className="md:hidden flex flex-col h-full bg-deep overflow-hidden">
+    <div className="md:hidden flex flex-col h-full min-h-0 overflow-hidden glass-panel border-r border-white/[0.08]">
       {/* Gradient top border */}
       <div
         className="h-px shrink-0"
@@ -47,11 +47,10 @@ export default function MobileWorkspaceSidebar({
                   aria-label={ws.name}
                 >
                   <div
-                    className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-display font-bold transition-all ${
-                      isActive
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-display font-bold transition-all ${isActive
                         ? "bg-accent/15 border-2 border-accent/50 text-accent shadow-[0_0_12px_rgba(0,211,187,0.15)]"
                         : "bg-white/[0.07] border border-white/[0.08] text-ivory/50 group-hover:bg-white/[0.1]"
-                    }`}
+                      }`}
                   >
                     {ws.avatar ? (
                       <img
@@ -64,9 +63,8 @@ export default function MobileWorkspaceSidebar({
                     )}
                   </div>
                   <span
-                    className={`text-[9px] font-mono font-bold text-center max-w-[44px] leading-tight ${
-                      isActive ? "text-accent" : "text-ivory/30"
-                    }`}
+                    className={`text-[9px] font-mono font-bold text-center max-w-[44px] leading-tight ${isActive ? "text-accent" : "text-ivory/30"
+                      }`}
                   >
                     {ws.name?.split(" ").map((word, i, arr) => (
                       <React.Fragment key={i}>

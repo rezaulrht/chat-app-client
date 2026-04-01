@@ -24,27 +24,26 @@ const WordSpyVotePhase = ({ onSubmitVote }) => {
   return (
     <div className="flex flex-col h-full p-6 gap-4">
       <WordSpyTimer phaseEndsAt={phaseEndsAt} totalDurationMs={45000} />
-      <h2 className="text-white font-semibold">Who is the impostor?</h2>
+      <h2 className="text-ivory font-semibold">Who is the impostor?</h2>
       <div className="flex-1 overflow-y-auto space-y-3">
-        <p className="text-white/40 text-xs uppercase tracking-widest">Hints</p>
+        <p className="text-ivory/40 text-xs uppercase tracking-widest">Hints</p>
         {hints.map((h) => (
           <div key={String(h.userId)} className="bg-white/5 border border-white/10 rounded-xl p-4">
-            <p className="text-white/50 text-xs mb-1">{h.displayName}</p>
-            <p className="text-white text-sm">{h.hint}</p>
+            <p className="text-ivory/50 text-xs mb-1">{h.displayName}</p>
+            <p className="text-ivory text-sm">{h.hint}</p>
           </div>
         ))}
-        <p className="text-white/40 text-xs uppercase tracking-widest mt-4">Vote</p>
+        <p className="text-ivory/40 text-xs uppercase tracking-widest mt-4">Vote</p>
         {connected.filter((p) => String(p.userId) !== myId).map((p) => (
           <button key={String(p.userId)} onClick={() => handleVote(p.userId)}
-            className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${
-              voted === String(p.userId)
-                ? "border-accent bg-accent/10 text-white"
-                : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:bg-white/10"
-            }`}>
+            className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${voted === String(p.userId)
+                ? "border-accent bg-accent/10 text-ivory"
+                : "border-white/10 bg-white/5 text-ivory/70 hover:border-white/20 hover:bg-white/10"
+              }`}>
             {p.avatar ? (
-              <img src={p.avatar} alt={p.displayName} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+              <img src={p.avatar} alt={p.displayName} className="w-8 h-8 rounded-full object-cover shrink-0" />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-xs text-accent flex-shrink-0">
+              <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-xs text-accent shrink-0">
                 {p.displayName?.[0]?.toUpperCase()}
               </div>
             )}

@@ -7,6 +7,7 @@ import { X, Calendar, MoreHorizontal } from "lucide-react";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import useIsAdmin from "@/hooks/useIsAdmin";
 import toast from "react-hot-toast";
+import { confirmSweetAlert } from "@/utils/sweetAlert";
 
 function RoleBadge({ role, isAdmin, onRemove }) {
   return (
@@ -107,7 +108,12 @@ function ActionBar({ isAdmin, member, workspaceId, onMessage, onClose, removeMem
   const userId = member.user._id?.toString();
 
   const handleKick = async () => {
-    if (!confirm(`Kick ${member.user.name} from this workspace?`)) return;
+    if (!(await confirmSweetAlert({
+      title: "Kick Member?",
+      text: `Kick ${member.user.name} from this workspace?`,
+      confirmButtonText: "Kick",
+      icon: "warning",
+    }))) return;
     try {
       await removeMembers(workspaceId, [userId]);
       toast.success(`${member.user.name} was kicked`);
@@ -118,7 +124,12 @@ function ActionBar({ isAdmin, member, workspaceId, onMessage, onClose, removeMem
   };
 
   const handleBan = async () => {
-    if (!confirm(`Ban ${member.user.name}? They won't be able to rejoin.`)) return;
+    if (!(await confirmSweetAlert({
+      title: "Ban Member?",
+      text: `Ban ${member.user.name}? They won't be able to rejoin.`,
+      confirmButtonText: "Ban",
+      icon: "warning",
+    }))) return;
     try {
       await banMember(workspaceId, userId);
       toast.success(`${member.user.name} was banned`);
@@ -174,7 +185,12 @@ function MoreMenu({ isAdmin, member, workspaceId, onClose, onMessage, updateMemb
   };
 
   const handleKick = async () => {
-    if (!confirm(`Kick ${member.user.name}?`)) return;
+    if (!(await confirmSweetAlert({
+      title: "Kick Member?",
+      text: `Kick ${member.user.name}?`,
+      confirmButtonText: "Kick",
+      icon: "warning",
+    }))) return;
     try {
       await removeMembers(workspaceId, [userId]);
       toast.success(`${member.user.name} was kicked`);
@@ -185,7 +201,12 @@ function MoreMenu({ isAdmin, member, workspaceId, onClose, onMessage, updateMemb
   };
 
   const handleBan = async () => {
-    if (!confirm(`Ban ${member.user.name}?`)) return;
+    if (!(await confirmSweetAlert({
+      title: "Ban Member?",
+      text: `Ban ${member.user.name}?`,
+      confirmButtonText: "Ban",
+      icon: "warning",
+    }))) return;
     try {
       await banMember(workspaceId, userId);
       toast.success(`${member.user.name} was banned`);

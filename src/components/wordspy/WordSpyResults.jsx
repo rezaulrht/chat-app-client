@@ -19,14 +19,14 @@ const WordSpyResults = ({ onPlayAgain, onDisband }) => {
       <div className="text-center">
         <p className="text-yellow-400 text-xs uppercase tracking-widest mb-2">Game Over</p>
         <Trophy size={40} className="mx-auto text-yellow-400 mb-2" />
-        <h2 className="text-white font-black text-2xl">{winner?.displayName} wins!</h2>
-        <p className="text-white/40 text-sm">{winner?.score} points</p>
+        <h2 className="text-ivory font-black text-2xl">{winner?.displayName} wins!</h2>
+        <p className="text-ivory/40 text-sm">{winner?.score} points</p>
       </div>
       <div className="w-full max-w-sm space-y-3">
         {sorted.map((s, i) => (
           <div key={String(s.userId)} className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/10">
-            <span className="text-white/30 font-mono text-sm w-5">#{i + 1}</span>
-            <span className="text-white text-sm flex-1">{s.displayName}</span>
+            <span className="text-ivory/30 font-mono text-sm w-5">#{i + 1}</span>
+            <span className="text-ivory text-sm flex-1">{s.displayName}</span>
             <span className="text-accent font-mono font-bold">{s.score}</span>
           </div>
         ))}

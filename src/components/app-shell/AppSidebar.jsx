@@ -1,6 +1,7 @@
 // chat-app-client/src/components/app-shell/AppSidebar.jsx
 "use client";
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import Image from "next/image";
 import { LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react";
@@ -175,12 +176,13 @@ export default function AppSidebar({
            }}
         />
       )}
-      {showFullProfile && (
+      {showFullProfile && createPortal(
         <FullUserProfile 
           user={user}
           isOwnProfile={true}
           onClose={() => setShowFullProfile(false)} 
-        />
+        />,
+        document.body
       )}
     </div>
   );

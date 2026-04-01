@@ -180,6 +180,16 @@ function ProfilePage() {
   const [activeSection, setActiveSection] = useState(getInitialTab);
   const [activePost, setActivePost] = useState(null);
 
+  // Handle OAuth cancellation feedback
+  useEffect(() => {
+    const cancelled = searchParams?.get("cancelled");
+    if (cancelled === "true") {
+      toast.error("Account linking was cancelled");
+      // Clean up URL without reload
+      window.history.replaceState({}, "", "/profile?tab=connections");
+    }
+  }, [searchParams]);
+
   // ── My posts (real API) ───────────────────────────────────────────────
   const [myPosts, setMyPosts] = useState([]);
   const [myPostsLoading, setMyPostsLoading] = useState(false);
@@ -334,10 +344,16 @@ function ProfilePage() {
     try {
       const res = await api.post(`/api/user/social-links/init/${provider}`);
       if (res.data.authUrl) {
-        window.location.href = res.data.authUrl;
+        // Show a toast indicating the linking process has started
+        toast.success(`Connecting ${provider === 'google' ? 'Google' : 'GitHub'} account...`);
+        // Use a small delay to allow the toast to show before redirect
+        setTimeout(() => {
+          window.location.href = res.data.authUrl;
+        }, 500);
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to start linking");
+      const errorMsg = err.response?.data?.message || "Failed to start linking";
+      toast.error(errorMsg);
       setLinkingProvider(null);
     }
   };

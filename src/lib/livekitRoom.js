@@ -151,7 +151,7 @@ export async function connectRoom(
     if (typeof newRoom !== "undefined") {
       try {
         await newRoom.disconnect();
-      } catch (_) {}
+      } catch (_) { }
     }
     notify();
     if (options?.throwOnError) {

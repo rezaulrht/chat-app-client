@@ -382,11 +382,10 @@ function OverviewTab({ workspace, onUpdate }) {
                 <button
                   key={v.id}
                   onClick={() => setVisibility(v.id)}
-                  className={`flex-1 flex flex-col items-start gap-1 p-4 rounded-2xl border transition-all text-left ${
-                    isActive
+                  className={`flex-1 flex flex-col items-start gap-1 p-4 rounded-2xl border transition-all text-left ${isActive
                       ? "border-accent/40 bg-accent/5 ring-1 ring-accent/20"
                       : "border-white/8 bg-white/3 text-ivory/30 hover:bg-white/5 hover:border-white/15"
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <Icon
@@ -1049,8 +1048,8 @@ function MembersTab({
                                       onClick={async () => {
                                         const newIds = hasRole
                                           ? (m.roleIds || []).filter(
-                                              (id) => id !== role._id,
-                                            )
+                                            (id) => id !== role._id,
+                                          )
                                           : [...(m.roleIds || []), role._id];
                                         try {
                                           await onAssignRoles(m.user._id, newIds);
@@ -1762,13 +1761,12 @@ export default function WorkspaceSettingsModal({ workspaceId, onClose }) {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-medium transition-all ${
-                  isActive
+                className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-medium transition-all ${isActive
                     ? "bg-accent/15 text-accent border border-accent/20"
                     : tab.id === "danger"
                       ? "text-red-400/60 hover:text-red-400 hover:bg-red-500/10 border border-transparent"
                       : "text-ivory/40 hover:text-ivory border border-transparent hover:bg-white/5"
-                }`}
+                  }`}
               >
                 <Icon size={12} />
                 {tab.label}
@@ -1800,13 +1798,12 @@ export default function WorkspaceSettingsModal({ workspaceId, onClose }) {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12px] font-medium transition-all ${
-                    isActive
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12px] font-medium transition-all ${isActive
                       ? "bg-accent/12 text-accent"
                       : tab.id === "danger"
                         ? "text-red-400/50 hover:text-red-400 hover:bg-red-500/8"
                         : "text-ivory/35 hover:text-ivory/60 hover:bg-white/4"
-                  }`}
+                    }`}
                 >
                   <Icon size={14} />
                   {tab.label}

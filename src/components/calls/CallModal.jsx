@@ -60,15 +60,24 @@ export default function CallModal() {
 
   const localParticipant = room?.localParticipant;
 
+  // Reset mute state whenever a new call starts
+  useEffect(() => {
+    if (activeCall && !activeCall.pending) {
+      setIsMuted(false);
+    }
+  }, [activeCall?.roomName]);
+
   const toggleMute = () => {
+    if (!localParticipant) return;
     const nowMuted = !isMuted;
-    localParticipant?.setMicrophoneEnabled(!nowMuted);
+    localParticipant.setMicrophoneEnabled(!nowMuted);
     setIsMuted(nowMuted);
   };
 
   const toggleVideo = () => {
+    if (!localParticipant) return;
     if (activeCall?.callType === "video") {
-      localParticipant?.setCameraEnabled(isVideoOff);
+      localParticipant.setCameraEnabled(isVideoOff);
       setIsVideoOff(!isVideoOff);
     }
   };

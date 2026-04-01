@@ -72,9 +72,18 @@ export default function VoiceChannelBar() {
     disconnect(); // release mic in background
   };
 
+  // Reset mute state whenever we join a new voice channel
+  useEffect(() => {
+    if (activeCall?.isVoiceChannel) {
+      setIsMuted(false);
+    }
+  }, [activeCall?.roomName]);
+
   const toggleMute = () => {
+    const lp = room?.localParticipant;
+    if (!lp) return;
     const nowMuted = !isMuted;
-    room?.localParticipant?.setMicrophoneEnabled(!nowMuted);
+    lp.setMicrophoneEnabled(!nowMuted);
     setIsMuted(nowMuted);
   };
 

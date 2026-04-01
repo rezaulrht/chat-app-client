@@ -134,6 +134,36 @@ export default function ModuleChatWindow({
   const isAnnouncement = activeModule?.type === "announcement";
   const isAdminOrOwner =
     workspace?.myRole === "owner" || workspace?.myRole === "admin";
+  
+  // Permission checking for SEND_MESSAGES
+  const hasSendMessagesPermission = useCallback(() => {
+    // Legacy admin/owner always have permission
+    if (workspace?.myRole === "owner" || workspace?.myRole === "admin") {
+      return true;
+    }
+    
+    // Check custom roles for SEND_MESSAGES permission
+    const members = membersCache[workspaceId] || [];
+    const myMember = members.find(m => m.user?._id?.toString() === user?._id?.toString());
+    
+    if (!myMember) return false;
+    
+    const myRoleIds = myMember.roleIds || [];
+    const roles = workspace?.roles || [];
+    
+    // If no custom roles, default members can send messages
+    if (myRoleIds.length === 0) {
+      return true;
+    }
+    
+    // Check if any custom role has SEND_MESSAGES permission
+    return myRoleIds.some(roleId => {
+      const role = roles.find(r => r._id?.toString() === roleId?.toString());
+      return role?.permissions?.includes("SEND_MESSAGES");
+    });
+  }, [workspace, user, membersCache, workspaceId]);
+  
+  const canSendMessages = hasSendMessagesPermission();
 
   // ── Local UI state ────────────────────────────────────────────────────────
   const [text, setText] = useState("");
@@ -469,7 +499,22 @@ export default function ModuleChatWindow({
           return (
             <span
               key={`${mention.id}-${i}`}
-              className="inline-flex items-center gap-1 bg-[#5865f2]/20 text-white font-semibold px-1 py-0.5 mx-px rounded shadow-sm border border-[#5865f2]/30"
+              onClick={(e) => {
+                e.stopPropagation();
+                // Find the member and show their profile
+                const member = (membersCache?.[workspaceId] || []).find(
+                  (m) => m.user?._id === mention.id || m.user?.name === mention.name
+                );
+                if (member) {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setProfileTarget({
+                    member,
+                    x: rect.right + 8,
+                    y: rect.top,
+                  });
+                }
+              }}
+              className="inline-flex items-center gap-1 bg-accent/20 text-accent font-semibold px-1 py-0.5 mx-px rounded cursor-pointer hover:bg-accent/30 transition-colors border border-accent/30"
             >
               <Image
                 src={
@@ -973,7 +1018,7 @@ export default function ModuleChatWindow({
   }
 
   const ModuleIcon = isAnnouncement ? Megaphone : Hash;
-  const canType = !isAnnouncement || isAdminOrOwner;
+  const canType = (!isAnnouncement || isAdminOrOwner) && canSendMessages;
 
   return (
     <main
@@ -1987,7 +2032,7 @@ export default function ModuleChatWindow({
                   ✦ AI
                 </button>
                 {aiMenuOpen && (
-                  <div className="absolute bottom-full mb-1 left-0 sm:left-auto sm:right-0 w-44 max-w-[calc(100vw-1rem)] bg-deep border border-white/10 rounded-lg shadow-lg overflow-hidden z-50">
+                  <div className="absolute bottom-full mb-2 left-0 w-48 max-w-[calc(100vw-2rem)] bg-deep border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
                     <button
                       type="button"
                       className="w-full text-left px-3 py-2 text-[11px] text-ivory/70 hover:bg-white/6 hover:text-ivory transition-colors"
@@ -2037,9 +2082,31 @@ export default function ModuleChatWindow({
           </div>
         </form>
       ) : (
-        <div className="mx-3 mb-3 px-4 py-3 bg-white/3 border border-white/6 rounded-2xl text-center">
-          <p className="text-ivory/20 text-[12px] font-mono">
-            Only admins and owners can post in announcement modules
+        <div className="mx-3 mb-3 px-4 py-3 bg-red-500/5 border border-red-500/20 rounded-2xl text-center">
+          <div className="flex items-center justify-center gap-2 mb-1">
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              width="16" 
+              height="16" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+              className="text-red-400"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+            <p className="text-red-400 text-[12px] font-bold font-mono">
+              {isAnnouncement && !isAdminOrOwner 
+                ? "Only admins and owners can post in announcement modules" 
+                : "You don't have permission to send messages in this channel"}
+            </p>
+          </div>
+          <p className="text-red-400/50 text-[10px] font-mono">
+            Contact a workspace admin to request message permissions
           </p>
         </div>
       )}

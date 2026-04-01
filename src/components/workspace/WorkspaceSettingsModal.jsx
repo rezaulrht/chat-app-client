@@ -1654,12 +1654,16 @@ export default function WorkspaceSettingsModal({ workspaceId, onClose }) {
       .filter(Boolean);
   }, [workspace?.roles, myRoleIds]);
   const hasPermission = useCallback(
-    (...permissions) =>
-      isOwner ||
-      isLegacyAdmin ||
-      myWorkspaceRoles.some((role) =>
+    (...permissions) => {
+      // Owner and legacy admin always have full access
+      if (isOwner || isLegacyAdmin) return true;
+      
+      // Check if user has any of the required permissions via custom roles
+      // This includes ADMINISTRATOR permission granted through custom roles
+      return myWorkspaceRoles.some((role) =>
         permissions.some((permission) => role.permissions?.includes(permission)),
-      ),
+      );
+    },
     [isOwner, isLegacyAdmin, myWorkspaceRoles],
   );
   const canManageWorkspace = hasPermission("ADMINISTRATOR", "MANAGE_WORKSPACE");

@@ -291,14 +291,24 @@ function ProfilePage() {
     setPendingBannerImage(null);
     setSavingBanner(true);
     try {
-      const res = await api.put("/api/user/banner", { banner: croppedImage });
-      if (res.data) {
-        setBannerPreview(res.data.banner);
-        setBannerData(null);
+      // The endpoint is at /api/auth/me/banner but needs FormData
+      const formData = new FormData();
+      // Convert base64 data URL to blob
+      const response = await fetch(croppedImage);
+      const blob = await response.blob();
+      formData.append("image", blob, "banner.jpg");
+
+      const res = await api.patch("/api/auth/me/banner", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      if (res.data?.banner) {
+        setUser((prev) => ({ ...prev, banner: res.data.banner }));
         toast.success("Banner updated!");
       }
     } catch (err) {
-      toast.error("Failed to save banner");
+      console.error("Banner save error:", err);
+      toast.error(err.response?.data?.message || "Failed to save banner");
     } finally {
       setSavingBanner(false);
     }
@@ -307,11 +317,13 @@ function ProfilePage() {
   const handleRemoveBanner = async () => {
     setSavingBanner(true);
     try {
-      await api.put("/api/user/banner", { banner: "" });
+      await api.patch("/api/auth/me/banner", { banner: "" });
+      setUser((prev) => ({ ...prev, banner: null }));
       setBannerPreview("");
       setBannerData(null);
       toast.success("Banner removed");
     } catch (err) {
+      console.error("Banner remove error:", err);
       toast.error("Failed to remove banner");
     } finally {
       setSavingBanner(false);

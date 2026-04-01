@@ -5,7 +5,7 @@ import { X, RotateCcw, ZoomIn, ZoomOut, AlertCircle } from "lucide-react";
 
 /**
  * ImageCropModal
- * Banner cropper with 16:9 aspect ratio overlay
+ * Banner cropper with Discord banner aspect ratio (5:2) overlay
  * 
  * Features:
  * - Drag to position image
@@ -114,11 +114,14 @@ export default function ImageCropModal({
         return () => observer.disconnect();
     }, []);
 
-    // Calculate 16:9 crop dimensions
+    // Calculate Discord banner crop dimensions (600x240 = 5:2 ratio)
     const getCropDimensions = useCallback(() => {
         // Use default dimensions if container not measured yet
         const width = containerSize.width || 800;
         const height = containerSize.height || 500;
+        
+        // Discord banner aspect ratio is 5:2 (2.5:1)
+        const aspectRatio = 5 / 2;
         
         const padding = 40;
         const availableWidth = width - padding * 2;
@@ -126,12 +129,14 @@ export default function ImageCropModal({
 
         let cropWidth, cropHeight;
         
-        if (availableWidth / availableHeight > 16 / 9) {
+        if (availableWidth / availableHeight > aspectRatio) {
+            // Container is wider than needed - fit to height
             cropHeight = availableHeight;
-            cropWidth = cropHeight * (16 / 9);
+            cropWidth = cropHeight * aspectRatio;
         } else {
+            // Container is taller than needed - fit to width
             cropWidth = availableWidth;
-            cropHeight = cropWidth / (16 / 9);
+            cropHeight = cropWidth / aspectRatio;
         }
 
         return {
@@ -184,10 +189,10 @@ export default function ImageCropModal({
         const scaleX = image.naturalWidth / image.width;
         const scaleY = image.naturalHeight / image.height;
         
-        // Create output canvas at 1920x1080
+        // Discord banner output: 1200x480 (5:2 ratio, 2x Discord's 600x240)
         const outputCanvas = document.createElement("canvas");
-        const targetWidth = 1920;
-        const targetHeight = 1080;
+        const targetWidth = 1200;
+        const targetHeight = 480;
         outputCanvas.width = targetWidth;
         outputCanvas.height = targetHeight;
         const ctx = outputCanvas.getContext("2d");
@@ -274,7 +279,7 @@ export default function ImageCropModal({
                             Crop Banner
                         </h2>
                         <p className="text-ivory/50 text-sm mt-0.5">
-                            Drag to position, scroll to zoom. 16:9 ratio required.
+                            Drag to position, scroll to zoom. Discord banner (5:2) ratio.
                         </p>
                     </div>
                     <button

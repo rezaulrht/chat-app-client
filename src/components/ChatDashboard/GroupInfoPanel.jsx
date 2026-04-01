@@ -219,7 +219,7 @@ export default function GroupInfoPanel({
     try {
       const res = await api.patch(
         `/api/chat/conversations/${convId}/members/remove`,
-        { userId },
+        { userIds: [userId] },
       );
       onConversationUpdate?.(res.data);
       toast.success("Member removed");
@@ -579,7 +579,10 @@ export default function GroupInfoPanel({
                 <div className="flex flex-wrap gap-2">
                   {PALETTE.map((c) => (
                     <button
+                      type="button"
                       key={c}
+                      aria-label={`Set chat colour to ${c}`}
+                      title={`Set chat colour to ${c}`}
                       onClick={() => {
                         update("color", c);
                         setShowPalette(false);

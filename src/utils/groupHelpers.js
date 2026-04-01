@@ -90,7 +90,18 @@ export function getMemberRole(conv, userId) {
  * @param {string} currentUserId - The viewing user's _id
  * @returns {string}
  */
-export function getGroupLastMessagePreview(lastMessage, currentUserId) {
+function getNicknameValue(nicknames, userId) {
+  if (!nicknames || !userId) return null;
+  if (nicknames instanceof Map) return nicknames.get(userId) || null;
+  if (typeof nicknames === "object") return nicknames[userId] || null;
+  return null;
+}
+
+export function getGroupLastMessagePreview(
+  lastMessage,
+  currentUserId,
+  nicknames,
+) {
   if (!lastMessage) return "No messages yet";
 
   // Resolve sender identity
@@ -101,9 +112,15 @@ export function getGroupLastMessagePreview(lastMessage, currentUserId) {
 
   const senderName =
     typeof lastMessage.sender === "object" ? lastMessage.sender?.name : null;
+  const senderNickname = getNicknameValue(nicknames, senderId);
 
   const isMe = senderId === currentUserId;
-  const prefix = isMe ? "You" : senderName ? senderName.split(" ")[0] : null;
+  const senderDisplayName = senderNickname || senderName;
+  const prefix = isMe
+    ? "You"
+    : senderDisplayName
+      ? senderDisplayName.split(" ")[0]
+      : null;
 
   // Determine content label
   let content;

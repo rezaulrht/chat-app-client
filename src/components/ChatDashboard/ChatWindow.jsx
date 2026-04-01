@@ -238,7 +238,6 @@ export default function ChatWindow({
   const [showScheduledPanel, setShowScheduledPanel] = useState(false);
   const [loadingScheduled, setLoadingScheduled] = useState(false);
   const scheduleDropdownRef = useRef(null);
-  const scheduleMobileTriggerRef = useRef(null);
 
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editedText, setEditedText] = useState("");
@@ -307,17 +306,10 @@ export default function ChatWindow({
       if (aiMenuOpen && outsideDesktop && outsideMobile) {
         setAiMenuOpen(false);
       }
-      const outsideScheduleDesktop =
+      const outsideScheduleDropdown =
         !scheduleDropdownRef.current ||
         !scheduleDropdownRef.current.contains(e.target);
-      const outsideScheduleMobile =
-        !scheduleMobileTriggerRef.current ||
-        !scheduleMobileTriggerRef.current.contains(e.target);
-      if (
-        scheduleDropdownOpen &&
-        outsideScheduleDesktop &&
-        outsideScheduleMobile
-      ) {
+      if (scheduleDropdownOpen && outsideScheduleDropdown) {
         setScheduleDropdownOpen(false);
       }
     };
@@ -2768,7 +2760,7 @@ export default function ChatWindow({
               ✦ AI
             </button>
             {aiMenuOpen && (
-              <div className="absolute bottom-full mb-1 right-0 w-44 bg-deep border border-white/10 rounded-lg shadow-lg overflow-hidden z-50">
+              <div className="absolute bottom-full mb-1 left-0 sm:left-auto sm:right-0 w-44 max-w-[calc(100vw-1rem)] bg-deep border border-white/10 rounded-lg shadow-lg overflow-hidden z-50">
                 <button
                   type="button"
                   className="w-full text-left px-3 py-2 text-[11px] text-ivory/70 hover:bg-white/6 hover:text-ivory transition-colors"
@@ -2838,91 +2830,86 @@ export default function ChatWindow({
             <Smile size={20} />
           </button>
 
-          {/* Clock / Schedule dropdown (DM only) */}
-          {!isGroup && (
-            <div
-              ref={scheduleDropdownRef}
-              className="relative hidden lg:inline-flex"
+          {/* Clock / Schedule dropdown */}
+          <div ref={scheduleDropdownRef} className="relative inline-flex">
+            <button
+              type="button"
+              onClick={() => setScheduleDropdownOpen((v) => !v)}
+              className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${scheduleDropdownOpen ? "bg-accent/20 text-accent" : "text-ivory/30 hover:text-ivory/60"}`}
+              title="Schedule message"
             >
-              <button
-                type="button"
-                onClick={() => setScheduleDropdownOpen((v) => !v)}
-                className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${scheduleDropdownOpen ? "bg-accent/20 text-accent" : "text-ivory/30 hover:text-ivory/60"}`}
-                title="Schedule message"
-              >
-                <Clock size={18} />
-              </button>
+              <Clock size={18} />
+            </button>
 
-              {scheduleDropdownOpen && (
-                <div className="absolute bottom-full right-0 mb-2 w-56 bg-deep border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                  <div className="px-4 py-3 border-b border-white/8 flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-ivory/40">
-                      Schedule Message
-                    </span>
+            {scheduleDropdownOpen && (
+              <div className="absolute bottom-full right-0 mb-2 w-56 bg-deep border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                <div className="px-4 py-3 border-b border-white/8 flex items-center justify-between">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-ivory/40">
+                    Schedule Message
+                  </span>
+                  <button
+                    onClick={() => setScheduleDropdownOpen(false)}
+                    className="text-ivory/20 hover:text-ivory transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+                <div className="p-3 space-y-2">
+                  <div>
+                    <label className="text-[11px] font-mono text-ivory/50 mb-2 block">
+                      Send at
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={sendAt}
+                      min={new Date(
+                        Date.now() - new Date().getTimezoneOffset() * 60000,
+                      )
+                        .toISOString()
+                        .slice(0, 16)}
+                      onChange={(e) => setSendAt(e.target.value)}
+                      className="w-full bg-white/4 border border-white/10 rounded-lg px-2.5 py-2 text-xs text-ivory/80 outline-none focus:border-accent/40 transition-colors"
+                    />
                     <button
-                      onClick={() => setScheduleDropdownOpen(false)}
-                      className="text-ivory/20 hover:text-ivory transition-colors"
+                      type="button"
+                      onClick={async () => {
+                        if (!sendAt) {
+                          toast.error("Please select a date and time");
+                          return;
+                        }
+                        await scheduleMessage();
+                        setScheduleDropdownOpen(false);
+                      }}
+                      disabled={!sendAt || scheduling}
+                      className="w-full mt-2 px-3 py-1.5 bg-accent/20 hover:bg-accent/30 disabled:opacity-50 disabled:cursor-not-allowed text-accent text-[11px] font-bold rounded-lg transition-all"
                     >
-                      <X size={14} />
+                      {scheduling ? "Scheduling..." : "Schedule"}
                     </button>
                   </div>
-                  <div className="p-3 space-y-2">
-                    <div>
-                      <label className="text-[11px] font-mono text-ivory/50 mb-2 block">
-                        Send at
-                      </label>
-                      <input
-                        type="datetime-local"
-                        value={sendAt}
-                        min={new Date(
-                          Date.now() - new Date().getTimezoneOffset() * 60000,
-                        )
-                          .toISOString()
-                          .slice(0, 16)}
-                        onChange={(e) => setSendAt(e.target.value)}
-                        className="w-full bg-white/4 border border-white/10 rounded-lg px-2.5 py-2 text-xs text-ivory/80 outline-none focus:border-accent/40 transition-colors"
-                      />
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          if (!sendAt) {
-                            toast.error("Please select a date and time");
-                            return;
-                          }
-                          await scheduleMessage();
-                          setScheduleDropdownOpen(false);
-                        }}
-                        disabled={!sendAt || scheduling}
-                        className="w-full mt-2 px-3 py-1.5 bg-accent/20 hover:bg-accent/30 disabled:opacity-50 disabled:cursor-not-allowed text-accent text-[11px] font-bold rounded-lg transition-all"
-                      >
-                        {scheduling ? "Scheduling..." : "Schedule"}
-                      </button>
-                    </div>
-                    <div className="h-px bg-white/5" />
-                    <div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowScheduledPanel(true);
-                          refreshScheduled();
-                          setScheduleDropdownOpen(false);
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-semibold text-ivory/70 hover:bg-white/5 rounded-lg transition-colors"
-                      >
-                        <Calendar size={14} className="text-accent/60" />
-                        View Pending
-                        {scheduledItems.length > 0 && (
-                          <span className="ml-auto px-2 py-0.5 bg-accent/20 text-accent text-[10px] font-mono rounded">
-                            {scheduledItems.length}
-                          </span>
-                        )}
-                      </button>
-                    </div>
+                  <div className="h-px bg-white/5" />
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowScheduledPanel(true);
+                        refreshScheduled();
+                        setScheduleDropdownOpen(false);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-semibold text-ivory/70 hover:bg-white/5 rounded-lg transition-colors"
+                    >
+                      <Calendar size={14} className="text-accent/60" />
+                      View Pending
+                      {scheduledItems.length > 0 && (
+                        <span className="ml-auto px-2 py-0.5 bg-accent/20 text-accent text-[10px] font-mono rounded">
+                          {scheduledItems.length}
+                        </span>
+                      )}
+                    </button>
                   </div>
                 </div>
-              )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
 
           {/* Send / Quick Emoji button */}
           {!text.trim() && stagedFiles.length === 0 ? (
@@ -3002,7 +2989,7 @@ export default function ChatWindow({
                 ✦ AI
               </button>
               {aiMenuOpen && (
-                <div className="absolute bottom-full mb-1 right-0 w-44 bg-deep border border-white/10 rounded-lg shadow-lg overflow-hidden z-50">
+                <div className="absolute bottom-full mb-1 left-0 sm:left-auto sm:right-0 w-44 max-w-[calc(100vw-1rem)] bg-deep border border-white/10 rounded-lg shadow-lg overflow-hidden z-50">
                   <button
                     type="button"
                     className="w-full text-left px-3 py-2 text-[11px] text-ivory/70 hover:bg-white/6 hover:text-ivory transition-colors"
@@ -3029,17 +3016,6 @@ export default function ChatWindow({
                 </div>
               )}
             </div>
-            {/* Mobile schedule button (DM only) */}
-            {!isGroup && (
-              <button
-                type="button"
-                onClick={() => setScheduleDropdownOpen((v) => !v)}
-                className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${scheduleDropdownOpen ? "bg-accent/20 border-accent/40 text-accent" : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"}`}
-                title="Schedule message"
-              >
-                ⏱ Schedule
-              </button>
-            )}
           </div>
         </div>
       </form>

@@ -180,6 +180,23 @@ export default function Sidebar({
       ]
     : onlineParticipants;
 
+  const getNicknameValue = (nicknames, userId) => {
+    if (!nicknames || !userId) return null;
+    if (nicknames instanceof Map) return nicknames.get(userId) || null;
+    if (typeof nicknames === "object") return nicknames[userId] || null;
+    return null;
+  };
+
+  const getDisplayNameForConversation = (conv, fallback = "") => {
+    if (conv?.type === "group") return conv?.name || fallback;
+    const participantId = conv?.participant?._id?.toString?.();
+    const nickname = getNicknameValue(
+      conv?.customisation?.nicknames,
+      participantId,
+    );
+    return nickname || conv?.participant?.name || fallback;
+  };
+
   useEffect(() => {
     if (!filterTerm.trim()) {
       setSearchedConversations(conversations);
@@ -197,7 +214,6 @@ export default function Sidebar({
         setSearchedConversations(res.data);
       } catch (err) {
         if (err.name === "CanceledError" || err.code === "ERR_CANCELED") return;
-        console.error("Search failed:", err);
         setSearchedConversations(conversations);
       }
     }, 400);
@@ -350,6 +366,10 @@ export default function Sidebar({
           const isActive = activeConversationId === conv._id;
           const isGroup = conv.type === "group";
           const hasUnread = conv.unreadCount > 0 && !conv.isMuted;
+          const conversationDisplayName = getDisplayNameForConversation(
+            conv,
+            "",
+          );
           const isUserOnline =
             !isGroup && onlineUsers?.get(conv.participant?._id)?.online;
           const groupColor = isGroup ? getGroupAvatarColor(conv.name) : null;
@@ -359,7 +379,7 @@ export default function Sidebar({
             <div
               key={conv._id}
               className="relative shrink-0 cursor-pointer"
-              title={isGroup ? conv.name : conv.participant?.name}
+              title={conversationDisplayName}
               onClick={() => setActiveConversationId(conv._id)}
             >
               {/* Active pip */}
@@ -554,8 +574,16 @@ export default function Sidebar({
                 ? getOnlineCount(conv, onlineUsers)
                 : 0;
               const groupPreview = isGroup
-                ? getGroupLastMessagePreview(conv.lastMessage, currentUser?._id)
+                ? getGroupLastMessagePreview(
+                    conv.lastMessage,
+                    currentUser?._id,
+                    conv?.customisation?.nicknames,
+                  )
                 : null;
+              const conversationDisplayName = getDisplayNameForConversation(
+                conv,
+                "",
+              );
 
               // DM last-message preview with smart labels for media
               const dmPreview = (() => {
@@ -684,7 +712,7 @@ export default function Sidebar({
                             {isGroup
                               ? highlightMatch(conv.name || "", filterTerm)
                               : highlightMatch(
-                                  conv.participant?.name || "",
+                                  conversationDisplayName,
                                   filterTerm,
                                 )}
                           </span>

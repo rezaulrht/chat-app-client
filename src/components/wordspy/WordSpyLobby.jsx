@@ -5,7 +5,7 @@ import WordSpyCategoryModal from "./WordSpyCategoryModal";
 import useWordSpyStore from "@/stores/wordSpyStore";
 import useAuth from "@/hooks/useAuth";
 
-const WordSpyLobby = ({ onStart, onDisband }) => {
+const WordSpyLobby = ({ onStart, onDisband, onLeave }) => {
   const { players, hostId, error } = useWordSpyStore();
   const { user } = useAuth();
   const [showModal, setShowModal] = useState(false);
@@ -57,7 +57,15 @@ const WordSpyLobby = ({ onStart, onDisband }) => {
           </button>
         </div>
       ) : (
-        <p className="text-ivory/40 text-sm">Waiting for host to start...</p>
+        <div className="flex flex-col items-center gap-3 w-full max-w-sm">
+          <p className="text-ivory/40 text-sm">Waiting for host to start...</p>
+          <button
+            onClick={onLeave}
+            className="w-full px-8 py-2.5 bg-white/5 hover:bg-red-500/15 border border-white/10 hover:border-red-500/40 text-ivory/40 hover:text-red-500 font-medium rounded-xl text-sm transition-all duration-200"
+          >
+            Leave Game
+          </button>
+        </div>
       )}
       {showModal && <WordSpyCategoryModal onStart={onStart} onClose={() => setShowModal(false)} />}
     </div>

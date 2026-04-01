@@ -666,7 +666,7 @@ export default function GroupInfoPanel({
                                 setEditingNickId(null);
                               }
                             }}
-                            className="bg-black/20 border border-white/10 rounded-lg px-2 py-1 text-xs text-ivory focus:outline-none focus:border-accent/40 w-full"
+                            className="bg-white/[0.05] border border-white/10 rounded-lg px-2 py-1 text-xs text-ivory focus:outline-none focus:border-accent/40 w-full"
                           />
                         ) : (
                           <div className="min-w-0 flex-1">
@@ -910,7 +910,7 @@ export default function GroupInfoPanel({
 
                   {/* Dropdown menu */}
                   {menuOpen && (
-                    <div className="absolute right-2 top-11 z-50 bg-[#13131c] border border-white/10 rounded-xl shadow-[0_8px_40px_rgba(0,0,0,0.6)] py-1 min-w-[156px]">
+                    <div className="absolute right-2 top-11 z-50 bg-slate-surface/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-[0_8px_40px_rgba(0,0,0,0.6)] py-1 min-w-[156px]">
                       {/* Send DM — always available for non-self */}
                       <button
                         onClick={() => sendDm(member._id)}

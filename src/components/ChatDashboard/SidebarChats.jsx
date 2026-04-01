@@ -770,7 +770,7 @@ export default function Sidebar({
                     createPortal(
                       <div
                         ref={contextMenuRef}
-                        className="fixed bg-[#13131c] border border-white/10 rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.6)] z-50 py-1.5 min-w-[180px] animate-in fade-in zoom-in duration-150"
+                        className="fixed bg-slate-surface/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.6)] z-50 py-1.5 min-w-[180px] animate-in fade-in zoom-in duration-150"
                         style={{ top: menuPos.y, left: menuPos.x }}
                         onClick={(e) => e.stopPropagation()}
                       >

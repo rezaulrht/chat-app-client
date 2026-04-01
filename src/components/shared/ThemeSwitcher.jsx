@@ -34,7 +34,7 @@ export default function ThemeSwitcher() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 p-3 glass-card rounded-2xl border border-white/[0.08] shadow-[0_16px_48px_rgba(0,0,0,0.35)] z-50 w-[188px]">
+        <div className="absolute right-0 top-full mt-2 p-3 bg-slate-surface rounded-2xl border border-white/[0.08] shadow-[0_16px_48px_rgba(0,0,0,0.35)] z-[120] w-[188px]">
           <p className="text-[9px] font-mono uppercase tracking-[0.12em] text-ivory/30 mb-2 px-0.5">
             Appearance
           </p>
@@ -44,7 +44,10 @@ export default function ThemeSwitcher() {
               return (
                 <button
                   key={t.id}
-                  onClick={() => { setTheme(t.id); setOpen(false); }}
+                  onClick={() => {
+                    setTheme(t.id);
+                    setOpen(false);
+                  }}
                   className={`flex items-center gap-2 px-2.5 py-2 rounded-xl border transition-all text-left group ${
                     active
                       ? "border-accent/40 bg-accent/[0.08]"
@@ -62,7 +65,9 @@ export default function ThemeSwitcher() {
                     />
                   </div>
                   <div className="min-w-0">
-                    <p className={`text-[10px] font-display font-semibold leading-tight truncate ${active ? "text-accent" : "text-ivory/60 group-hover:text-ivory/80"}`}>
+                    <p
+                      className={`text-[10px] font-display font-semibold leading-tight truncate ${active ? "text-accent" : "text-ivory/60 group-hover:text-ivory/80"}`}
+                    >
                       {t.label}
                     </p>
                     <p className="text-[9px] font-mono text-ivory/25 leading-tight">

@@ -28,6 +28,7 @@ import useAuth from "@/hooks/useAuth";
 import { useCall } from "@/hooks/useCall";
 import { useRouter } from "next/navigation";
 import { useDmPrefs } from "@/hooks/useDmPrefs";
+import { useTheme } from "@/context/ThemeContext";
 import { EMOJI_MAP } from "@/utils/emojis";
 import { formatLastSeen } from "@/utils/formatLastSeen";
 import CreatePollModal from "../CreatePollModal";
@@ -178,13 +179,20 @@ export default function ChatWindow({
 
   const _isDm = conversation?.type !== "group";
   const { prefs: dmPrefs } = useDmPrefs(conversation);
+  const { theme } = useTheme();
   const dmColor = dmPrefs.color || "#00d3bb";
   const dmEmoji = dmPrefs.emoji || "👍";
   const dmNickname = _isDm ? dmPrefs.nickname?.trim() : null;
+  const isLightTheme =
+    theme === "luxe-mint-light" || theme === "luxe-cyan-light";
+
+  const gifPickerStyles = isLightTheme
+    ? `.gpr-picker { --gpr-bg-color: #f5f7f8 !important; --gpr-secondary-bg: #eef2f4 !important; --gpr-text-color: #1f2937 !important; --gpr-text-secondary: #4b5563 !important; --gpr-border-color: #d1d5db !important; --gpr-highlight-color: #14b8a6 !important; --gpr-highlight-hover: #0d9488 !important; --gpr-input-bg: #ffffff !important; --gpr-hover-bg: rgba(20, 184, 166, 0.12) !important; --gpr-radius: 16px !important; border: none !important; } .gpr-trending-terms { display: none !important; }`
+    : `.gpr-picker { --gpr-bg-color: #15191C !important; --gpr-secondary-bg: #1C2227 !important; --gpr-text-color: #cbd5e1 !important; --gpr-text-secondary: #94a3b8 !important; --gpr-border-color: #1e293b !important; --gpr-highlight-color: #2dd4bf !important; --gpr-highlight-hover: #5eead4 !important; --gpr-input-bg: #0B0E11 !important; --gpr-hover-bg: rgba(45, 212, 191, 0.1) !important; --gpr-radius: 16px !important; border: none !important; } .gpr-trending-terms { display: none !important; }`;
 
   if (!conversation) {
     return (
-      <div className="flex flex-1 items-center justify-center h-full text-gray-400">
+      <div className="flex flex-1 items-center justify-center h-full text-ivory/40">
         Select a conversation to start chatting
       </div>
     );
@@ -1521,7 +1529,7 @@ export default function ChatWindow({
                 className="relative block"
               >
                 <div
-                  className={`rounded-2xl overflow-hidden ${isParticipantOnline ? "ring-2 ring-accent/60 ring-offset-1 ring-offset-[#0a0e13]" : ""}`}
+                  className={`rounded-2xl overflow-hidden ${isParticipantOnline ? "ring-2 ring-accent/60 ring-offset-1 ring-offset-obsidian" : ""}`}
                 >
                   <Image
                     src={
@@ -2095,7 +2103,7 @@ export default function ChatWindow({
                           }
                         >
                           {msg.replyTo && (
-                            <div className="mb-2 p-2 bg-black/20 rounded-lg border-l-2 border-accent text-[11px] opacity-80 line-clamp-2">
+                            <div className="mb-2 p-2 bg-white/5 rounded-lg border-l-2 border-accent text-[11px] opacity-80 line-clamp-2">
                               <p className="font-bold mb-0.5">
                                 {msg.replyTo.sender?.name === user?.name ||
                                 msg.replyTo.sender === user?._id
@@ -2461,7 +2469,7 @@ export default function ChatWindow({
                 {scheduledItems.map((s) => (
                   <div
                     key={s._id}
-                    className="flex items-center justify-between gap-3 p-2 rounded-xl bg-black/20 border border-white/5"
+                    className="flex items-center justify-between gap-3 p-2 rounded-xl bg-white/5 border border-white/5"
                   >
                     <div className="min-w-0">
                       <p className="text-xs text-ivory/80 truncate">
@@ -2491,11 +2499,11 @@ export default function ChatWindow({
             ref={gifPickerRef}
             className="absolute bottom-20 right-0 sm:right-4 left-0 sm:left-auto z-50 shadow-2xl rounded-2xl overflow-hidden border border-white/6 mx-2 sm:mx-0"
           >
-            <style>{`.gpr-picker { --gpr-bg-color: #15191C !important; --gpr-secondary-bg: #1C2227 !important; --gpr-text-color: #cbd5e1 !important; --gpr-text-secondary: #94a3b8 !important; --gpr-border-color: #1e293b !important; --gpr-highlight-color: #2dd4bf !important; --gpr-highlight-hover: #5eead4 !important; --gpr-input-bg: #0B0E11 !important; --gpr-hover-bg: rgba(45, 212, 191, 0.1) !important; --gpr-radius: 16px !important; border: none !important; } .gpr-trending-terms { display: none !important; }`}</style>
+            <style>{gifPickerStyles}</style>
             <GifPicker
               klipyApiKey={process.env.NEXT_PUBLIC_KLIPY_API_KEY}
               onGifClick={handleGifClick}
-              theme="dark"
+              theme={isLightTheme ? "light" : "dark"}
               width={
                 typeof window !== "undefined" && window.innerWidth < 400
                   ? window.innerWidth - 32
@@ -2940,7 +2948,7 @@ export default function ChatWindow({
                 fileErrors.some((e) => e !== null) ||
                 (!text.trim() && stagedFiles.length === 0)
               }
-              className={`w-9 h-9 flex items-center justify-center rounded-xl ml-1 transition-all active:scale-95 shadow-lg ${scheduling || fileUploading || fileErrors.some((e) => e !== null) || (!text.trim() && stagedFiles.length === 0) ? "bg-slate-700 text-ivory/40 cursor-not-allowed opacity-50" : "bg-accent hover:bg-accent/90 text-black shadow-accent/20"}`}
+              className={`w-9 h-9 flex items-center justify-center rounded-xl ml-1 transition-all active:scale-95 shadow-lg ${scheduling || fileUploading || fileErrors.some((e) => e !== null) || (!text.trim() && stagedFiles.length === 0) ? "bg-white/10 text-ivory/40 cursor-not-allowed opacity-50" : "bg-accent hover:bg-accent/90 text-black shadow-accent/20"}`}
               title="Send"
             >
               <Send size={18} />

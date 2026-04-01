@@ -741,7 +741,6 @@ export function WorkspaceProvider({ children }) {
     };
 
     // Online presence
-<<<<<<< HEAD
     const onPresenceUpdate = ({ userId, online }) => {
       setOnlineUsers((prev) => {
         const updated = new Set(prev);
@@ -751,16 +750,6 @@ export function WorkspaceProvider({ children }) {
           updated.delete(userId);
         }
         return updated;
-=======
-    const onPresenceOnline = ({ userId }) => {
-      setOnlineUsers((prev) => new Set([...prev, userId]));
-    };
-    const onPresenceOffline = ({ userId }) => {
-      setOnlineUsers((prev) => {
-        const n = new Set(prev);
-        n.delete(userId);
-        return n;
->>>>>>> origin/Development
       });
     };
 

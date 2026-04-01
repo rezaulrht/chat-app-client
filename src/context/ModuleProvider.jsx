@@ -110,11 +110,7 @@ export function ModuleProvider({ children, moduleId, workspaceId }) {
 
     const lastMsg = [...messages]
       .reverse()
-      .find(
-        (m) =>
-          m.sender?._id !== user._id &&
-          !m.readBy?.some?.((r) => r.user === user._id),
-      );
+      .find((m) => m.sender?._id !== user._id);
     if (lastMsg) {
       socket.emit("module:seen", {
         moduleId,
@@ -324,6 +320,28 @@ export function ModuleProvider({ children, moduleId, workspaceId }) {
   const reactToMessage = useCallback(
     (messageId, emoji) => {
       if (!socket) return;
+
+      // Optimistic toggle so sender sees reaction instantly.
+      setReactions((prev) => {
+        const currentForMessage = prev[messageId] || {};
+        const currentUsers = currentForMessage[emoji] || [];
+        const me = String(user?._id || "");
+        const hasReacted = currentUsers.some((id) => String(id) === me);
+
+        const nextUsers = hasReacted
+          ? currentUsers.filter((id) => String(id) !== me)
+          : [...currentUsers, me];
+
+        const nextForMessage = { ...currentForMessage };
+        if (nextUsers.length === 0) {
+          delete nextForMessage[emoji];
+        } else {
+          nextForMessage[emoji] = nextUsers;
+        }
+
+        return { ...prev, [messageId]: nextForMessage };
+      });
+
       socket.emit("module:message:react", {
         moduleId,
         workspaceId,
@@ -331,7 +349,7 @@ export function ModuleProvider({ children, moduleId, workspaceId }) {
         emoji,
       });
     },
-    [socket, moduleId, workspaceId],
+    [socket, moduleId, workspaceId, user?._id],
   );
 
   const editMessage = useCallback(
@@ -363,6 +381,16 @@ export function ModuleProvider({ children, moduleId, workspaceId }) {
   const pinMessage = useCallback(
     (messageId) => {
       if (!socket) return;
+
+      // Optimistic toggle so sender/admin sees pin state immediately.
+      setMessages((prev) =>
+        prev.map((m) =>
+          String(m._id) === String(messageId)
+            ? { ...m, isPinned: !m.isPinned }
+            : m,
+        ),
+      );
+
       socket.emit("module:message:pin", {
         moduleId,
         messageId,

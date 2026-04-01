@@ -16,7 +16,6 @@ import {
   X,
   Plus,
   Users,
-  CheckCheck,
   Clock,
   Calendar,
   Paperclip,
@@ -172,9 +171,6 @@ export default function ModuleChatWindow({
   const [rewritePreview, setRewritePreview] = useState(null);
   const [originalText, setOriginalText] = useState("");
 
-  // Read Receipts Popover
-  const [showSeenBy, setShowSeenBy] = useState(null); // stores msgId
-
   const bottomRef = useRef(null);
 
   // File upload
@@ -216,7 +212,6 @@ export default function ModuleChatWindow({
     setShowEmojiPicker(false);
     setShowGifPicker(false);
     setShowVoiceRecorder(false);
-    setShowSeenBy(null);
     resetFiles();
   }, [moduleId]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -245,13 +240,6 @@ export default function ModuleChatWindow({
       }
       if (longPressedMsgId) setLongPressedMsgId(null);
 
-      // Close seen by popover
-      if (showSeenBy) {
-        // We'll attach a data-attribute to the popover to avoid closing when clicking inside it
-        if (!e.target.closest("[data-seen-popover]")) {
-          setShowSeenBy(null);
-        }
-      }
       // Close schedule dropdown on outside click
       const mobileTrigger = e.target.closest(".mobile-schedule-trigger");
       if (
@@ -276,7 +264,6 @@ export default function ModuleChatWindow({
       showEmojiPicker ||
       showGifPicker ||
       longPressedMsgId ||
-      showSeenBy ||
       scheduleDropdownOpen ||
       aiMenuOpen
     ) {
@@ -288,7 +275,6 @@ export default function ModuleChatWindow({
     showEmojiPicker,
     showGifPicker,
     longPressedMsgId,
-    showSeenBy,
     scheduleDropdownOpen,
     aiMenuOpen,
   ]);
@@ -951,8 +937,8 @@ export default function ModuleChatWindow({
             }}
             title="Search in module"
             className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${showSearchPanel
-                ? "bg-accent/15 text-accent"
-                : "text-ivory/25 hover:text-ivory/60 hover:bg-white/6"
+              ? "bg-accent/15 text-accent"
+              : "text-ivory/25 hover:text-ivory/60 hover:bg-white/6"
               }`}
           >
             <Search size={16} />
@@ -967,8 +953,8 @@ export default function ModuleChatWindow({
             }}
             title="Pinned messages"
             className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${showPinnedPanel
-                ? "bg-accent/15 text-accent"
-                : "text-ivory/25 hover:text-ivory/60 hover:bg-white/6"
+              ? "bg-accent/15 text-accent"
+              : "text-ivory/25 hover:text-ivory/60 hover:bg-white/6"
               }`}
           >
             <Pin size={16} />
@@ -989,8 +975,8 @@ export default function ModuleChatWindow({
               onClick={onToggleMembers}
               title="Toggle member list"
               className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${showMembers
-                  ? "bg-accent/15 text-accent"
-                  : "text-ivory/25 hover:text-ivory/60 hover:bg-white/6"
+                ? "bg-accent/15 text-accent"
+                : "text-ivory/25 hover:text-ivory/60 hover:bg-white/6"
                 }`}
             >
               <Users size={16} />
@@ -1041,34 +1027,13 @@ export default function ModuleChatWindow({
 
         {/* Date-separated message list */}
         {(() => {
-          let lastAnyMeIndex = -1;
-          for (let i = messages.length - 1; i >= 0; i--) {
-            const m = messages[i];
-            const isMsgMe =
-              m.sender?._id === user?._id || m.sender === user?._id;
-            if (isMsgMe && !m.isOptimistic) {
-              lastAnyMeIndex = i;
-              break;
-            }
-          }
-
           return messages.map((msg, index) => {
             const isMe =
               msg.sender?._id === user?._id || msg.sender === user?._id;
             const isGif = !!msg.gifUrl;
             const currentKey = toDateKey(msg.createdAt);
-            const prevKey =
-              index > 0 ? toDateKey(messages[index - 1].createdAt) : null;
+            const prevKey = index > 0 ? toDateKey(messages[index - 1].createdAt) : null;
             const showDate = currentKey !== prevKey;
-
-            // Read receipts logic
-            const isLastMe = index === lastAnyMeIndex;
-            // Filter out the sender themselves from the readBy list for count
-            const uniqueReaders = (msg.readBy || []).filter(
-              (r) => r.user && r.user._id !== user?._id,
-            );
-            // Hide if no one else read it yet
-            const hasReaders = uniqueReaders.length > 0;
 
             return (
               <React.Fragment key={msg._id}>
@@ -1132,8 +1097,8 @@ export default function ModuleChatWindow({
                       {!msg.isOptimistic && !msg.isDeleted && (
                         <div
                           className={`absolute -top-7 left-0 items-center gap-0.5 bg-deep border border-white/6 rounded-lg p-0.5 shadow-xl z-30 ${longPressedMsgId === msg._id
-                              ? "flex"
-                              : "hidden group-hover/bubble:flex"
+                            ? "flex"
+                            : "hidden group-hover/bubble:flex"
                             }`}
                         >
                           {/* Quick reactions */}
@@ -1147,8 +1112,8 @@ export default function ModuleChatWindow({
                                 setLongPressedMsgId(null);
                               }}
                               className={`p-1.5 rounded-md text-sm transition-all hover:bg-white/6 hover:scale-125 ${reactions[msg._id]?.[emoji]?.includes(user?._id)
-                                  ? "bg-accent/20"
-                                  : ""
+                                ? "bg-accent/20"
+                                : ""
                                 }`}
                             >
                               {emoji}
@@ -1332,8 +1297,8 @@ export default function ModuleChatWindow({
                       ) : (
                         <div
                           className={`inline-block px-3.5 py-2.5 rounded-2xl rounded-tl-none text-[13px] leading-relaxed max-w-prose ${isMe
-                              ? "bg-accent/15 text-ivory border border-accent/20"
-                              : "bg-white/4 text-ivory/80 border border-white/6"
+                            ? "bg-accent/15 text-ivory border border-accent/20"
+                            : "bg-white/4 text-ivory/80 border border-white/6"
                             } ${msg.isOptimistic ? "opacity-60" : ""}`}
                         >
                           {msg.replyTo && (
@@ -1389,8 +1354,8 @@ export default function ModuleChatWindow({
                                   className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border transition-all ${users.some(
                                     (u) => String(u) === String(user?._id),
                                   )
-                                      ? "bg-accent/20 border-accent/40 text-accent"
-                                      : "bg-white/4 border-white/6 text-ivory/80 hover:bg-white/8"
+                                    ? "bg-accent/20 border-accent/40 text-accent"
+                                    : "bg-white/4 border-white/6 text-ivory/80 hover:bg-white/8"
                                     }`}
                                 >
                                   <span className="text-[12px] leading-none">
@@ -1404,77 +1369,6 @@ export default function ModuleChatWindow({
                           </div>
                         )}
 
-                      {/* Read Receipts (Shown only on the last message sent by the user) */}
-                      {isMe && isLastMe && (
-                        <div className="mt-1 relative flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (hasReaders) {
-                                setShowSeenBy(
-                                  showSeenBy === msg._id ? null : msg._id,
-                                );
-                              }
-                            }}
-                            className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold transition-all ${hasReaders
-                                ? "bg-accent/10 border border-accent/20 text-accent hover:bg-accent/20 cursor-pointer"
-                                : "bg-white/4 border border-white/5 text-ivory/30"
-                              }`}
-                          >
-                            <CheckCheck
-                              size={10}
-                              className={
-                                hasReaders ? "text-accent" : "text-ivory/30"
-                              }
-                            />
-                            {hasReaders
-                              ? `Seen by ${uniqueReaders.length}`
-                              : "Sent"}
-                          </button>
-
-                          {/* Seen By Popover */}
-                          {showSeenBy === msg._id && hasReaders && (
-                            <div
-                              data-seen-popover="true"
-                              className="absolute z-50 top-full mt-1 left-0 w-48 bg-deep border border-white/10 rounded-xl shadow-2xl p-2 flex flex-col gap-1.5 max-h-48 overflow-y-auto scrollbar-hide"
-                            >
-                              <h4 className="text-[10px] font-mono font-bold text-ivory/40 px-1 uppercase tracking-wider mb-1">
-                                Read by
-                              </h4>
-                              {uniqueReaders.map((r, i) => (
-                                <div
-                                  key={i}
-                                  className="flex items-center justify-between px-1.5 py-1 rounded-lg hover:bg-white/4 min-w-0"
-                                >
-                                  <div className="flex items-center gap-2 min-w-0">
-                                    <Image
-                                      src={
-                                        r.user.avatar ||
-                                        `https://api.dicebear.com/7.x/avataaars/svg?seed=${r.user.name}`
-                                      }
-                                      width={16}
-                                      height={16}
-                                      alt=""
-                                      className="rounded-full shrink-0"
-                                      unoptimized
-                                    />
-                                    <span className="text-[11px] font-display font-medium text-ivory/80 truncate">
-                                      {r.user.name}
-                                    </span>
-                                  </div>
-                                  <span className="text-[9px] font-mono text-ivory/30 shrink-0 ml-2">
-                                    {new Date(r.readAt).toLocaleTimeString([], {
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                    })}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -1538,8 +1432,8 @@ export default function ModuleChatWindow({
                   key={suggestion.key}
                   onClick={() => insertSuggestion(suggestion)}
                   className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${i === suggestionIndex
-                      ? "bg-accent/20 text-accent"
-                      : "hover:bg-white/6 text-ivory/60 hover:text-ivory"
+                    ? "bg-accent/20 text-accent"
+                    : "hover:bg-white/6 text-ivory/60 hover:text-ivory"
                     }`}
                 >
                   {suggestion.type === "emoji" ? (
@@ -1725,8 +1619,8 @@ export default function ModuleChatWindow({
                 setShowEmojiPicker(false);
               }}
               className={`hidden lg:inline-flex px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${showGifPicker
-                  ? "bg-accent/20 border-accent/40 text-accent"
-                  : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+                ? "bg-accent/20 border-accent/40 text-accent"
+                : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
                 }`}
             >
               GIF
@@ -1740,8 +1634,8 @@ export default function ModuleChatWindow({
                 setShowGifPicker(false);
               }}
               className={`w-9 h-9 flex items-center justify-center transition-all ${showVoiceRecorder
-                  ? "text-accent"
-                  : "text-ivory/30 hover:text-ivory/60"
+                ? "text-accent"
+                : "text-ivory/30 hover:text-ivory/60"
                 }`}
               title="Voice message"
             >
@@ -1770,8 +1664,8 @@ export default function ModuleChatWindow({
                 setShowGifPicker(false);
               }}
               className={`w-8 md:w-9 h-8 md:h-9 flex items-center justify-center transition-all shrink-0 ${showEmojiPicker
-                  ? "text-accent"
-                  : "text-ivory/30 hover:text-ivory/60"
+                ? "text-accent"
+                : "text-ivory/30 hover:text-ivory/60"
                 }`}
               title="Emoji"
             >
@@ -1789,10 +1683,10 @@ export default function ModuleChatWindow({
                 title="AI tools"
                 aria-label="AI tools"
                 className={`inline-flex items-center gap-1 px-2 py-1 mx-1 text-[10px] font-black rounded-md border transition-all ${aiMenuOpen
+                  ? "bg-accent/20 border-accent/40 text-accent"
+                  : aiReplies.length > 0 || tonePickerOpen
                     ? "bg-accent/20 border-accent/40 text-accent"
-                    : aiReplies.length > 0 || tonePickerOpen
-                      ? "bg-accent/20 border-accent/40 text-accent"
-                      : "bg-white/4 border-white/10 text-ivory/30 hover:bg-accent/10 hover:border-accent/30 hover:text-accent"
+                    : "bg-white/4 border-white/10 text-ivory/30 hover:bg-accent/10 hover:border-accent/30 hover:text-accent"
                   }`}
               >
                 ✦ AI
@@ -1813,8 +1707,8 @@ export default function ModuleChatWindow({
                     type="button"
                     disabled={!text.trim()}
                     className={`w-full text-left px-3 py-2 text-[11px] transition-colors ${text.trim()
-                        ? "text-ivory/70 hover:bg-white/6 hover:text-ivory"
-                        : "text-ivory/20 opacity-40 cursor-not-allowed"
+                      ? "text-ivory/70 hover:bg-white/6 hover:text-ivory"
+                      : "text-ivory/20 opacity-40 cursor-not-allowed"
                       }`}
                     onClick={() => {
                       if (!text.trim()) return;
@@ -1838,8 +1732,8 @@ export default function ModuleChatWindow({
                 type="button"
                 onClick={() => setScheduleDropdownOpen((v) => !v)}
                 className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${scheduleDropdownOpen
-                    ? "bg-accent/20 text-accent"
-                    : "text-ivory/30 hover:text-ivory/60"
+                  ? "bg-accent/20 text-accent"
+                  : "text-ivory/30 hover:text-ivory/60"
                   }`}
                 title="Schedule or view pending"
               >
@@ -1930,11 +1824,11 @@ export default function ModuleChatWindow({
               }
               title="Send"
               className={`w-9 h-9 flex items-center justify-center rounded-xl ml-1 transition-all active:scale-95 shadow-lg ${scheduling ||
-                  fileUploading ||
-                  fileErrors.some((e) => e !== null) ||
-                  (!text.trim() && stagedFiles.length === 0)
-                  ? "bg-slate-700 text-ivory/40 cursor-not-allowed opacity-50"
-                  : "bg-accent hover:bg-accent/90 text-black shadow-accent/20"
+                fileUploading ||
+                fileErrors.some((e) => e !== null) ||
+                (!text.trim() && stagedFiles.length === 0)
+                ? "bg-slate-700 text-ivory/40 cursor-not-allowed opacity-50"
+                : "bg-accent hover:bg-accent/90 text-black shadow-accent/20"
                 }`}
             >
               <Send size={18} />
@@ -1964,8 +1858,8 @@ export default function ModuleChatWindow({
                   setShowGifPicker(false);
                 }}
                 className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${showVoiceRecorder
-                    ? "bg-accent/20 border-accent/40 text-accent"
-                    : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
+                  ? "bg-accent/20 border-accent/40 text-accent"
+                  : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
                   }`}
               >
                 🎙 Voice
@@ -1979,10 +1873,10 @@ export default function ModuleChatWindow({
                   title="AI tools"
                   aria-label="AI tools"
                   className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-black rounded-lg border transition-all ${aiMenuOpen
+                    ? "bg-accent/20 border-accent/40 text-accent"
+                    : aiReplies.length > 0 || tonePickerOpen
                       ? "bg-accent/20 border-accent/40 text-accent"
-                      : aiReplies.length > 0 || tonePickerOpen
-                        ? "bg-accent/20 border-accent/40 text-accent"
-                        : "bg-white/4 border-white/10 text-ivory/50 hover:text-ivory"
+                      : "bg-white/4 border-white/10 text-ivory/50 hover:text-ivory"
                     }`}
                 >
                   ✦ AI
@@ -2003,8 +1897,8 @@ export default function ModuleChatWindow({
                       type="button"
                       disabled={!text.trim()}
                       className={`w-full text-left px-3 py-2 text-[11px] transition-colors ${text.trim()
-                          ? "text-ivory/70 hover:bg-white/6 hover:text-ivory"
-                          : "text-ivory/20 opacity-40 cursor-not-allowed"
+                        ? "text-ivory/70 hover:bg-white/6 hover:text-ivory"
+                        : "text-ivory/20 opacity-40 cursor-not-allowed"
                         }`}
                       onClick={() => {
                         if (!text.trim()) return;

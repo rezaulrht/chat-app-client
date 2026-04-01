@@ -31,6 +31,15 @@ const AVAILABLE_PERMISSIONS = [
   { id: "VIEW_CHANNEL", label: "View Channels", desc: "Allows members to view and read channels." },
 ];
 
+const TABS = [
+  { id: "overview", label: "Overview", Icon: Settings },
+  { id: "roles", label: "Roles", Icon: Shield },
+  { id: "members", label: "Members", Icon: Users },
+  { id: "bans", label: "Bans", Icon: Gavel },
+  { id: "invites", label: "Invites", Icon: Link2 },
+  { id: "danger", label: "Danger Zone", Icon: AlertTriangle },
+];
+
 function RoleBadge({ color, name, small = false }) {
   return (
     <span
@@ -860,7 +869,7 @@ function BansTab({ workspace, onUnban, getBannedUsers, workspaceId }) {
     loadBans();
   }, [loadBans]);
 
-  const filtered = bans.filter(b => 
+  const filtered = bans.filter(b =>
     (b.user?.name || "").toLowerCase().includes(search.toLowerCase())
   );
 

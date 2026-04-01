@@ -149,7 +149,7 @@ export default function ChannelSidebar({
   if (collapsed) return null;
 
   return (
-    <aside className="w-full flex flex-col shrink-0 flex-1 min-h-0 overflow-hidden">
+    <aside className="w-full h-full flex flex-col shrink-0 flex-1 min-h-0 overflow-hidden">
       {/* Workspace Header (click to open settings) */}
       <div
         onClick={() => onSettingsOpen?.()}
@@ -282,9 +282,9 @@ export default function ChannelSidebar({
                             const top = shouldOpenUp
                               ? Math.max(EDGE_PADDING, rect.top - MENU_HEIGHT)
                               : Math.min(
-                                  rect.bottom + 6,
-                                  window.innerHeight - MENU_HEIGHT - EDGE_PADDING,
-                                );
+                                rect.bottom + 6,
+                                window.innerHeight - MENU_HEIGHT - EDGE_PADDING,
+                              );
 
                             setMenuPosition({ top, left });
                             setOpenMenuCat(group.name);
@@ -376,8 +376,8 @@ export default function ChannelSidebar({
                             )
                           }
                           className={`flex items-center gap-2.5 px-2 py-1.75 rounded-xl cursor-pointer group/ch transition-all duration-200 relative ${isActive
-                              ? "bg-white/6 text-ivory backdrop-blur-sm"
-                              : "hover:bg-white/3 text-ivory/30 hover:text-ivory/60"
+                            ? "bg-white/6 text-ivory backdrop-blur-sm"
+                            : "hover:bg-white/3 text-ivory/30 hover:text-ivory/60"
                             }`}
                         >
                           {isActive && (
@@ -406,7 +406,7 @@ export default function ChannelSidebar({
                               {mod.unreadCount > 99 ? "99+" : mod.unreadCount}
                             </span>
                           )}
-                          
+
                           {isAdminOrOwner && (
                             <button
                               onClick={(e) => {

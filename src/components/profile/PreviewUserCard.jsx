@@ -108,10 +108,11 @@ export default function PreviewUserCard({
         <div
             ref={cardRef}
             onClick={(e) => e.stopPropagation()}
-            className="fixed z-50 w-80 rounded-xl border border-white/8 bg-obsidian shadow-2xl overflow-hidden animate-in fade-in slide-in-from-left duration-300"
+            className="fixed z-50 w-80 rounded-xl border border-white/8 bg-obsidian shadow-2xl overflow-hidden animate-in fade-in duration-300"
             style={{
                 left: clampedPosition.x,
                 top: clampedPosition.y,
+                animation: "slideFromMemberList 0.3s ease-out",
             }}
         >
             {/* BANNER */}

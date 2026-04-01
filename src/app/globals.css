@@ -308,6 +308,17 @@
   }
 }
 
+@keyframes slideFromMemberList {
+  0% {
+    opacity: 0;
+    transform: translateX(-100px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════ */
 /* CYAN THEME: override accent color (static @theme token needs a [data]      */
 /* override so text-accent / bg-accent / border-accent switch to cyan)        */

@@ -14,9 +14,8 @@ function ParticipantAvatar({ name, avatar, size = 24, isSpeaking = false }) {
   const src = avatar || fallback;
   return (
     <div
-      className={`rounded-full overflow-hidden shrink-0 transition-all ${
-        isSpeaking ? "ring-2 ring-green-400" : "ring-1 ring-white/10"
-      }`}
+      className={`rounded-full overflow-hidden shrink-0 transition-all ${isSpeaking ? "ring-2 ring-green-400" : "ring-1 ring-white/10"
+        }`}
       style={{ width: size, height: size }}
     >
       <Image
@@ -47,18 +46,75 @@ export default function VoiceChannelBar() {
   const hasConnected = useRef(false);
 
   useEffect(() => {
-    if (
-      activeCall?.isVoiceChannel &&
-      activeCall?.roomName &&
-      !hasConnected.current
-    ) {
+    let cancelled = false;
+
+    const joinVoiceChannel = async () => {
+      if (
+        !activeCall?.isVoiceChannel ||
+        !activeCall?.roomName ||
+        hasConnected.current
+      ) {
+        return;
+      }
+
       hasConnected.current = true;
-      connect(activeCall.roomName, "audio");
-    }
+
+      try {
+        if (!navigator?.mediaDevices?.getUserMedia) {
+          throw new Error("Microphone is not supported in this browser");
+        }
+
+        // Request mic access before LiveKit connect so denied permission is handled cleanly.
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+        });
+        stream.getTracks().forEach((t) => t.stop());
+
+        await connect(activeCall.roomName, "audio", { throwOnError: true });
+      } catch (err) {
+        if (cancelled) return;
+
+        hasConnected.current = false;
+
+        if (activeCall?.moduleId && activeCall?.workspaceId) {
+          socket?.emit("voice_channel:leave", {
+            moduleId: activeCall.moduleId,
+            workspaceId: activeCall.workspaceId,
+          });
+        }
+
+        endCall();
+        disconnect();
+
+        const denied =
+          err?.name === "NotAllowedError" ||
+          err?.name === "PermissionDeniedError";
+        if (denied) {
+          alert(
+            "Microphone permission was denied. Please allow microphone access in your browser settings to join voice channels.",
+          );
+        }
+      }
+    };
+
+    joinVoiceChannel();
+
     if (!activeCall) {
       hasConnected.current = false;
     }
-  }, [activeCall?.roomName, activeCall?.isVoiceChannel, connect]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    activeCall,
+    activeCall?.roomName,
+    activeCall?.isVoiceChannel,
+    connect,
+    socket,
+    endCall,
+    disconnect,
+  ]);
 
   const handleDisconnect = () => {
     if (activeCall?.moduleId && activeCall?.workspaceId) {
@@ -103,7 +159,7 @@ export default function VoiceChannelBar() {
       let avatar = "";
       try {
         avatar = JSON.parse(p.metadata || "{}").avatar || "";
-      } catch {}
+      } catch { }
       return {
         id: p.sid,
         name: p.name || p.identity,
@@ -180,11 +236,10 @@ export default function VoiceChannelBar() {
         <button
           onClick={toggleMute}
           title={isMuted ? "Unmute" : "Mute"}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-mono font-bold transition-all border ${
-            isMuted
-              ? "bg-red-500/15 border-red-500/30 text-red-400"
-              : "bg-white/[0.04] border-white/[0.06] text-ivory/50 hover:text-ivory hover:bg-white/[0.08]"
-          }`}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-mono font-bold transition-all border ${isMuted
+            ? "bg-red-500/15 border-red-500/30 text-red-400"
+            : "bg-white/[0.04] border-white/[0.06] text-ivory/50 hover:text-ivory hover:bg-white/[0.08]"
+            }`}
         >
           {isMuted ? <MicOff size={12} /> : <Mic size={12} />}
           {isMuted ? "Muted" : "Mic"}

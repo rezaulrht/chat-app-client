@@ -258,25 +258,6 @@ export default function FullUserProfile({
                         <div className="text-[10px] uppercase font-mono tracking-widest font-bold text-ivory/30 mb-1">Email</div>
                         <p className="text-[13px] text-ivory mb-5">{user?.email || "Not available"}</p>
 
-                        <div className="h-px bg-white/[0.06] mb-5" />
-
-                        {/* Connections */}
-                        <div className="text-[10px] uppercase font-mono tracking-widest font-bold text-ivory/30 mb-2">Connections</div>
-                        <div className="space-y-2 mb-4">
-                            {hasGithub ? (
-                                <div className="flex items-center gap-3">
-                                    <div className="w-7 h-7 rounded-full bg-white/[0.08] flex items-center justify-center border border-white/[0.1] shrink-0">
-                                        <Github size={14} className="text-ivory/60" />
-                                    </div>
-                                    <a href={`https://github.com/${user.socialConnections.github.username}`} target="_blank" rel="noopener noreferrer" className="text-[13px] text-ivory flex items-center gap-1 hover:text-accent transition-colors">
-                                        @{user.socialConnections.github.username}
-                                    </a>
-                                </div>
-                            ) : (
-                                <p className="text-[12px] text-ivory/40 italic">No connections linked</p>
-                            )}
-                        </div>
-
                         {/* Action buttons */}
                         <div className="mt-auto pt-4">
                             {!isOwnProfile && (

@@ -1010,6 +1010,20 @@ function MembersTab({
                     >
                       {roleInfo.label}
                     </span>
+                    {/* Custom roles */}
+                    {memberRoles.map((role) => (
+                      <span
+                        key={role._id}
+                        className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full border shadow-sm"
+                        style={{
+                          borderColor: role.color + "50",
+                          color: role.color,
+                          backgroundColor: role.color + "15",
+                        }}
+                      >
+                        {role.name}
+                      </span>
+                    ))}
                   </div>
                 </div>
 

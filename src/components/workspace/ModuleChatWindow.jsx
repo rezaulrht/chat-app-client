@@ -2162,17 +2162,19 @@ export default function ModuleChatWindow({
           onClick={() => setProfileTarget(null)}
         >
           <div 
-            className="absolute z-[61]"
+            className="absolute z-[61] animate-in fade-in zoom-in-95 duration-150"
             style={{ 
-              top: Math.min(profileTarget.y, window.innerHeight - 400),
-              left: Math.min(profileTarget.x, window.innerWidth - 320)
+              top: Math.max(10, Math.min(profileTarget.y - 10, window.innerHeight - 400)),
+              left: Math.max(10, Math.min(profileTarget.x, window.innerWidth - 330))
             }}
             onClick={(e) => e.stopPropagation()}
           >
             <PreviewUserCard
+              user={profileTarget.member?.user}
               member={profileTarget.member}
               workspaceId={workspaceId}
               onClose={() => setProfileTarget(null)}
+              onViewProfile={() => setProfileTarget(null)}
             />
           </div>
         </div>

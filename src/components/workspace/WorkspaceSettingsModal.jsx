@@ -231,9 +231,9 @@ function OverviewTab({ workspace, onUpdate }) {
                 {bannerUrl && (
                   <button
                     onClick={async () => {
-                      setBannerUrl("");
                       try {
                         await onUpdate({ banner: "" });
+                        setBannerUrl("");
                         toast.success("Banner removed");
                       } catch {
                         toast.error("Failed to remove banner");

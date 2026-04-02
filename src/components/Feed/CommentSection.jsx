@@ -390,6 +390,7 @@ export default function CommentSection({
               value={text}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => {
+                if (e.nativeEvent.isComposing) return;
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
                   handleSubmit(e);

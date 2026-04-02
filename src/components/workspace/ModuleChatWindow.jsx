@@ -137,7 +137,7 @@ export default function ModuleChatWindow({
     workspace?.myRole === "owner" || workspace?.myRole === "admin";
   
   // Permission checking for SEND_MESSAGES
-  const hasSendMessagesPermission = useCallback(() => {
+  const canSendMessages = useMemo(() => {
     // Legacy admin/owner always have permission
     if (workspace?.myRole === "owner" || workspace?.myRole === "admin") {
       return true;
@@ -145,26 +145,31 @@ export default function ModuleChatWindow({
     
     // Check custom roles for SEND_MESSAGES permission
     const members = membersCache[workspaceId] || [];
-    const myMember = members.find(m => m.user?._id?.toString() === user?._id?.toString());
+    const myMember = members.find(m => {
+      const memberId = m.user?._id?.toString() || m.user?.id?.toString();
+      const userId = user?._id?.toString() || user?.id?.toString();
+      return memberId === userId;
+    });
     
-    if (!myMember) return false;
+    // If member not found in cache, allow by default (will be blocked server-side if needed)
+    if (!myMember) return true;
     
     const myRoleIds = myMember.roleIds || [];
     const roles = workspace?.roles || [];
     
-    // If no custom roles, default members can send messages
+    // If no custom roles assigned, default members can send messages
     if (myRoleIds.length === 0) {
       return true;
     }
     
-    // Check if any custom role has SEND_MESSAGES permission
-    return myRoleIds.some(roleId => {
+    // Check if ANY custom role has SEND_MESSAGES permission
+    const hasPermission = myRoleIds.some(roleId => {
       const role = roles.find(r => r._id?.toString() === roleId?.toString());
       return role?.permissions?.includes("SEND_MESSAGES");
     });
+    
+    return hasPermission;
   }, [workspace, user, membersCache, workspaceId]);
-  
-  const canSendMessages = hasSendMessagesPermission();
 
   // ── Local UI state ────────────────────────────────────────────────────────
   const [text, setText] = useState("");

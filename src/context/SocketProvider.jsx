@@ -92,9 +92,6 @@ export const SocketProvider = ({ children }) => {
               }
               return updated;
             });
-            console.log(
-              `Last seen for ${userId}: ${new Date(res.data.lastSeen).toLocaleString()}`,
-            );
           } else {
             console.warn(
               `No lastSeen data received for ${userId}, using fallback`,

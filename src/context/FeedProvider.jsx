@@ -278,6 +278,46 @@ export function FeedProvider({ children }) {
       }
     };
 
+    // When a new post is created by any user
+    const handlePostCreated = ({ post }) => {
+      if (!post) return;
+      const normalized = normalizePost(post);
+      // Don't add if it's our own post (already added optimistically)
+      const myId = authUser?._id || authUser?.id;
+      const postAuthorId = post.author?._id || post.author;
+      if (String(postAuthorId) === String(myId)) return;
+      
+      // Only add if post matches current feed filters
+      const matchesType = filters.type === "all" || normalized.type === filters.type;
+      const matchesTag = filters.tags.length === 0 || (normalized.tags || []).some(t => filters.tags.includes(t));
+      const matchesSearch = !searchQuery || (normalized.title || "").toLowerCase().includes(searchQuery.toLowerCase()) || (normalized.content || "").toLowerCase().includes(searchQuery.toLowerCase());
+      
+      if (!matchesType || !matchesTag || !matchesSearch) return;
+      
+      setPosts((prev) => {
+        // Check if post already exists
+        if (prev.some((p) => String(p._id) === String(normalized._id))) {
+          return prev;
+        }
+        return [normalized, ...prev];
+      });
+    };
+
+    // When a post is deleted
+    const handlePostDeleted = ({ postId }) => {
+      if (!postId) return;
+      const postIdStr = String(postId);
+      setPosts((prev) => prev.filter((p) => String(p._id) !== postIdStr));
+      // Clear selected post if it was deleted
+      setSelectedPost((prev) => (prev && String(prev._id) === postIdStr ? null : prev));
+      // Clear cached comments for deleted post
+      setCommentsByPost((prev) => {
+        const updated = { ...prev };
+        delete updated[postIdStr];
+        return updated;
+      });
+    };
+
     // When any user's reputation changes, refresh own stats and ping the
     // leaderboard sidebar to re-fetch via reputationTick.
     const handleReputationUpdated = ({ userId: changedId }) => {
@@ -299,17 +339,21 @@ export function FeedProvider({ children }) {
       }
     };
 
+    socket.on("feed:post:created", handlePostCreated);
+    socket.on("feed:post:deleted", handlePostDeleted);
     socket.on("feed:post:reacted", handleReacted);
     socket.on("feed:comment:created", handleCommentCreated);
     socket.on("feed:comment:deleted", handleCommentDeleted);
     socket.on("feed:reputation:updated", handleReputationUpdated);
     return () => {
+      socket.off("feed:post:created", handlePostCreated);
+      socket.off("feed:post:deleted", handlePostDeleted);
       socket.off("feed:post:reacted", handleReacted);
       socket.off("feed:comment:created", handleCommentCreated);
       socket.off("feed:comment:deleted", handleCommentDeleted);
       socket.off("feed:reputation:updated", handleReputationUpdated);
     };
-  }, [socket, normalizePost, toId, fetchMyStats]);
+  }, [socket, normalizePost, toId, fetchMyStats, authUser]);
 
   const createPost = useCallback(
     async (payload) => {

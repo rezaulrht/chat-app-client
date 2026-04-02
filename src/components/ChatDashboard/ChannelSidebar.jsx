@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   Hash,
   ChevronDown,
@@ -17,11 +18,13 @@ import {
   MoreHorizontal,
   Pencil,
   Trash2,
+  LogOut,
 } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import toast from "react-hot-toast";
 import UserProfileModal from "@/components/profile/UserProfileModal";
+import FullUserProfile from "@/components/profile/FullUserProfile";
 import VoiceChannelStrip from "@/components/calls/VoiceChannelStrip";
 import VoiceChannelBar from "@/components/calls/VoiceChannelBar";
 
@@ -149,7 +152,7 @@ export default function ChannelSidebar({
   if (collapsed) return null;
 
   return (
-    <aside className="w-full h-full flex flex-col shrink-0 flex-1 min-h-0 overflow-hidden">
+    <aside className="w-full h-full flex flex-col shrink-0 flex-1 min-h-0 overflow-hidden relative">
       {/* Workspace Header (click to open settings) */}
       <div
         onClick={() => onSettingsOpen?.()}
@@ -487,13 +490,46 @@ export default function ChannelSidebar({
         )}
       </div>
 
-      {/* User Profile Modal */}
-      {showProfile && (
-        <UserProfileModal onClose={() => setShowProfile(false)} />
-      )}
-
       {/* Voice Channel Bar — shown above status bar when in a voice channel */}
       <VoiceChannelBar />
+
+      {/* User Status Bar */}
+      <div className="absolute bottom-0 left-0 right-0 p-2 bg-deep border-t border-white/[0.04]">
+        <button
+          onClick={() => setShowProfile(true)}
+          className="w-full flex items-center gap-2.5 p-2 rounded-lg hover:bg-white/[0.04] transition-colors group"
+        >
+          <div className="relative shrink-0">
+            <div className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-white/10">
+              <Image
+                src={currentUser?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser?.name}`}
+                width={36}
+                height={36}
+                className="w-full h-full object-cover"
+                alt=""
+                unoptimized
+              />
+            </div>
+            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-deep bg-emerald-400" />
+          </div>
+          <div className="flex-1 min-w-0 text-left">
+            <p className="text-[12px] font-semibold text-ivory/90 truncate">{currentUser?.name}</p>
+            <p className="text-[10px] text-ivory/40 truncate">
+              {currentUser?.statusMessage || "Online"}
+            </p>
+          </div>
+          <LogOut size={14} className="text-ivory/20 group-hover:text-ivory/50 transition-colors" />
+        </button>
+      </div>
+
+      {/* User Profile Modal */}
+      {showProfile && (
+        <FullUserProfile
+          user={currentUser}
+          isOwnProfile={true}
+          onClose={() => setShowProfile(false)}
+        />
+      )}
     </aside>
   );
 }

@@ -87,7 +87,7 @@
   --color-darker: #034858;
 }
 
-@custom-variant dark (&:where([data-theme=midnight-luxe-dark], [data-theme=midnight-luxe-dark] *));
+@custom-variant dark (&:where([data-theme=midnight-luxe-mint], [data-theme=midnight-luxe-cyan], [data-theme=midnight-luxe-mint] *, [data-theme=midnight-luxe-cyan] *));
 
 /* --- Midnight Luxe Theme Tokens (global — applies to all themes) --- */
 
@@ -470,6 +470,17 @@
   }
   50% {
     box-shadow: 0 0 0 6px rgba(0, 211, 187, 0);
+  }
+}
+
+@keyframes slideFromMemberList {
+  0% {
+    opacity: 0;
+    transform: translateX(-100px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 

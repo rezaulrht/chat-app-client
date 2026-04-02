@@ -48,9 +48,21 @@ function MemberRow({ member, roles, isOnline, onProfileClick, onContextMenu }) {
     });
   };
 
+  // Double click opens full profile
+  const handleDoubleClick = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    onProfileClick?.({
+      member,
+      x: rect.right + 8,
+      y: rect.top,
+      openFull: true,
+    });
+  };
+
   return (
     <div
       onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
       onContextMenu={onContextMenu ? (e) => onContextMenu(e, member) : undefined}
       className={`flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all group ${onProfileClick ? "hover:bg-white/4 cursor-pointer" : ""
         }`}
@@ -122,7 +134,7 @@ export default function MemberListPanel({
   onClose,
   onSettingsOpen,
 }) {
-  const { workspaces, membersCache, onlineUsers, fetchWorkspaceMembers, removeMembers, updateMemberRole, banMember } =
+  const { workspaces, membersCache, onlineUsers, fetchWorkspaceMembers, removeMembers, updateMemberRole, banMember, assignRolesToMember } =
     useWorkspace();
   const { user: currentUser } = useAuth();
   const isAdmin = useIsAdmin(workspaceId);
@@ -135,8 +147,14 @@ export default function MemberListPanel({
   const [fullProfile, setFullProfile] = useState(null);
   const [contextMenu, setContextMenu] = useState(null);
 
-  const handleProfileClick = useCallback(({ member, x, y }) => {
-    setProfileTarget({ member, x, y });
+  const handleProfileClick = useCallback(({ member, x, y, openFull }) => {
+    if (openFull) {
+      // Double-click opens full profile directly
+      setFullProfile({ user: member.user, member });
+    } else {
+      // Single click shows preview card with roles
+      setProfileTarget({ member, x, y });
+    }
     setContextMenu(null);
   }, []);
 
@@ -315,17 +333,34 @@ export default function MemberListPanel({
           isAdmin={isAdmin}
           position={{ x: profileTarget.x, y: profileTarget.y }}
           onViewProfile={() => {
-            setFullProfile({ user: profileTarget.member.user });
+            setFullProfile({ 
+              user: profileTarget.member.user,
+              member: profileTarget.member 
+            });
             setProfileTarget(null);
           }}
           onMessage={handleQuickMessage}
-          onAddRole={() => {
-            if (onSettingsOpen) {
-              onSettingsOpen();
-              setProfileTarget(null);
-              toast("Use Roles tab in Workspace Settings to assign roles");
-            } else {
-              toast("Manage roles in Workspace Settings");
+          onAddRole={async (roleId, add) => {
+            const userId = profileTarget?.member?.user?._id?.toString();
+            if (!userId) return;
+            
+            const currentRoleIds = profileTarget?.member?.roleIds || [];
+            const newRoleIds = add
+              ? [...currentRoleIds, roleId]
+              : currentRoleIds.filter(id => id !== roleId);
+            
+            try {
+              await assignRolesToMember(workspaceId, userId, newRoleIds);
+              toast.success(add ? "Role added" : "Role removed");
+              // Update local profileTarget immediately
+              setProfileTarget((prev) => ({
+                ...prev,
+                member: { ...prev.member, roleIds: newRoleIds }
+              }));
+              fetchWorkspaceMembers(workspaceId);
+            } catch (err) {
+              console.error("Failed to update role:", err);
+              toast.error("Failed to update role");
             }
           }}
           onKick={async () => {
@@ -372,15 +407,12 @@ export default function MemberListPanel({
       {fullProfile && (
         <FullUserProfile
           user={fullProfile.user}
+          member={fullProfile.member}
+          workspaceRoles={roles}
           isOwnProfile={fullProfile.user._id === currentUser?._id}
           onClose={() => setFullProfile(null)}
           onMessage={() => {
             handleMessage("", fullProfile.user._id);
-          }}
-          onEdit={() => {
-            setFullProfile(null);
-            // Might open native settings or let the native auth context update
-            toast("Editing from Member Panel routed to Sidebar Profile");
           }}
         />
       )}

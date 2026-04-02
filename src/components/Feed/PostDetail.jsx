@@ -237,6 +237,7 @@ export default function PostDetail({
           >
             {post.linkPreview.image && (
               <img
+                referrerPolicy="no-referrer"
                 src={post.linkPreview.image}
                 alt={post.linkPreview.title}
                 className="w-20 h-20 rounded-lg object-cover shrink-0 bg-white/[0.04]"

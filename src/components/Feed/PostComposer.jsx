@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+import useAuth from "@/hooks/useAuth";
 import MarkdownText from "./MarkdownText";
 import {
   X,
@@ -240,6 +242,7 @@ export default function PostComposer({
   onEdit,
   editPost,
 }) {
+  const { user } = useAuth();
   const [type, setType] = useState("post");
   const [tags, setTags] = useState(DEFAULT_TAGS);
   const [suggestedTags, setSuggestedTags] = useState([]);
@@ -591,21 +594,21 @@ export default function PostComposer({
   };
 
   return (
-    <div className="fixed inset-0 z-[200] bg-black/65 backdrop-blur-sm p-0 md:p-6 flex items-center justify-center">
-      <div className="h-full md:h-[92vh] w-full md:max-w-5xl mx-auto glass-card rounded-none md:rounded-3xl overflow-hidden flex flex-col md:flex-row">
+    <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm p-0 md:p-6 flex items-center justify-center">
+      <div className="h-full md:h-[92vh] w-full md:max-w-5xl mx-auto bg-[#0e0e17] rounded-none md:rounded-3xl overflow-hidden flex flex-col md:flex-row border border-white/[0.08] shadow-2xl">
         {/* Left selector panel */}
         <aside className="w-full md:w-[260px] md:shrink-0 border-b md:border-b-0 md:border-r border-white/[0.07] bg-white/[0.01] flex flex-col md:min-h-0 md:overflow-y-auto">
           <div className="px-5 pt-4 pb-3 border-b border-white/[0.06]">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-accent/15 border border-accent/25 flex items-center justify-center text-accent font-display font-bold">
-                ⚡
+              <div className="w-8 h-8 rounded-xl overflow-hidden border border-white/10">
+                <Image src="/favicon.png" alt="ConvoX" width={32} height={32} className="w-full h-full object-cover" unoptimized />
               </div>
               <div>
                 <p className="font-display font-bold text-ivory text-[20px] leading-tight">
                   ConvoX
                 </p>
                 <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-accent/70">
-                  Midnight Luxe
+                  Create Post
                 </p>
               </div>
             </div>
@@ -641,12 +644,20 @@ export default function PostComposer({
           </div>
 
           <div className="hidden md:flex items-center gap-3 px-5 py-4 border-t border-white/[0.06]">
-            <div className="w-9 h-9 rounded-full bg-white/[0.08] border border-white/[0.12]" />
+            <div className="w-9 h-9 rounded-full bg-white/[0.08] border border-white/[0.12] overflow-hidden flex items-center justify-center">
+              {user?.avatar ? (
+                <Image src={user.avatar} alt={user?.name || "User"} width={36} height={36} className="w-full h-full object-cover" unoptimized />
+              ) : (
+                <span className="text-[12px] font-bold text-ivory/60">
+                  {user?.name?.[0]?.toUpperCase() || "U"}
+                </span>
+              )}
+            </div>
             <div>
               <p className="text-[13px] font-display font-bold text-ivory">
-                Alex Rivera
+                {user?.name || "Your Post"}
               </p>
-              <p className="text-[11px] font-mono text-ivory/30">Pro Member</p>
+              <p className="text-[11px] font-mono text-ivory/30">{isPrivate ? "Posting privately" : "Posting publicly"}</p>
             </div>
           </div>
         </aside>

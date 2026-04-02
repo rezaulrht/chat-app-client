@@ -129,10 +129,11 @@ export default function PostCard({
   if (post.type === "question") {
     return (
       <article
-        className={`${base} ${post.isPinned
+        className={`${base} ${
+          post.isPinned
             ? "pl-4 pr-5 py-5 border-l-[3px] border-l-accent"
             : "px-5 py-5"
-          }`}
+        }`}
         onClick={() => onOpen?.(post)}
       >
         {post.isPinned && (
@@ -375,6 +376,7 @@ export default function PostCard({
                 onClick={(e) => e.stopPropagation()}
               >
                 <img
+                  referrerPolicy="no-referrer"
                   src={src}
                   alt={`Screenshot ${i + 1}`}
                   className="w-full h-full object-cover"

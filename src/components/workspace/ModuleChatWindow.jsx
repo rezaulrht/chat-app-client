@@ -2182,7 +2182,16 @@ export default function ModuleChatWindow({
                     roleId,
                     action: add ? "add" : "remove"
                   });
-                  // Refresh members to show updated roles
+                  // Update local profileTarget immediately
+                  setProfileTarget((prev) => ({
+                    ...prev,
+                    member: {
+                      ...prev.member,
+                      roleIds: add
+                        ? [...(prev.member?.roleIds || []), roleId]
+                        : (prev.member?.roleIds || []).filter(id => id !== roleId)
+                    }
+                  }));
                   fetchWorkspaceMembers(workspaceId);
                 } catch (err) {
                   console.error("Failed to update role:", err);

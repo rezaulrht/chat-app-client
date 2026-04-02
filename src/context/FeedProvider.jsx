@@ -278,6 +278,30 @@ export function FeedProvider({ children }) {
       }
     };
 
+    // When a new post is created by any user
+    const handlePostCreated = ({ post }) => {
+      if (!post) return;
+      const normalized = normalizePost(post);
+      // Don't add if it's our own post (already added optimistically)
+      const myId = authUser?._id || authUser?.id;
+      const postAuthorId = post.author?._id || post.author;
+      if (String(postAuthorId) === String(myId)) return;
+      
+      setPosts((prev) => {
+        // Check if post already exists
+        if (prev.some((p) => String(p._id) === String(normalized._id))) {
+          return prev;
+        }
+        return [normalized, ...prev];
+      });
+    };
+
+    // When a post is deleted
+    const handlePostDeleted = ({ postId }) => {
+      if (!postId) return;
+      setPosts((prev) => prev.filter((p) => String(p._id) !== String(postId)));
+    };
+
     // When any user's reputation changes, refresh own stats and ping the
     // leaderboard sidebar to re-fetch via reputationTick.
     const handleReputationUpdated = ({ userId: changedId }) => {
@@ -299,17 +323,21 @@ export function FeedProvider({ children }) {
       }
     };
 
+    socket.on("feed:post:created", handlePostCreated);
+    socket.on("feed:post:deleted", handlePostDeleted);
     socket.on("feed:post:reacted", handleReacted);
     socket.on("feed:comment:created", handleCommentCreated);
     socket.on("feed:comment:deleted", handleCommentDeleted);
     socket.on("feed:reputation:updated", handleReputationUpdated);
     return () => {
+      socket.off("feed:post:created", handlePostCreated);
+      socket.off("feed:post:deleted", handlePostDeleted);
       socket.off("feed:post:reacted", handleReacted);
       socket.off("feed:comment:created", handleCommentCreated);
       socket.off("feed:comment:deleted", handleCommentDeleted);
       socket.off("feed:reputation:updated", handleReputationUpdated);
     };
-  }, [socket, normalizePost, toId, fetchMyStats]);
+  }, [socket, normalizePost, toId, fetchMyStats, authUser]);
 
   const createPost = useCallback(
     async (payload) => {

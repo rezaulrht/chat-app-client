@@ -352,6 +352,11 @@ export default function MemberListPanel({
             try {
               await assignRolesToMember(workspaceId, userId, newRoleIds);
               toast.success(add ? "Role added" : "Role removed");
+              // Update local profileTarget immediately
+              setProfileTarget((prev) => ({
+                ...prev,
+                member: { ...prev.member, roleIds: newRoleIds }
+              }));
               fetchWorkspaceMembers(workspaceId);
             } catch (err) {
               console.error("Failed to update role:", err);

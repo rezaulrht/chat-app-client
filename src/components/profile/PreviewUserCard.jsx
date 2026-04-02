@@ -99,6 +99,8 @@ export default function PreviewUserCard({
     };
 
     const hasGithub = user?.socialConnections?.github;
+    const isOwner = member?.role === "owner";
+    const isAdmin = member?.role === "admin";
 
     return (
         <div

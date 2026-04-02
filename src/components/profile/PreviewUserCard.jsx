@@ -21,9 +21,11 @@ export default function PreviewUserCard({
 }) {
     const cardRef = useRef(null);
     const [showMenu, setShowMenu] = useState(false);
+    const [showRoleDropdown, setShowRoleDropdown] = useState(false);
     const [messageText, setMessageText] = useState("");
     const [isSending, setIsSending] = useState(false);
     const menuRef = useRef(null);
+    const roleDropdownRef = useRef(null);
     const [clampedPosition, setClampedPosition] = useState({ x: 0, y: 0 });
 
     // Get workspace roles
@@ -59,8 +61,12 @@ export default function PreviewUserCard({
             if (menuRef.current && !menuRef.current.contains(e.target)) {
                 setShowMenu(false);
             }
+            if (roleDropdownRef.current && !roleDropdownRef.current.contains(e.target)) {
+                setShowRoleDropdown(false);
+            }
             if (cardRef.current && !cardRef.current.contains(e.target) && 
-                (!menuRef.current || !menuRef.current.contains(e.target))) {
+                (!menuRef.current || !menuRef.current.contains(e.target)) &&
+                (!roleDropdownRef.current || !roleDropdownRef.current.contains(e.target))) {
                 onClose?.();
             }
         };
@@ -239,14 +245,47 @@ export default function PreviewUserCard({
                                 {role.name}
                             </span>
                         ))}
-                        {isAdmin && onAddRole && (
-                            <button
-                                onClick={onAddRole}
-                                className="w-5 h-5 flex items-center justify-center rounded bg-[#2b2d31] border border-[#3f4147] hover:bg-[#3f4147] text-[#dbdee1] transition-colors"
-                                title="Add Role"
-                            >
-                                <Plus size={12} />
-                            </button>
+                        {isAdmin && workspace?.roles && (
+                            <div className="relative" ref={roleDropdownRef}>
+                                <button
+                                    onClick={() => setShowRoleDropdown(!showRoleDropdown)}
+                                    className="w-5 h-5 flex items-center justify-center rounded bg-white/10 border border-white/20 hover:bg-white/20 text-ivory/70 transition-colors"
+                                    title="Add/Remove Role"
+                                >
+                                    <Plus size={12} />
+                                </button>
+                                {showRoleDropdown && (
+                                    <div className="absolute left-0 top-full mt-1 w-40 rounded-lg glass-panel border border-white/10 shadow-xl overflow-hidden z-50">
+                                        <div className="p-1.5 border-b border-white/10">
+                                            <p className="text-[10px] text-ivory/50 uppercase font-bold px-2">Assign Role</p>
+                                        </div>
+                                        <div className="p-1 max-h-48 overflow-y-auto">
+                                            {workspace.roles.map((role) => {
+                                                const hasRole = member?.roleIds?.includes(role._id);
+                                                return (
+                                                    <button
+                                                        key={role._id}
+                                                        onClick={() => {
+                                                            onAddRole?.(role._id, !hasRole);
+                                                            setShowRoleDropdown(false);
+                                                        }}
+                                                        className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-white/10 transition-colors"
+                                                    >
+                                                        <span 
+                                                            className="w-2 h-2 rounded-full"
+                                                            style={{ backgroundColor: role.color }}
+                                                        />
+                                                        <span className="text-ivory/80 flex-1 text-left">{role.name}</span>
+                                                        {hasRole && (
+                                                            <span className="text-accent text-[10px]">✓</span>
+                                                        )}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         )}
                         {hasGithub && (
                             <a

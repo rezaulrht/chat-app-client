@@ -2174,6 +2174,20 @@ export default function ModuleChatWindow({
               user={profileTarget.member?.user}
               member={profileTarget.member}
               workspaceId={workspaceId}
+              isAdmin={workspace?.myRole === "owner" || workspace?.myRole === "admin"}
+              onAddRole={async (roleId, add) => {
+                try {
+                  const memberId = profileTarget.member?.user?._id;
+                  await api.patch(`/api/workspaces/${workspaceId}/members/${memberId}/roles`, {
+                    roleId,
+                    action: add ? "add" : "remove"
+                  });
+                  // Refresh members to show updated roles
+                  fetchWorkspaceMembers(workspaceId);
+                } catch (err) {
+                  console.error("Failed to update role:", err);
+                }
+              }}
               onClose={() => setProfileTarget(null)}
               onViewProfile={() => setProfileTarget(null)}
             />

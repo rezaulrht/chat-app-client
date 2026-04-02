@@ -1449,6 +1449,7 @@ export default function ChatWindow({
           <div className="absolute inset-0 bg-accent/20 blur-3xl rounded-full" />
           <div className="relative w-24 h-24 rounded-4xl bg-accent/10 border border-accent/20 flex items-center justify-center shadow-2xl backdrop-blur-sm">
             <img
+              referrerPolicy="no-referrer"
               src="https://i.ibb.co/PG0X3Tbf/Convo-X-logo.png"
               alt="ConvoX"
               className="w-12 h-auto opacity-80"
@@ -1737,6 +1738,7 @@ export default function ChatWindow({
                             )}
                             {msg.gifUrl ? (
                               <img
+                                referrerPolicy="no-referrer"
                                 src={msg.gifUrl}
                                 alt="GIF"
                                 className="max-w-40 rounded-lg"

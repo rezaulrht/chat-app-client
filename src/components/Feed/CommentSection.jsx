@@ -25,6 +25,7 @@ function CommentAvatar({ author }) {
     <div className="mt-0.5 h-8 w-8 shrink-0 overflow-hidden rounded-full bg-white/6 ring-1 ring-white/8">
       {author?.avatar ? (
         <img
+          referrerPolicy="no-referrer"
           src={author.avatar}
           alt={author?.name || "Comment author"}
           className="h-full w-full object-cover"

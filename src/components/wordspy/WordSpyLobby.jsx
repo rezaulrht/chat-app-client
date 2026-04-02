@@ -31,7 +31,12 @@ const WordSpyLobby = ({ onStart, onDisband, onLeave }) => {
           {players.map((p) => (
             <div key={String(p.userId)} className="flex items-center gap-3">
               {p.avatar ? (
-                <img src={p.avatar} alt={p.displayName} className="w-8 h-8 rounded-full object-cover shrink-0" />
+                <img
+                  referrerPolicy="no-referrer"
+                  src={p.avatar}
+                  alt={p.displayName}
+                  className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                />
               ) : (
                 <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-xs text-accent font-bold shrink-0">
                   {p.displayName?.[0]?.toUpperCase() || "?"}
@@ -47,9 +52,14 @@ const WordSpyLobby = ({ onStart, onDisband, onLeave }) => {
       {error && <p className="text-red-400 text-sm text-center">{error}</p>}
       {isHost ? (
         <div className="flex flex-col items-center gap-3 w-full max-w-sm">
-          <button onClick={() => setShowModal(true)} disabled={!canStart}
-            className="w-full px-8 py-3 bg-accent hover:bg-accent/80 disabled:opacity-40 disabled:cursor-not-allowed text-obsidian font-semibold rounded-xl transition-colors">
-            {canStart ? "Start Game" : `Waiting for players (${connectedCount}/3)...`}
+          <button
+            onClick={() => setShowModal(true)}
+            disabled={!canStart}
+            className="w-full px-8 py-3 bg-accent hover:bg-accent/80 disabled:opacity-40 disabled:cursor-not-allowed text-obsidian font-semibold rounded-xl transition-colors"
+          >
+            {canStart
+              ? "Start Game"
+              : `Waiting for players (${connectedCount}/3)...`}
           </button>
           <button onClick={onDisband}
             className="w-full px-8 py-2.5 bg-white/5 hover:bg-red-500/15 border border-white/10 hover:border-red-500/40 text-ivory/40 hover:text-red-500 font-medium rounded-xl text-sm transition-all duration-200">
@@ -67,7 +77,12 @@ const WordSpyLobby = ({ onStart, onDisband, onLeave }) => {
           </button>
         </div>
       )}
-      {showModal && <WordSpyCategoryModal onStart={onStart} onClose={() => setShowModal(false)} />}
+      {showModal && (
+        <WordSpyCategoryModal
+          onStart={onStart}
+          onClose={() => setShowModal(false)}
+        />
+      )}
     </div>
   );
 };

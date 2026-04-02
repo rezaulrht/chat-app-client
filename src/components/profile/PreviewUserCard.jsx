@@ -27,7 +27,7 @@ export default function PreviewUserCard({
     const [clampedPosition, setClampedPosition] = useState({ x: 0, y: 0 });
 
     // Get workspace roles
-    const { workspaces } = useWorkspace();
+    const { workspaces, membersCache } = useWorkspace();
     const workspace = workspaces.find(w => w._id === workspaceId);
     
     // Get custom roles for this member
@@ -37,6 +37,13 @@ export default function PreviewUserCard({
             .map(roleId => workspace.roles.find(r => r._id?.toString() === roleId?.toString()))
             .filter(Boolean);
     }, [member?.roleIds, workspace?.roles]);
+
+    // Get real-time presence
+    const isOnline = useMemo(() => {
+        const members = membersCache[workspaceId] || [];
+        const m = members.find(mem => mem.user?._id === user?._id);
+        return m?.online || false;
+    }, [membersCache, workspaceId, user?._id]);
 
     // Animation state
     const [isVisible, setIsVisible] = useState(false);
@@ -98,16 +105,16 @@ export default function PreviewUserCard({
     const isAdminRole = member?.role === "admin";
     const roleDisplay = isOwner ? "Owner" : isAdminRole ? "Admin" : "Member";
     const roleColor = isOwner
-        ? "bg-yellow-500/20 border-yellow-500/50 text-yellow-700 dark:text-yellow-300"
+        ? "bg-yellow-500/20 border-yellow-500/50 text-yellow-300"
         : isAdminRole
-            ? "bg-blue-500/20 border-blue-500/50 text-blue-700 dark:text-blue-300"
-            : "bg-[#5865F2]/20 border-[#5865F2]/50 text-[#5865F2]";
+            ? "bg-blue-500/20 border-blue-500/50 text-blue-300"
+            : "bg-accent/20 border-accent/50 text-accent";
 
     return (
         <div
             ref={cardRef}
             onClick={(e) => e.stopPropagation()}
-            className="fixed z-50 w-80 rounded-xl border border-gray-200/80 dark:border-white/8 bg-white dark:bg-[#1a1b26] shadow-2xl overflow-hidden"
+            className="fixed z-50 w-80 rounded-xl border border-white/8 glass-panel shadow-2xl overflow-hidden"
             style={{
                 left: clampedPosition.x,
                 top: clampedPosition.y,
@@ -117,7 +124,7 @@ export default function PreviewUserCard({
             }}
         >
             {/* BANNER */}
-            <div className="relative h-24 bg-gradient-to-r from-[#5865F2]/30 to-[#5865F2]/10 overflow-hidden group">
+            <div className="relative h-24 bg-linear-to-r from-accent/30 to-accent/10 overflow-hidden group">
                 {user?.banner?.imageUrl ? (
                     <Image
                         src={user.banner.imageUrl}
@@ -127,7 +134,7 @@ export default function PreviewUserCard({
                         unoptimized
                     />
                 ) : null}
-                <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-[#1a1b26] via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-linear-to-t from-deep via-transparent to-transparent" />
             </div>
 
             {/* BODY */}
@@ -139,7 +146,7 @@ export default function PreviewUserCard({
                         onClick={onViewProfile}
                         className="shrink-0 group focus:outline-none"
                     >
-                        <div className="w-20 h-20 rounded-full bg-white dark:bg-[#1a1b26] border-4 border-white dark:border-[#1a1b26] overflow-hidden hover:border-[#5865F2]/40 transition-all ring-4 ring-white dark:ring-[#1a1b26] group-hover:ring-[#5865F2]/20">
+                        <div className="w-20 h-20 rounded-full bg-deep border-4 border-deep overflow-hidden hover:border-accent/40 transition-all ring-4 ring-deep group-hover:ring-accent/20">
                             {user?.avatar ? (
                                 <Image
                                     src={user.avatar}
@@ -150,11 +157,13 @@ export default function PreviewUserCard({
                                     unoptimized
                                 />
                             ) : (
-                                <div className="w-full h-full bg-gradient-to-br from-[#5865F2]/40 to-[#5865F2]/10 flex items-center justify-center text-xl font-bold text-[#5865F2]">
+                                <div className="w-full h-full bg-linear-to-br from-accent/40 to-accent/10 flex items-center justify-center text-xl font-bold text-accent/60">
                                     {user?.name?.charAt(0)?.toUpperCase()}
                                 </div>
                             )}
                         </div>
+                        {/* Online dot */}
+                        <div className={`absolute bottom-1 right-1 w-4 h-4 rounded-full border-2 border-deep z-30 ${isOnline ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]' : 'bg-gray-500'}`} />
                     </button>
 
                     {/* Menu button */}
@@ -162,7 +171,7 @@ export default function PreviewUserCard({
                     <div className="relative" ref={menuRef}>
                         <button
                             onClick={() => setShowMenu(!showMenu)}
-                            className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/8 rounded transition-all text-gray-400 dark:text-white/50 hover:text-gray-600 dark:hover:text-white"
+                            className="p-1.5 hover:bg-white/8 rounded transition-all text-ivory/50 hover:text-ivory"
                             aria-label="More options"
                             aria-expanded={showMenu}
                             aria-haspopup="menu"
@@ -171,13 +180,13 @@ export default function PreviewUserCard({
                         </button>
 
                         {showMenu && (
-                            <div className="absolute right-0 top-full mt-2 w-44 rounded-lg bg-white dark:bg-[#13141b] border border-gray-200 dark:border-white/8 shadow-xl animate-in fade-in slide-in-from-top-2 duration-150 overflow-hidden z-50">
+                            <div className="absolute right-0 top-full mt-2 w-44 rounded-lg glass-panel border border-white/8 shadow-xl animate-in fade-in slide-in-from-top-2 duration-150 overflow-hidden z-50">
                                 <button
                                     onClick={() => {
                                         onReport?.();
                                         setShowMenu(false);
                                     }}
-                                    className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs hover:bg-gray-50 dark:hover:bg-white/8 transition-all text-gray-600 dark:text-white/70 border-b border-gray-100 dark:border-white/6"
+                                    className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs hover:bg-white/8 transition-all text-ivory/70 border-b border-white/6"
                                 >
                                     <Flag size={13} />
                                     Report User
@@ -188,7 +197,7 @@ export default function PreviewUserCard({
                                             onKick?.();
                                             setShowMenu(false);
                                         }}
-                                        className="w-full text-left px-3.5 py-2.5 text-xs hover:bg-red-50 dark:hover:bg-red-500/20 transition-all text-red-500 border-b border-gray-100 dark:border-white/6"
+                                        className="w-full text-left px-3.5 py-2.5 text-xs hover:bg-red-500/20 transition-all text-red-400 border-b border-white/6"
                                     >
                                         Kick from Workspace
                                     </button>
@@ -199,7 +208,7 @@ export default function PreviewUserCard({
                                             onBan?.();
                                             setShowMenu(false);
                                         }}
-                                        className="w-full text-left px-3.5 py-2.5 text-xs hover:bg-red-50 dark:hover:bg-red-500/20 transition-all text-red-600"
+                                        className="w-full text-left px-3.5 py-2.5 text-xs hover:bg-red-500/20 transition-all text-red-500"
                                     >
                                         Ban from Workspace
                                     </button>
@@ -211,7 +220,7 @@ export default function PreviewUserCard({
 
                 {/* NAME + ROLE */}
                 <div className="mb-3">
-                    <h3 className="font-bold text-gray-900 dark:text-white text-base">{user?.name}</h3>
+                    <h3 className="font-bold text-ivory text-base">{user?.name}</h3>
                     <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <span className={`px-2 py-0.5 rounded text-xs font-semibold border ${roleColor}`}>
                             {roleDisplay}
@@ -233,7 +242,7 @@ export default function PreviewUserCard({
                         {isAdmin && onAddRole && (
                             <button
                                 onClick={onAddRole}
-                                className="w-5.5 h-5.5 flex items-center justify-center rounded bg-gray-200 dark:bg-[#2b2d31] border border-gray-300 dark:border-[#3f4147] hover:bg-gray-300 dark:hover:bg-[#3f4147] text-gray-600 dark:text-[#dbdee1] transition-colors"
+                                className="w-5 h-5 flex items-center justify-center rounded bg-[#2b2d31] border border-[#3f4147] hover:bg-[#3f4147] text-[#dbdee1] transition-colors"
                                 title="Add Role"
                             >
                                 <Plus size={12} />
@@ -244,7 +253,7 @@ export default function PreviewUserCard({
                                 href={`https://github.com/${user.socialConnections.github.username}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-gray-400 dark:text-white/40 hover:text-gray-600 dark:hover:text-white/70 transition-colors"
+                                className="text-ivory/40 hover:text-ivory/70 transition-colors"
                             >
                                 <Github size={13} />
                             </a>
@@ -254,41 +263,41 @@ export default function PreviewUserCard({
 
                 {/* STATUS MESSAGE */}
                 {user?.statusMessage && (
-                    <div className="w-full text-left mb-3 p-2 rounded-lg bg-gray-50 dark:bg-white/4 border border-gray-100 dark:border-white/6">
-                        <p className="text-xs text-gray-500 dark:text-white/50 mb-1">Status</p>
-                        <p className="text-sm text-gray-700 dark:text-white/80 italic">"{user.statusMessage}"</p>
+                    <div className="w-full text-left mb-3 p-2 rounded-lg bg-white/4 border border-white/6">
+                        <p className="text-xs text-ivory/50 mb-1">Status</p>
+                        <p className="text-sm text-ivory/80 italic">"{user.statusMessage}"</p>
                     </div>
                 )}
 
                 {/* BIO PREVIEW */}
                 {user?.bio && (
-                    <p className="text-xs text-gray-600 dark:text-white/60 line-clamp-3 mb-3 leading-relaxed">
+                    <p className="text-xs text-ivory/60 line-clamp-3 mb-3 leading-relaxed">
                         {user.bio}
                     </p>
                 )}
 
-                {/* EMAIL (for own profile or if visible) */}
+                {/* EMAIL */}
                 {user?.email && (
-                    <p className="text-xs text-gray-500 dark:text-white/40 mb-3">
+                    <p className="text-xs text-ivory/40 mb-3">
                         {user.email}
                     </p>
                 )}
 
                 {/* MEMBER SINCE */}
                 {member?.joinedAt && (
-                    <p className="text-xs text-gray-400 dark:text-white/40 mb-4">
+                    <p className="text-xs text-ivory/40 mb-4">
                         Joined {new Date(member.joinedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                     </p>
                 )}
 
                 {/* DIVIDER */}
-                <div className="h-px bg-gray-200 dark:bg-white/6 mb-4" />
+                <div className="h-px bg-white/6 mb-4" />
 
                 {/* BUTTONS */}
                 <div className="space-y-2">
                     <button
                         onClick={onViewProfile}
-                        className="w-full px-3 py-2 rounded-lg bg-[#5865F2]/20 hover:bg-[#5865F2]/30 border border-[#5865F2]/40 text-[#5865F2] font-semibold text-xs uppercase tracking-wide transition-all"
+                        className="w-full px-3 py-2 rounded-lg bg-accent/20 hover:bg-accent/30 border border-accent/40 text-accent font-semibold text-xs uppercase tracking-wide transition-all"
                     >
                         View Profile
                     </button>
@@ -308,12 +317,12 @@ export default function PreviewUserCard({
                         }}
                         placeholder="Message..."
                         maxLength={100}
-                        className="flex-1 px-3 py-2 rounded-lg bg-gray-50 dark:bg-white/4 border border-gray-200 dark:border-white/8 focus:border-[#5865F2]/50 text-gray-900 dark:text-white text-xs placeholder:text-gray-400 dark:placeholder:text-white/30 outline-none transition-all"
+                        className="flex-1 px-3 py-2 rounded-lg bg-white/4 border border-white/8 focus:border-accent/50 text-ivory text-xs placeholder:text-ivory/30 outline-none transition-all"
                     />
                     <button
                         onClick={handleSendMessage}
                         disabled={!messageText.trim() || isSending}
-                        className="px-3 py-2 rounded-lg bg-[#5865F2]/20 hover:bg-[#5865F2]/30 border border-[#5865F2]/40 text-[#5865F2] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                        className="px-3 py-2 rounded-lg bg-accent/20 hover:bg-accent/30 border border-accent/40 text-accent disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                         aria-label={`Send message to ${user?.name || "user"}`}
                         title="Send message"
                     >

@@ -87,7 +87,7 @@
   --color-darker: #034858;
 }
 
-@custom-variant dark (&:where([data-theme=midnight-luxe-dark], [data-theme=midnight-luxe-dark] *));
+@custom-variant dark (&:where([data-theme=midnight-luxe-mint], [data-theme=midnight-luxe-cyan], [data-theme=midnight-luxe-mint] *, [data-theme=midnight-luxe-cyan] *));
 
 /* --- Midnight Luxe Theme Tokens (global — applies to all themes) --- */
 

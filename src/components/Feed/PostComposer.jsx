@@ -657,7 +657,7 @@ export default function PostComposer({
               <p className="text-[13px] font-display font-bold text-ivory">
                 {user?.name || "Your Post"}
               </p>
-              <p className="text-[11px] font-mono text-ivory/30">Posting publicly</p>
+              <p className="text-[11px] font-mono text-ivory/30">{isPrivate ? "Posting privately" : "Posting publicly"}</p>
             </div>
           </div>
         </aside>

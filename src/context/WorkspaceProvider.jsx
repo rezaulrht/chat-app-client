@@ -432,12 +432,19 @@ export function WorkspaceProvider({ children }) {
           const response = await api.post("/api/chat/last-seen", { userIds });
           // Update onlineUsers set based on presence data
           const presenceData = response.data || {};
-          const onlineUserIds = Object.keys(presenceData).filter(
-            (uid) => presenceData[uid]?.online
-          );
+          const memberIds = new Set(userIds.map(String));
           setOnlineUsers((prev) => {
-            const updated = new Set(prev);
-            onlineUserIds.forEach((id) => updated.add(id));
+            const updated = new Set();
+            for (const uid of prev) {
+              if (!memberIds.has(String(uid))) {
+                updated.add(uid);
+              }
+            }
+            Object.keys(presenceData).forEach((uid) => {
+              if (presenceData[uid]?.online) {
+                updated.add(uid);
+              }
+            });
             return updated;
           });
         } catch (presenceErr) {

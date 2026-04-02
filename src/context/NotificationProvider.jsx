@@ -29,18 +29,37 @@ function formatToastMessage(notif) {
 }
 
 export function NotificationProvider({ children }) {
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [prefs, setPrefs] = useState({});
   const [loading, setLoading] = useState(false);
 
-  // Cache key for localStorage
-  const PREFS_CACHE_KEY = "notification_prefs";
+  const { user } = useAuth();
+  const socketCtx = useContext(SocketContext);
+  const socket = socketCtx?.socket ?? null;
+
+  // User-specific cache key to prevent cross-user leakage
+  const PREFS_CACHE_KEY = user ? `notification_prefs_${user._id || user.id}` : "notification_prefs_guest";
   const PREFS_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
-  // Load cached prefs from localStorage on mount
+  // Clear cache on logout
   useEffect(() => {
+    if (!user) {
+      try {
+        const keys = Object.keys(localStorage).filter(k => k.startsWith("notification_prefs_"));
+        keys.forEach(k => localStorage.removeItem(k));
+      } catch {}
+    }
+  }, [user]);
+
+  // Load cached prefs from localStorage when user changes
+  useEffect(() => {
+    if (!user) {
+      setPrefs({});
+      return;
+    }
     try {
       const cached = localStorage.getItem(PREFS_CACHE_KEY);
       if (cached) {
@@ -52,11 +71,11 @@ export function NotificationProvider({ children }) {
     } catch (e) {
       // Ignore localStorage errors
     }
-  }, []);
+  }, [user, PREFS_CACHE_KEY]);
 
   // Cache prefs to localStorage when they change
   useEffect(() => {
-    if (Object.keys(prefs).length > 0) {
+    if (Object.keys(prefs).length > 0 && user) {
       try {
         localStorage.setItem(
           PREFS_CACHE_KEY,
@@ -66,7 +85,7 @@ export function NotificationProvider({ children }) {
         // Ignore localStorage errors
       }
     }
-  }, [prefs]);
+  }, [prefs, user, PREFS_CACHE_KEY]);
 
   // Track which conversation the user is currently viewing so we can
   // suppress toast for chat_message notifications from that conversation.

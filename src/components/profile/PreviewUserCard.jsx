@@ -150,9 +150,9 @@ export default function PreviewUserCard({
                     {/* Avatar - Clickable */}
                     <button
                         onClick={onViewProfile}
-                        className="shrink-0 group focus:outline-none"
+                        className="shrink-0 group focus:outline-none relative"
                     >
-                        <div className="w-20 h-20 rounded-full bg-deep border-4 border-deep overflow-hidden hover:border-accent/40 transition-all ring-4 ring-deep group-hover:ring-accent/20">
+                        <div className="w-20 h-20 rounded-full bg-deep border-4 border-deep overflow-hidden hover:border-accent/40 transition-all ring-4 ring-deep group-hover:ring-accent/20 relative">
                             {user?.avatar ? (
                                 <Image
                                     src={user.avatar}
@@ -261,12 +261,12 @@ export default function PreviewUserCard({
                                         </div>
                                         <div className="p-1 max-h-48 overflow-y-auto">
                                             {workspace.roles.map((role) => {
-                                                const hasRole = member?.roleIds?.includes(role._id);
+                                                const hasRole = (member?.roleIds || []).map(String).includes(String(role._id));
                                                 return (
                                                     <button
                                                         key={role._id}
                                                         onClick={() => {
-                                                            onAddRole?.(role._id, !hasRole);
+                                                            onAddRole?.(String(role._id), !hasRole);
                                                             setShowRoleDropdown(false);
                                                         }}
                                                         className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-white/10 transition-colors"

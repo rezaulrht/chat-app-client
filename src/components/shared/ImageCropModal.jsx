@@ -21,6 +21,7 @@ export default function ImageCropModal({
     isLoading = false,
 }) {
     const containerRef = useRef(null);
+    const cropAreaRef = useRef(null);
     const imageRef = useRef(null);
     const [image, setImage] = useState(null);
     const [imageError, setImageError] = useState(false);
@@ -56,6 +57,7 @@ export default function ImageCropModal({
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (isLoading) return;
+            if (cropAreaRef.current && !cropAreaRef.current.contains(e.target)) return;
             
             const step = 10;
             switch (e.key) {
@@ -97,7 +99,7 @@ export default function ImageCropModal({
         
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [isLoading, onCancel]);
+    }, [isLoading, onCancel, cropAreaRef]);
 
     // Measure container
     useEffect(() => {
@@ -186,8 +188,11 @@ export default function ImageCropModal({
         if (!image) return;
 
         const crop = getCropDimensions();
-        const scaleX = image.naturalWidth / image.width;
-        const scaleY = image.naturalHeight / image.height;
+        
+        const renderedWidth = imageRef.current?.clientWidth || image.width;
+        const renderedHeight = imageRef.current?.clientHeight || image.height;
+        const scaleX = image.naturalWidth / renderedWidth;
+        const scaleY = image.naturalHeight / renderedHeight;
         
         // Discord banner output: 1200x480 (5:2 ratio, 2x Discord's 600x240)
         const outputCanvas = document.createElement("canvas");
@@ -197,9 +202,9 @@ export default function ImageCropModal({
         outputCanvas.height = targetHeight;
         const ctx = outputCanvas.getContext("2d");
 
-        // Calculate image dimensions
-        const imgWidth = (image.width || image.naturalWidth) * zoom;
-        const imgHeight = (image.height || image.naturalHeight) * zoom;
+        // Calculate image dimensions using rendered size
+        const imgWidth = renderedWidth * zoom;
+        const imgHeight = renderedHeight * zoom;
 
         // Center of image in container space
         const imgCenterX = containerSize.width / 2 + position.x;

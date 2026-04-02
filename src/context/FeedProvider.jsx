@@ -287,6 +287,13 @@ export function FeedProvider({ children }) {
       const postAuthorId = post.author?._id || post.author;
       if (String(postAuthorId) === String(myId)) return;
       
+      // Only add if post matches current feed filters
+      const matchesType = filters.type === "all" || normalized.type === filters.type;
+      const matchesTag = filters.tags.length === 0 || (normalized.tags || []).some(t => filters.tags.includes(t));
+      const matchesSearch = !searchQuery || (normalized.title || "").toLowerCase().includes(searchQuery.toLowerCase()) || (normalized.content || "").toLowerCase().includes(searchQuery.toLowerCase());
+      
+      if (!matchesType || !matchesTag || !matchesSearch) return;
+      
       setPosts((prev) => {
         // Check if post already exists
         if (prev.some((p) => String(p._id) === String(normalized._id))) {
@@ -299,7 +306,16 @@ export function FeedProvider({ children }) {
     // When a post is deleted
     const handlePostDeleted = ({ postId }) => {
       if (!postId) return;
-      setPosts((prev) => prev.filter((p) => String(p._id) !== String(postId)));
+      const postIdStr = String(postId);
+      setPosts((prev) => prev.filter((p) => String(p._id) !== postIdStr));
+      // Clear selected post if it was deleted
+      setSelectedPost((prev) => (prev && String(prev._id) === postIdStr ? null : prev));
+      // Clear cached comments for deleted post
+      setCommentsByPost((prev) => {
+        const updated = { ...prev };
+        delete updated[postIdStr];
+        return updated;
+      });
     };
 
     // When any user's reputation changes, refresh own stats and ping the

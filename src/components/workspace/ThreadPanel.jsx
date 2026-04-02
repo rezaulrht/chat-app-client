@@ -90,6 +90,8 @@ export default function ThreadPanel({ moduleId, workspaceId, parentMessage, onCl
   const { messages, sendMessage, sendTyping } = useModule();
   const { membersCache, fetchWorkspaceMembers } = useWorkspace?.() || {};
 
+  const memberList = membersCache?.[workspaceId] ?? workspace?.members ?? [];
+
   useEffect(() => {
     if (workspaceId) fetchWorkspaceMembers?.(workspaceId);
   }, [workspaceId, fetchWorkspaceMembers]);
@@ -249,7 +251,7 @@ export default function ThreadPanel({ moduleId, workspaceId, parentMessage, onCl
     if (!text.trim()) return;
 
     // Extract mentions
-    const mentionIds = workspace?.members
+    const mentionIds = memberList
       ?.filter((m) => m.user && text.includes(`@${m.user.name}`))
       .map((m) => m.user._id) || [];
 

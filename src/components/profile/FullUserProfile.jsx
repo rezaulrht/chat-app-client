@@ -26,9 +26,11 @@ export default function FullUserProfile({
     const { workspaces, membersCache } = useWorkspace();
     
     // Get real-time presence from members cache
-    const workspaceMembers = membersCache[workspaceId] || [];
-    const currentMember = workspaceMembers.find(m => m.user?._id === (initialUser?._id || initialUser?.id));
-    const isOnline = currentMember?.online || false;
+    const workspaceMembers = membersCache[workspaceId];
+    const currentMember = workspaceMembers?.find(m => m.user?._id === (initialUser?._id || initialUser?.id));
+    const isOnline = currentMember !== undefined
+        ? currentMember?.online || false
+        : initialUser?.online || false;
 
     const [user, setUser] = useState(initialUser);
     const [editingStatus, setEditingStatus] = useState(false);
@@ -249,8 +251,10 @@ export default function FullUserProfile({
 
                         <div className="h-px bg-white/[0.06] mb-5" />
 
-                        <div className="text-[10px] uppercase font-mono tracking-widest font-bold text-ivory/30 mb-1">Member Since</div>
-                        <p className="text-[13px] text-ivory mb-5">{joinDate}</p>
+        <div className="text-[10px] uppercase font-mono tracking-widest font-bold text-ivory/30 mb-1">{member?.joinedAt ? "Member Since" : "Account Created"}</div>
+        <p className="text-[13px] text-ivory mb-5">{member?.joinedAt
+            ? new Date(member.joinedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+            : joinDate}</p>
 
                         <div className="h-px bg-white/[0.06] mb-5" />
 

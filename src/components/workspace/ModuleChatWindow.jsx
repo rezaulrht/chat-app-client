@@ -504,20 +504,24 @@ export default function ModuleChatWindow({
           return (
             <span
               key={`${mention.id}-${i}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                const member = (membersCache?.[workspaceId] || []).find(
-                  (m) => m.user?._id === mention.id || m.user?.name === mention.name
-                );
-                if (member) {
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  setProfileTarget({
-                    member,
-                    x: rect.right + 8,
-                    y: rect.top,
-                  });
-                }
-              }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const allMembers = membersCache?.[workspaceId] || [];
+                    const resolvedMember = allMembers.find(
+                      (m) => {
+                        const mUserId = m.user?._id || m.user?.id || m.user;
+                        return String(mUserId) === String(mention.id);
+                      }
+                    );
+                    if (resolvedMember) {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setProfileTarget({
+                        member: resolvedMember,
+                        x: rect.right + 8,
+                        y: rect.top,
+                      });
+                    }
+                  }}
               className="inline-flex items-center gap-1 bg-[#5865F2]/20 text-[#5865F2] dark:text-[#8094FF] font-semibold px-1.5 py-0.5 mx-px rounded-md cursor-pointer hover:bg-[#5865F2]/30 transition-colors border border-[#5865F2]/30"
             >
               <Image
@@ -2162,45 +2166,60 @@ export default function ModuleChatWindow({
           className="fixed inset-0 z-[60]" 
           onClick={() => setProfileTarget(null)}
         >
-          <div 
-            className="absolute z-[61] animate-in fade-in zoom-in-95 duration-150"
-            style={{ 
-              top: Math.max(10, Math.min(profileTarget.y - 10, window.innerHeight - 400)),
-              left: Math.max(10, Math.min(profileTarget.x, window.innerWidth - 330))
+          <PreviewUserCard
+            user={profileTarget.member?.user}
+            member={profileTarget.member}
+            workspaceId={workspaceId}
+            isAdmin={workspace?.myRole === "owner" || workspace?.myRole === "admin"}
+            position={{
+              x: Math.max(10, Math.min(profileTarget.x, window.innerWidth - 330)),
+              y: Math.max(10, Math.min(profileTarget.y - 10, window.innerHeight - 400)),
             }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <PreviewUserCard
-              user={profileTarget.member?.user}
-              member={profileTarget.member}
-              workspaceId={workspaceId}
-              isAdmin={workspace?.myRole === "owner" || workspace?.myRole === "admin"}
-              onAddRole={async (roleId, add) => {
-                try {
-                  const memberId = profileTarget.member?.user?._id;
-                  await api.patch(`/api/workspaces/${workspaceId}/members/${memberId}/roles`, {
-                    roleId,
-                    action: add ? "add" : "remove"
-                  });
-                  // Update local profileTarget immediately
-                  setProfileTarget((prev) => ({
+            onMessage={async (messageText) => {
+              try {
+                const targetUserId = profileTarget.member?.user?._id;
+                const res = await api.post("/api/conversations", {
+                  participantId: targetUserId,
+                  initialMessage: messageText,
+                });
+                if (res.data?.conversation?._id) {
+                  window.location.href = `/app/chat/${res.data.conversation._id}`;
+                }
+              } catch (err) {
+                console.error("Failed to start conversation:", err);
+                toast.error("Failed to start conversation");
+              }
+            }}
+            onViewProfile={() => {
+              setProfileTarget(null);
+            }}
+            onAddRole={async (roleId, add) => {
+              try {
+                const memberId = profileTarget.member?.user?._id;
+                if (!memberId) return;
+                await api.patch(`/api/workspaces/${workspaceId}/members/${memberId}/roles`, {
+                  roleId,
+                  action: add ? "add" : "remove"
+                });
+                setProfileTarget((prev) => {
+                  if (!prev?.member) return prev;
+                  return {
                     ...prev,
                     member: {
                       ...prev.member,
                       roleIds: add
                         ? [...(prev.member?.roleIds || []), roleId]
-                        : (prev.member?.roleIds || []).filter(id => id !== roleId)
+                        : (prev.member?.roleIds || []).filter(id => String(id) !== String(roleId))
                     }
-                  }));
-                  fetchWorkspaceMembers(workspaceId);
-                } catch (err) {
-                  console.error("Failed to update role:", err);
-                }
-              }}
-              onClose={() => setProfileTarget(null)}
-              onViewProfile={() => setProfileTarget(null)}
-            />
-          </div>
+                  };
+                });
+                fetchWorkspaceMembers(workspaceId);
+              } catch (err) {
+                console.error("Failed to update role:", err);
+              }
+            }}
+            onClose={() => setProfileTarget(null)}
+          />
         </div>
       )}
     </main>

@@ -166,7 +166,7 @@ export default function AppSidebar({
                 {user.statusMessage || "Online"}
               </p>
             </div>
-            <LogOut size={14} className="text-ivory/20 group-hover:text-ivory/50 transition-colors" />
+            <LogOut size={14} className="text-ivory/20 group-hover:text-ivory/50 transition-colors cursor-pointer" onClick={(e) => { e.stopPropagation(); logout(); }} />
           </button>
         </div>
       )}

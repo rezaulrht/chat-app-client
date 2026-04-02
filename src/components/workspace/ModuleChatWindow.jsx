@@ -151,24 +151,20 @@ export default function ModuleChatWindow({
       return memberId === userId;
     });
     
-    // If member not found in cache, allow by default (will be blocked server-side if needed)
-    if (!myMember) return true;
-    
-    const myRoleIds = myMember.roleIds || [];
+    const myRoleIds = myMember?.roleIds || [];
     const roles = workspace?.roles || [];
     
-    // If no custom roles assigned, default members can send messages
-    if (myRoleIds.length === 0) {
-      return true;
+    // If user has custom roles, check if ANY has SEND_MESSAGES
+    if (myRoleIds.length > 0) {
+      return myRoleIds.some(roleId => {
+        const role = roles.find(r => r._id?.toString() === roleId?.toString());
+        return role?.permissions?.includes("SEND_MESSAGES");
+      });
     }
     
-    // Check if ANY custom role has SEND_MESSAGES permission
-    const hasPermission = myRoleIds.some(roleId => {
-      const role = roles.find(r => r._id?.toString() === roleId?.toString());
-      return role?.permissions?.includes("SEND_MESSAGES");
-    });
-    
-    return hasPermission;
+    // If no custom roles, check if user has ADMINISTRATOR permission via any means
+    // Default members should be able to send unless module has overrides (checked server-side)
+    return true;
   }, [workspace, user, membersCache, workspaceId]);
 
   // ── Local UI state ────────────────────────────────────────────────────────

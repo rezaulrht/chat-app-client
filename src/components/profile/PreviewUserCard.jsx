@@ -100,7 +100,7 @@ export default function PreviewUserCard({
 
     const hasGithub = user?.socialConnections?.github;
     const isOwner = member?.role === "owner";
-    const isAdmin = member?.role === "admin";
+    const isAdminMember = member?.role === "admin";
 
     return (
         <div
@@ -179,7 +179,7 @@ export default function PreviewUserCard({
                             Owner
                         </span>
                     )}
-                    {isAdminRole && !isOwner && (
+                    {isAdminMember && !isOwner && (
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/15 border border-blue-500/30 text-blue-600 dark:text-blue-400">
                             Admin
                         </span>

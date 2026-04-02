@@ -3,6 +3,7 @@ import Image from "next/image";
 import { X, Send, Smile, Paperclip } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 import { useModule } from "@/hooks/useModule";
+import { useWorkspace } from "@/hooks/useWorkspace";
 import api from "@/app/api/Axios";
 import EmojiPicker from "emoji-picker-react";
 import toast from "react-hot-toast";
@@ -88,6 +89,8 @@ export default function ThreadPanel({ moduleId, workspaceId, parentMessage, onCl
   const { user } = useAuth();
   const { messages, sendMessage, sendTyping } = useModule();
   const { membersCache, fetchWorkspaceMembers } = useWorkspace?.() || {};
+
+  const memberList = membersCache?.[workspaceId] ?? workspace?.members ?? [];
 
   useEffect(() => {
     if (workspaceId) fetchWorkspaceMembers?.(workspaceId);
@@ -248,7 +251,7 @@ export default function ThreadPanel({ moduleId, workspaceId, parentMessage, onCl
     if (!text.trim()) return;
 
     // Extract mentions
-    const mentionIds = workspace?.members
+    const mentionIds = memberList
       ?.filter((m) => m.user && text.includes(`@${m.user.name}`))
       .map((m) => m.user._id) || [];
 

@@ -230,7 +230,15 @@ function OverviewTab({ workspace, onUpdate }) {
                 </label>
                 {bannerUrl && (
                   <button
-                    onClick={() => setBannerUrl("")}
+                    onClick={async () => {
+                      try {
+                        await onUpdate({ banner: "" });
+                        setBannerUrl("");
+                        toast.success("Banner removed");
+                      } catch {
+                        toast.error("Failed to remove banner");
+                      }
+                    }}
                     className="p-2 bg-red-500/20 hover:bg-red-500/40 border border-red-500/20 text-red-400 rounded-xl transition-all active:scale-95"
                   >
                     <Trash2 size={14} />
@@ -1010,6 +1018,20 @@ function MembersTab({
                     >
                       {roleInfo.label}
                     </span>
+                    {/* Custom roles */}
+                    {memberRoles.map((role) => (
+                      <span
+                        key={role._id}
+                        className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full border shadow-sm"
+                        style={{
+                          borderColor: role.color + "50",
+                          color: role.color,
+                          backgroundColor: role.color + "15",
+                        }}
+                      >
+                        {role.name}
+                      </span>
+                    ))}
                   </div>
                 </div>
 
@@ -1654,12 +1676,16 @@ export default function WorkspaceSettingsModal({ workspaceId, onClose }) {
       .filter(Boolean);
   }, [workspace?.roles, myRoleIds]);
   const hasPermission = useCallback(
-    (...permissions) =>
-      isOwner ||
-      isLegacyAdmin ||
-      myWorkspaceRoles.some((role) =>
+    (...permissions) => {
+      // Owner and legacy admin always have full access
+      if (isOwner || isLegacyAdmin) return true;
+      
+      // Check if user has any of the required permissions via custom roles
+      // This includes ADMINISTRATOR permission granted through custom roles
+      return myWorkspaceRoles.some((role) =>
         permissions.some((permission) => role.permissions?.includes(permission)),
-      ),
+      );
+    },
     [isOwner, isLegacyAdmin, myWorkspaceRoles],
   );
   const canManageWorkspace = hasPermission("ADMINISTRATOR", "MANAGE_WORKSPACE");

@@ -258,7 +258,7 @@ function LeftSidebar({ userStats, followedTags, onTagFilter, collapsed = false }
   const rep = userStats.reputation ?? 0;
   const level = getLevel(rep);
 
-  // Fetch followers when panel opens
+  // Fetch followers when panel opens or followersCount changes
   useEffect(() => {
     if (!showFollowers || !userStats._id) return;
     setLoadingFollowers(true);
@@ -271,7 +271,7 @@ function LeftSidebar({ userStats, followedTags, onTagFilter, collapsed = false }
       )
       .catch(() => setFollowers([]))
       .finally(() => setLoadingFollowers(false));
-  }, [showFollowers, userStats._id]);
+  }, [showFollowers, userStats._id, userStats.followersCount]);
 
   // Fetch user's 3 most recent posts for the sidebar preview
   useEffect(() => {
@@ -625,6 +625,9 @@ function RightSidebar({ onTagFilter }) {
 
   useEffect(() => {
     fetchData();
+    // Refresh trending data every 5 minutes
+    const interval = setInterval(fetchData, 5 * 60 * 1000);
+    return () => clearInterval(interval);
   }, [fetchData]);
 
   const visibleTags = showAllTags ? trendingTags : trendingTags.slice(0, 5);

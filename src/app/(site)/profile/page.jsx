@@ -33,8 +33,6 @@ import {
   Globe,
   ChevronRight,
   Rss,
-  LinkIcon,
-  Unlink,
 } from "lucide-react";
 import PostCard from "@/components/Feed/PostCard";
 import PostDetail from "@/components/Feed/PostDetail";
@@ -189,13 +187,22 @@ function ProfilePage() {
   const searchParams = useSearchParams();
   const getInitialTab = () => {
     const tab = searchParams?.get("tab");
-    if (tab === "posts" || tab === "connections" || tab === "security" || tab === "account") {
+    if (tab === "posts" || tab === "security" || tab === "account") {
       return tab;
     }
     return "edit";
   };
   const [activeSection, setActiveSection] = useState(getInitialTab);
   const [activePost, setActivePost] = useState(null);
+
+  // Handle OAuth cancellation feedback
+  useEffect(() => {
+    const cancelled = searchParams?.get("cancelled");
+    if (cancelled === "true") {
+      toast.error("Account linking was cancelled");
+      window.history.replaceState({}, "", "/profile");
+    }
+  }, [searchParams]);
 
   // ── My posts (real API) ───────────────────────────────────────────────
   const [myPosts, setMyPosts] = useState([]);
@@ -207,22 +214,22 @@ function ProfilePage() {
   const [myPostsLoaded, setMyPostsLoaded] = useState(false);
 
   // ── Banner state ───────────────────────────────────────────────
-  const [bannerPreview, setBannerPreview] = useState(user?.banner || "");
-  const [bannerData, setBannerData] = useState(null);
+  // user.banner is an object { imageUrl, cropData } or undefined
+  const [bannerPreview, setBannerPreview] = useState(user?.banner?.imageUrl || user?.banner || "");
+  const [bannerData, setBannerData] = useState(user?.banner || null);
   const [customColor, setCustomColor] = useState(user?.customColor || "");
   const [showBannerCrop, setShowBannerCrop] = useState(false);
   const [pendingBannerImage, setPendingBannerImage] = useState(null);
   const [savingBanner, setSavingBanner] = useState(false);
   const bannerFileRef = useRef(null);
 
-  // ── Social links state ───────────────────────────────────────────────
-  const [socialLinks, setSocialLinks] = useState([]);
-  const [loadingSocialLinks, setLoadingSocialLinks] = useState(false);
-  const [linkingProvider, setLinkingProvider] = useState(null);
-  const [unlinkingProvider, setUnlinkingProvider] = useState(null);
-  const [hasGoogle, setHasGoogle] = useState(false);
-  const [hasGitHub, setHasGitHub] = useState(false);
-  const [canAddMore, setCanAddMore] = useState(true);
+  // Sync banner when user data changes (e.g., after fetch)
+  useEffect(() => {
+    if (user?.banner?.imageUrl) {
+      setBannerPreview(user.banner.imageUrl);
+      setBannerData(user.banner);
+    }
+  }, [user?.banner?.imageUrl]);
 
   const loadMyPosts = useCallback(
     async (page = 1) => {
@@ -452,14 +459,26 @@ function ProfilePage() {
     setPendingBannerImage(null);
     setSavingBanner(true);
     try {
-      const res = await api.put("/api/user/banner", { banner: croppedImage });
-      if (res.data) {
-        setBannerPreview(res.data.banner);
-        setBannerData(null);
+      // The endpoint is at /api/auth/me/banner but needs FormData
+      const formData = new FormData();
+      // Convert base64 data URL to blob
+      const response = await fetch(croppedImage);
+      const blob = await response.blob();
+      formData.append("image", blob, "banner.jpg");
+
+      const res = await api.patch("/auth/me/banner", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      if (res.data?.banner) {
+        // Update local banner state
+        setBannerPreview(croppedImage);
+        setBannerData(res.data.banner);
         toast.success("Banner updated!");
       }
     } catch (err) {
-      toast.error("Failed to save banner");
+      console.error("Banner save error:", err);
+      toast.error(err.response?.data?.message || "Failed to save banner");
     } finally {
       setSavingBanner(false);
     }
@@ -468,73 +487,15 @@ function ProfilePage() {
   const handleRemoveBanner = async () => {
     setSavingBanner(true);
     try {
-      await api.put("/api/user/banner", { banner: "" });
+      await api.patch("/auth/me/banner", { banner: "" });
       setBannerPreview("");
       setBannerData(null);
       toast.success("Banner removed");
     } catch (err) {
+      console.error("Banner remove error:", err);
       toast.error("Failed to remove banner");
     } finally {
       setSavingBanner(false);
-    }
-  };
-
-  // ── Social links handling ──────────────────────────────────────────
-  const fetchSocialLinks = useCallback(async () => {
-    setLoadingSocialLinks(true);
-    try {
-      const res = await api.get("/api/user/social-links");
-      const links = res.data.socialLinks || [];
-      setSocialLinks(links);
-      setHasGoogle(links.some(l => l.provider === "google"));
-      setHasGitHub(links.some(l => l.provider === "github"));
-      setCanAddMore(links.length < 2);
-    } catch (err) {
-      console.error("Failed to fetch social links:", err);
-    } finally {
-      setLoadingSocialLinks(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchSocialLinks();
-  }, [fetchSocialLinks]);
-
-  const handleLinkAccount = async (provider) => {
-    setLinkingProvider(provider);
-    try {
-      const res = await api.post(`/api/user/social-links/init/${provider}`);
-      if (res.data.authUrl) {
-        window.location.href = res.data.authUrl;
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to start linking");
-      setLinkingProvider(null);
-    }
-  };
-
-  const handleUnlinkAccount = async (provider) => {
-    if (!(await confirmSweetAlert({
-      title: "Disconnect Account?",
-      text: `Are you sure you want to disconnect ${provider}?`,
-      confirmButtonText: "Disconnect",
-      icon: "warning",
-    }))) return;
-    setUnlinkingProvider(provider);
-    try {
-      await api.delete(`/api/user/social-links/${provider}`);
-      toast.success(`${provider} has been disconnected`);
-      fetchSocialLinks();
-    } catch (err) {
-      const msg = err.response?.data?.message || "Failed to unlink account";
-      if (err.response?.data?.requiresPassword) {
-        toast.error("Please set a password first (Security tab)");
-        setActiveSection("security");
-      } else {
-        toast.error(msg);
-      }
-    } finally {
-      setUnlinkingProvider(null);
     }
   };
 
@@ -607,7 +568,7 @@ function ProfilePage() {
   return (
     <div>
       {/* ── Page content ─────────────────────────────────────────────── */}
-      <div className="max-w-3xl mx-auto px-4 py-4 md:py-10 space-y-4 md:space-y-6">
+      <div className="max-w-3xl mx-auto px-4 pt-20 pb-4 md:pt-24 md:pb-10 space-y-4 md:space-y-6">
         {/* ════════════════════════════════════════════════════════════ */}
         {/* HERO CARD                                                    */}
         {/* ════════════════════════════════════════════════════════════ */}
@@ -776,7 +737,7 @@ function ProfilePage() {
           <div className="space-y-4">
             {/* Section tabs */}
             <div className="flex gap-1 p-1 bg-white/[0.03] rounded-xl border border-white/[0.06]">
-              {["edit", "connections", ...(isLocal ? ["security"] : []), "posts", "account"].map((s) => (
+              {["edit", ...(isLocal ? ["security"] : []), "posts", "account"].map((s) => (
                 <button
                   key={s}
                   onClick={() => setActiveSection(s)}
@@ -792,9 +753,7 @@ function ProfilePage() {
                       ? "Security"
                       : s === "posts"
                         ? "Posts"
-                        : s === "connections"
-                          ? "Connections"
-                          : "Account"}
+                        : "Account"}
                 </button>
               ))}
             </div>
@@ -937,112 +896,6 @@ function ProfilePage() {
                     "Save Changes"
                   )}
                 </button>
-              </div>
-            )}
-
-            {/* ── Connections Section ── */}
-            {activeSection === "connections" && (
-              <div className="glass-card rounded-2xl border border-white/[0.08] p-5 space-y-4">
-                <h2 className="text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-ivory/25 flex items-center gap-1.5">
-                  <LinkIcon size={10} className="text-accent/50" />
-                  Connected Accounts
-                </h2>
-
-                {loadingSocialLinks ? (
-                  <div className="flex justify-center py-6">
-                    <Loader2 size={20} className="text-accent/40 animate-spin" />
-                  </div>
-                ) : (
-                  <>
-                    {/* Connected accounts */}
-                    <div className="space-y-2">
-                      {socialLinks.map((link) => (
-                        <div
-                          key={link.provider}
-                          className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-xl border border-white/[0.04]"
-                        >
-                          <div className="w-10 h-10 rounded-xl bg-white/[0.04] flex items-center justify-center">
-                            {link.provider === "google" ? (
-                              <Chrome size={18} className="text-accent/60" />
-                            ) : (
-                              <Github size={18} className="text-ivory/40" />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[12px] font-semibold text-ivory/70 capitalize">
-                              {link.provider}
-                            </p>
-                            {link.username && (
-                              <p className="text-[10px] font-mono text-ivory/30 truncate">
-                                @{link.username}
-                              </p>
-                            )}
-                          </div>
-                          <span className="text-[9px] font-mono text-emerald-400/70 flex items-center gap-1">
-                            <CheckCircle2 size={10} />
-                            Connected
-                          </span>
-                          {link.canUnlink && (
-                            <button
-                              onClick={() => handleUnlinkAccount(link.provider)}
-                              disabled={unlinkingProvider === link.provider}
-                              className="p-2 rounded-lg text-ivory/30 hover:text-red-400 hover:bg-red-500/10 transition-all"
-                            >
-                              {unlinkingProvider === link.provider ? (
-                                <Loader2 size={14} className="animate-spin" />
-                              ) : (
-                                <Unlink size={14} />
-                              )}
-                            </button>
-                          )}
-                        </div>
-                      ))}
-
-                      {socialLinks.length === 0 && (
-                        <p className="text-ivory/25 text-[12px] font-mono text-center py-4">
-                          No connected accounts
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Connect more */}
-                    {canAddMore && (
-                      <div className="pt-2 border-t border-white/[0.06]">
-                        <p className="text-[10px] font-mono text-ivory/25 mb-2">Connect more accounts</p>
-                        <div className="flex gap-2">
-                          {!hasGoogle && (
-                            <button
-                              onClick={() => handleLinkAccount("google")}
-                              disabled={linkingProvider === "google"}
-                              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-ivory/50 hover:text-ivory hover:bg-white/[0.08] transition-all text-[11px]"
-                            >
-                              {linkingProvider === "google" ? (
-                                <Loader2 size={12} className="animate-spin" />
-                              ) : (
-                                <Chrome size={12} />
-                              )}
-                              Connect Google
-                            </button>
-                          )}
-                          {!hasGitHub && (
-                            <button
-                              onClick={() => handleLinkAccount("github")}
-                              disabled={linkingProvider === "github"}
-                              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-ivory/50 hover:text-ivory hover:bg-white/[0.08] transition-all text-[11px]"
-                            >
-                              {linkingProvider === "github" ? (
-                                <Loader2 size={12} className="animate-spin" />
-                              ) : (
-                                <Github size={12} />
-                              )}
-                              Connect GitHub
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
               </div>
             )}
 

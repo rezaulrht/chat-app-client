@@ -88,6 +88,28 @@ export function WorkspaceProvider({ children }) {
   // Track fetched workspace IDs to avoid duplicate requests
   const fetchedWorkspaceIds = useRef(new Set());
 
+  // ── Listen for real-time status updates ────────────────────────────────────
+  useEffect(() => {
+    const handleStatusUpdate = (e) => {
+      const { userId, statusMessage } = e.detail;
+      setMembersCache((prev) => {
+        const updated = { ...prev };
+        Object.keys(updated).forEach((wsId) => {
+          updated[wsId] = updated[wsId].map((m) => {
+            if (m.user?._id === userId) {
+              return { ...m, user: { ...m.user, statusMessage } };
+            }
+            return m;
+          });
+        });
+        return updated;
+      });
+    };
+
+    window.addEventListener("user:status:updated", handleStatusUpdate);
+    return () => window.removeEventListener("user:status:updated", handleStatusUpdate);
+  }, []);
+
   // ── Fetch all workspaces on mount ─────────────────────────────────────────
   useEffect(() => {
     const load = async () => {
@@ -399,6 +421,37 @@ export function WorkspaceProvider({ children }) {
           w._id === workspaceId ? { ...w, roles: data.roles || [] } : w,
         ),
       );
+      
+      // Fetch presence/last-seen for all members when they're loaded
+      const userIds = members
+        .map((m) => m.user?._id)
+        .filter((id) => id);
+      
+      if (userIds.length > 0) {
+        try {
+          const response = await api.post("/api/chat/last-seen", { userIds });
+          // Update onlineUsers set based on presence data
+          const presenceData = response.data || {};
+          const memberIds = new Set(userIds.map(String));
+          setOnlineUsers((prev) => {
+            const updated = new Set();
+            for (const uid of prev) {
+              if (!memberIds.has(String(uid))) {
+                updated.add(uid);
+              }
+            }
+            Object.keys(presenceData).forEach((uid) => {
+              if (presenceData[uid]?.online) {
+                updated.add(uid);
+              }
+            });
+            return updated;
+          });
+        } catch (presenceErr) {
+          console.warn("Failed to fetch presence for members:", presenceErr.message);
+        }
+      }
+      
       return members;
     } catch (err) {
       console.error("Failed to load members:", err);
@@ -583,33 +636,44 @@ export function WorkspaceProvider({ children }) {
       if (!message) return;
       const senderName = message.sender?.name ?? message.senderName ?? 'Someone';
       const senderAvatar = message.sender?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${senderName}`;
-      toast.custom((t) => (
-        <div className={`${t.visible ? 'animate-in fade-in slide-in-from-top-4' : 'animate-out fade-out slide-out-to-top-4'} max-w-sm w-full bg-obsidian border border-accent/30 shadow-2xl rounded-xl p-4 flex flex-col gap-2 pointer-events-auto`}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-              <span className="text-xs font-bold uppercase tracking-wider text-accent">New Mention</span>
+      
+      // Use standard toast with react-hot-toast for consistency
+      toast.custom(
+        (t) => (
+          <div
+            className={`${t.visible ? "animate-in fade-in slide-in-from-top-4" : "animate-out fade-out slide-out-to-top-4"} max-w-sm w-full bg-obsidian border border-accent/30 shadow-2xl rounded-xl p-4 flex flex-col gap-2 pointer-events-auto`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+                <span className="text-xs font-bold uppercase tracking-wider text-accent">
+                  New Mention
+                </span>
+              </div>
+              <span className="text-[10px] font-medium text-ivory/40">
+                in {workspaceName} &gt; #{moduleName}
+              </span>
             </div>
-            <span className="text-[10px] font-medium text-ivory/40">in {workspaceName} &gt; #{moduleName}</span>
-          </div>
-          <div className="flex gap-3 items-start">
-            <img
-              src={senderAvatar}
-              className="w-10 h-10 rounded-full border border-white/10"
-              alt=""
-            />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-ivory truncate">{senderName}</p>
-              <p className="text-xs text-ivory/60 line-clamp-2 leading-relaxed">
-                {message.text}
-              </p>
+            <div className="flex gap-3 items-start">
+              <img
+                src={senderAvatar}
+                className="w-10 h-10 rounded-full border border-white/10"
+                alt=""
+              />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-ivory truncate">{senderName}</p>
+                <p className="text-xs text-ivory/60 line-clamp-2 leading-relaxed">
+                  {message.text}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-      ), {
-        duration: 6000,
-        position: "top-right",
-      });
+        ),
+        {
+          duration: 4000,
+          position: "top-right",
+        }
+      );
     };
 
     const onMemberJoined = ({ workspaceId, newMembers }) => {

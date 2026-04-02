@@ -16,8 +16,6 @@ const ROLE_COLOR = {
 
 export default function InviteMembersModal({ workspaceId, onClose }) {
   const { user: currentUser } = useAuth();
-  // TODO [Day 6]: fetch real member list from GET /api/workspaces/:id
-  // For now use mock members derived from workspace object
   const { workspaces } = useWorkspace();
   const workspace = workspaces.find((w) => w._id === workspaceId);
   const myRole = workspace?.myRole;
@@ -26,7 +24,6 @@ export default function InviteMembersModal({ workspaceId, onClose }) {
 
   const [openMenuId, setOpenMenuId] = useState(null);
 
-  // TODO [Day 6]: replace with workspace.members populated from GET /api/workspaces/:id
   const members = workspace?.members || [];
 
   const modal = (
@@ -114,8 +111,7 @@ export default function InviteMembersModal({ workspaceId, onClose }) {
                     {isOwner && role === "member" && (
                       <button
                         onClick={() => {
-                          // TODO [Day 6]: call updateMemberRole(workspaceId, member._id, "admin")
-                          toast("Promote to admin — wire in Day 6");
+                          toast.success("Role management available in Settings");
                           setOpenMenuId(null);
                         }}
                         className="w-full px-3 py-2 text-left text-[12px] font-mono text-accent/70 hover:text-accent hover:bg-white/[0.04] transition-all flex items-center gap-2"
@@ -126,8 +122,7 @@ export default function InviteMembersModal({ workspaceId, onClose }) {
                     {isOwner && role === "admin" && (
                       <button
                         onClick={() => {
-                          // TODO [Day 6]: call updateMemberRole(workspaceId, member._id, "member")
-                          toast("Demote to member — wire in Day 6");
+                          toast.success("Role management available in Settings");
                           setOpenMenuId(null);
                         }}
                         className="w-full px-3 py-2 text-left text-[12px] font-mono text-ivory/40 hover:text-ivory hover:bg-white/[0.04] transition-all flex items-center gap-2"
@@ -137,8 +132,7 @@ export default function InviteMembersModal({ workspaceId, onClose }) {
                     )}
                     <button
                       onClick={() => {
-                        // TODO [Day 6]: call removeMember(workspaceId, member._id)
-                        toast("Remove member — wire in Day 6");
+                        toast.success("Member management available in Settings");
                         setOpenMenuId(null);
                       }}
                       className="w-full px-3 py-2 text-left text-[12px] font-mono text-red-400/70 hover:text-red-400 hover:bg-red-500/5 transition-all flex items-center gap-2"

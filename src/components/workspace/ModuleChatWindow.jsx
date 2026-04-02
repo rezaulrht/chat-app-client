@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import {
@@ -42,6 +42,7 @@ import VoiceMessageRecorder from "@/components/calls/VoiceMessageRecorder";
 import ThreadPanel from "./ThreadPanel";
 import PinnedMessagesPanel from "./PinnedMessagesPanel";
 import ModuleSearchPanel from "./ModuleSearchPanel";
+import PreviewUserCard from "@/components/profile/PreviewUserCard";
 import "./Mention.css";
 
 const EmojiPicker = dynamic(() => import("emoji-picker-react"), { ssr: false });
@@ -134,6 +135,37 @@ export default function ModuleChatWindow({
   const isAnnouncement = activeModule?.type === "announcement";
   const isAdminOrOwner =
     workspace?.myRole === "owner" || workspace?.myRole === "admin";
+  
+  // Permission checking for SEND_MESSAGES
+  const canSendMessages = useMemo(() => {
+    // Legacy admin/owner always have permission
+    if (workspace?.myRole === "owner" || workspace?.myRole === "admin") {
+      return true;
+    }
+    
+    // Check custom roles for SEND_MESSAGES permission
+    const members = membersCache[workspaceId] || [];
+    const myMember = members.find(m => {
+      const memberId = m.user?._id?.toString() || m.user?.id?.toString();
+      const userId = user?._id?.toString() || user?.id?.toString();
+      return memberId === userId;
+    });
+    
+    const myRoleIds = myMember?.roleIds || [];
+    const roles = workspace?.roles || [];
+    
+    // If user has custom roles, check if ANY has SEND_MESSAGES
+    if (myRoleIds.length > 0) {
+      return myRoleIds.some(roleId => {
+        const role = roles.find(r => r._id?.toString() === roleId?.toString());
+        return role?.permissions?.includes("SEND_MESSAGES");
+      });
+    }
+    
+    // If no custom roles, check if user has ADMINISTRATOR permission via any means
+    // Default members should be able to send unless module has overrides (checked server-side)
+    return true;
+  }, [workspace, user, membersCache, workspaceId]);
 
   // ── Local UI state ────────────────────────────────────────────────────────
   const [text, setText] = useState("");
@@ -172,6 +204,9 @@ export default function ModuleChatWindow({
   const [loadingRewrite, setLoadingRewrite] = useState(false);
   const [rewritePreview, setRewritePreview] = useState(null);
   const [originalText, setOriginalText] = useState("");
+
+  // Profile popup for mentions
+  const [profileTarget, setProfileTarget] = useState(null);
 
   // Read Receipts Popover
   const [showSeenBy, setShowSeenBy] = useState(null); // stores msgId
@@ -469,7 +504,25 @@ export default function ModuleChatWindow({
           return (
             <span
               key={`${mention.id}-${i}`}
-              className="inline-flex items-center gap-1 bg-[#5865f2]/20 text-white font-semibold px-1 py-0.5 mx-px rounded shadow-sm border border-[#5865f2]/30"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const allMembers = membersCache?.[workspaceId] || [];
+                    const resolvedMember = allMembers.find(
+                      (m) => {
+                        const mUserId = m.user?._id || m.user?.id || m.user;
+                        return String(mUserId) === String(mention.id);
+                      }
+                    );
+                    if (resolvedMember) {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setProfileTarget({
+                        member: resolvedMember,
+                        x: rect.right + 8,
+                        y: rect.top,
+                      });
+                    }
+                  }}
+              className="inline-flex items-center gap-1 bg-[#5865F2]/20 text-[#5865F2] dark:text-[#8094FF] font-semibold px-1.5 py-0.5 mx-px rounded-md cursor-pointer hover:bg-[#5865F2]/30 transition-colors border border-[#5865F2]/30"
             >
               <Image
                 src={
@@ -482,7 +535,7 @@ export default function ModuleChatWindow({
                 className="w-3.5 h-3.5 rounded-full object-cover shrink-0"
                 unoptimized
               />
-              {part}
+              @{mention.name}
             </span>
           );
         }
@@ -973,7 +1026,7 @@ export default function ModuleChatWindow({
   }
 
   const ModuleIcon = isAnnouncement ? Megaphone : Hash;
-  const canType = !isAnnouncement || isAdminOrOwner;
+  const canType = (!isAnnouncement || isAdminOrOwner) && canSendMessages;
 
   return (
     <main
@@ -1527,31 +1580,40 @@ export default function ModuleChatWindow({
         >
           {/* Auto-complete suggestions */}
           {suggestions.length > 0 && (
-            <div className="absolute bottom-full left-2 sm:left-10 bg-deep/95 backdrop-blur-md border border-white/6 rounded-xl p-1 shadow-2xl z-50 min-w-48 max-w-[calc(100vw-2rem)] mb-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <div 
+              className="absolute bottom-full left-2 sm:left-10 bg-[#1a1b26] border border-white/10 rounded-xl p-1 shadow-2xl z-[100] min-w-48 max-w-[calc(100vw-2rem)] mb-2"
+              onMouseDown={(e) => e.preventDefault()}
+            >
               {suggestions.map((suggestion, i) => (
                 <div
                   key={suggestion.key}
-                  onClick={() => insertSuggestion(suggestion)}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${i === suggestionIndex
-                    ? "bg-accent/20 text-accent"
-                    : "hover:bg-white/6 text-ivory/60 hover:text-ivory"
-                    }`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    insertSuggestion(suggestion);
+                    setSuggestions([]);
+                  }}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                    i === suggestionIndex
+                      ? "bg-[#5865F2]/20 text-[#8094FF]"
+                      : "hover:bg-white/5 text-gray-300 hover:text-white"
+                  }`}
                 >
                   {suggestion.type === "emoji" ? (
                     <>
                       <span className="text-lg leading-none">
                         {suggestion.value}
                       </span>
-                      <span className="text-xs font-mono">
+                      <span className="text-xs text-gray-400">
                         {suggestion.key}
                       </span>
                     </>
                   ) : (
                     <>
                       <img
-                        src={suggestion.user.avatar || "/avatar.png"}
+                        src={suggestion.user?.avatar || "/avatar.png"}
                         alt={suggestion.value}
-                        className="w-5 h-5 rounded-full object-cover"
+                        className="w-6 h-6 rounded-full object-cover"
                       />
                       <span className="text-sm font-medium">
                         {suggestion.value}
@@ -1824,7 +1886,8 @@ export default function ModuleChatWindow({
               )}
             </div>
 
-            {/* Schedule Dropdown */}
+            {/* Schedule Dropdown - Hidden in Workspace */}
+            {false && (
             <div
               ref={scheduleDropdownRef}
               className="relative hidden lg:inline-flex"
@@ -1914,6 +1977,8 @@ export default function ModuleChatWindow({
                 </div>
               )}
             </div>
+            )}
+            {/* End Schedule Dropdown - Hidden */}
 
             <button
               type="submit"
@@ -1984,7 +2049,7 @@ export default function ModuleChatWindow({
                   ✦ AI
                 </button>
                 {aiMenuOpen && (
-                  <div className="absolute bottom-full mb-1 left-0 sm:left-auto sm:right-0 w-44 max-w-[calc(100vw-1rem)] bg-deep border border-white/10 rounded-lg shadow-lg overflow-hidden z-50">
+                  <div className="absolute bottom-full mb-2 left-0 w-48 max-w-[calc(100vw-2rem)] bg-deep border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
                     <button
                       type="button"
                       className="w-full text-left px-3 py-2 text-[11px] text-ivory/70 hover:bg-white/6 hover:text-ivory transition-colors"
@@ -2015,6 +2080,8 @@ export default function ModuleChatWindow({
                 )}
               </div>
 
+              {/* Schedule button hidden in workspace */}
+              {false && (
               <button
                 type="button"
                 onClick={() => setScheduleDropdownOpen((v) => !v)}
@@ -2027,13 +2094,36 @@ export default function ModuleChatWindow({
               >
                 ⏱ Schedule
               </button>
+              )}
             </div>
           </div>
         </form>
       ) : (
-        <div className="mx-3 mb-3 px-4 py-3 bg-white/3 border border-white/6 rounded-2xl text-center">
-          <p className="text-ivory/20 text-[12px] font-mono">
-            Only admins and owners can post in announcement modules
+        <div className="mx-3 mb-3 px-4 py-3 bg-red-500/5 border border-red-500/20 rounded-2xl text-center">
+          <div className="flex items-center justify-center gap-2 mb-1">
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              width="16" 
+              height="16" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+              className="text-red-400"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+            <p className="text-red-400 text-[12px] font-bold font-mono">
+              {isAnnouncement && !isAdminOrOwner 
+                ? "Only admins and owners can post in announcement modules" 
+                : "You don't have permission to send messages in this channel"}
+            </p>
+          </div>
+          <p className="text-red-400/50 text-[10px] font-mono">
+            Contact a workspace admin to request message permissions
           </p>
         </div>
       )}
@@ -2068,6 +2158,69 @@ export default function ModuleChatWindow({
           onClose={() => setShowSearchPanel(false)}
           onJumpToMessage={handleJumpToMessage}
         />
+      )}
+
+      {/* Profile Card Popup for Mentions */}
+      {profileTarget && (
+        <div 
+          className="fixed inset-0 z-[60]" 
+          onClick={() => setProfileTarget(null)}
+        >
+          <PreviewUserCard
+            user={profileTarget.member?.user}
+            member={profileTarget.member}
+            workspaceId={workspaceId}
+            isAdmin={workspace?.myRole === "owner" || workspace?.myRole === "admin"}
+            position={{
+              x: Math.max(10, Math.min(profileTarget.x, window.innerWidth - 330)),
+              y: Math.max(10, Math.min(profileTarget.y - 10, window.innerHeight - 400)),
+            }}
+            onMessage={async (messageText) => {
+              try {
+                const targetUserId = profileTarget.member?.user?._id;
+                const res = await api.post("/api/conversations", {
+                  participantId: targetUserId,
+                  initialMessage: messageText,
+                });
+                if (res.data?.conversation?._id) {
+                  window.location.href = `/app/chat/${res.data.conversation._id}`;
+                }
+              } catch (err) {
+                console.error("Failed to start conversation:", err);
+                toast.error("Failed to start conversation");
+              }
+            }}
+            onViewProfile={() => {
+              setProfileTarget(null);
+            }}
+            onAddRole={async (roleId, add) => {
+              try {
+                const memberId = profileTarget.member?.user?._id;
+                if (!memberId) return;
+                await api.patch(`/api/workspaces/${workspaceId}/members/${memberId}/roles`, {
+                  roleId,
+                  action: add ? "add" : "remove"
+                });
+                setProfileTarget((prev) => {
+                  if (!prev?.member) return prev;
+                  return {
+                    ...prev,
+                    member: {
+                      ...prev.member,
+                      roleIds: add
+                        ? [...(prev.member?.roleIds || []), roleId]
+                        : (prev.member?.roleIds || []).filter(id => String(id) !== String(roleId))
+                    }
+                  };
+                });
+                fetchWorkspaceMembers(workspaceId);
+              } catch (err) {
+                console.error("Failed to update role:", err);
+              }
+            }}
+            onClose={() => setProfileTarget(null)}
+          />
+        </div>
       )}
     </main>
   );

@@ -1,31 +1,14 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import Image from "next/image";
 import { Github, MoreVertical, MessageCircle, Flag, Send, Plus } from "lucide-react";
+import { useWorkspace } from "@/hooks/useWorkspace";
 
-/**
- * PreviewUserCard (Member Preview Card - Discord-inspired)
- * Positioned beside member panel, shows key user info
- * Banner, avatar, name, roles, status, quick message
- * 
- * Props:
- * - user: User object
- * - member?: Member data { user, role, roleIds, joinedAt }
- * - workspaceId?: string
- * - isAdmin?: boolean
- * - onViewProfile: () => void
- * - onMessage?: (message: string) => void
- * - onAddRole?: () => void
- * - onKick?: () => void
- * - onBan?: () => void
- * - onReport?: () => void
- * - position: { x, y }
- * - onClose: () => void
- */
 export default function PreviewUserCard({
     user,
     member,
+    workspaceId,
     isAdmin = false,
     onViewProfile,
     onMessage,
@@ -38,21 +21,52 @@ export default function PreviewUserCard({
 }) {
     const cardRef = useRef(null);
     const [showMenu, setShowMenu] = useState(false);
+    const [showRoleDropdown, setShowRoleDropdown] = useState(false);
     const [messageText, setMessageText] = useState("");
     const [isSending, setIsSending] = useState(false);
     const menuRef = useRef(null);
+    const roleDropdownRef = useRef(null);
     const [clampedPosition, setClampedPosition] = useState({ x: 0, y: 0 });
+
+    // Get workspace roles
+    const { workspaces, membersCache } = useWorkspace();
+    const workspace = workspaces.find(w => w._id === workspaceId);
+    
+    // Get custom roles for this member
+    const customRoles = useMemo(() => {
+        if (!member?.roleIds || !workspace?.roles) return [];
+        return member.roleIds
+            .map(roleId => workspace.roles.find(r => r._id?.toString() === roleId?.toString()))
+            .filter(Boolean);
+    }, [member?.roleIds, workspace?.roles]);
+
+    // Get real-time presence
+    const isOnline = useMemo(() => {
+        const members = membersCache[workspaceId] || [];
+        const m = members.find(mem => mem.user?._id === user?._id);
+        return m?.online || false;
+    }, [membersCache, workspaceId, user?._id]);
+
+    // Animation state
+    const [isVisible, setIsVisible] = useState(false);
+    
+    useEffect(() => {
+        const timer = setTimeout(() => setIsVisible(true), 10);
+        return () => clearTimeout(timer);
+    }, []);
 
     // Consolidated click outside handler
     useEffect(() => {
         const handleClickOutside = (e) => {
-            // Close menu if clicking outside menu
             if (menuRef.current && !menuRef.current.contains(e.target)) {
                 setShowMenu(false);
             }
-            // Close card if clicking outside card (but not if clicking menu)
+            if (roleDropdownRef.current && !roleDropdownRef.current.contains(e.target)) {
+                setShowRoleDropdown(false);
+            }
             if (cardRef.current && !cardRef.current.contains(e.target) && 
-                (!menuRef.current || !menuRef.current.contains(e.target))) {
+                (!menuRef.current || !menuRef.current.contains(e.target)) &&
+                (!roleDropdownRef.current || !roleDropdownRef.current.contains(e.target))) {
                 onClose?.();
             }
         };
@@ -63,7 +77,6 @@ export default function PreviewUserCard({
     // Smart positioning beside panel
     useEffect(() => {
         if (!position) return;
-        // Use actual DOM size if available, otherwise fall back to w-80 (320px)
         const cardWidth = cardRef.current?.offsetWidth || 320;
         const cardHeight = cardRef.current?.offsetHeight || 520;
         const gap = 16;
@@ -71,12 +84,10 @@ export default function PreviewUserCard({
         let left = position.x + gap;
         let top = position.y;
 
-        // Right overflow
         if (left + cardWidth > window.innerWidth - 20) {
             left = Math.max(16, position.x - cardWidth - gap);
         }
 
-        // Bottom overflow
         if (top + cardHeight > window.innerHeight - 20) {
             top = Math.max(16, window.innerHeight - cardHeight - 20);
         }
@@ -96,22 +107,26 @@ export default function PreviewUserCard({
     };
 
     const hasGithub = user?.socialConnections?.github;
-    const roleDisplay = member?.role === "owner" ? "Owner" : member?.role === "admin" ? "Admin" : "Member";
-    const roleColor =
-        member?.role === "owner"
-            ? "bg-yellow-500/20 border-yellow-500/50 text-yellow-300"
-            : member?.role === "admin"
-                ? "bg-blue-500/20 border-blue-500/50 text-blue-300"
-                : "bg-accent/20 border-accent/50 text-accent";
+    const isOwner = member?.role === "owner";
+    const isAdminRole = member?.role === "admin";
+    const roleDisplay = isOwner ? "Owner" : isAdminRole ? "Admin" : "Member";
+    const roleColor = isOwner
+        ? "bg-yellow-500/20 border-yellow-500/50 text-yellow-300"
+        : isAdminRole
+            ? "bg-blue-500/20 border-blue-500/50 text-blue-300"
+            : "bg-accent/20 border-accent/50 text-accent";
 
     return (
         <div
             ref={cardRef}
             onClick={(e) => e.stopPropagation()}
-            className="fixed z-50 w-80 rounded-xl border border-white/8 bg-obsidian shadow-2xl overflow-hidden animate-in fade-in slide-in-from-left duration-300"
+            className="fixed z-50 w-80 rounded-xl border border-white/8 glass-panel shadow-2xl overflow-hidden"
             style={{
                 left: clampedPosition.x,
                 top: clampedPosition.y,
+                opacity: isVisible ? 1 : 0,
+                transform: isVisible ? "translateX(0)" : "translateX(-60px)",
+                transition: "opacity 0.25s ease-out, transform 0.25s ease-out",
             }}
         >
             {/* BANNER */}
@@ -125,7 +140,7 @@ export default function PreviewUserCard({
                         unoptimized
                     />
                 ) : null}
-                <div className="absolute inset-0 bg-linear-to-t from-obsidian via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-linear-to-t from-deep via-transparent to-transparent" />
             </div>
 
             {/* BODY */}
@@ -135,9 +150,9 @@ export default function PreviewUserCard({
                     {/* Avatar - Clickable */}
                     <button
                         onClick={onViewProfile}
-                        className="shrink-0 group focus:outline-none"
+                        className="shrink-0 group focus:outline-none relative"
                     >
-                        <div className="w-20 h-20 rounded-2xl bg-obsidian border-4 border-obsidian overflow-hidden hover:border-accent/40 transition-all ring-4 ring-obsidian group-hover:ring-accent/20">
+                        <div className="w-20 h-20 rounded-full bg-deep border-4 border-deep overflow-hidden hover:border-accent/40 transition-all ring-4 ring-deep group-hover:ring-accent/20 relative">
                             {user?.avatar ? (
                                 <Image
                                     src={user.avatar}
@@ -153,6 +168,8 @@ export default function PreviewUserCard({
                                 </div>
                             )}
                         </div>
+                        {/* Online dot */}
+                        <div className={`absolute bottom-1 right-1 w-4 h-4 rounded-full border-2 border-deep z-30 ${isOnline ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]' : 'bg-gray-500'}`} />
                     </button>
 
                     {/* Menu button */}
@@ -169,7 +186,7 @@ export default function PreviewUserCard({
                         </button>
 
                         {showMenu && (
-                            <div className="absolute right-0 top-full mt-2 w-44 rounded-lg bg-deep/95 backdrop-blur-sm border border-white/8 shadow-xl animate-in fade-in slide-in-from-top-2 duration-150 overflow-hidden z-50">
+                            <div className="absolute right-0 top-full mt-2 w-44 rounded-lg glass-panel border border-white/8 shadow-xl animate-in fade-in slide-in-from-top-2 duration-150 overflow-hidden z-50">
                                 <button
                                     onClick={() => {
                                         onReport?.();
@@ -210,18 +227,65 @@ export default function PreviewUserCard({
                 {/* NAME + ROLE */}
                 <div className="mb-3">
                     <h3 className="font-bold text-ivory text-base">{user?.name}</h3>
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <span className={`px-2 py-0.5 rounded text-xs font-semibold border ${roleColor}`}>
                             {roleDisplay}
                         </span>
-                        {isAdmin && onAddRole && (
-                            <button
-                                onClick={onAddRole}
-                                className="w-5.5 h-5.5 flex items-center justify-center rounded bg-[#2b2d31] border border-[#3f4147] hover:bg-[#3f4147] text-[#dbdee1] transition-colors"
-                                title="Add Role"
+                        {/* Custom roles */}
+                        {customRoles.map((role) => (
+                            <span
+                                key={role._id}
+                                className="px-2 py-0.5 rounded text-xs font-semibold border"
+                                style={{
+                                    backgroundColor: `${role.color}20`,
+                                    borderColor: `${role.color}50`,
+                                    color: role.color
+                                }}
                             >
-                                <Plus size={12} />
-                            </button>
+                                {role.name}
+                            </span>
+                        ))}
+                        {isAdmin && workspace?.roles && (
+                            <div className="relative" ref={roleDropdownRef}>
+                                <button
+                                    onClick={() => setShowRoleDropdown(!showRoleDropdown)}
+                                    className="w-5 h-5 flex items-center justify-center rounded bg-white/10 border border-white/20 hover:bg-white/20 text-ivory/70 transition-colors"
+                                    title="Add/Remove Role"
+                                >
+                                    <Plus size={12} />
+                                </button>
+                                {showRoleDropdown && (
+                                    <div className="absolute left-0 top-full mt-1 w-40 rounded-lg glass-panel border border-white/10 shadow-xl overflow-hidden z-50">
+                                        <div className="p-1.5 border-b border-white/10">
+                                            <p className="text-[10px] text-ivory/50 uppercase font-bold px-2">Assign Role</p>
+                                        </div>
+                                        <div className="p-1 max-h-48 overflow-y-auto">
+                                            {workspace.roles.map((role) => {
+                                                const hasRole = (member?.roleIds || []).map(String).includes(String(role._id));
+                                                return (
+                                                    <button
+                                                        key={role._id}
+                                                        onClick={() => {
+                                                            onAddRole?.(String(role._id), !hasRole);
+                                                            setShowRoleDropdown(false);
+                                                        }}
+                                                        className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-white/10 transition-colors"
+                                                    >
+                                                        <span 
+                                                            className="w-2 h-2 rounded-full"
+                                                            style={{ backgroundColor: role.color }}
+                                                        />
+                                                        <span className="text-ivory/80 flex-1 text-left">{role.name}</span>
+                                                        {hasRole && (
+                                                            <span className="text-accent text-[10px]">✓</span>
+                                                        )}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         )}
                         {hasGithub && (
                             <a
@@ -251,6 +315,13 @@ export default function PreviewUserCard({
                     </p>
                 )}
 
+                {/* EMAIL */}
+                {user?.email && (
+                    <p className="text-xs text-ivory/40 mb-3">
+                        {user.email}
+                    </p>
+                )}
+
                 {/* MEMBER SINCE */}
                 {member?.joinedAt && (
                     <p className="text-xs text-ivory/40 mb-4">
@@ -269,8 +340,6 @@ export default function PreviewUserCard({
                     >
                         View Profile
                     </button>
-
-
                 </div>
 
                 {/* MESSAGE INPUT */}
@@ -303,4 +372,3 @@ export default function PreviewUserCard({
         </div>
     );
 }
-

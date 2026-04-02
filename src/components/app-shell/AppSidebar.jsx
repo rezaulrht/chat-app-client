@@ -1,18 +1,19 @@
 // chat-app-client/src/components/app-shell/AppSidebar.jsx
 "use client";
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import Image from "next/image";
 import { LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 import useSidebarStore from "@/stores/sidebarStore";
 import UserProfileCard from "@/components/profile/UserProfileCard";
-import UserProfileModal from "@/components/profile/UserProfileModal";
+import FullUserProfile from "@/components/profile/FullUserProfile";
 
 const STORE_KEY_MAP = {
-  chat: { flag: "chatCollapsed", toggle: "toggleChat" },
+  chat: { flag: "chatCollapsed", toggle: "toggleChat", width: "chatSidebarWidth", setWidth: "setChatSidebarWidth" },
   feed: { flag: "feedCollapsed", toggle: "toggleFeed" },
-  workspace: { flag: "workspaceCollapsed", toggle: "toggleWorkspace" },
+  workspace: { flag: "workspaceCollapsed", toggle: "toggleWorkspace", width: "workspaceSidebarWidth", setWidth: "setWorkspaceSidebarWidth" },
 };
 
 export default function AppSidebar({
@@ -27,6 +28,7 @@ export default function AppSidebar({
   const [showUserCard, setShowUserCard] = useState(false);
   const [showFullProfile, setShowFullProfile] = useState(false);
   const userBarRef = useRef(null);
+  const resizeRef = useRef(null);
 
   const collapsed =
     storeKey && STORE_KEY_MAP[storeKey]
@@ -38,7 +40,40 @@ export default function AppSidebar({
       ? store[STORE_KEY_MAP[storeKey].toggle]
       : null;
 
-  const width = collapsed ? "56px" : "var(--sidebar-width, 320px)";
+  const sidebarWidth = storeKey && STORE_KEY_MAP[storeKey]?.width
+    ? store[STORE_KEY_MAP[storeKey].width] || 320
+    : 320;
+
+  const setSidebarWidth = storeKey && STORE_KEY_MAP[storeKey]?.setWidth
+    ? store[STORE_KEY_MAP[storeKey].setWidth]
+    : null;
+
+  const width = collapsed ? "56px" : `${sidebarWidth}px`;
+
+  // Resize handle
+  const handleResizeStart = useCallback((e) => {
+    if (!setSidebarWidth || collapsed) return;
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = sidebarWidth;
+
+    const handleMouseMove = (e) => {
+      const delta = e.clientX - startX;
+      setSidebarWidth(startWidth + delta);
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  }, [setSidebarWidth, collapsed, sidebarWidth]);
 
   // Clear user card state when sidebar collapses
   useEffect(() => {
@@ -58,9 +93,17 @@ export default function AppSidebar({
 
   return (
     <div
-      className={`hidden md:flex flex-col shrink-0 h-full bg-white/[0.02] backdrop-blur-xl overflow-hidden transition-[width] duration-300 ease-in-out ${className}`}
+      className={`hidden md:flex flex-col shrink-0 h-full bg-white/[0.02] backdrop-blur-xl overflow-hidden transition-[width] duration-300 ease-in-out relative ${className}`}
       style={{ width, ...style }}
     >
+      {/* Resize handle */}
+      {setSidebarWidth && !collapsed && (
+        <div
+          className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-accent/20 transition-colors z-50"
+          onMouseDown={handleResizeStart}
+        />
+      )}
+
       {/* Toggle button — always visible when storeKey is set */}
       {toggle && (
         <div className="flex items-center justify-between px-3 pt-2 pb-1 shrink-0">
@@ -93,55 +136,39 @@ export default function AppSidebar({
       )}
 
       {/* Content slot */}
-      <div className="flex-1 min-h-0 overflow-hidden">{childWithCollapsed}</div>
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pb-16 scrollbar-hide">{childWithCollapsed}</div>
 
-      {/* User bar — hidden when collapsed */}
+      {/* User Status Bar — matches ChannelSidebar design */}
       {user && !collapsed && (
-        <button 
-           ref={userBarRef} 
-           type="button"
-           onClick={() => setShowUserCard(!showUserCard)}
-           className="cursor-pointer h-14 mx-2 mb-2 glass-card rounded-xl px-3 flex items-center gap-2.5 group/user shrink-0 ring-1 ring-white/[0.04] hover:bg-white/[0.03] transition-all duration-200 w-full text-left"
-           aria-expanded={showUserCard}
-           aria-controls="user-card-popup"
-        >
-          <div className="relative shrink-0">
-            <div className="w-8 h-8 rounded-xl overflow-hidden ring-1 ring-white/[0.06] group-hover/user:ring-accent/30 transition-all">
-              <Image
-                src={
-                  user.avatar ||
-                  `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`
-                }
-                width={32}
-                height={32}
-                className="w-full h-full object-cover"
-                alt={user.name ? `${user.name}'s avatar` : "avatar"}
-                unoptimized
-                priority
-              />
-            </div>
-            <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-deep bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-ivory text-[13px] font-display font-bold truncate leading-tight group-hover/user:text-accent transition-colors">
-              {user.name?.split(" ")[0]}
-            </p>
-            <p className="text-ivory/20 text-[10px] truncate leading-tight flex items-center gap-1 font-mono">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Online
-            </p>
-          </div>
-          <span
-            onClick={(e) => { e.stopPropagation(); logout(); }}
-            className="p-1.5 rounded-lg hover:bg-red-500/10 text-ivory/30 hover:text-red-400 transition-all cursor-pointer"
-            title="Logout"
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); logout(); } }}
+        <div className="absolute bottom-0 left-0 right-0 p-2 bg-deep border-t border-white/[0.04]">
+          <button
+            ref={userBarRef}
+            type="button"
+            onClick={() => setShowUserCard(!showUserCard)}
+            className="w-full flex items-center gap-2.5 p-2 rounded-lg hover:bg-white/[0.04] transition-colors group"
           >
-            <LogOut size={14} />
-          </span>
-        </button>
+            <div className="relative shrink-0">
+              <div className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-white/10">
+                <Image
+                  src={user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`}
+                  width={36}
+                  height={36}
+                  className="w-full h-full object-cover"
+                  alt=""
+                  unoptimized
+                />
+              </div>
+              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-deep bg-emerald-400" />
+            </div>
+            <div className="flex-1 min-w-0 text-left">
+              <p className="text-[12px] font-semibold text-ivory/90 truncate">{user.name}</p>
+              <p className="text-[10px] text-ivory/40 truncate">
+                {user.statusMessage || "Online"}
+              </p>
+            </div>
+            <LogOut size={14} className="text-ivory/20 group-hover:text-ivory/50 transition-colors cursor-pointer" onClick={(e) => { e.stopPropagation(); logout(); }} />
+          </button>
+        </div>
       )}
 
       {/* User avatar only when collapsed */}
@@ -170,13 +197,18 @@ export default function AppSidebar({
            anchorRef={userBarRef} 
            onClose={() => setShowUserCard(false)} 
            onOpenFullProfile={() => {
-              setShowUserCard(false);
-              setShowFullProfile(true);
+             setShowUserCard(false);
+             setShowFullProfile(true);
            }}
         />
       )}
-      {showFullProfile && (
-        <UserProfileModal onClose={() => setShowFullProfile(false)} />
+      {showFullProfile && createPortal(
+        <FullUserProfile 
+          user={user}
+          isOwnProfile={true}
+          onClose={() => setShowFullProfile(false)} 
+        />,
+        document.body
       )}
     </div>
   );

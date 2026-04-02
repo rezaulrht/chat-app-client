@@ -92,9 +92,6 @@ export const SocketProvider = ({ children }) => {
               }
               return updated;
             });
-            console.log(
-              `Last seen for ${userId}: ${new Date(res.data.lastSeen).toLocaleString()}`,
-            );
           } else {
             console.warn(
               `No lastSeen data received for ${userId}, using fallback`,
@@ -127,6 +124,15 @@ export const SocketProvider = ({ children }) => {
         }
         return updated;
       });
+    });
+
+    // --- Handle status message updates ---
+    newSocket.on("user:status:updated", ({ userId, statusMessage }) => {
+      // Update the user's status in membersCache via a custom event
+      // The WorkspaceProvider will listen for this
+      window.dispatchEvent(new CustomEvent("user:status:updated", {
+        detail: { userId, statusMessage }
+      }));
     });
 
     // --- Periodic presence ping to keep user online ---

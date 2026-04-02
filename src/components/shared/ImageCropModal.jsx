@@ -1,11 +1,18 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { X, RotateCcw, ZoomIn, ZoomOut } from "lucide-react";
+import { X, RotateCcw, ZoomIn, ZoomOut, AlertCircle } from "lucide-react";
 
 /**
  * ImageCropModal
- * Banner cropper with 16:9 aspect ratio overlay
+ * Banner cropper with Discord banner aspect ratio (5:2) overlay
+ * 
+ * Features:
+ * - Drag to position image
+ * - Scroll or slider to zoom
+ * - Keyboard navigation support
+ * - Error handling for failed images
+ * - App theme integration
  */
 export default function ImageCropModal({
     imageUrl,
@@ -14,25 +21,85 @@ export default function ImageCropModal({
     isLoading = false,
 }) {
     const containerRef = useRef(null);
+    const cropAreaRef = useRef(null);
     const imageRef = useRef(null);
     const [image, setImage] = useState(null);
+    const [imageError, setImageError] = useState(false);
     const [zoom, setZoom] = useState(1);
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
     const [containerSize, setContainerSize] = useState({ width: 800, height: 500 });
 
-    // Load image
+    // Load image with error handling
     useEffect(() => {
+        setImageError(false);
         const img = new Image();
         img.crossOrigin = "anonymous";
         img.src = imageUrl;
+        
         img.onload = () => {
             setImage(img);
             setZoom(1);
             setPosition({ x: 0, y: 0 });
         };
+        
+        img.onerror = () => {
+            setImageError(true);
+            console.error("Failed to load image for cropping");
+        };
     }, [imageUrl]);
+
+    // Use ref for handleSave to avoid circular dependency
+    const handleSaveRef = useRef(null);
+
+    // Keyboard navigation
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (isLoading) return;
+            if (cropAreaRef.current && !cropAreaRef.current.contains(e.target)) return;
+            
+            const step = 10;
+            switch (e.key) {
+                case "ArrowUp":
+                    e.preventDefault();
+                    setPosition((p) => ({ ...p, y: p.y + step }));
+                    break;
+                case "ArrowDown":
+                    e.preventDefault();
+                    setPosition((p) => ({ ...p, y: p.y - step }));
+                    break;
+                case "ArrowLeft":
+                    e.preventDefault();
+                    setPosition((p) => ({ ...p, x: p.x + step }));
+                    break;
+                case "ArrowRight":
+                    e.preventDefault();
+                    setPosition((p) => ({ ...p, x: p.x - step }));
+                    break;
+                case "+":
+                case "=":
+                    e.preventDefault();
+                    setZoom((z) => Math.min(3, z + 0.2));
+                    break;
+                case "-":
+                    e.preventDefault();
+                    setZoom((z) => Math.max(0.5, z - 0.2));
+                    break;
+                case "Escape":
+                    e.preventDefault();
+                    onCancel();
+                    break;
+                case "Enter":
+                    e.preventDefault();
+                    if (!isLoading && handleSaveRef.current) handleSaveRef.current();
+                    break;
+            }
+        };
+        
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [isLoading, onCancel, cropAreaRef]);
 
     // Measure container
     useEffect(() => {
@@ -49,27 +116,36 @@ export default function ImageCropModal({
         return () => observer.disconnect();
     }, []);
 
-    // Calculate 16:9 crop dimensions
+    // Calculate Discord banner crop dimensions (600x240 = 5:2 ratio)
     const getCropDimensions = useCallback(() => {
+        // Use default dimensions if container not measured yet
+        const width = containerSize.width || 800;
+        const height = containerSize.height || 500;
+        
+        // Discord banner aspect ratio is 5:2 (2.5:1)
+        const aspectRatio = 5 / 2;
+        
         const padding = 40;
-        const availableWidth = containerSize.width - padding * 2;
-        const availableHeight = containerSize.height - padding * 2;
+        const availableWidth = width - padding * 2;
+        const availableHeight = height - padding * 2;
 
         let cropWidth, cropHeight;
         
-        if (availableWidth / availableHeight > 16 / 9) {
+        if (availableWidth / availableHeight > aspectRatio) {
+            // Container is wider than needed - fit to height
             cropHeight = availableHeight;
-            cropWidth = cropHeight * (16 / 9);
+            cropWidth = cropHeight * aspectRatio;
         } else {
+            // Container is taller than needed - fit to width
             cropWidth = availableWidth;
-            cropHeight = cropWidth / (16 / 9);
+            cropHeight = cropWidth / aspectRatio;
         }
 
         return {
             width: cropWidth,
             height: cropHeight,
-            x: (containerSize.width - cropWidth) / 2,
-            y: (containerSize.height - cropHeight) / 2,
+            x: (width - cropWidth) / 2,
+            y: (height - cropHeight) / 2,
         };
     }, [containerSize]);
 
@@ -112,20 +188,23 @@ export default function ImageCropModal({
         if (!image) return;
 
         const crop = getCropDimensions();
-        const scaleX = image.naturalWidth / image.width;
-        const scaleY = image.naturalHeight / image.height;
         
-        // Create output canvas at 1920x1080
+        const renderedWidth = imageRef.current?.clientWidth || image.width;
+        const renderedHeight = imageRef.current?.clientHeight || image.height;
+        const scaleX = image.naturalWidth / renderedWidth;
+        const scaleY = image.naturalHeight / renderedHeight;
+        
+        // Discord banner output: 1200x480 (5:2 ratio, 2x Discord's 600x240)
         const outputCanvas = document.createElement("canvas");
-        const targetWidth = 1920;
-        const targetHeight = 1080;
+        const targetWidth = 1200;
+        const targetHeight = 480;
         outputCanvas.width = targetWidth;
         outputCanvas.height = targetHeight;
         const ctx = outputCanvas.getContext("2d");
 
-        // Calculate image dimensions
-        const imgWidth = (image.width || image.naturalWidth) * zoom;
-        const imgHeight = (image.height || image.naturalHeight) * zoom;
+        // Calculate image dimensions using rendered size
+        const imgWidth = renderedWidth * zoom;
+        const imgHeight = renderedHeight * zoom;
 
         // Center of image in container space
         const imgCenterX = containerSize.width / 2 + position.x;
@@ -153,13 +232,36 @@ export default function ImageCropModal({
         );
 
         const croppedDataUrl = outputCanvas.toDataURL("image/jpeg", 0.9);
-        onSave(croppedDataUrl);
+        onSave(croppedDataUrl, outputCanvas);
     };
+    
+    // Keep ref updated with latest handleSave
+    handleSaveRef.current = handleSave;
 
-    if (!image) {
+    // Loading or error state
+    if (!image || imageError) {
         return (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-                <div className="w-10 h-10 border-2 border-accent/40 border-t-accent rounded-full animate-spin" />
+                <div className="flex flex-col items-center gap-4 text-center p-6">
+                    {imageError ? (
+                        <>
+                            <AlertCircle size={48} className="text-red-400" />
+                            <p className="text-ivory text-lg font-medium">Failed to load image</p>
+                            <p className="text-ivory/50 text-sm">Please try again or select a different image</p>
+                            <button
+                                onClick={onCancel}
+                                className="mt-4 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm transition-all"
+                            >
+                                Cancel
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <div className="w-10 h-10 border-2 border-accent/40 border-t-accent rounded-full animate-spin" />
+                            <p className="text-ivory/50 text-sm">Loading image...</p>
+                        </>
+                    )}
+                </div>
             </div>
         );
     }
@@ -182,7 +284,7 @@ export default function ImageCropModal({
                             Crop Banner
                         </h2>
                         <p className="text-ivory/50 text-sm mt-0.5">
-                            Drag to position, scroll to zoom. 16:9 ratio required.
+                            Drag to position, scroll to zoom. Discord banner (5:2) ratio.
                         </p>
                     </div>
                     <button

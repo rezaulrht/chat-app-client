@@ -17,8 +17,9 @@ import useSidebarStore from "@/stores/sidebarStore";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
 export default function ModulePage() {
-  const MIN_SIDEBAR_WIDTH = 188;
+  const MIN_SIDEBAR_WIDTH = 240;
   const MAX_SIDEBAR_WIDTH = 420;
+  const DEFAULT_SIDEBAR_WIDTH = 280;
 
   const { id, moduleId } = useParams();
   const router = useRouter();
@@ -31,7 +32,7 @@ export default function ModulePage() {
   const [showCreateModule, setShowCreateModule] = useState(false);
   const [createModuleCategory, setCreateModuleCategory] = useState("General");
   const [activeSettingsModuleId, setActiveSettingsModuleId] = useState(null);
-  const [sidebarWidth, setSidebarWidth] = useState(MIN_SIDEBAR_WIDTH);
+  const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
 
   const startResize = useCallback((e) => {
     e.preventDefault();
@@ -57,8 +58,12 @@ export default function ModulePage() {
     const onUp = () => {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
     };
 
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
   }, []);

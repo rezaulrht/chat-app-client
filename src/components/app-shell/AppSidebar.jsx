@@ -138,53 +138,37 @@ export default function AppSidebar({
       {/* Content slot */}
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pb-16 scrollbar-hide">{childWithCollapsed}</div>
 
-      {/* User bar — hidden when collapsed */}
+      {/* User Status Bar — matches ChannelSidebar design */}
       {user && !collapsed && (
-        <button 
-           ref={userBarRef} 
-           type="button"
-           onClick={() => setShowUserCard(!showUserCard)}
-           className="cursor-pointer h-14 mx-2 mb-2 glass-card rounded-xl px-3 flex items-center gap-2.5 group/user shrink-0 ring-1 ring-white/[0.04] hover:bg-white/[0.03] transition-all duration-200 w-full text-left"
-           aria-expanded={showUserCard}
-           aria-controls="user-card-popup"
-        >
-          <div className="relative shrink-0">
-            <div className="w-8 h-8 rounded-xl overflow-hidden ring-1 ring-white/[0.06] group-hover/user:ring-accent/30 transition-all">
-              <Image
-                src={
-                  user.avatar ||
-                  `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`
-                }
-                width={32}
-                height={32}
-                className="w-full h-full object-cover"
-                alt={user.name ? `${user.name}'s avatar` : "avatar"}
-                unoptimized
-                priority
-              />
-            </div>
-            <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-deep bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-ivory text-[13px] font-display font-bold truncate leading-tight group-hover/user:text-accent transition-colors">
-              {user.name?.split(" ")[0]}
-            </p>
-            <p className="text-ivory/20 text-[10px] truncate leading-tight flex items-center gap-1 font-mono">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Online
-            </p>
-          </div>
-          <span
-            onClick={(e) => { e.stopPropagation(); logout(); }}
-            className="p-1.5 rounded-lg hover:bg-red-500/10 text-ivory/30 hover:text-red-400 transition-all cursor-pointer"
-            title="Logout"
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); logout(); } }}
+        <div className="absolute bottom-0 left-0 right-0 p-2 bg-deep border-t border-white/[0.04]">
+          <button
+            ref={userBarRef}
+            type="button"
+            onClick={() => setShowUserCard(!showUserCard)}
+            className="w-full flex items-center gap-2.5 p-2 rounded-lg hover:bg-white/[0.04] transition-colors group"
           >
-            <LogOut size={14} />
-          </span>
-        </button>
+            <div className="relative shrink-0">
+              <div className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-white/10">
+                <Image
+                  src={user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`}
+                  width={36}
+                  height={36}
+                  className="w-full h-full object-cover"
+                  alt=""
+                  unoptimized
+                />
+              </div>
+              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-deep bg-emerald-400" />
+            </div>
+            <div className="flex-1 min-w-0 text-left">
+              <p className="text-[12px] font-semibold text-ivory/90 truncate">{user.name}</p>
+              <p className="text-[10px] text-ivory/40 truncate">
+                {user.statusMessage || "Online"}
+              </p>
+            </div>
+            <LogOut size={14} className="text-ivory/20 group-hover:text-ivory/50 transition-colors" />
+          </button>
+        </div>
       )}
 
       {/* User avatar only when collapsed */}

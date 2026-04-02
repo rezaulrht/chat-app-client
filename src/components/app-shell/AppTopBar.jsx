@@ -3,7 +3,16 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, ChevronLeft, User, LogOut, MessageCircle, Compass, Layers, Home } from "lucide-react";
+import {
+  Menu,
+  ChevronLeft,
+  User,
+  LogOut,
+  MessageCircle,
+  Compass,
+  Layers,
+  Home,
+} from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 import { useAppShell } from "./AppShellContext";
 import ThemeSwitcher from "@/components/shared/ThemeSwitcher";
@@ -17,7 +26,11 @@ const TABS = [
 ];
 
 function getActiveTab(pathname) {
-  if (pathname.startsWith("/app/workspace") || pathname.startsWith("/app/discover")) return "workspace";
+  if (
+    pathname.startsWith("/app/workspace") ||
+    pathname.startsWith("/app/discover")
+  )
+    return "workspace";
   if (pathname.startsWith("/app/feed")) return "feed";
   if (pathname.startsWith("/app")) return "home";
   return "landing";
@@ -48,7 +61,7 @@ export default function AppTopBar() {
   }, [dropdownOpen]);
 
   return (
-    <header className="h-12 md:h-14 shrink-0 flex items-center px-4 gap-3 bg-deep/95 backdrop-blur-xl border-b border-white/[0.06] relative z-40">
+    <header className="h-12 md:h-14 shrink-0 flex items-center px-4 gap-3 bg-deep/95 backdrop-blur-xl border-b border-white/[0.06] relative z-[90]">
       {/* Gradient bottom border — same as footer top border */}
       <div
         className="absolute bottom-0 left-0 right-0 h-px pointer-events-none"
@@ -66,7 +79,9 @@ export default function AppTopBar() {
           aria-label="Go back"
         >
           <ChevronLeft size={18} />
-          <span className="text-[12px] font-display font-semibold truncate max-w-[120px]">{backNav.label}</span>
+          <span className="text-[12px] font-display font-semibold truncate max-w-[120px]">
+            {backNav.label}
+          </span>
         </button>
       ) : (
         <button
@@ -83,7 +98,9 @@ export default function AppTopBar() {
         <div className="w-7 h-7 rounded-xl flex items-center justify-center bg-accent/10 border border-accent/25 shadow-[0_0_12px_rgba(0,211,187,0.08)] group-hover:bg-accent/15 transition-all">
           <Image src="/favicon.png" width={16} height={16} alt="ConvoX" />
         </div>
-        <p className="hidden sm:block text-[13px] font-display font-bold text-ivory/90 leading-none">ConvoX</p>
+        <p className="hidden sm:block text-[13px] font-display font-bold text-ivory/90 leading-none">
+          ConvoX
+        </p>
       </Link>
 
       {/* Nav pills — centered absolutely (desktop/tablet only) */}
@@ -94,10 +111,11 @@ export default function AppTopBar() {
             <Link
               key={id}
               href={href}
-              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[11px] font-display font-bold tracking-wide transition-all duration-200 ${isActive
-                ? "bg-accent/10 border border-accent/[0.18] text-accent"
-                : "text-ivory/30 hover:text-ivory/60 hover:bg-white/[0.04]"
-                }`}
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[11px] font-display font-bold tracking-wide transition-all duration-200 ${
+                isActive
+                  ? "bg-accent/10 border border-accent/[0.18] text-accent"
+                  : "text-ivory/30 hover:text-ivory/60 hover:bg-white/[0.04]"
+              }`}
             >
               <Icon size={12} />
               {label}
@@ -131,22 +149,30 @@ export default function AppTopBar() {
             aria-label="Profile menu"
           >
             <Image
-              src={user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name || "user"}`}
+              src={
+                user.avatar ||
+                `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name || "user"}`
+              }
               width={32}
               height={32}
               className="w-full h-full object-cover"
               alt="avatar"
               unoptimized
+              priority
             />
             <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-deep bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
           </button>
 
           {dropdownOpen && (
-            <div className="absolute right-0 top-full mt-2 w-52 glass-card rounded-2xl border border-white/[0.08] shadow-[0_16px_48px_rgba(0,0,0,0.4)] overflow-hidden z-50">
+            <div className="absolute right-0 top-full mt-2 w-52 glass-card rounded-2xl border border-white/[0.08] shadow-[0_16px_48px_rgba(0,0,0,0.4)] overflow-hidden z-[110]">
               {/* User info */}
               <div className="px-4 py-3 border-b border-white/[0.06]">
-                <p className="text-ivory text-[13px] font-display font-bold truncate">{user.name}</p>
-                <p className="text-ivory/30 text-[11px] font-mono truncate mt-0.5">{user.email}</p>
+                <p className="text-ivory text-[13px] font-display font-bold truncate">
+                  {user.name}
+                </p>
+                <p className="text-ivory/30 text-[11px] font-mono truncate mt-0.5">
+                  {user.email}
+                </p>
               </div>
               {/* Actions */}
               <div className="p-1.5 flex flex-col gap-0.5">
@@ -159,10 +185,16 @@ export default function AppTopBar() {
                   My Profile
                 </Link>
                 <button
-                  onClick={() => { setDropdownOpen(false); logout(); }}
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    logout();
+                  }}
                   className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-ivory/70 hover:text-red-400 hover:bg-red-500/[0.08] transition-all text-[13px] font-display font-semibold w-full text-left"
                 >
-                  <LogOut size={14} className="text-ivory/40 group-hover:text-red-400" />
+                  <LogOut
+                    size={14}
+                    className="text-ivory/40 group-hover:text-red-400"
+                  />
                   Logout
                 </button>
               </div>

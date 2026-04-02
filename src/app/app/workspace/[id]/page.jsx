@@ -1,7 +1,7 @@
 // chat-app-client/src/app/app/workspace/[id]/page.jsx
 "use client";
 import { useParams, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import WorkspaceStrip from "@/components/workspace/WorkspaceStrip";
 import ChannelSidebar from "@/components/ChatDashboard/ChannelSidebar";
@@ -14,16 +14,51 @@ import { useWorkspace } from "@/hooks/useWorkspace";
 import { Loader2 } from "lucide-react";
 
 export default function WorkspacePage() {
+  const MIN_SIDEBAR_WIDTH = 188;
+  const MAX_SIDEBAR_WIDTH = 420;
+
   const { id } = useParams();
   const router = useRouter();
   const { workspaceCollapsed } = useSidebarStore();
-  const { modulesCache, fetchModules } = useWorkspace();
+  const { modulesCache, loadingModules, fetchModules } = useWorkspace();
+  const sidebarRef = useRef(null);
 
   const [showSettings, setShowSettings] = useState(false);
   const [showCreateModule, setShowCreateModule] = useState(false);
   const [createModuleCategory, setCreateModuleCategory] = useState("General");
   const [activeSettingsModuleId, setActiveSettingsModuleId] = useState(null);
   const [redirecting, setRedirecting] = useState(true);
+  const [sidebarWidth, setSidebarWidth] = useState(MIN_SIDEBAR_WIDTH);
+
+  const startResize = useCallback((e) => {
+    e.preventDefault();
+
+    const onMove = (moveEvent) => {
+      if (!sidebarRef.current) return;
+
+      const container = sidebarRef.current.parentElement;
+      const parentWidth = container?.clientWidth || window.innerWidth;
+      const workspaceStripWidth = 56;
+      const maxAllowed = Math.min(
+        MAX_SIDEBAR_WIDTH,
+        Math.max(MIN_SIDEBAR_WIDTH, parentWidth - workspaceStripWidth - 240),
+      );
+      const next = Math.min(
+        maxAllowed,
+        Math.max(MIN_SIDEBAR_WIDTH, moveEvent.clientX - workspaceStripWidth),
+      );
+
+      setSidebarWidth(next);
+    };
+
+    const onUp = () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }, []);
 
   // Auto-redirect to first available module
   useEffect(() => {
@@ -32,11 +67,12 @@ export default function WorkspacePage() {
     const cached = modulesCache?.[id];
 
     if (cached === undefined) {
-      // Not in cache yet — fetch it; when modulesCache updates this effect re-runs
+      // Not in cache yet — kick off fetch (idempotent, guarded by fetchedWorkspaceIds ref)
       fetchModules(id);
       return;
     }
 
+    // Cache is now populated (modules array, or empty array on API error)
     const sorted = cached
       .filter((m) => m.type !== "voice")
       .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
@@ -44,9 +80,17 @@ export default function WorkspacePage() {
     if (sorted.length > 0) {
       router.replace(`/app/workspace/${id}/${sorted[0]._id}`);
     } else {
+      // No text modules exist — show the "create a module" empty state
       setRedirecting(false);
     }
   }, [id, modulesCache, fetchModules, router]);
+
+  // Safety net: if still stuck redirecting after 8s, fall through to empty state
+  useEffect(() => {
+    if (!redirecting) return;
+    const t = setTimeout(() => setRedirecting(false), 8000);
+    return () => clearTimeout(t);
+  }, [redirecting]);
 
   if (redirecting) {
     return (
@@ -62,11 +106,11 @@ export default function WorkspacePage() {
   return (
     <ProtectedRoute>
       <div className="flex h-full w-full bg-obsidian overflow-hidden">
-        {/* Desktop: workspace strip + channel sidebar */}
         <WorkspaceStrip />
         <div
-          className="hidden md:flex flex-col shrink-0 h-full border-r border-white/[0.06] bg-deep overflow-hidden transition-[width] duration-300 ease-in-out"
-          style={{ width: workspaceCollapsed ? "0px" : "188px" }}
+          ref={sidebarRef}
+          className="hidden md:flex flex-col shrink-0 h-full border-r border-white/6 bg-deep overflow-hidden transition-[width] duration-300 ease-in-out relative"
+          style={{ width: workspaceCollapsed ? "0px" : `${sidebarWidth}px` }}
         >
           <ChannelSidebar
             selectedWorkspaceId={id}
@@ -78,9 +122,17 @@ export default function WorkspacePage() {
             }}
             collapsed={workspaceCollapsed}
           />
+          {!workspaceCollapsed && (
+            <button
+              type="button"
+              onMouseDown={startResize}
+              className="hidden md:block absolute top-0 right-0 h-full w-1.5 cursor-col-resize bg-transparent hover:bg-accent/20 transition-colors"
+              aria-label="Resize workspace sidebar"
+              title="Drag to resize"
+            />
+          )}
         </div>
 
-        {/* Mobile */}
         <MobileWorkspaceSidebar
           activeWorkspaceId={id}
           onSettingsOpen={() => setShowSettings(true)}
@@ -91,7 +143,6 @@ export default function WorkspacePage() {
           }}
         />
 
-        {/* Empty state */}
         <div className="hidden md:flex flex-1 flex-col items-center justify-center h-full text-center space-y-3">
           <p className="font-display text-sm text-ivory/20">
             No modules yet — create one to get started
@@ -100,7 +151,10 @@ export default function WorkspacePage() {
       </div>
 
       {showSettings && (
-        <WorkspaceSettingsModal workspaceId={id} onClose={() => setShowSettings(false)} />
+        <WorkspaceSettingsModal
+          workspaceId={id}
+          onClose={() => setShowSettings(false)}
+        />
       )}
       {activeSettingsModuleId && (
         <ModuleSettingsModal

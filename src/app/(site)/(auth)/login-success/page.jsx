@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import useAuth from "@/hooks/useAuth";
 import AuthBackground from "@/components/auth/AuthBackground";
+import toast from "react-hot-toast";
 
 function LoginSuccessContent() {
   const router = useRouter();
@@ -13,8 +14,20 @@ function LoginSuccessContent() {
 
   useEffect(() => {
     const token = searchParams.get("token");
+    const linked = searchParams.get("linked");
+    const linkedParam = searchParams.get("linked");
+    
     if (token) {
       oauthLogin(token);
+      
+      // If this was an account linking flow, redirect to profile with connections tab
+      if (linked || linkedParam) {
+        const provider = linked || linkedParam;
+        setTimeout(() => {
+          toast.success(`${provider} account linked successfully!`);
+          router.push("/profile?tab=connections");
+        }, 1500);
+      }
     } else {
       router.push("/login");
     }

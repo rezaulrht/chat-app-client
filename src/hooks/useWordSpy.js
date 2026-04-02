@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useContext } from "react";
+import { useEffect, useContext, useCallback } from "react";
 import { SocketContext } from "@/context/SocketContext";
 import useWordSpyStore from "@/stores/wordSpyStore";
 import toast from "react-hot-toast";
@@ -29,6 +29,10 @@ const useWordSpy = () => {
       reset();
       toast(message, { icon: "🚪" });
     };
+    const onLeft = ({ message }) => {
+      reset();
+      toast(message || "You left the game.", { icon: "👋" });
+    };
 
     socket.on("wordspy:room:update", onRoomUpdate);
     socket.on("wordspy:phase:change", onPhaseChange);
@@ -38,6 +42,7 @@ const useWordSpy = () => {
     socket.on("wordspy:reveal", onReveal);
     socket.on("wordspy:error", onError);
     socket.on("wordspy:disbanded", onDisbanded);
+    socket.on("wordspy:left", onLeft);
 
     return () => {
       socket.off("wordspy:room:update", onRoomUpdate);
@@ -48,29 +53,65 @@ const useWordSpy = () => {
       socket.off("wordspy:reveal", onReveal);
       socket.off("wordspy:error", onError);
       socket.off("wordspy:disbanded", onDisbanded);
+      socket.off("wordspy:left", onLeft);
     };
   }, [socket]);
 
   // Action emitters — these do NOT return state, call useWordSpyStore() for that
-  const joinGame = (moduleId, workspaceId) =>
-    socket?.emit("wordspy:join", { moduleId, workspaceId });
+  const joinGame = useCallback(
+    (moduleId, workspaceId) => {
+      socket?.emit("wordspy:join", { moduleId, workspaceId });
+    },
+    [socket],
+  );
 
-  const startGame = (moduleId, category, difficulty, maxRounds) =>
-    socket?.emit("wordspy:start", { moduleId, category, difficulty, maxRounds });
+  const startGame = useCallback(
+    (moduleId, category, difficulty, maxRounds) => {
+      socket?.emit("wordspy:start", { moduleId, category, difficulty, maxRounds });
+    },
+    [socket],
+  );
 
-  const submitHint = (hint) =>
-    socket?.emit("wordspy:hint:submit", { hint });
+  const submitHint = useCallback(
+    (hint) => socket?.emit("wordspy:hint:submit", { hint }),
+    [socket],
+  );
 
-  const submitVote = (targetUserId) =>
-    socket?.emit("wordspy:vote:submit", { targetUserId });
+  const submitVote = useCallback(
+    (targetUserId) => socket?.emit("wordspy:vote:submit", { targetUserId }),
+    [socket],
+  );
 
-  const nextRound = () => socket?.emit("wordspy:next:round", {});
+  const nextRound = useCallback(
+    () => socket?.emit("wordspy:next:round", {}),
+    [socket],
+  );
 
-  const endGame = () => socket?.emit("wordspy:end:game", {});
+  const endGame = useCallback(
+    () => socket?.emit("wordspy:end:game", {}),
+    [socket],
+  );
 
-  const disbandRoom = () => socket?.emit("wordspy:disband", {});
+  const disbandRoom = useCallback(
+    () => socket?.emit("wordspy:disband", {}),
+    [socket],
+  );
 
-  return { joinGame, startGame, submitHint, submitVote, nextRound, endGame, disbandRoom };
+  const leaveGame = useCallback(
+    () => socket?.emit("wordspy:leave", {}),
+    [socket],
+  );
+
+  return {
+    joinGame,
+    startGame,
+    submitHint,
+    submitVote,
+    nextRound,
+    endGame,
+    disbandRoom,
+    leaveGame,
+  };
 };
 
 export default useWordSpy;

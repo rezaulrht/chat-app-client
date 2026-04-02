@@ -70,7 +70,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem("user", JSON.stringify(user));
 
         setUser(user);
-        window.location.href = "/chat";
+        window.location.href = "/app";
 
         return { success: true, user };
       } catch (error) {
@@ -97,7 +97,7 @@ export const AuthProvider = ({ children }) => {
       const res = await api.get("/auth/me");
       setUser(res.data);
       localStorage.setItem("user", JSON.stringify(res.data));
-      router.push("/chat");
+      router.push("/app");
     } catch (err) {
       console.error("OAuth user fetch failed:", err);
       router.push("/login");
@@ -125,7 +125,7 @@ export const AuthProvider = ({ children }) => {
         setUser(user);
 
         // Use window.location for a hard redirect to ensure full hydration of navbars
-        window.location.href = "/chat";
+        window.location.href = "/app";
 
         return { success: true, message: response.data.message };
       } catch (error) {

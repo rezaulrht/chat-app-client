@@ -33,8 +33,14 @@ import {
   Globe,
   ChevronRight,
   Rss,
+  LinkIcon,
+  Unlink,
 } from "lucide-react";
 import PostCard from "@/components/Feed/PostCard";
+import PostDetail from "@/components/Feed/PostDetail";
+import useFeed from "@/hooks/useFeed";
+import ImageCropModal from "@/components/shared/ImageCropModal";
+import { confirmSweetAlert } from "@/utils/sweetAlert";
 import { useTheme } from "@/context/ThemeContext";
 import { THEMES } from "@/context/ThemeContext";
 import { Paintbrush } from "lucide-react";
@@ -55,20 +61,24 @@ function AppearanceCard() {
             <button
               key={t.id}
               onClick={() => setTheme(t.id)}
-              className={`flex items-center gap-2.5 p-3 rounded-xl border transition-all text-left group ${
-                active
-                  ? "border-accent/40 bg-accent/[0.07]"
-                  : "border-white/[0.06] hover:border-white/[0.14] hover:bg-white/[0.04]"
-              }`}
+              className={`flex items-center gap-2.5 p-3 rounded-xl border transition-all text-left group ${active
+                ? "border-accent/40 bg-accent/[0.07]"
+                : "border-white/[0.06] hover:border-white/[0.14] hover:bg-white/[0.04]"
+                }`}
             >
               <div
                 className="w-8 h-8 rounded-xl shrink-0 border border-black/[0.12] flex items-center justify-center shadow-sm"
                 style={{ background: t.surface }}
               >
-                <div className="w-3 h-3 rounded-full" style={{ background: t.accent }} />
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ background: t.accent }}
+                />
               </div>
               <div>
-                <p className={`text-[11px] font-display font-bold leading-tight ${active ? "text-accent" : "text-ivory/70"}`}>
+                <p
+                  className={`text-[11px] font-display font-bold leading-tight ${active ? "text-accent" : "text-ivory/70"}`}
+                >
                   {t.label}
                 </p>
                 <p className="text-[9px] font-mono text-ivory/25 capitalize leading-tight mt-0.5">
@@ -147,6 +157,16 @@ function StrengthBar({ password }) {
 function ProfilePage() {
   const { user, updateProfile, changePassword } = useAuth();
   const { workspaces } = useWorkspace();
+  const {
+    commentsByPost,
+    fetchComments,
+    addComment,
+    reactToComment,
+    editComment,
+    deleteComment,
+    voteOnPoll,
+    acceptAnswer,
+  } = useFeed();
 
   // Edit fields
   const [name, setName] = useState(user?.name || "");
@@ -167,9 +187,14 @@ function ProfilePage() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPw, setSavingPw] = useState(false);
   const searchParams = useSearchParams();
-  const [activeSection, setActiveSection] = useState(
-    searchParams?.get("tab") === "posts" ? "posts" : "edit",
-  );
+  const getInitialTab = () => {
+    const tab = searchParams?.get("tab");
+    if (tab === "posts" || tab === "connections" || tab === "security" || tab === "account") {
+      return tab;
+    }
+    return "edit";
+  };
+  const [activeSection, setActiveSection] = useState(getInitialTab);
   const [activePost, setActivePost] = useState(null);
 
   // ── My posts (real API) ───────────────────────────────────────────────
@@ -180,6 +205,24 @@ function ProfilePage() {
 
   const [myPostsError, setMyPostsError] = useState(false);
   const [myPostsLoaded, setMyPostsLoaded] = useState(false);
+
+  // ── Banner state ───────────────────────────────────────────────
+  const [bannerPreview, setBannerPreview] = useState(user?.banner || "");
+  const [bannerData, setBannerData] = useState(null);
+  const [customColor, setCustomColor] = useState(user?.customColor || "");
+  const [showBannerCrop, setShowBannerCrop] = useState(false);
+  const [pendingBannerImage, setPendingBannerImage] = useState(null);
+  const [savingBanner, setSavingBanner] = useState(false);
+  const bannerFileRef = useRef(null);
+
+  // ── Social links state ───────────────────────────────────────────────
+  const [socialLinks, setSocialLinks] = useState([]);
+  const [loadingSocialLinks, setLoadingSocialLinks] = useState(false);
+  const [linkingProvider, setLinkingProvider] = useState(null);
+  const [unlinkingProvider, setUnlinkingProvider] = useState(null);
+  const [hasGoogle, setHasGoogle] = useState(false);
+  const [hasGitHub, setHasGitHub] = useState(false);
+  const [canAddMore, setCanAddMore] = useState(true);
 
   const loadMyPosts = useCallback(
     async (page = 1) => {
@@ -215,6 +258,160 @@ function ProfilePage() {
     }
   }, [activeSection, loadMyPosts]);
 
+  useEffect(() => {
+    if (activeSection !== "posts") {
+      setActivePost(null);
+    }
+  }, [activeSection]);
+
+  useEffect(() => {
+    if (!activePost?._id) return;
+    fetchComments(activePost._id).catch((error) => {
+      console.error("Failed to fetch post comments:", error);
+    });
+  }, [activePost?._id, fetchComments]);
+
+  const updateLocalPost = useCallback((postId, updater) => {
+    setMyPosts((prev) =>
+      prev.map((post) => (post._id === postId ? updater(post) : post)),
+    );
+    setActivePost((prev) => {
+      if (!prev || prev._id !== postId) return prev;
+      return updater(prev);
+    });
+  }, []);
+
+  const handleReactPost = useCallback(
+    async (postId, emoji) => {
+      try {
+        const res = await api.post(`/api/feed/posts/${postId}/react`, {
+          emoji,
+        });
+        updateLocalPost(postId, (post) => ({
+          ...post,
+          reactions: res.data.reactions,
+          reactionCount: res.data.reactionCount,
+        }));
+      } catch (error) {
+        console.error("Failed to react to post:", error);
+        toast.error("Failed to react to post");
+      }
+    },
+    [updateLocalPost],
+  );
+
+  const handleAddComment = useCallback(
+    async (postId, payload) => {
+      try {
+        await addComment(postId, payload);
+        updateLocalPost(postId, (post) => {
+          const nextCount = (post.commentCount ?? post.commentsCount ?? 0) + 1;
+          return { ...post, commentCount: nextCount, commentsCount: nextCount };
+        });
+      } catch (error) {
+        console.error("Failed to add comment:", error);
+        toast.error("Failed to add comment");
+      }
+    },
+    [addComment, updateLocalPost],
+  );
+
+  const handleReactComment = useCallback(
+    async (postId, commentId, emoji) => {
+      try {
+        await reactToComment(postId, commentId, emoji);
+      } catch (error) {
+        console.error("Failed to react to comment:", error);
+        toast.error("Failed to react to comment");
+      }
+    },
+    [reactToComment],
+  );
+
+  const handleEditComment = useCallback(
+    async (postId, commentId, content) => {
+      try {
+        await editComment(postId, commentId, content);
+      } catch (error) {
+        console.error("Failed to update comment:", error);
+        toast.error("Failed to update comment");
+        throw error;
+      }
+    },
+    [editComment],
+  );
+
+  const handleDeleteComment = useCallback(
+    async (postId, commentId) => {
+      try {
+        const data = await deleteComment(postId, commentId);
+        updateLocalPost(postId, (post) => {
+          const nextCount =
+            typeof data?.commentsCount === "number"
+              ? Math.max(0, data.commentsCount)
+              : Math.max(
+                0,
+                (post.commentCount ?? post.commentsCount ?? 0) -
+                (data?.removedCount ?? 1),
+              );
+          const acceptedId =
+            post.acceptedAnswer ?? post.acceptedComment ?? null;
+          const deletedAccepted = String(acceptedId) === String(commentId);
+
+          return {
+            ...post,
+            commentCount: nextCount,
+            commentsCount: nextCount,
+            acceptedAnswer: deletedAccepted ? null : post.acceptedAnswer,
+            acceptedComment: deletedAccepted ? null : post.acceptedComment,
+            status: deletedAccepted ? "open" : post.status,
+          };
+        });
+      } catch (error) {
+        console.error("Failed to delete comment:", error);
+        toast.error("Failed to delete comment");
+        throw error;
+      }
+    },
+    [deleteComment, updateLocalPost],
+  );
+
+  const handleVotePoll = useCallback(
+    async (postId, optionIndex) => {
+      try {
+        const data = await voteOnPoll(postId, optionIndex);
+        updateLocalPost(postId, (post) => ({ ...post, poll: data.poll }));
+      } catch (error) {
+        console.error("Failed to vote on poll:", error);
+        toast.error("Failed to vote on poll");
+      }
+    },
+    [updateLocalPost, voteOnPoll],
+  );
+
+  const handleAcceptAnswer = useCallback(
+    async (postId, commentId) => {
+      try {
+        const data = await acceptAnswer(postId, commentId);
+        const acceptedCommentId =
+          typeof data.acceptedComment === "string"
+            ? data.acceptedComment
+            : data.acceptedComment?._id;
+
+        updateLocalPost(postId, (post) => ({
+          ...post,
+          acceptedAnswer: acceptedCommentId ?? null,
+          acceptedComment: acceptedCommentId ?? null,
+          status: data.status,
+        }));
+      } catch (error) {
+        console.error("Failed to accept answer:", error);
+        toast.error("Failed to update accepted answer");
+      }
+    },
+    [acceptAnswer, updateLocalPost],
+  );
+
   // ── Avatar picker ─────────────────────────────────────────────────────
   const handleAvatarChange = (e) => {
     const file = e.target.files?.[0];
@@ -229,6 +426,116 @@ function ProfilePage() {
       setAvatarData(reader.result);
     };
     reader.readAsDataURL(file);
+  };
+
+  // ── Banner handling ──────────────────────────────────────────────────
+  const handleBannerChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be under 5 MB");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPendingBannerImage(reader.result);
+      setShowBannerCrop(true);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleBannerCropSave = async (croppedImage) => {
+    setShowBannerCrop(false);
+    setBannerPreview(croppedImage);
+    setBannerData(croppedImage);
+    setPendingBannerImage(null);
+    setSavingBanner(true);
+    try {
+      const res = await api.put("/api/user/banner", { banner: croppedImage });
+      if (res.data) {
+        setBannerPreview(res.data.banner);
+        setBannerData(null);
+        toast.success("Banner updated!");
+      }
+    } catch (err) {
+      toast.error("Failed to save banner");
+    } finally {
+      setSavingBanner(false);
+    }
+  };
+
+  const handleRemoveBanner = async () => {
+    setSavingBanner(true);
+    try {
+      await api.put("/api/user/banner", { banner: "" });
+      setBannerPreview("");
+      setBannerData(null);
+      toast.success("Banner removed");
+    } catch (err) {
+      toast.error("Failed to remove banner");
+    } finally {
+      setSavingBanner(false);
+    }
+  };
+
+  // ── Social links handling ──────────────────────────────────────────
+  const fetchSocialLinks = useCallback(async () => {
+    setLoadingSocialLinks(true);
+    try {
+      const res = await api.get("/api/user/social-links");
+      const links = res.data.socialLinks || [];
+      setSocialLinks(links);
+      setHasGoogle(links.some(l => l.provider === "google"));
+      setHasGitHub(links.some(l => l.provider === "github"));
+      setCanAddMore(links.length < 2);
+    } catch (err) {
+      console.error("Failed to fetch social links:", err);
+    } finally {
+      setLoadingSocialLinks(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSocialLinks();
+  }, [fetchSocialLinks]);
+
+  const handleLinkAccount = async (provider) => {
+    setLinkingProvider(provider);
+    try {
+      const res = await api.post(`/api/user/social-links/init/${provider}`);
+      if (res.data.authUrl) {
+        window.location.href = res.data.authUrl;
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to start linking");
+      setLinkingProvider(null);
+    }
+  };
+
+  const handleUnlinkAccount = async (provider) => {
+    if (!(await confirmSweetAlert({
+      title: "Disconnect Account?",
+      text: `Are you sure you want to disconnect ${provider}?`,
+      confirmButtonText: "Disconnect",
+      icon: "warning",
+    }))) return;
+    setUnlinkingProvider(provider);
+    try {
+      await api.delete(`/api/user/social-links/${provider}`);
+      toast.success(`${provider} has been disconnected`);
+      fetchSocialLinks();
+    } catch (err) {
+      const msg = err.response?.data?.message || "Failed to unlink account";
+      if (err.response?.data?.requiresPassword) {
+        toast.error("Please set a password first (Security tab)");
+        setActiveSection("security");
+      } else {
+        toast.error(msg);
+      }
+    } finally {
+      setUnlinkingProvider(null);
+    }
   };
 
   // ── Save profile ──────────────────────────────────────────────────────
@@ -283,10 +590,10 @@ function ProfilePage() {
         : Mail;
   const memberSince = user?.createdAt
     ? new Date(user.createdAt).toLocaleDateString("en-US", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      })
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    })
     : "—";
   const memberSinceYear = user?.createdAt
     ? new Date(user.createdAt).getFullYear()
@@ -305,16 +612,44 @@ function ProfilePage() {
         {/* HERO CARD                                                    */}
         {/* ════════════════════════════════════════════════════════════ */}
         <div className="relative rounded-3xl overflow-hidden border border-white/[0.08] shadow-2xl shadow-black/40">
-          {/* Banner gradient */}
-          <div className="h-20 md:h-32 bg-linear-to-br from-accent/20 via-accent/5 to-transparent" />
-
-          {/* Overlay grid texture */}
+          {/* Banner - uses bannerPreview or gradient fallback */}
           <div
-            className="absolute inset-0 opacity-[0.03]"
-            style={{
-              backgroundImage:
-                "repeating-linear-gradient(0deg,transparent,transparent 30px,rgba(255,255,255,.5) 30px,rgba(255,255,255,.5) 31px),repeating-linear-gradient(90deg,transparent,transparent 30px,rgba(255,255,255,.5) 30px,rgba(255,255,255,.5) 31px)",
-            }}
+            className="h-20 md:h-32 relative group/banner cursor-pointer"
+            onClick={() => bannerFileRef.current?.click()}
+            style={bannerPreview ? {
+              backgroundImage: `url(${bannerPreview})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center"
+            } : undefined}
+          >
+            {!bannerPreview && (
+              <div className="absolute inset-0 bg-linear-to-br from-accent/20 via-accent/5 to-transparent" />
+            )}
+            {/* Banner edit overlay */}
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/banner:opacity-100 transition-opacity">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-black/60 backdrop-blur-sm">
+                <Camera size={14} className="text-white" />
+                <span className="text-[11px] font-mono text-white">
+                  {bannerPreview ? "Change Banner" : "Add Banner"}
+                </span>
+              </div>
+            </div>
+
+            {/* Overlay grid texture */}
+            <div
+              className="absolute inset-0 opacity-[0.03] pointer-events-none"
+              style={{
+                backgroundImage:
+                  "repeating-linear-gradient(0deg,transparent,transparent 30px,rgba(255,255,255,.5) 30px,rgba(255,255,255,.5) 31px),repeating-linear-gradient(90deg,transparent,transparent 30px,rgba(255,255,255,.5) 30px,rgba(255,255,255,.5) 31px)",
+              }}
+            />
+          </div>
+          <input
+            ref={bannerFileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleBannerChange}
           />
 
           {/* Avatar + identity */}
@@ -441,17 +776,15 @@ function ProfilePage() {
           <div className="space-y-4">
             {/* Section tabs */}
             <div className="flex gap-1 p-1 bg-white/[0.03] rounded-xl border border-white/[0.06]">
-              {["edit", ...(isLocal ? ["security"] : []), "posts", "account"].map((s) => (
+              {["edit", "connections", ...(isLocal ? ["security"] : []), "posts", "account"].map((s) => (
                 <button
                   key={s}
                   onClick={() => setActiveSection(s)}
-                  className={`flex-1 py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase tracking-[0.1em] transition-all duration-200 ${
-                    s === "account" ? "md:hidden" : ""
-                  } ${
-                    activeSection === s
+                  className={`flex-1 py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase tracking-[0.1em] transition-all duration-200 ${s === "account" ? "md:hidden" : ""
+                    } ${activeSection === s
                       ? "bg-accent/15 text-accent border border-accent/20"
                       : "text-ivory/25 hover:text-ivory/50"
-                  }`}
+                    }`}
                 >
                   {s === "edit"
                     ? "Edit"
@@ -459,7 +792,9 @@ function ProfilePage() {
                       ? "Security"
                       : s === "posts"
                         ? "Posts"
-                        : "Account"}
+                        : s === "connections"
+                          ? "Connections"
+                          : "Account"}
                 </button>
               ))}
             </div>
@@ -503,6 +838,36 @@ function ProfilePage() {
                     className="text-ivory/20 group-hover:text-accent/50 shrink-0 transition-colors duration-200"
                   />
                 </button>
+
+                {/* Banner upload hint */}
+                <div>
+                  <label className="flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-ivory/25 mb-1.5">
+                    Banner
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => bannerFileRef.current?.click()}
+                      className="flex-1 flex items-center gap-2 p-3 rounded-xl bg-white/[0.03] border border-dashed border-white/[0.10] hover:border-accent/30 hover:bg-accent/[0.03] transition-all duration-200 group"
+                    >
+                      <Camera size={14} className="text-ivory/20 group-hover:text-accent/50" />
+                      <span className="text-[11px] font-mono text-ivory/40 group-hover:text-ivory/60">
+                        {bannerPreview ? "Change Banner" : "Upload Banner"}
+                      </span>
+                    </button>
+                    {bannerPreview && (
+                      <button
+                        onClick={handleRemoveBanner}
+                        disabled={savingBanner}
+                        className="px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400/70 hover:text-red-400 hover:bg-red-500/20 transition-all text-[11px] font-mono"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-[9px] font-mono text-ivory/15 mt-1">
+                    16:9 ratio recommended · Max 5 MB
+                  </p>
+                </div>
 
                 {/* Status message */}
                 <div>
@@ -575,6 +940,112 @@ function ProfilePage() {
               </div>
             )}
 
+            {/* ── Connections Section ── */}
+            {activeSection === "connections" && (
+              <div className="glass-card rounded-2xl border border-white/[0.08] p-5 space-y-4">
+                <h2 className="text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-ivory/25 flex items-center gap-1.5">
+                  <LinkIcon size={10} className="text-accent/50" />
+                  Connected Accounts
+                </h2>
+
+                {loadingSocialLinks ? (
+                  <div className="flex justify-center py-6">
+                    <Loader2 size={20} className="text-accent/40 animate-spin" />
+                  </div>
+                ) : (
+                  <>
+                    {/* Connected accounts */}
+                    <div className="space-y-2">
+                      {socialLinks.map((link) => (
+                        <div
+                          key={link.provider}
+                          className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-xl border border-white/[0.04]"
+                        >
+                          <div className="w-10 h-10 rounded-xl bg-white/[0.04] flex items-center justify-center">
+                            {link.provider === "google" ? (
+                              <Chrome size={18} className="text-accent/60" />
+                            ) : (
+                              <Github size={18} className="text-ivory/40" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[12px] font-semibold text-ivory/70 capitalize">
+                              {link.provider}
+                            </p>
+                            {link.username && (
+                              <p className="text-[10px] font-mono text-ivory/30 truncate">
+                                @{link.username}
+                              </p>
+                            )}
+                          </div>
+                          <span className="text-[9px] font-mono text-emerald-400/70 flex items-center gap-1">
+                            <CheckCircle2 size={10} />
+                            Connected
+                          </span>
+                          {link.canUnlink && (
+                            <button
+                              onClick={() => handleUnlinkAccount(link.provider)}
+                              disabled={unlinkingProvider === link.provider}
+                              className="p-2 rounded-lg text-ivory/30 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                            >
+                              {unlinkingProvider === link.provider ? (
+                                <Loader2 size={14} className="animate-spin" />
+                              ) : (
+                                <Unlink size={14} />
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      ))}
+
+                      {socialLinks.length === 0 && (
+                        <p className="text-ivory/25 text-[12px] font-mono text-center py-4">
+                          No connected accounts
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Connect more */}
+                    {canAddMore && (
+                      <div className="pt-2 border-t border-white/[0.06]">
+                        <p className="text-[10px] font-mono text-ivory/25 mb-2">Connect more accounts</p>
+                        <div className="flex gap-2">
+                          {!hasGoogle && (
+                            <button
+                              onClick={() => handleLinkAccount("google")}
+                              disabled={linkingProvider === "google"}
+                              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-ivory/50 hover:text-ivory hover:bg-white/[0.08] transition-all text-[11px]"
+                            >
+                              {linkingProvider === "google" ? (
+                                <Loader2 size={12} className="animate-spin" />
+                              ) : (
+                                <Chrome size={12} />
+                              )}
+                              Connect Google
+                            </button>
+                          )}
+                          {!hasGitHub && (
+                            <button
+                              onClick={() => handleLinkAccount("github")}
+                              disabled={linkingProvider === "github"}
+                              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-ivory/50 hover:text-ivory hover:bg-white/[0.08] transition-all text-[11px]"
+                            >
+                              {linkingProvider === "github" ? (
+                                <Loader2 size={12} className="animate-spin" />
+                              ) : (
+                                <Github size={12} />
+                              )}
+                              Connect GitHub
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
             {/* ── My Posts Section ── */}
             {activeSection === "posts" && (
               <div className="space-y-4">
@@ -593,6 +1064,27 @@ function ProfilePage() {
                     <span className="text-accent/40 text-[12px] font-mono animate-pulse">
                       Loading posts...
                     </span>
+                  </div>
+                ) : activePost ? (
+                  <div className="glass-card rounded-2xl border border-white/[0.08] overflow-hidden">
+                    <PostDetail
+                      post={activePost}
+                      comments={commentsByPost[activePost._id] || []}
+                      currentUserId={user?._id || user?.id || ""}
+                      onBack={() => setActivePost(null)}
+                      backLabel="Back to profile"
+                      onReact={handleReactPost}
+                      onShare={() => { }}
+                      onTagClick={() => { }}
+                      onEdit={() => { }}
+                      onDelete={() => { }}
+                      onAddComment={handleAddComment}
+                      onReactComment={handleReactComment}
+                      onAcceptAnswer={handleAcceptAnswer}
+                      onVotePoll={handleVotePoll}
+                      onEditComment={handleEditComment}
+                      onDeleteComment={handleDeleteComment}
+                    />
                   </div>
                 ) : myPostsError ? (
                   <div className="glass-card rounded-2xl border border-white/[0.08] p-10 flex flex-col items-center justify-center gap-3 text-center">
@@ -624,12 +1116,12 @@ function ProfilePage() {
                         key={post._id}
                         post={post}
                         currentUserId={user?._id || user?.id || "me"}
-                        onOpen={() => setActivePost(post)}
-                        onReact={() => {}}
-                        onShare={() => {}}
-                        onTagClick={() => {}}
-                        onEdit={() => {}}
-                        onDelete={() => {}}
+                        onOpen={setActivePost}
+                        onReact={handleReactPost}
+                        onShare={() => { }}
+                        onTagClick={() => { }}
+                        onEdit={() => { }}
+                        onDelete={() => { }}
                       />
                     ))}
                     {myPostsHasMore && (
@@ -728,11 +1220,10 @@ function ProfilePage() {
                     onChange={(e) => setConfirmPw(e.target.value)}
                     required
                     placeholder="Repeat new password"
-                    className={`w-full bg-white/[0.04] border rounded-xl px-3.5 py-2.5 text-[13px] text-ivory placeholder:text-ivory/20 focus:outline-none transition-all duration-200 ${
-                      confirmPw && confirmPw !== newPw
-                        ? "border-red-400/40"
-                        : "border-white/[0.08] focus:border-accent/40"
-                    }`}
+                    className={`w-full bg-white/[0.04] border rounded-xl px-3.5 py-2.5 text-[13px] text-ivory placeholder:text-ivory/20 focus:outline-none transition-all duration-200 ${confirmPw && confirmPw !== newPw
+                      ? "border-red-400/40"
+                      : "border-white/[0.08] focus:border-accent/40"
+                      }`}
                   />
                   {confirmPw && confirmPw !== newPw && (
                     <p className="text-[10px] text-red-400/70 mt-1 font-mono">
@@ -769,7 +1260,9 @@ function ProfilePage() {
           {/*              — on mobile only visible via "Account" tab     */}
           {/* ════════════════════════════════════════════════════════════ */}
           {activeSection !== "posts" && (
-            <div className={`space-y-4 ${activeSection !== "account" ? "hidden md:block" : ""}`}>
+            <div
+              className={`space-y-4 ${activeSection !== "account" ? "hidden md:block" : ""}`}
+            >
               {/* ── Account Details ── */}
               <div className="glass-card rounded-2xl border border-white/[0.08] p-5 space-y-3">
                 <h2 className="text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-ivory/25 flex items-center gap-1.5 mb-3">
@@ -902,6 +1395,19 @@ function ProfilePage() {
           )}
         </div>
       </div>
+
+      {/* Banner crop modal */}
+      {showBannerCrop && pendingBannerImage && (
+        <ImageCropModal
+          imageUrl={pendingBannerImage}
+          onSave={(cropData, croppedCanvas) => {
+            // Convert canvas to data URL
+            const croppedImage = croppedCanvas.toDataURL("image/jpeg", 0.92);
+            handleBannerCropSave(croppedImage);
+          }}
+          onCancel={() => { setShowBannerCrop(false); setPendingBannerImage(null); }}
+        />
+      )}
     </div>
   );
 }

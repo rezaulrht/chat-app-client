@@ -16,7 +16,6 @@ import {
   X,
   Plus,
   Users,
-  CheckCheck,
   Clock,
   Calendar,
   Paperclip,
@@ -29,6 +28,7 @@ import {
 import WordSpyGame from "@/components/wordspy/WordSpyGame";
 import useWordSpyStore from "@/stores/wordSpyStore";
 import useWordSpy from "@/hooks/useWordSpy";
+import { useSocket } from "@/hooks/useSocket";
 import useAuth from "@/hooks/useAuth";
 import { useModule } from "@/hooks/useModule";
 import { useWorkspace } from "@/hooks/useWorkspace";
@@ -38,6 +38,7 @@ import toast from "react-hot-toast";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import FileAttachmentPreview from "@/components/shared/FileAttachmentPreview";
 import FileAttachmentDisplay from "@/components/shared/FileAttachmentDisplay";
+import VoiceMessageRecorder from "@/components/calls/VoiceMessageRecorder";
 import ThreadPanel from "./ThreadPanel";
 import PinnedMessagesPanel from "./PinnedMessagesPanel";
 import ModuleSearchPanel from "./ModuleSearchPanel";
@@ -55,6 +56,13 @@ import {
   listScheduledMessages,
   cancelScheduledMessage,
 } from "@/utils/scheduleApi";
+
+// Returns the current datetime as a string compatible with datetime-local <input min>
+const formatLocalMin = () => {
+  const now = new Date();
+  now.setSeconds(0, 0);
+  return now.toISOString().slice(0, 16);
+};
 
 const getDateLabel = (dateStr) => {
   const date = new Date(dateStr);
@@ -87,7 +95,9 @@ export default function ModuleChatWindow({
   showMembers,
 }) {
   const { user } = useAuth();
-  const { workspaces, modulesCache, membersCache, fetchWorkspaceMembers } = useWorkspace();
+  const { socket } = useSocket() || {};
+  const { workspaces, modulesCache, membersCache, fetchWorkspaceMembers } =
+    useWorkspace();
   const {
     messages,
     loading,
@@ -107,7 +117,15 @@ export default function ModuleChatWindow({
   const { joinGame } = useWordSpy();
 
   // All phases including results are game phases — the results screen is part of the game
-  const GAME_PHASES = ["lobby", "word_assign", "word_reveal", "hint", "vote", "reveal", "results"];
+  const GAME_PHASES = [
+    "lobby",
+    "word_assign",
+    "word_reveal",
+    "hint",
+    "vote",
+    "reveal",
+    "results",
+  ];
   const isGameActive = GAME_PHASES.includes(wordSpyPhase);
 
   const workspace = workspaces.find((w) => w._id === workspaceId);
@@ -127,6 +145,7 @@ export default function ModuleChatWindow({
   const [reactionPickerMsgId, setReactionPickerMsgId] = useState(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showGifPicker, setShowGifPicker] = useState(false);
+  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const [longPressedMsgId, setLongPressedMsgId] = useState(null);
 
   // Panels
@@ -156,6 +175,7 @@ export default function ModuleChatWindow({
 
   // Read Receipts Popover
   const [showSeenBy, setShowSeenBy] = useState(null); // stores msgId
+  const [workspaceNotices, setWorkspaceNotices] = useState([]);
 
   const bottomRef = useRef(null);
 
@@ -197,9 +217,96 @@ export default function ModuleChatWindow({
     setReactionPickerMsgId(null);
     setShowEmojiPicker(false);
     setShowGifPicker(false);
+    setShowVoiceRecorder(false);
     setShowSeenBy(null);
+    setWorkspaceNotices([]);
     resetFiles();
   }, [moduleId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const pushWorkspaceNotice = useCallback((text) => {
+    if (!text) return;
+    setWorkspaceNotices((prev) => [
+      ...prev.slice(-5),
+      {
+        _id: `sys-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        text,
+        createdAt: new Date().toISOString(),
+      },
+    ]);
+  }, []);
+
+  useEffect(() => {
+    if (!socket || !workspaceId) return;
+
+    const resolveMemberName = (id) => {
+      const members = membersCache?.[workspaceId] || [];
+      const member = members.find((m) => String(m.user?._id) === String(id));
+      return member?.user?.name || null;
+    };
+
+    const onWorkspaceMemberJoined = ({ workspaceId: wsId, newMembers }) => {
+      if (String(wsId) !== String(workspaceId)) return;
+      const names = (newMembers || []).map((m) => m?.name).filter(Boolean);
+      if (names.length === 1) {
+        pushWorkspaceNotice(`${names[0]} joined the workspace.`);
+        return;
+      }
+      if (names.length > 1) {
+        pushWorkspaceNotice(`${names.length} members joined the workspace.`);
+      }
+    };
+
+    const onWorkspaceMemberLeft = ({
+      workspaceId: wsId,
+      removedUserIds,
+      userId,
+      removedBy,
+    }) => {
+      if (String(wsId) !== String(workspaceId)) return;
+
+      const ids = Array.isArray(removedUserIds)
+        ? removedUserIds
+        : userId
+          ? [userId]
+          : [];
+
+      if (ids.length === 0) return;
+
+      const names = ids.map((id) => resolveMemberName(id)).filter(Boolean);
+      const actionText = removedBy ? "was removed from" : "left";
+
+      if (names.length === 1) {
+        pushWorkspaceNotice(`${names[0]} ${actionText} the workspace.`);
+        return;
+      }
+
+      if (names.length > 1) {
+        pushWorkspaceNotice(
+          `${names.length} members ${removedBy ? "were removed from" : "left"} the workspace.`,
+        );
+        return;
+      }
+
+      pushWorkspaceNotice(
+        `${ids.length} member${ids.length > 1 ? "s" : ""} ${removedBy ? "were removed from" : "left"} the workspace.`,
+      );
+    };
+
+    const onWorkspaceKicked = ({ workspaceId: wsId }) => {
+      if (String(wsId) !== String(workspaceId)) return;
+      pushWorkspaceNotice("You were removed from this workspace.");
+    };
+
+    socket.on("workspace:member-joined", onWorkspaceMemberJoined);
+    socket.on("workspace:member-left", onWorkspaceMemberLeft);
+    socket.on("workspace:kicked", onWorkspaceKicked);
+
+    return () => {
+      socket.off("workspace:member-joined", onWorkspaceMemberJoined);
+      socket.off("workspace:member-left", onWorkspaceMemberLeft);
+      socket.off("workspace:kicked", onWorkspaceKicked);
+    };
+  }, [socket, workspaceId, membersCache, pushWorkspaceNotice, user?._id]);
 
   // Fetch members if not present
   useEffect(() => {
@@ -226,15 +333,8 @@ export default function ModuleChatWindow({
       }
       if (longPressedMsgId) setLongPressedMsgId(null);
 
-      // Close seen by popover
-      if (showSeenBy) {
-        // We'll attach a data-attribute to the popover to avoid closing when clicking inside it
-        if (!e.target.closest('[data-seen-popover]')) {
-          setShowSeenBy(null);
-        }
-      }
       // Close schedule dropdown on outside click
-      const mobileTrigger = e.target.closest('.mobile-schedule-trigger');
+      const mobileTrigger = e.target.closest(".mobile-schedule-trigger");
       if (
         scheduleDropdownRef.current &&
         !scheduleDropdownRef.current.contains(e.target) &&
@@ -257,14 +357,20 @@ export default function ModuleChatWindow({
       showEmojiPicker ||
       showGifPicker ||
       longPressedMsgId ||
-      showSeenBy ||
       scheduleDropdownOpen ||
       aiMenuOpen
     ) {
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [reactionPickerMsgId, showEmojiPicker, showGifPicker, longPressedMsgId, showSeenBy, scheduleDropdownOpen, aiMenuOpen]);
+  }, [
+    reactionPickerMsgId,
+    showEmojiPicker,
+    showGifPicker,
+    longPressedMsgId,
+    scheduleDropdownOpen,
+    aiMenuOpen,
+  ]);
 
   // ── Jump to message (from panels) ────────────────────────────────────────
   const handleJumpToMessage = useCallback((messageId) => {
@@ -300,7 +406,6 @@ export default function ModuleChatWindow({
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
-
   const handleTouchEnd = useCallback(() => {
     if (longPressTimer.current) clearTimeout(longPressTimer.current);
   }, []);
@@ -310,33 +415,49 @@ export default function ModuleChatWindow({
     if (!text) return null;
     if (!mentions || mentions.length === 0) return text;
 
-    const resolvedMentions = mentions.map((m) => {
-      const id = typeof m === "object" ? m._id || m.id : m;
-      const allMembers = membersCache?.[workspaceId] || [];
-      const member = allMembers.find((mem) => {
-        const mUserId = mem.user?._id || mem.user?.id || mem.user;
-        return String(mUserId) === String(id);
-      }) || workspace?.members?.find((mem) => {
-        const mUserId = mem.user?._id || mem.user?.id || mem.user;
-        return String(mUserId) === String(id);
-      });
+    const resolvedMentions = mentions
+      .map((m) => {
+        const id = typeof m === "object" ? m._id || m.id : m;
+        const allMembers = membersCache?.[workspaceId] || [];
+        const member =
+          allMembers.find((mem) => {
+            const mUserId = mem.user?._id || mem.user?.id || mem.user;
+            return String(mUserId) === String(id);
+          }) ||
+          workspace?.members?.find((mem) => {
+            const mUserId = mem.user?._id || mem.user?.id || mem.user;
+            return String(mUserId) === String(id);
+          });
 
-      const smuggled = (mentionData || []).find(d => String(d.id || d._id) === String(id));
-      const name = (typeof m === "object" ? m.name : null) || smuggled?.name || member?.user?.name;
-      const avatar = (typeof m === "object" ? m.avatar : null) || smuggled?.avatar || member?.user?.avatar;
+        const smuggled = (mentionData || []).find(
+          (d) => String(d.id || d._id) === String(id),
+        );
+        const name =
+          (typeof m === "object" ? m.name : null) ||
+          smuggled?.name ||
+          member?.user?.name;
+        const avatar =
+          (typeof m === "object" ? m.avatar : null) ||
+          smuggled?.avatar ||
+          member?.user?.avatar;
 
-      return {
-        id,
-        name,
-        avatar,
-        member,
-      };
-    }).filter((m) => m.name);
+        return {
+          id,
+          name,
+          avatar,
+          member,
+        };
+      })
+      .filter((m) => m.name);
 
     if (resolvedMentions.length === 0) return text;
 
-    const sorted = [...resolvedMentions].sort((a, b) => b.name.length - a.name.length);
-    const regexSource = sorted.map((m) => `@${m.name.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}`).join("|");
+    const sorted = [...resolvedMentions].sort(
+      (a, b) => b.name.length - a.name.length,
+    );
+    const regexSource = sorted
+      .map((m) => `@${m.name.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}`)
+      .join("|");
     const regex = new RegExp(`(${regexSource})`, "g");
 
     const parts = text.split(regex);
@@ -383,7 +504,7 @@ export default function ModuleChatWindow({
           mentions.push({
             id: node.dataset.id,
             name: node.textContent.replace(/^@/, ""),
-            avatar: node.querySelector("img")?.src
+            avatar: node.querySelector("img")?.src,
           });
           text += node.textContent;
         } else if (node.nodeName === "BR") {
@@ -426,7 +547,9 @@ export default function ModuleChatWindow({
       span.dataset.id = suggestion.user?._id || suggestion.key;
 
       const img = document.createElement("img");
-      img.src = suggestion.user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${suggestion.value}`;
+      img.src =
+        suggestion.user?.avatar ||
+        `https://api.dicebear.com/7.x/avataaars/svg?seed=${suggestion.value}`;
       img.alt = "";
       span.appendChild(img);
 
@@ -484,7 +607,7 @@ export default function ModuleChatWindow({
           );
         })
         .sort(([a], [b]) => a.localeCompare(b))
-        .map(([code, emoji]) => ({ type: 'emoji', key: code, value: emoji }))
+        .map(([code, emoji]) => ({ type: "emoji", key: code, value: emoji }))
         .slice(0, 8);
       setSuggestions(filtered);
       setSuggestionIndex(0);
@@ -497,7 +620,9 @@ export default function ModuleChatWindow({
     if (mentionMatch) {
       const query = mentionMatch[1].toLowerCase();
       const availableMembers = membersCache?.[workspaceId] || [];
-      const currentMentions = parsed.mentions.map(m => typeof m === 'object' ? m.id : m);
+      const currentMentions = parsed.mentions.map((m) =>
+        typeof m === "object" ? m.id : m,
+      );
 
       const filtered = availableMembers
         .filter(
@@ -505,9 +630,14 @@ export default function ModuleChatWindow({
             m.user &&
             m.user._id.toString() !== user?._id?.toString() &&
             !currentMentions.includes(m.user._id.toString()) &&
-            m.user.name.toLowerCase().startsWith(query)
+            m.user.name.toLowerCase().startsWith(query),
         )
-        .map(m => ({ type: 'mention', key: m.user._id, value: m.user.name, user: m.user }))
+        .map((m) => ({
+          type: "mention",
+          key: m.user._id,
+          value: m.user.name,
+          user: m.user,
+        }))
         .slice(0, 10);
 
       if (filtered.length > 0) {
@@ -550,9 +680,9 @@ export default function ModuleChatWindow({
   };
 
   const insertSuggestion = (suggestion) => {
-    if (suggestion.type === 'emoji') {
+    if (suggestion.type === "emoji") {
       insertEmoji(suggestion);
-    } else if (suggestion.type === 'mention') {
+    } else if (suggestion.type === "mention") {
       insertMention(suggestion);
     }
   };
@@ -653,8 +783,15 @@ export default function ModuleChatWindow({
       }
     }
 
-    const mentionIds = parsed.mentions.map(m => typeof m === 'object' ? m.id : m);
-    sendMessage({ text: parsed.text.trim(), replyTo, attachments, mentions: mentionIds });
+    const mentionIds = parsed.mentions.map((m) =>
+      typeof m === "object" ? m.id : m,
+    );
+    sendMessage({
+      text: parsed.text.trim(),
+      replyTo,
+      attachments,
+      mentions: mentionIds,
+    });
     setText("");
     if (inputRef.current) inputRef.current.innerHTML = "";
     setReplyTo(null);
@@ -741,9 +878,7 @@ export default function ModuleChatWindow({
   );
 
   const handleAiButton = useCallback(() => {
-    const visible = messages.filter(
-      (m) => !m.isDeleted && m.text?.trim(),
-    );
+    const visible = messages.filter((m) => !m.isDeleted && m.text?.trim());
     fetchAiReplies(visible);
   }, [messages, fetchAiReplies]);
 
@@ -781,6 +916,16 @@ export default function ModuleChatWindow({
     sendMessage({ gifUrl });
     setShowGifPicker(false);
   };
+
+  const handleVoiceSend = useCallback(
+    (attachment) => {
+      sendMessage({ attachments: [attachment], replyTo });
+      setShowVoiceRecorder(false);
+      setReplyTo(null);
+      sendTyping(false);
+    },
+    [sendMessage, replyTo, sendTyping],
+  );
 
   // ── Edit ──────────────────────────────────────────────────────────────────
   const handleEditSave = () => {
@@ -833,8 +978,13 @@ export default function ModuleChatWindow({
   return (
     <main
       className="flex-1 min-w-0 flex flex-col bg-obsidian relative h-full"
-      onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-      onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setIsDragging(false); }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setIsDragging(true);
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) setIsDragging(false);
+      }}
       onDrop={(e) => {
         e.preventDefault();
         setIsDragging(false);
@@ -854,7 +1004,9 @@ export default function ModuleChatWindow({
             onClick={onToggleSidebar}
             className="md:hidden w-8 h-8 rounded-xl bg-white/4 flex items-center justify-center text-ivory/30 hover:text-ivory transition-colors"
           >
-            <Menu size={18} />
+            <div className="relative w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center shrink-0 ring-1 ring-white/6 overflow-hidden">
+              <Menu size={18} />
+            </div>
           </button>
           <ModuleIcon size={17} className="text-accent/60 shrink-0" />
           <div>
@@ -906,7 +1058,7 @@ export default function ModuleChatWindow({
             {!isGameActive && (
               <button
                 onClick={() => joinGame(moduleId, workspaceId)}
-                className="p-2 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-colors"
+                className="p-2 rounded-lg text-ivory/35 hover:text-ivory/75 hover:bg-white/6 transition-colors"
                 title="Play Word Spy"
               >
                 <Gamepad2 size={18} />
@@ -968,32 +1120,13 @@ export default function ModuleChatWindow({
 
         {/* Date-separated message list */}
         {(() => {
-          let lastAnyMeIndex = -1;
-          for (let i = messages.length - 1; i >= 0; i--) {
-            const m = messages[i];
-            const isMsgMe = m.sender?._id === user?._id || m.sender === user?._id;
-            if (isMsgMe && !m.isOptimistic) {
-              lastAnyMeIndex = i;
-              break;
-            }
-          }
-
           return messages.map((msg, index) => {
-            const isMe = msg.sender?._id === user?._id || msg.sender === user?._id;
+            const isMe =
+              msg.sender?._id === user?._id || msg.sender === user?._id;
             const isGif = !!msg.gifUrl;
             const currentKey = toDateKey(msg.createdAt);
-            const prevKey =
-              index > 0 ? toDateKey(messages[index - 1].createdAt) : null;
+            const prevKey = index > 0 ? toDateKey(messages[index - 1].createdAt) : null;
             const showDate = currentKey !== prevKey;
-
-            // Read receipts logic
-            const isLastMe = index === lastAnyMeIndex;
-            // Filter out the sender themselves from the readBy list for count
-            const uniqueReaders = (msg.readBy || []).filter(
-              (r) => r.user && r.user._id !== user?._id
-            );
-            // Hide if no one else read it yet
-            const hasReaders = uniqueReaders.length > 0;
 
             return (
               <React.Fragment key={msg._id}>
@@ -1015,7 +1148,7 @@ export default function ModuleChatWindow({
                   onTouchMove={handleTouchEnd}
                 >
                   {/* Sender avatar — always shown in modules */}
-                  <div className="w-8 h-8 rounded-xl overflow-hidden shrink-0 mt-0.5 ring-1 ring-white/[0.06]">
+                  <div className="w-8 h-8 rounded-xl overflow-hidden shrink-0 mt-0.5 ring-1 ring-white/6">
                     <Image
                       src={
                         msg.sender?.avatar ||
@@ -1086,7 +1219,9 @@ export default function ModuleChatWindow({
                             onClick={(e) => {
                               e.stopPropagation();
                               setReactionPickerMsgId(
-                                reactionPickerMsgId === msg._id ? null : msg._id,
+                                reactionPickerMsgId === msg._id
+                                  ? null
+                                  : msg._id,
                               );
                               setLongPressedMsgId(null);
                             }}
@@ -1164,9 +1299,15 @@ export default function ModuleChatWindow({
                                   setLongPressedMsgId(null);
                                 }}
                                 className={`p-1.5 rounded-md transition-all ${msg.isPinned ? "text-accent hover:text-accent hover:bg-white/6" : "text-ivory/40 hover:text-accent hover:bg-white/6"}`}
-                                title={msg.isPinned ? "Unpin message" : "Pin message"}
+                                title={
+                                  msg.isPinned ? "Unpin message" : "Pin message"
+                                }
                               >
-                                {msg.isPinned ? <PinOff size={14} /> : <Pin size={14} />}
+                                {msg.isPinned ? (
+                                  <PinOff size={14} />
+                                ) : (
+                                  <Pin size={14} />
+                                )}
                               </button>
                             </>
                           )}
@@ -1261,9 +1402,15 @@ export default function ModuleChatWindow({
                               {msg.replyTo.text || "Attachment"}
                             </div>
                           )}
-                          {renderMessageText(msg.text, msg.mentions, msg.mentionData)}
+                          {renderMessageText(
+                            msg.text,
+                            msg.mentions,
+                            msg.mentionData,
+                          )}
                           {msg.attachments?.length > 0 && (
-                            <FileAttachmentDisplay attachments={msg.attachments} />
+                            <FileAttachmentDisplay
+                              attachments={msg.attachments}
+                            />
                           )}
                         </div>
                       )}
@@ -1275,9 +1422,14 @@ export default function ModuleChatWindow({
                           className="mt-1 flex items-center gap-1.5 px-2 py-1 rounded border border-transparent hover:border-accent/30 hover:bg-accent/10 text-[11px] font-bold text-accent/80 hover:text-accent transition-colors w-fit"
                         >
                           <MessageSquare size={12} />
-                          {msg.replyCount} {msg.replyCount === 1 ? "reply" : "replies"}
+                          {msg.replyCount}{" "}
+                          {msg.replyCount === 1 ? "reply" : "replies"}
                           <span className="text-[9px] font-mono font-normal opacity-60 ml-0.5">
-                            Last reply at {new Date(msg.lastReplyAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            Last reply at{" "}
+                            {new Date(msg.lastReplyAt).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
                           </span>
                         </button>
                       )}
@@ -1292,12 +1444,16 @@ export default function ModuleChatWindow({
                                 <button
                                   key={emoji}
                                   onClick={() => reactToMessage(msg._id, emoji)}
-                                  className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border transition-all ${users.some(u => String(u) === String(user?._id))
+                                  className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border transition-all ${users.some(
+                                    (u) => String(u) === String(user?._id),
+                                  )
                                     ? "bg-accent/20 border-accent/40 text-accent"
                                     : "bg-white/4 border-white/6 text-ivory/80 hover:bg-white/8"
                                     }`}
                                 >
-                                  <span className="text-[12px] leading-none">{emoji}</span>
+                                  <span className="text-[12px] leading-none">
+                                    {emoji}
+                                  </span>
                                   <span className="text-[9px] font-bold text-ivory/40">
                                     {users.length}
                                   </span>
@@ -1306,59 +1462,6 @@ export default function ModuleChatWindow({
                           </div>
                         )}
 
-                      {/* Read Receipts (Shown only on the last message sent by the user) */}
-                      {isMe && isLastMe && (
-                        <div className="mt-1 relative flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (hasReaders) {
-                                setShowSeenBy(showSeenBy === msg._id ? null : msg._id);
-                              }
-                            }}
-                            className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold transition-all ${hasReaders
-                              ? "bg-accent/10 border border-accent/20 text-accent hover:bg-accent/20 cursor-pointer"
-                              : "bg-white/4 border border-white/5 text-ivory/30"
-                              }`}
-                          >
-                            <CheckCheck size={10} className={hasReaders ? "text-accent" : "text-ivory/30"} />
-                            {hasReaders ? `Seen by ${uniqueReaders.length}` : "Sent"}
-                          </button>
-
-                          {/* Seen By Popover */}
-                          {showSeenBy === msg._id && hasReaders && (
-                            <div
-                              data-seen-popover="true"
-                              className="absolute z-50 top-full mt-1 left-0 w-48 bg-deep border border-white/10 rounded-xl shadow-2xl p-2 flex flex-col gap-1.5 max-h-48 overflow-y-auto scrollbar-hide"
-                            >
-                              <h4 className="text-[10px] font-mono font-bold text-ivory/40 px-1 uppercase tracking-wider mb-1">
-                                Read by
-                              </h4>
-                              {uniqueReaders.map((r, i) => (
-                                <div key={i} className="flex items-center justify-between px-1.5 py-1 rounded-lg hover:bg-white/4 min-w-0">
-                                  <div className="flex items-center gap-2 min-w-0">
-                                    <Image
-                                      src={r.user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${r.user.name}`}
-                                      width={16}
-                                      height={16}
-                                      alt=""
-                                      className="rounded-full shrink-0"
-                                      unoptimized
-                                    />
-                                    <span className="text-[11px] font-display font-medium text-ivory/80 truncate">
-                                      {r.user.name}
-                                    </span>
-                                  </div>
-                                  <span className="text-[9px] font-mono text-ivory/30 shrink-0 ml-2">
-                                    {new Date(r.readAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -1366,6 +1469,14 @@ export default function ModuleChatWindow({
             );
           });
         })()}
+
+        {workspaceNotices.map((notice) => (
+          <div key={notice._id} className="flex justify-center my-1">
+            <div className="px-3 py-1 rounded-full bg-white/4 border border-white/8 text-[11px] font-mono text-ivory/45">
+              {notice.text}
+            </div>
+          </div>
+        ))}
 
         {/* Typing indicator */}
         {typingUsers.length > 0 && (
@@ -1426,10 +1537,14 @@ export default function ModuleChatWindow({
                     : "hover:bg-white/6 text-ivory/60 hover:text-ivory"
                     }`}
                 >
-                  {suggestion.type === 'emoji' ? (
+                  {suggestion.type === "emoji" ? (
                     <>
-                      <span className="text-lg leading-none">{suggestion.value}</span>
-                      <span className="text-xs font-mono">{suggestion.key}</span>
+                      <span className="text-lg leading-none">
+                        {suggestion.value}
+                      </span>
+                      <span className="text-xs font-mono">
+                        {suggestion.key}
+                      </span>
                     </>
                   ) : (
                     <>
@@ -1438,7 +1553,9 @@ export default function ModuleChatWindow({
                         alt={suggestion.value}
                         className="w-5 h-5 rounded-full object-cover"
                       />
-                      <span className="text-sm font-medium">{suggestion.value}</span>
+                      <span className="text-sm font-medium">
+                        {suggestion.value}
+                      </span>
                     </>
                   )}
                 </div>
@@ -1531,6 +1648,13 @@ export default function ModuleChatWindow({
             </div>
           )}
 
+          {/* Voice message recorder panel */}
+          {showVoiceRecorder && (
+            <div className="mb-2 px-1">
+              <VoiceMessageRecorder onSend={handleVoiceSend} />
+            </div>
+          )}
+
           <FileAttachmentPreview
             files={stagedFiles}
             previews={filePreviews}
@@ -1606,6 +1730,37 @@ export default function ModuleChatWindow({
             <button
               type="button"
               onClick={() => {
+                setShowVoiceRecorder((v) => !v);
+                setShowEmojiPicker(false);
+                setShowGifPicker(false);
+              }}
+              className={`w-9 h-9 flex items-center justify-center transition-all ${showVoiceRecorder
+                ? "text-accent"
+                : "text-ivory/30 hover:text-ivory/60"
+                }`}
+              title="Voice message"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                <line x1="12" y1="19" x2="12" y2="23" />
+                <line x1="8" y1="23" x2="16" y2="23" />
+              </svg>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
                 setShowEmojiPicker((v) => !v);
                 setShowGifPicker(false);
               }}
@@ -1619,7 +1774,10 @@ export default function ModuleChatWindow({
             </button>
 
             {/* AI Button - Desktop */}
-            <div ref={aiMenuRefDesktop} className="relative hidden lg:inline-flex">
+            <div
+              ref={aiMenuRefDesktop}
+              className="relative hidden lg:inline-flex"
+            >
               <button
                 type="button"
                 onClick={() => setAiMenuOpen((v) => !v)}
@@ -1667,7 +1825,10 @@ export default function ModuleChatWindow({
             </div>
 
             {/* Schedule Dropdown */}
-            <div ref={scheduleDropdownRef} className="relative hidden lg:inline-flex">
+            <div
+              ref={scheduleDropdownRef}
+              className="relative hidden lg:inline-flex"
+            >
               <button
                 type="button"
                 onClick={() => setScheduleDropdownOpen((v) => !v)}
@@ -1756,9 +1917,17 @@ export default function ModuleChatWindow({
 
             <button
               type="submit"
-              disabled={scheduling || fileUploading || fileErrors.some((e) => e !== null) || (!text.trim() && stagedFiles.length === 0)}
+              disabled={
+                scheduling ||
+                fileUploading ||
+                fileErrors.some((e) => e !== null) ||
+                (!text.trim() && stagedFiles.length === 0)
+              }
               title="Send"
-              className={`w-8 md:w-9 h-8 md:h-9 flex items-center justify-center rounded-xl ml-1 transition-all active:scale-95 shadow-lg shrink-0 ${(scheduling || fileUploading || fileErrors.some((e) => e !== null) || (!text.trim() && stagedFiles.length === 0))
+              className={`w-9 h-9 flex items-center justify-center rounded-xl ml-1 transition-all active:scale-95 shadow-lg ${scheduling ||
+                fileUploading ||
+                fileErrors.some((e) => e !== null) ||
+                (!text.trim() && stagedFiles.length === 0)
                 ? "bg-slate-700 text-ivory/40 cursor-not-allowed opacity-50"
                 : "bg-accent hover:bg-accent/90 text-black shadow-accent/20"
                 }`}
@@ -1767,19 +1936,35 @@ export default function ModuleChatWindow({
             </button>
 
             {/* Mobile-only expanded toolbar row */}
-            <div className="lg:hidden w-full flex items-center gap-1 pt-1 border-t border-white/5 mt-1">
+            <div className="sm:hidden w-full flex items-center gap-1.5 pt-2 border-t border-white/5 mt-1 overflow-x-auto scrollbar-hide pb-1">
               <button
                 type="button"
                 onClick={() => {
                   setShowGifPicker(!showGifPicker);
                   setShowEmojiPicker(false);
                 }}
-                className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${showGifPicker
+                className={`shrink-0 px-2.5 py-1.5 text-[11px] font-black rounded-lg border transition-all ${
+                  showGifPicker
+                    ? "bg-accent/20 border-accent/40 text-accent"
+                    : "bg-white/4 border-white/10 text-ivory/50 hover:text-ivory"
+                }`}
+              >
+                GIF
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowVoiceRecorder((v) => !v);
+                  setShowEmojiPicker(false);
+                  setShowGifPicker(false);
+                }}
+                className={`px-2 py-1 text-[10px] font-black rounded-md border transition-all ${showVoiceRecorder
                   ? "bg-accent/20 border-accent/40 text-accent"
                   : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
                   }`}
               >
-                GIF
+                🎙 Voice
               </button>
 
               {/* AI Button - Mobile */}
@@ -1789,17 +1974,17 @@ export default function ModuleChatWindow({
                   onClick={() => setAiMenuOpen((v) => !v)}
                   title="AI tools"
                   aria-label="AI tools"
-                  className={`inline-flex items-center gap-1 px-2 py-1 text-[10px] font-black rounded-md border transition-all ${aiMenuOpen
+                  className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-black rounded-lg border transition-all ${aiMenuOpen
                     ? "bg-accent/20 border-accent/40 text-accent"
                     : aiReplies.length > 0 || tonePickerOpen
                       ? "bg-accent/20 border-accent/40 text-accent"
-                      : "bg-white/4 border-white/10 text-ivory/30 hover:bg-accent/10 hover:border-accent/30 hover:text-accent"
+                      : "bg-white/4 border-white/10 text-ivory/50 hover:text-ivory"
                     }`}
                 >
                   ✦ AI
                 </button>
                 {aiMenuOpen && (
-                  <div className="absolute bottom-full mb-1 right-0 w-44 bg-deep border border-white/10 rounded-lg shadow-lg overflow-hidden z-50">
+                  <div className="absolute bottom-full mb-1 left-0 sm:left-auto sm:right-0 w-44 max-w-[calc(100vw-1rem)] bg-deep border border-white/10 rounded-lg shadow-lg overflow-hidden z-50">
                     <button
                       type="button"
                       className="w-full text-left px-3 py-2 text-[11px] text-ivory/70 hover:bg-white/6 hover:text-ivory transition-colors"
@@ -1833,10 +2018,11 @@ export default function ModuleChatWindow({
               <button
                 type="button"
                 onClick={() => setScheduleDropdownOpen((v) => !v)}
-                className={`mobile-schedule-trigger px-2 py-1 text-[10px] font-black rounded-md border transition-all ${scheduleDropdownOpen
-                  ? "bg-accent/20 border-accent/40 text-accent"
-                  : "bg-white/4 border-white/10 text-ivory/30 hover:text-ivory/60"
-                  }`}
+                className={`mobile-schedule-trigger shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-black rounded-lg border transition-all ${
+                  scheduleDropdownOpen
+                    ? "bg-accent/20 border-accent/40 text-accent"
+                    : "bg-white/4 border-white/10 text-ivory/50 hover:text-ivory"
+                }`}
                 title="Schedule or view pending"
               >
                 ⏱ Schedule

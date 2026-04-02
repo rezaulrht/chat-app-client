@@ -116,7 +116,7 @@ export default function NavBar() {
                         </li>
                         <li>
                           <Link
-                            href="/chat"
+                            href="/app"
                             className="text-ivory/70 hover:text-ivory font-medium text-sm"
                           >
                             Go to ConvoX
@@ -154,8 +154,8 @@ export default function NavBar() {
                   <NavLinks
                     href={link.href}
                     className={`
-                    text-[13px] font-medium tracking-wide transition-all duration-300 hover:-translate-y-0.5
-                    ${pathname === link.href ? "text-ivory" : "text-ivory/50 hover:text-ivory"}
+                    nav-link text-[13px] font-medium tracking-wide transition-all duration-300 hover:-translate-y-0.5
+                    ${pathname === link.href ? "nav-link--active" : ""}
                   `}
                   >
                     {link.label}
@@ -175,7 +175,7 @@ export default function NavBar() {
                   <>
                     <Link
                       href="/login"
-                      className="hidden sm:block text-[13px] font-medium text-ivory/50 hover:text-ivory transition-all duration-300 hover:-translate-y-0.5"
+                      className="hidden sm:block nav-link text-[13px] font-medium transition-all duration-300 hover:-translate-y-0.5"
                     >
                       Sign In
                     </Link>
@@ -211,14 +211,14 @@ export default function NavBar() {
                       </span>
                     </Link>
                     <Link
-                      href="/chat"
+                      href="/app"
                       className="hidden sm:flex items-center justify-center px-5 py-2 text-[13px] font-bold rounded-xl text-obsidian bg-accent hover:bg-accent/90 transition-all duration-300 shadow-lg shadow-accent/20 hover:scale-[1.03] active:scale-[0.98]"
                     >
                       Go to ConvoX
                     </Link>
                     <button
                       onClick={logout}
-                      className="text-[13px] font-medium text-ivory/50 hover:text-ivory transition-all duration-300"
+                      className="nav-link text-[13px] font-medium transition-all duration-300"
                     >
                       Sign Out
                     </button>

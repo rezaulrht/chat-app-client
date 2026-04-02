@@ -53,6 +53,7 @@ export default function ChannelSidebar({
 
   // Per-category menu state
   const [openMenuCat, setOpenMenuCat] = React.useState(null);
+  const [menuPosition, setMenuPosition] = React.useState({ top: 0, left: 0 });
   const [renamingCat, setRenamingCat] = React.useState(null);
   const [renameValue, setRenameValue] = React.useState("");
 
@@ -148,7 +149,7 @@ export default function ChannelSidebar({
   if (collapsed) return null;
 
   return (
-    <aside className="w-full flex flex-col shrink-0 flex-1 min-h-0 overflow-hidden">
+    <aside className="w-full h-full flex flex-col shrink-0 flex-1 min-h-0 overflow-hidden">
       {/* Workspace Header (click to open settings) */}
       <div
         onClick={() => onSettingsOpen?.()}
@@ -256,7 +257,37 @@ export default function ChannelSidebar({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setOpenMenuCat(isMenuOpen ? null : group.name);
+                            if (isMenuOpen) {
+                              setOpenMenuCat(null);
+                              return;
+                            }
+
+                            const MENU_WIDTH = 176;
+                            const MENU_HEIGHT = 132;
+                            const EDGE_PADDING = 8;
+                            const rect = e.currentTarget.getBoundingClientRect();
+
+                            const left = Math.max(
+                              EDGE_PADDING,
+                              Math.min(
+                                rect.right - MENU_WIDTH,
+                                window.innerWidth - MENU_WIDTH - EDGE_PADDING,
+                              ),
+                            );
+
+                            const shouldOpenUp =
+                              rect.bottom + MENU_HEIGHT >
+                              window.innerHeight - EDGE_PADDING;
+
+                            const top = shouldOpenUp
+                              ? Math.max(EDGE_PADDING, rect.top - MENU_HEIGHT)
+                              : Math.min(
+                                rect.bottom + 6,
+                                window.innerHeight - MENU_HEIGHT - EDGE_PADDING,
+                              );
+
+                            setMenuPosition({ top, left });
+                            setOpenMenuCat(group.name);
                           }}
                           title="Category options"
                           className="w-5 h-5 flex items-center justify-center rounded text-ivory/15 hover:text-accent opacity-0 group-hover/cat:opacity-100 transition-all duration-200"
@@ -271,7 +302,13 @@ export default function ChannelSidebar({
                               className="fixed inset-0 z-40"
                               onClick={() => setOpenMenuCat(null)}
                             />
-                            <div className="absolute right-0 top-6 z-50 w-44 bg-[#13131c] border border-white/8 rounded-xl shadow-2xl shadow-black/50 overflow-hidden py-1">
+                            <div
+                              className="fixed z-50 w-44 bg-[#13131c] border border-white/8 rounded-xl shadow-2xl shadow-black/50 overflow-hidden py-1"
+                              style={{
+                                top: `${menuPosition.top}px`,
+                                left: `${menuPosition.left}px`,
+                              }}
+                            >
                               <button
                                 onClick={() => {
                                   setOpenMenuCat(null);
@@ -338,10 +375,11 @@ export default function ChannelSidebar({
                               `/app/workspace/${selectedWorkspaceId}/${mod._id}`,
                             )
                           }
-                          className={`flex items-center gap-2.5 px-2 py-1.75 rounded-xl cursor-pointer group/ch transition-all duration-200 relative ${isActive
-                              ? "bg-white/6 text-ivory backdrop-blur-sm"
-                              : "hover:bg-white/3 text-ivory/30 hover:text-ivory/60"
-                            }`}
+                          className={`flex items-center gap-2.5 px-2 py-1.75 rounded-xl cursor-pointer group/ch transition-all duration-200 relative ${
+                            isActive
+                            ? "bg-white/6 text-ivory backdrop-blur-sm"
+                            : "hover:bg-white/3 text-ivory/30 hover:text-ivory/60"
+                          }`}
                         >
                           {isActive && (
                             <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.75 h-4 bg-accent rounded-r-full shadow-[0_0_6px_rgba(0,211,187,0.4)]" />
@@ -369,7 +407,7 @@ export default function ChannelSidebar({
                               {mod.unreadCount > 99 ? "99+" : mod.unreadCount}
                             </span>
                           )}
-                          
+
                           {isAdminOrOwner && (
                             <button
                               onClick={(e) => {
@@ -435,14 +473,14 @@ export default function ChannelSidebar({
                 </p>
                 {(workspace?.myRole === "owner" ||
                   workspace?.myRole === "admin") && (
-                    <button
-                      onClick={() => onCreateModule?.("General")}
-                      className="flex items-center gap-1.5 mx-auto text-[11px] font-mono text-accent/60 hover:text-accent transition-colors duration-200"
-                    >
-                      <Plus size={12} />
-                      Add a module
-                    </button>
-                  )}
+                  <button
+                    onClick={() => onCreateModule?.("General")}
+                    className="flex items-center gap-1.5 mx-auto text-[11px] font-mono text-accent/60 hover:text-accent transition-colors duration-200"
+                  >
+                    <Plus size={12} />
+                    Add a module
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -456,7 +494,6 @@ export default function ChannelSidebar({
 
       {/* Voice Channel Bar — shown above status bar when in a voice channel */}
       <VoiceChannelBar />
-
     </aside>
   );
 }

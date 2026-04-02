@@ -180,6 +180,23 @@ export default function Sidebar({
       ]
     : onlineParticipants;
 
+  const getNicknameValue = (nicknames, userId) => {
+    if (!nicknames || !userId) return null;
+    if (nicknames instanceof Map) return nicknames.get(userId) || null;
+    if (typeof nicknames === "object") return nicknames[userId] || null;
+    return null;
+  };
+
+  const getDisplayNameForConversation = (conv, fallback = "") => {
+    if (conv?.type === "group") return conv?.name || fallback;
+    const participantId = conv?.participant?._id?.toString?.();
+    const nickname = getNicknameValue(
+      conv?.customisation?.nicknames,
+      participantId,
+    );
+    return nickname || conv?.participant?.name || fallback;
+  };
+
   useEffect(() => {
     if (!filterTerm.trim()) {
       setSearchedConversations(conversations);
@@ -197,7 +214,6 @@ export default function Sidebar({
         setSearchedConversations(res.data);
       } catch (err) {
         if (err.name === "CanceledError" || err.code === "ERR_CANCELED") return;
-        console.error("Search failed:", err);
         setSearchedConversations(conversations);
       }
     }, 400);
@@ -219,8 +235,6 @@ export default function Sidebar({
     if (!socket) return;
 
     const handleMessageDeleted = (payload) => {
-      console.log("Sidebar: message:deleted event RECEIVED!", payload);
-
       const { conversationId } = payload;
 
       setSearchedConversations((prev) =>
@@ -352,18 +366,20 @@ export default function Sidebar({
           const isActive = activeConversationId === conv._id;
           const isGroup = conv.type === "group";
           const hasUnread = conv.unreadCount > 0 && !conv.isMuted;
+          const conversationDisplayName = getDisplayNameForConversation(
+            conv,
+            "",
+          );
           const isUserOnline =
             !isGroup && onlineUsers?.get(conv.participant?._id)?.online;
-          const groupColor = isGroup
-            ? getGroupAvatarColor(conv.name)
-            : null;
+          const groupColor = isGroup ? getGroupAvatarColor(conv.name) : null;
           const groupInitials = isGroup ? getGroupInitials(conv.name) : null;
 
           return (
             <div
               key={conv._id}
               className="relative shrink-0 cursor-pointer"
-              title={isGroup ? conv.name : conv.participant?.name}
+              title={conversationDisplayName}
               onClick={() => setActiveConversationId(conv._id)}
             >
               {/* Active pip */}
@@ -375,10 +391,14 @@ export default function Sidebar({
               {isGroup ? (
                 <div
                   className={`w-8 h-8 rounded-xl flex items-center justify-center font-display font-bold text-[10px] ring-1 transition-all ${
-                    isActive ? "ring-accent/40" : "ring-white/[0.06] hover:ring-accent/20"
+                    isActive
+                      ? "ring-accent/40"
+                      : "ring-white/[0.06] hover:ring-accent/20"
                   }`}
                   style={{
-                    backgroundColor: conv.avatar ? "transparent" : groupColor.bg,
+                    backgroundColor: conv.avatar
+                      ? "transparent"
+                      : groupColor.bg,
                     color: groupColor.text,
                   }}
                 >
@@ -397,9 +417,13 @@ export default function Sidebar({
                 </div>
               ) : (
                 <div className="relative">
-                  <div className={`w-8 h-8 rounded-xl overflow-hidden ring-1 transition-all ${
-                    isActive ? "ring-accent/40" : "ring-white/[0.06] hover:ring-accent/20"
-                  }`}>
+                  <div
+                    className={`w-8 h-8 rounded-xl overflow-hidden ring-1 transition-all ${
+                      isActive
+                        ? "ring-accent/40"
+                        : "ring-white/[0.06] hover:ring-accent/20"
+                    }`}
+                  >
                     <Image
                       src={
                         conv.participant?.avatar ||
@@ -550,8 +574,16 @@ export default function Sidebar({
                 ? getOnlineCount(conv, onlineUsers)
                 : 0;
               const groupPreview = isGroup
-                ? getGroupLastMessagePreview(conv.lastMessage, currentUser?._id)
+                ? getGroupLastMessagePreview(
+                    conv.lastMessage,
+                    currentUser?._id,
+                    conv?.customisation?.nicknames,
+                  )
                 : null;
+              const conversationDisplayName = getDisplayNameForConversation(
+                conv,
+                "",
+              );
 
               // DM last-message preview with smart labels for media
               const dmPreview = (() => {
@@ -562,7 +594,24 @@ export default function Sidebar({
                   : lm.sender?.toString() === currentUser?._id;
                 const prefix = isMe ? "You" : null;
                 let label;
-                if (lm.gifUrl) {
+                if (lm.callLog) {
+                  const cl = lm.callLog;
+                  if (cl.status === "missed") label = "Missed call";
+                  else if (cl.status === "declined") label = "Call declined";
+                  else {
+                    const dur = cl.duration
+                      ? " · " +
+                        Math.floor(cl.duration / 60) +
+                        "m " +
+                        (cl.duration % 60) +
+                        "s"
+                      : "";
+                    label =
+                      (cl.callType === "video" ? "Video" : "Audio") +
+                      " call" +
+                      dur;
+                  }
+                } else if (lm.gifUrl) {
                   label = "sent a GIF";
                 } else if (lm.attachments?.length > 0) {
                   const att = lm.attachments[0];
@@ -663,7 +712,7 @@ export default function Sidebar({
                             {isGroup
                               ? highlightMatch(conv.name || "", filterTerm)
                               : highlightMatch(
-                                  conv.participant?.name || "",
+                                  conversationDisplayName,
                                   filterTerm,
                                 )}
                           </span>
@@ -721,7 +770,7 @@ export default function Sidebar({
                     createPortal(
                       <div
                         ref={contextMenuRef}
-                        className="fixed bg-[#13131c] border border-white/10 rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.6)] z-50 py-1.5 min-w-[180px] animate-in fade-in zoom-in duration-150"
+                        className="fixed bg-slate-surface/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.6)] z-50 py-1.5 min-w-[180px] animate-in fade-in zoom-in duration-150"
                         style={{ top: menuPos.y, left: menuPos.x }}
                         onClick={(e) => e.stopPropagation()}
                       >
@@ -789,7 +838,6 @@ export default function Sidebar({
             )}
           </div>
         </div>
-
       </aside>
 
       {/* ── New Chat Modal ── */}

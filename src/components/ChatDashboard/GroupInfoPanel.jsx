@@ -28,11 +28,31 @@ import toast from "react-hot-toast";
 import { getGroupInitials, getGroupAvatarColor } from "@/utils/groupAvatar";
 import { isAdmin, isCreator, getMemberRole } from "@/utils/groupHelpers";
 import { useDmPrefs } from "@/hooks/useDmPrefs";
+import { confirmSweetAlert } from "@/utils/sweetAlert";
 
-const QUICK_EMOJIS = ["❤️", "😂", "😮", "😢", "😡", "👍", "🔥", "✨", "🎉", "💯", "🙏", "😍"];
+const QUICK_EMOJIS = [
+  "❤️",
+  "😂",
+  "😮",
+  "😢",
+  "😡",
+  "👍",
+  "🔥",
+  "✨",
+  "🎉",
+  "💯",
+  "🙏",
+  "😍",
+];
 const PALETTE = [
-  "#00d3bb", "#818cf8", "#f472b6", "#fb923c",
-  "#34d399", "#60a5fa", "#facc15", "#e879f9",
+  "#00d3bb",
+  "#818cf8",
+  "#f472b6",
+  "#fb923c",
+  "#34d399",
+  "#60a5fa",
+  "#facc15",
+  "#e879f9",
 ];
 
 export default function GroupInfoPanel({
@@ -40,6 +60,7 @@ export default function GroupInfoPanel({
   onClose,
   onConversationUpdate,
   currentUser,
+  onMuteChange,
 }) {
   /* ── Edit group name ── */
   const [editing, setEditing] = useState(false);
@@ -66,7 +87,9 @@ export default function GroupInfoPanel({
 
   const sendDm = async (memberId) => {
     try {
-      const res = await api.post("/api/chat/conversations", { participantId: memberId });
+      const res = await api.post("/api/chat/conversations", {
+        participantId: memberId,
+      });
       const convId = res.data?.conversation?._id || res.data?._id;
       if (convId) {
         setOpenMenuId(null);
@@ -93,8 +116,8 @@ export default function GroupInfoPanel({
   const [nickDraft, setNickDraft] = useState("");
 
   const themeColor = prefs.color || PALETTE[0];
-  const chatEmoji  = prefs.emoji  || "👍";
-  const muted      = !!prefs.muted;
+  const chatEmoji = prefs.emoji || "👍";
+  const muted = !!prefs.muted;
 
   /* Close dropdown when clicking outside */
   useEffect(() => {
@@ -197,7 +220,7 @@ export default function GroupInfoPanel({
     try {
       const res = await api.patch(
         `/api/chat/conversations/${convId}/members/remove`,
-        { userId },
+        { userIds: [userId] },
       );
       onConversationUpdate?.(res.data);
       toast.success("Member removed");
@@ -224,7 +247,12 @@ export default function GroupInfoPanel({
 
   /* ── Leave group ── */
   const handleLeave = async () => {
-    if (!confirm("Are you sure you want to leave this group?")) return;
+    if (!(await confirmSweetAlert({
+      title: "Leave Group?",
+      text: "Are you sure you want to leave this group?",
+      confirmButtonText: "Leave",
+      icon: "warning",
+    }))) return;
     try {
       await api.post(`/api/chat/conversations/${convId}/leave`);
       onConversationUpdate?.({ _id: convId, _removed: true });
@@ -236,11 +264,12 @@ export default function GroupInfoPanel({
 
   /* ── Delete group (creator only) ── */
   const handleDelete = async () => {
-    if (
-      !confirm(
-        `Delete "${conversation.name}"? This action cannot be undone and all messages will be lost.`,
-      )
-    )
+    if (!(await confirmSweetAlert({
+      title: "Delete Group?",
+      text: `Delete "${conversation.name}"? This action cannot be undone and all messages will be lost.`,
+      confirmButtonText: "Delete",
+      icon: "warning",
+    })))
       return;
     try {
       await api.delete(`/api/chat/conversations/${convId}`);
@@ -298,10 +327,16 @@ export default function GroupInfoPanel({
       <div className="flex-1 overflow-y-auto scrollbar-hide">
         {/* ── Group avatar + name ── */}
         <div className="flex flex-col items-center gap-4 py-8 px-5 border-b border-white/[0.06] relative">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-40 blur-[80px] rounded-full pointer-events-none opacity-20" style={{ background: themeColor }} />
+          <div
+            className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-40 blur-[80px] rounded-full pointer-events-none opacity-20"
+            style={{ background: themeColor }}
+          />
           <div className="relative z-10 shrink-0">
             {conversation.avatar ? (
-              <div className="ring-2 ring-offset-4 ring-offset-obsidian rounded-2xl" style={{ "--tw-ring-color": themeColor }}>
+              <div
+                className="ring-2 ring-offset-4 ring-offset-obsidian rounded-2xl"
+                style={{ "--tw-ring-color": themeColor }}
+              >
                 <Image
                   src={conversation.avatar}
                   width={80}
@@ -445,28 +480,58 @@ export default function GroupInfoPanel({
         {/* ── Customise ── */}
         <div className="px-5 py-5 border-b border-white/[0.06] space-y-1">
           <div className="flex items-center gap-2 mb-3">
-            <span className="w-0.5 h-3 rounded-full" style={{ background: themeColor }} />
-            <p className="text-[10px] font-mono font-bold text-ivory/25 uppercase tracking-[0.15em]">Customise Group</p>
+            <span
+              className="w-0.5 h-3 rounded-full"
+              style={{ background: themeColor }}
+            />
+            <p className="text-[10px] font-mono font-bold text-ivory/25 uppercase tracking-[0.15em]">
+              Customise Group
+            </p>
           </div>
 
           {/* Chat emoji */}
           <div className="relative">
-            <button onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowPalette(false); setShowNicknames(false); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition-all group">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${themeColor}22` }}>
+            <button
+              onClick={() => {
+                setShowEmojiPicker(!showEmojiPicker);
+                setShowPalette(false);
+                setShowNicknames(false);
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition-all group"
+            >
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: `${themeColor}22` }}
+              >
                 <Smile size={14} style={{ color: themeColor }} />
               </div>
               <div className="flex-1 min-w-0 text-left">
-                <p className="text-[11px] font-mono text-ivory/30 mb-0.5">Chat Emoji</p>
+                <p className="text-[11px] font-mono text-ivory/30 mb-0.5">
+                  Chat Emoji
+                </p>
                 <p className="text-sm">{chatEmoji}</p>
               </div>
-              <ChevronRight size={13} className="text-ivory/20 group-hover:text-ivory/40 shrink-0 transition-colors" />
+              <ChevronRight
+                size={13}
+                className="text-ivory/20 group-hover:text-ivory/40 shrink-0 transition-colors"
+              />
             </button>
             {showEmojiPicker && (
               <div className="mx-3 mb-2 p-3 rounded-2xl bg-deep/80 backdrop-blur-xl border border-white/[0.06] shadow-2xl">
-                <p className="text-[9px] font-mono text-ivory/25 uppercase tracking-widest mb-2">Pick a reaction emoji</p>
+                <p className="text-[9px] font-mono text-ivory/25 uppercase tracking-widest mb-2">
+                  Pick a reaction emoji
+                </p>
                 <div className="grid grid-cols-6 gap-2">
                   {QUICK_EMOJIS.map((em) => (
-                    <button key={em} onClick={() => { update("emoji", em); setShowEmojiPicker(false); }} className={`text-xl flex items-center justify-center p-1.5 rounded-xl transition-all hover:scale-110 hover:bg-white/[0.06] ${chatEmoji === em ? "scale-110 ring-1" : ""}`} style={chatEmoji === em ? { ringColor: themeColor } : {}}>
+                    <button
+                      key={em}
+                      onClick={() => {
+                        update("emoji", em);
+                        setShowEmojiPicker(false);
+                      }}
+                      className={`text-xl flex items-center justify-center p-1.5 rounded-xl transition-all hover:scale-110 hover:bg-white/[0.06] ${chatEmoji === em ? "scale-110 ring-1" : ""}`}
+                      style={chatEmoji === em ? { ringColor: themeColor } : {}}
+                    >
                       {em}
                     </button>
                   ))}
@@ -477,25 +542,64 @@ export default function GroupInfoPanel({
 
           {/* Chat colour */}
           <div className="relative">
-            <button onClick={() => { setShowPalette(!showPalette); setShowEmojiPicker(false); setShowNicknames(false); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition-all group">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${themeColor}22` }}>
-                <div className="w-4 h-4 rounded-full border-2 border-white/20" style={{ background: themeColor }} />
+            <button
+              onClick={() => {
+                setShowPalette(!showPalette);
+                setShowEmojiPicker(false);
+                setShowNicknames(false);
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition-all group"
+            >
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: `${themeColor}22` }}
+              >
+                <div
+                  className="w-4 h-4 rounded-full border-2 border-white/20"
+                  style={{ background: themeColor }}
+                />
               </div>
               <div className="flex-1 min-w-0 text-left">
-                <p className="text-[11px] font-mono text-ivory/30 mb-0.5">Chat Colour</p>
+                <p className="text-[11px] font-mono text-ivory/30 mb-0.5">
+                  Chat Colour
+                </p>
                 <div className="flex gap-1 items-center">
-                  <div className="w-3 h-3 rounded-full" style={{ background: themeColor }} />
-                  <span className="text-[11px] font-mono text-ivory/40">{themeColor}</span>
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{ background: themeColor }}
+                  />
+                  <span className="text-[11px] font-mono text-ivory/40">
+                    {themeColor}
+                  </span>
                 </div>
               </div>
-              <ChevronRight size={13} className="text-ivory/20 group-hover:text-ivory/40 shrink-0 transition-colors" />
+              <ChevronRight
+                size={13}
+                className="text-ivory/20 group-hover:text-ivory/40 shrink-0 transition-colors"
+              />
             </button>
             {showPalette && (
               <div className="mx-3 mb-2 p-3 rounded-2xl bg-deep/80 backdrop-blur-xl border border-white/[0.06] shadow-2xl">
-                <p className="text-[9px] font-mono text-ivory/25 uppercase tracking-widest mb-2">Choose a colour</p>
+                <p className="text-[9px] font-mono text-ivory/25 uppercase tracking-widest mb-2">
+                  Choose a colour
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {PALETTE.map((c) => (
-                    <button key={c} onClick={() => { update("color", c); setShowPalette(false); }} className={`w-8 h-8 rounded-xl transition-all hover:scale-110 border-2 ${themeColor === c ? "scale-110" : "border-transparent"}`} style={{ background: c, borderColor: themeColor === c ? "white" : "transparent" }} />
+                    <button
+                      type="button"
+                      key={c}
+                      aria-label={`Set chat colour to ${c}`}
+                      title={`Set chat colour to ${c}`}
+                      onClick={() => {
+                        update("color", c);
+                        setShowPalette(false);
+                      }}
+                      className={`w-8 h-8 rounded-xl transition-all hover:scale-110 border-2 ${themeColor === c ? "scale-110" : "border-transparent"}`}
+                      style={{
+                        background: c,
+                        borderColor: themeColor === c ? "white" : "transparent",
+                      }}
+                    />
                   ))}
                 </div>
               </div>
@@ -504,26 +608,57 @@ export default function GroupInfoPanel({
 
           {/* Nicknames */}
           <div className="relative">
-            <button onClick={() => { setShowNicknames(!showNicknames); setShowEmojiPicker(false); setShowPalette(false); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition-all group">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${themeColor}22` }}>
+            <button
+              onClick={() => {
+                setShowNicknames(!showNicknames);
+                setShowEmojiPicker(false);
+                setShowPalette(false);
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition-all group"
+            >
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: `${themeColor}22` }}
+              >
                 <Pencil size={14} style={{ color: themeColor }} />
               </div>
               <div className="flex-1 min-w-0 text-left">
-                <p className="text-[11px] font-mono text-ivory/30 mb-0.5">Nicknames</p>
-                <p className="text-[12px] truncate text-ivory/60">Edit member nicknames</p>
+                <p className="text-[11px] font-mono text-ivory/30 mb-0.5">
+                  Nicknames
+                </p>
+                <p className="text-[12px] truncate text-ivory/60">
+                  Edit member nicknames
+                </p>
               </div>
-              <ChevronRight size={13} className="text-ivory/20 group-hover:text-ivory/40 shrink-0 transition-colors" />
+              <ChevronRight
+                size={13}
+                className="text-ivory/20 group-hover:text-ivory/40 shrink-0 transition-colors"
+              />
             </button>
             {showNicknames && (
               <div className="mx-3 mb-2 p-2 rounded-2xl bg-deep/80 backdrop-blur-xl border border-white/[0.06] shadow-2xl flex flex-col gap-1 max-h-48 overflow-y-auto scrollbar-hide">
                 {members.map((m) => {
-                  const currentNick = conversation?.customisation?.nicknames?.[m._id] || "";
+                  const currentNick =
+                    conversation?.customisation?.nicknames?.[m._id] || "";
                   const isEditing = editingNickId === m._id;
-                  
+
                   return (
-                    <div key={m._id} className="flex items-center justify-between gap-2 p-2 bg-white/[0.03] rounded-xl hover:bg-white/[0.05] transition-all">
+                    <div
+                      key={m._id}
+                      className="flex items-center justify-between gap-2 p-2 bg-white/[0.03] rounded-xl hover:bg-white/[0.05] transition-all"
+                    >
                       <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <Image src={m.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.name}`} width={24} height={24} className="rounded-md object-cover" alt="" unoptimized />
+                        <Image
+                          src={
+                            m.avatar ||
+                            `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.name}`
+                          }
+                          width={24}
+                          height={24}
+                          className="rounded-md object-cover"
+                          alt=""
+                          unoptimized
+                        />
                         {isEditing ? (
                           <input
                             type="text"
@@ -538,26 +673,38 @@ export default function GroupInfoPanel({
                                 setEditingNickId(null);
                               }
                             }}
-                            className="bg-black/20 border border-white/10 rounded-lg px-2 py-1 text-xs text-ivory focus:outline-none focus:border-accent/40 w-full"
+                            className="bg-white/[0.05] border border-white/10 rounded-lg px-2 py-1 text-xs text-ivory focus:outline-none focus:border-accent/40 w-full"
                           />
                         ) : (
                           <div className="min-w-0 flex-1">
-                            <p className="text-xs font-semibold text-ivory truncate">{currentNick || m.name}</p>
-                            {currentNick && <p className="text-[9px] text-ivory/30 font-mono truncate">{m.name}</p>}
+                            <p className="text-xs font-semibold text-ivory truncate">
+                              {currentNick || m.name}
+                            </p>
+                            {currentNick && (
+                              <p className="text-[9px] text-ivory/30 font-mono truncate">
+                                {m.name}
+                              </p>
+                            )}
                           </div>
                         )}
                       </div>
-                      
+
                       {isEditing ? (
                         <button
-                          onClick={() => { update("nickname", nickDraft.trim(), m._id); setEditingNickId(null); }}
+                          onClick={() => {
+                            update("nickname", nickDraft.trim(), m._id);
+                            setEditingNickId(null);
+                          }}
                           className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 bg-accent/20 text-accent hover:bg-accent/30 transition-all"
                         >
                           <Check size={12} />
                         </button>
                       ) : (
                         <button
-                          onClick={() => { setEditingNickId(m._id); setNickDraft(currentNick); }}
+                          onClick={() => {
+                            setEditingNickId(m._id);
+                            setNickDraft(currentNick);
+                          }}
                           className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 bg-white/5 text-ivory/40 hover:text-white hover:bg-white/10 transition-all"
                         >
                           <Pencil size={12} />
@@ -571,16 +718,39 @@ export default function GroupInfoPanel({
           </div>
 
           {/* Mute */}
-          <button onClick={() => update("muted", !muted)} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition-all">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${themeColor}22` }}>
-              {muted ? <BellOff size={14} style={{ color: themeColor }} /> : <Bell size={14} style={{ color: themeColor }} />}
+          <button
+            onClick={() => {
+              const newVal = !muted;
+              update("muted", newVal);
+              onMuteChange?.(conversation._id, newVal);
+            }}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition-all"
+          >
+            <div
+              className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+              style={{ background: `${themeColor}22` }}
+            >
+              {muted ? (
+                <BellOff size={14} style={{ color: themeColor }} />
+              ) : (
+                <Bell size={14} style={{ color: themeColor }} />
+              )}
             </div>
             <div className="flex-1 min-w-0 text-left">
-              <p className="text-[11px] font-mono text-ivory/30">Notifications</p>
+              <p className="text-[11px] font-mono text-ivory/30">
+                Notifications
+              </p>
               <p className="text-sm text-ivory/60">{muted ? "Muted" : "On"}</p>
             </div>
-            <div className="w-9 h-5 rounded-full transition-colors relative shrink-0" style={{ background: muted ? "rgba(255,255,255,0.1)" : `${themeColor}60` }}>
-              <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${muted ? "left-0.5" : "left-4"}`} />
+            <div
+              className="w-9 h-5 rounded-full transition-colors relative shrink-0"
+              style={{
+                background: muted ? "rgba(255,255,255,0.1)" : `${themeColor}60`,
+              }}
+            >
+              <span
+                className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${muted ? "left-0.5" : "left-4"}`}
+              />
             </div>
           </button>
         </div>
@@ -747,7 +917,7 @@ export default function GroupInfoPanel({
 
                   {/* Dropdown menu */}
                   {menuOpen && (
-                    <div className="absolute right-2 top-11 z-50 bg-[#13131c] border border-white/10 rounded-xl shadow-[0_8px_40px_rgba(0,0,0,0.6)] py-1 min-w-[156px]">
+                    <div className="absolute right-2 top-11 z-50 bg-slate-surface/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-[0_8px_40px_rgba(0,0,0,0.6)] py-1 min-w-[156px]">
                       {/* Send DM — always available for non-self */}
                       <button
                         onClick={() => sendDm(member._id)}

@@ -1,12 +1,12 @@
 "use client";
 
-// Reputation levels & icons
+// Reputation levels & icons — keep in sync with server LEVELS in feed.controller.js
 const LEVELS = [
   {
     label: "Newcomer",
     min: 0,
     max: 49,
-    icon: "🟢",
+    icon: "🌱",
     color: "text-emerald-400/80",
     ring: "ring-emerald-400/20",
   },
@@ -14,7 +14,7 @@ const LEVELS = [
     label: "Contributor",
     min: 50,
     max: 199,
-    icon: "🔵",
+    icon: "⚡",
     color: "text-blue-400/80",
     ring: "ring-blue-400/20",
   },
@@ -22,7 +22,7 @@ const LEVELS = [
     label: "Expert",
     min: 200,
     max: 499,
-    icon: "🟣",
+    icon: "🔥",
     color: "text-purple-400/80",
     ring: "ring-purple-400/20",
   },
@@ -30,7 +30,7 @@ const LEVELS = [
     label: "Legend",
     min: 500,
     max: Infinity,
-    icon: "🟡",
+    icon: "🏆",
     color: "text-amber-400/80",
     ring: "ring-amber-400/20",
   },

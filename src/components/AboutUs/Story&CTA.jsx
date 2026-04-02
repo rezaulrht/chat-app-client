@@ -77,8 +77,8 @@ const StoryAndCTA = () => {
               <img src="/team-working.png" alt="ConvoX Team" className="w-full h-auto" />
             </div>
             <div
-              className="absolute -bottom-6 -right-6 hidden sm:flex border border-white/[0.08] p-4 rounded-2xl items-center gap-4"
-              style={{ background: DEEP, boxShadow: "0 16px 32px rgba(0,0,0,0.4)" }}
+              className="absolute -bottom-6 -right-6 hidden sm:flex p-4 rounded-2xl items-center gap-4 page-card"
+              style={{ boxShadow: "0 16px 32px rgba(0,0,0,0.4)" }}
             >
               <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--color-accent) 13%, transparent)" }}>
                 <span className="text-xl">🌍</span>
@@ -130,8 +130,7 @@ const StoryAndCTA = () => {
         {/* CTA */}
         <section
           ref={ctaRef}
-          className="relative rounded-[2.5rem] overflow-hidden border border-white/[0.06]"
-          style={{ background: DEEP }}
+          className="relative rounded-[2.5rem] overflow-hidden page-card"
         >
           <div
             className="absolute inset-0"

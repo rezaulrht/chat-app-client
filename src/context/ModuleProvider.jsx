@@ -110,11 +110,7 @@ export function ModuleProvider({ children, moduleId, workspaceId }) {
 
     const lastMsg = [...messages]
       .reverse()
-      .find(
-        (m) =>
-          m.sender?._id !== user._id &&
-          !m.readBy?.some?.((r) => r.user === user._id),
-      );
+      .find((m) => m.sender?._id !== user._id);
     if (lastMsg) {
       socket.emit("module:seen", {
         moduleId,
@@ -135,12 +131,12 @@ export function ModuleProvider({ children, moduleId, workspaceId }) {
       setMessages((prev) => {
         // 1. Exact match by tempId
         let optimisticIdx = prev.findIndex((m) => m._id === msg.tempId || (m.tempId && m.tempId === msg.tempId));
-        
+
         // 2. Fuzzy match fallback (if server stripped tempId)
         if (optimisticIdx === -1 && String(msg.sender?._id) === String(user?._id)) {
-          optimisticIdx = prev.findIndex((m) => 
-            m.isOptimistic && 
-            m.text === msg.text && 
+          optimisticIdx = prev.findIndex((m) =>
+            m.isOptimistic &&
+            m.text === msg.text &&
             !prev.some(other => other._id === msg._id) // Ensure we don't accidentally replace if it's already there
           );
         }
@@ -148,9 +144,9 @@ export function ModuleProvider({ children, moduleId, workspaceId }) {
         if (optimisticIdx !== -1) {
           const updated = [...prev];
           // Keep local mentionData if server didn't provide it
-          updated[optimisticIdx] = { 
-            ...msg, 
-            mentionData: msg.mentionData || updated[optimisticIdx].mentionData 
+          updated[optimisticIdx] = {
+            ...msg,
+            mentionData: msg.mentionData || updated[optimisticIdx].mentionData
           };
           return updated;
         }
@@ -202,7 +198,7 @@ export function ModuleProvider({ children, moduleId, workspaceId }) {
       if (isTyping) {
         setTypingUsers((prev) => {
           if (prev.find((u) => u._id === userId)) return prev;
-          return [...prev, { _id: userId, name: userName }];
+          return [...prev, { _id: userId, name: userName || "Someone" }];
         });
         // Auto-clear
         clearTimeout(typingTimers.current[userId]);
@@ -306,7 +302,7 @@ export function ModuleProvider({ children, moduleId, workspaceId }) {
       });
 
       // Stop typing indicator
-      socket.emit("module:typing:update", { moduleId, workspaceId, userId: user?._id, userName: user?.name, isTyping: false });
+      socket.emit("module:typing:stop", { moduleId });
     },
     [socket, moduleId, workspaceId, user],
   );
@@ -314,20 +310,38 @@ export function ModuleProvider({ children, moduleId, workspaceId }) {
   const sendTyping = useCallback(
     (isTyping) => {
       if (!socket || !moduleId) return;
-      socket.emit("module:typing:update", {
+      socket.emit(isTyping ? "module:typing:start" : "module:typing:stop", {
         moduleId,
-        workspaceId,
-        userId: user?._id,
-        userName: user?.name,
-        isTyping,
       });
     },
-    [socket, moduleId, workspaceId, user],
+    [socket, moduleId],
   );
 
   const reactToMessage = useCallback(
     (messageId, emoji) => {
       if (!socket) return;
+
+      // Optimistic toggle so sender sees reaction instantly.
+      setReactions((prev) => {
+        const currentForMessage = prev[messageId] || {};
+        const currentUsers = currentForMessage[emoji] || [];
+        const me = String(user?._id || "");
+        const hasReacted = currentUsers.some((id) => String(id) === me);
+
+        const nextUsers = hasReacted
+          ? currentUsers.filter((id) => String(id) !== me)
+          : [...currentUsers, me];
+
+        const nextForMessage = { ...currentForMessage };
+        if (nextUsers.length === 0) {
+          delete nextForMessage[emoji];
+        } else {
+          nextForMessage[emoji] = nextUsers;
+        }
+
+        return { ...prev, [messageId]: nextForMessage };
+      });
+
       socket.emit("module:message:react", {
         moduleId,
         workspaceId,
@@ -335,7 +349,7 @@ export function ModuleProvider({ children, moduleId, workspaceId }) {
         emoji,
       });
     },
-    [socket, moduleId, workspaceId],
+    [socket, moduleId, workspaceId, user?._id],
   );
 
   const editMessage = useCallback(
@@ -367,6 +381,16 @@ export function ModuleProvider({ children, moduleId, workspaceId }) {
   const pinMessage = useCallback(
     (messageId) => {
       if (!socket) return;
+
+      // Optimistic toggle so sender/admin sees pin state immediately.
+      setMessages((prev) =>
+        prev.map((m) =>
+          String(m._id) === String(messageId)
+            ? { ...m, isPinned: !m.isPinned }
+            : m,
+        ),
+      );
+
       socket.emit("module:message:pin", {
         moduleId,
         messageId,

@@ -8,9 +8,12 @@ import api from "@/app/api/Axios";
 
 // ── API helpers ──────────────────────────────────────────────────────────────
 const listMyWorkspaces = () => api.get("/api/workspaces").then((r) => r.data);
-const getWorkspace = (id) => api.get(`/api/workspaces/${id}`).then((r) => r.data);
-const apiCreateWorkspace = (d) => api.post("/api/workspaces", d).then((r) => r.data);
-const apiUpdateWorkspace = (id, d) => api.patch(`/api/workspaces/${id}`, d).then((r) => r.data);
+const getWorkspace = (id) =>
+  api.get(`/api/workspaces/${id}`).then((r) => r.data);
+const apiCreateWorkspace = (d) =>
+  api.post("/api/workspaces", d).then((r) => r.data);
+const apiUpdateWorkspace = (id, d) =>
+  api.patch(`/api/workspaces/${id}`, d).then((r) => r.data);
 const apiDeleteWorkspace = (id) => api.delete(`/api/workspaces/${id}`);
 const apiGenerateInvite = (id, expiresIn = "never") =>
   api.post(`/api/workspaces/${id}/invite`, { expiresIn }).then((r) => r.data);
@@ -28,9 +31,13 @@ const apiDiscoverWorkspaces = (query, limit = 20) =>
 const apiAddMembers = (wsId, userIds) =>
   api.post(`/api/workspaces/${wsId}/members`, { userIds }).then((r) => r.data);
 const apiRemoveMembers = (wsId, userIds) =>
-  api.delete(`/api/workspaces/${wsId}/members`, { data: { userIds } }).then((r) => r.data);
+  api
+    .delete(`/api/workspaces/${wsId}/members`, { data: { userIds } })
+    .then((r) => r.data);
 const apiUpdateMemberRole = (wsId, targetUserId, role) =>
-  api.patch(`/api/workspaces/${wsId}/members/${targetUserId}/role`, { role }).then((r) => r.data);
+  api
+    .patch(`/api/workspaces/${wsId}/members/${targetUserId}/role`, { role })
+    .then((r) => r.data);
 const apiAssignRolesToMember = (wsId, targetUserId, roleIds) =>
   api
     .patch(`/api/workspaces/${wsId}/members/${targetUserId}/roles`, { roleIds })
@@ -46,7 +53,9 @@ const apiGetBannedUsers = (wsId) =>
 const apiCreateRole = (wsId, data) =>
   api.post(`/api/workspaces/${wsId}/roles`, data).then((r) => r.data);
 const apiUpdateRole = (wsId, roleId, data) =>
-  api.patch(`/api/workspaces/${wsId}/roles/${roleId}`, data).then((r) => r.data);
+  api
+    .patch(`/api/workspaces/${wsId}/roles/${roleId}`, data)
+    .then((r) => r.data);
 const apiDeleteRole = (wsId, roleId) =>
   api.delete(`/api/workspaces/${wsId}/roles/${roleId}`);
 
@@ -83,7 +92,10 @@ export function WorkspaceProvider({ children }) {
   useEffect(() => {
     const load = async () => {
       const token = localStorage.getItem("token");
-      if (!token) { setLoadingWorkspaces(false); return; }
+      if (!token) {
+        setLoadingWorkspaces(false);
+        return;
+      }
       try {
         const data = await listMyWorkspaces();
         setWorkspaces(data);
@@ -105,9 +117,23 @@ export function WorkspaceProvider({ children }) {
     setLoadingModules(true);
     try {
       const data = await listModules(workspaceId);
-      setModulesCache((prev) => ({ ...prev, [workspaceId]: data }));
+      const normalized = (data || []).map((m) => ({
+        ...m,
+        unreadCount:
+          typeof m?.myUnread === "number"
+            ? m.myUnread
+            : typeof m?.unreadCount === "number"
+              ? m.unreadCount
+              : 0,
+      }));
+      setModulesCache((prev) => ({ ...prev, [workspaceId]: normalized }));
     } catch (err) {
       console.error("Failed to load modules:", err);
+      // Set empty array so callers see a defined value and don't retry infinitely
+      setModulesCache((prev) => ({
+        ...prev,
+        [workspaceId]: prev[workspaceId] ?? [],
+      }));
       fetchedWorkspaceIds.current.delete(workspaceId);
     } finally {
       setLoadingModules(false);
@@ -133,14 +159,25 @@ export function WorkspaceProvider({ children }) {
     return updated;
   }, []);
 
-  const deleteWorkspace = useCallback(async (id) => {
-    if (socket) socket.emit("workspace:leave", id);
-    await apiDeleteWorkspace(id);
-    setWorkspaces((prev) => prev.filter((w) => w._id !== id));
-    setModulesCache((prev) => { const n = { ...prev }; delete n[id]; return n; });
-    setMembersCache((prev) => { const n = { ...prev }; delete n[id]; return n; });
-    fetchedWorkspaceIds.current.delete(id);
-  }, [socket]);
+  const deleteWorkspace = useCallback(
+    async (id) => {
+      if (socket) socket.emit("workspace:leave", id);
+      await apiDeleteWorkspace(id);
+      setWorkspaces((prev) => prev.filter((w) => w._id !== id));
+      setModulesCache((prev) => {
+        const n = { ...prev };
+        delete n[id];
+        return n;
+      });
+      setMembersCache((prev) => {
+        const n = { ...prev };
+        delete n[id];
+        return n;
+      });
+      fetchedWorkspaceIds.current.delete(id);
+    },
+    [socket],
+  );
 
   // ── Discover + Public Join ────────────────────────────────────────────────
   const discoverWorkspaces = useCallback(async (query = "", limit = 20) => {
@@ -161,23 +198,32 @@ export function WorkspaceProvider({ children }) {
   );
 
   // ── Invite management ─────────────────────────────────────────────────────
-  const generateInvite = useCallback(async (workspaceId, expiresIn = "never") => {
-    const data = await apiGenerateInvite(workspaceId, expiresIn);
-    setWorkspaces((prev) =>
-      prev.map((w) =>
-        w._id === workspaceId
-          ? { ...w, inviteCode: data.inviteCode, inviteCodeExpiresAt: data.expiresAt }
-          : w,
-      ),
-    );
-    return data;
-  }, []);
+  const generateInvite = useCallback(
+    async (workspaceId, expiresIn = "never") => {
+      const data = await apiGenerateInvite(workspaceId, expiresIn);
+      setWorkspaces((prev) =>
+        prev.map((w) =>
+          w._id === workspaceId
+            ? {
+              ...w,
+              inviteCode: data.inviteCode,
+              inviteCodeExpiresAt: data.expiresAt,
+            }
+            : w,
+        ),
+      );
+      return data;
+    },
+    [],
+  );
 
   const revokeInvite = useCallback(async (workspaceId) => {
     await apiRevokeInvite(workspaceId);
     setWorkspaces((prev) =>
       prev.map((w) =>
-        w._id === workspaceId ? { ...w, inviteCode: null, inviteCodeExpiresAt: null } : w,
+        w._id === workspaceId
+          ? { ...w, inviteCode: null, inviteCodeExpiresAt: null }
+          : w,
       ),
     );
   }, []);
@@ -199,14 +245,25 @@ export function WorkspaceProvider({ children }) {
     return await apiGetWorkspaceByInvite(code);
   }, []);
 
-  const leaveWorkspace = useCallback(async (workspaceId) => {
-    if (socket) socket.emit("workspace:leave", workspaceId);
-    await api.post(`/api/workspaces/${workspaceId}/leave`);
-    setWorkspaces((prev) => prev.filter((w) => w._id !== workspaceId));
-    setModulesCache((prev) => { const n = { ...prev }; delete n[workspaceId]; return n; });
-    setMembersCache((prev) => { const n = { ...prev }; delete n[workspaceId]; return n; });
-    fetchedWorkspaceIds.current.delete(workspaceId);
-  }, [socket]);
+  const leaveWorkspace = useCallback(
+    async (workspaceId) => {
+      if (socket) socket.emit("workspace:leave", workspaceId);
+      await api.post(`/api/workspaces/${workspaceId}/leave`);
+      setWorkspaces((prev) => prev.filter((w) => w._id !== workspaceId));
+      setModulesCache((prev) => {
+        const n = { ...prev };
+        delete n[workspaceId];
+        return n;
+      });
+      setMembersCache((prev) => {
+        const n = { ...prev };
+        delete n[workspaceId];
+        return n;
+      });
+      fetchedWorkspaceIds.current.delete(workspaceId);
+    },
+    [socket],
+  );
 
   // ── Roles CRUD ────────────────────────────────────────────────────────────
   const createRole = useCallback(async (workspaceId, data) => {
@@ -214,12 +271,12 @@ export function WorkspaceProvider({ children }) {
     setWorkspaces((prev) =>
       prev.map((w) => {
         if (w._id === workspaceId) {
-          const exists = (w.roles || []).some(r => r._id === role._id);
+          const exists = (w.roles || []).some((r) => r._id === role._id);
           if (exists) return w;
           return { ...w, roles: [...(w.roles || []), role] };
         }
         return w;
-      })
+      }),
     );
     return role;
   }, []);
@@ -230,9 +287,9 @@ export function WorkspaceProvider({ children }) {
       prev.map((w) =>
         w._id === workspaceId
           ? {
-              ...w,
-              roles: (w.roles || []).map((r) => (r._id === roleId ? role : r)),
-            }
+            ...w,
+            roles: (w.roles || []).map((r) => (r._id === roleId ? role : r)),
+          }
           : w,
       ),
     );
@@ -288,7 +345,7 @@ export function WorkspaceProvider({ children }) {
       });
       return mod;
     },
-    [socket],
+    [],
   );
 
   const updateModule = useCallback(async (workspaceId, moduleId, data) => {
@@ -306,7 +363,9 @@ export function WorkspaceProvider({ children }) {
     await apiDeleteModule(workspaceId, moduleId);
     setModulesCache((prev) => ({
       ...prev,
-      [workspaceId]: (prev[workspaceId] || []).filter((m) => m._id !== moduleId),
+      [workspaceId]: (prev[workspaceId] || []).filter(
+        (m) => m._id !== moduleId,
+      ),
     }));
   }, []);
 
@@ -318,7 +377,9 @@ export function WorkspaceProvider({ children }) {
   }, []);
 
   const updateCategory = useCallback(async (workspaceId, categoryId, name) => {
-    await api.patch(`/api/workspaces/${workspaceId}/categories/${categoryId}`, { name });
+    await api.patch(`/api/workspaces/${workspaceId}/categories/${categoryId}`, {
+      name,
+    });
   }, []);
 
   const deleteCategory = useCallback(async (workspaceId, categoryId) => {
@@ -353,9 +414,12 @@ export function WorkspaceProvider({ children }) {
     return apiRemoveMembers(workspaceId, userIds);
   }, []);
 
-  const updateMemberRole = useCallback(async (workspaceId, targetUserId, role) => {
-    return apiUpdateMemberRole(workspaceId, targetUserId, role);
-  }, []);
+  const updateMemberRole = useCallback(
+    async (workspaceId, targetUserId, role) => {
+      return apiUpdateMemberRole(workspaceId, targetUserId, role);
+    },
+    [],
+  );
 
   const banMember = useCallback(async (workspaceId, userId) => {
     await apiBanMember(workspaceId, userId);
@@ -386,14 +450,26 @@ export function WorkspaceProvider({ children }) {
       // Payload can be { workspace } or the flat updated fields
       const updated = payload.workspace || payload;
       setWorkspaces((prev) =>
-        prev.map((w) => (w._id === (updated._id || updated.workspaceId) ? { ...w, ...updated } : w)),
+        prev.map((w) =>
+          w._id === (updated._id || updated.workspaceId)
+            ? { ...w, ...updated }
+            : w,
+        ),
       );
     };
 
     const onWorkspaceDeleted = ({ workspaceId }) => {
       setWorkspaces((prev) => prev.filter((w) => w._id !== workspaceId));
-      setModulesCache((prev) => { const n = { ...prev }; delete n[workspaceId]; return n; });
-      setMembersCache((prev) => { const n = { ...prev }; delete n[workspaceId]; return n; });
+      setModulesCache((prev) => {
+        const n = { ...prev };
+        delete n[workspaceId];
+        return n;
+      });
+      setMembersCache((prev) => {
+        const n = { ...prev };
+        delete n[workspaceId];
+        return n;
+      });
     };
 
     const onModuleCreated = ({ module }) => {
@@ -401,7 +477,13 @@ export function WorkspaceProvider({ children }) {
       setModulesCache((prev) => {
         const existing = prev[module.workspaceId] || [];
         if (existing.find((m) => m._id === module._id)) return prev;
-        return { ...prev, [module.workspaceId]: [...existing, module] };
+        return {
+          ...prev,
+          [module.workspaceId]: [
+            ...existing,
+            { ...module, unreadCount: module.unreadCount || 0 },
+          ],
+        };
       });
     };
 
@@ -410,7 +492,39 @@ export function WorkspaceProvider({ children }) {
       setModulesCache((prev) => ({
         ...prev,
         [module.workspaceId]: (prev[module.workspaceId] || []).map((m) =>
-          m._id === module._id ? { ...m, ...module } : m,
+          String(m._id) === String(module._id)
+            ? {
+              ...m,
+              ...module,
+              unreadCount:
+                typeof module.myUnread === "number"
+                  ? module.myUnread
+                  : typeof module.unreadCount === "number"
+                    ? module.unreadCount
+                    : m.unreadCount || 0,
+            }
+            : m,
+        ),
+      }));
+    };
+
+    const onModuleUnreadUpdate = ({
+      moduleId,
+      workspaceId,
+      unreadCount,
+      lastMessage,
+    }) => {
+      if (!moduleId || !workspaceId) return;
+      setModulesCache((prev) => ({
+        ...prev,
+        [workspaceId]: (prev[workspaceId] || []).map((m) =>
+          String(m._id) === String(moduleId)
+            ? {
+              ...m,
+              unreadCount: typeof unreadCount === "number" ? unreadCount : m.unreadCount || 0,
+              ...(lastMessage ? { lastMessage } : {}),
+            }
+            : m,
         ),
       }));
     };
@@ -418,7 +532,9 @@ export function WorkspaceProvider({ children }) {
     const onModuleDeleted = ({ moduleId, workspaceId }) => {
       setModulesCache((prev) => ({
         ...prev,
-        [workspaceId]: (prev[workspaceId] || []).filter((m) => m._id !== moduleId),
+        [workspaceId]: (prev[workspaceId] || []).filter(
+          (m) => String(m._id) !== String(moduleId),
+        ),
       }));
     };
 
@@ -464,6 +580,9 @@ export function WorkspaceProvider({ children }) {
     };
 
     const onMention = ({ message, workspaceName, moduleName }) => {
+      if (!message) return;
+      const senderName = message.sender?.name ?? message.senderName ?? 'Someone';
+      const senderAvatar = message.sender?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${senderName}`;
       toast.custom((t) => (
         <div className={`${t.visible ? 'animate-in fade-in slide-in-from-top-4' : 'animate-out fade-out slide-out-to-top-4'} max-w-sm w-full bg-obsidian border border-accent/30 shadow-2xl rounded-xl p-4 flex flex-col gap-2 pointer-events-auto`}>
           <div className="flex items-center justify-between">
@@ -474,13 +593,13 @@ export function WorkspaceProvider({ children }) {
             <span className="text-[10px] font-medium text-ivory/40">in {workspaceName} &gt; #{moduleName}</span>
           </div>
           <div className="flex gap-3 items-start">
-            <img 
-              src={message.sender?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${message.sender?.name}`}
+            <img
+              src={senderAvatar}
               className="w-10 h-10 rounded-full border border-white/10"
               alt=""
             />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-ivory truncate">{message.sender?.name}</p>
+              <p className="text-sm font-bold text-ivory truncate">{senderName}</p>
               <p className="text-xs text-ivory/60 line-clamp-2 leading-relaxed">
                 {message.text}
               </p>
@@ -489,7 +608,7 @@ export function WorkspaceProvider({ children }) {
         </div>
       ), {
         duration: 6000,
-        position: 'top-right',
+        position: "top-right",
       });
     };
 
@@ -497,16 +616,26 @@ export function WorkspaceProvider({ children }) {
       setWorkspaces((prev) =>
         prev.map((w) =>
           w._id === workspaceId
-            ? { ...w, memberCount: (w.memberCount || 0) + (newMembers?.length || 1) }
+            ? {
+              ...w,
+              memberCount: (w.memberCount || 0) + (newMembers?.length || 1),
+            }
             : w,
         ),
       );
       setMembersCache((prev) => {
         if (!prev[workspaceId]) return prev;
-        const existingIds = new Set(prev[workspaceId].map((m) => m.user._id.toString()));
+        const existingIds = new Set(
+          prev[workspaceId].map((m) => m.user._id.toString()),
+        );
         const toAdd = (newMembers || [])
           .filter((u) => !existingIds.has(u._id.toString()))
-          .map((u) => ({ user: u, role: "member", roleIds: [], joinedAt: new Date().toISOString() }));
+          .map((u) => ({
+            user: u,
+            role: "member",
+            roleIds: [],
+            joinedAt: new Date().toISOString(),
+          }));
         if (!toAdd.length) return prev;
         return { ...prev, [workspaceId]: [...prev[workspaceId], ...toAdd] };
       });
@@ -516,7 +645,13 @@ export function WorkspaceProvider({ children }) {
       setWorkspaces((prev) =>
         prev.map((w) =>
           w._id === workspaceId
-            ? { ...w, memberCount: Math.max(0, (w.memberCount || 0) - (removedUserIds?.length || 1)) }
+            ? {
+              ...w,
+              memberCount: Math.max(
+                0,
+                (w.memberCount || 0) - (removedUserIds?.length || 1),
+              ),
+            }
             : w,
         ),
       );
@@ -525,7 +660,26 @@ export function WorkspaceProvider({ children }) {
         const idSet = new Set((removedUserIds || []).map(String));
         return {
           ...prev,
-          [workspaceId]: prev[workspaceId].filter((m) => !idSet.has(m.user._id.toString())),
+          [workspaceId]: prev[workspaceId].filter(
+            (m) => !idSet.has(m.user._id.toString()),
+          ),
+        };
+      });
+    };
+
+    const onMemberBanned = ({ workspaceId, userId }) => {
+      setWorkspaces((prev) =>
+        prev.map((w) =>
+          w._id === workspaceId
+            ? { ...w, memberCount: Math.max(0, (w.memberCount || 0) - 1) }
+            : w,
+        ),
+      );
+      setMembersCache((prev) => {
+        if (!prev[workspaceId]) return prev;
+        return {
+          ...prev,
+          [workspaceId]: prev[workspaceId].filter((m) => m.user._id.toString() !== userId.toString()),
         };
       });
     };
@@ -536,7 +690,9 @@ export function WorkspaceProvider({ children }) {
         return {
           ...prev,
           [workspaceId]: prev[workspaceId].map((m) =>
-            m.user._id.toString() === targetUserId ? { ...m, role: newRole } : m,
+            m.user._id.toString() === targetUserId
+              ? { ...m, role: newRole }
+              : m,
           ),
         };
       });
@@ -552,14 +708,19 @@ export function WorkspaceProvider({ children }) {
             return { ...w, roles: [...(w.roles || []), role] };
           }
           return w;
-        })
+        }),
       );
     };
     const onCustomRoleUpdated = ({ workspaceId, role }) => {
       setWorkspaces((prev) =>
         prev.map((w) =>
           w._id === workspaceId
-            ? { ...w, roles: (w.roles || []).map((r) => (r._id === role._id ? role : r)) }
+            ? {
+              ...w,
+              roles: (w.roles || []).map((r) =>
+                r._id === role._id ? role : r,
+              ),
+            }
             : w,
         ),
       );
@@ -603,7 +764,8 @@ export function WorkspaceProvider({ children }) {
           ...prev,
           [workspaceId]: prev[workspaceId].map((m) => {
             if (m.role === "owner") return { ...m, role: "member" };
-            if (m.user._id.toString() === newOwnerId) return { ...m, role: "owner" };
+            if (m.user._id.toString() === newOwnerId)
+              return { ...m, role: "owner" };
             return m;
           }),
         };
@@ -612,17 +774,30 @@ export function WorkspaceProvider({ children }) {
 
     const onKicked = ({ workspaceId }) => {
       setWorkspaces((prev) => prev.filter((w) => w._id !== workspaceId));
-      setModulesCache((prev) => { const n = { ...prev }; delete n[workspaceId]; return n; });
-      setMembersCache((prev) => { const n = { ...prev }; delete n[workspaceId]; return n; });
+      setModulesCache((prev) => {
+        const n = { ...prev };
+        delete n[workspaceId];
+        return n;
+      });
+      setMembersCache((prev) => {
+        const n = { ...prev };
+        delete n[workspaceId];
+        return n;
+      });
       fetchedWorkspaceIds.current.delete(workspaceId);
     };
 
     // Online presence
-    const onPresenceOnline = ({ userId }) => {
-      setOnlineUsers((prev) => new Set([...prev, userId]));
-    };
-    const onPresenceOffline = ({ userId }) => {
-      setOnlineUsers((prev) => { const n = new Set(prev); n.delete(userId); return n; });
+    const onPresenceUpdate = ({ userId, online }) => {
+      setOnlineUsers((prev) => {
+        const updated = new Set(prev);
+        if (online) {
+          updated.add(userId);
+        } else {
+          updated.delete(userId);
+        }
+        return updated;
+      });
     };
 
     socket.on("workspace:updated", onWorkspaceUpdated);
@@ -642,9 +817,10 @@ export function WorkspaceProvider({ children }) {
     socket.on("workspace:member-roles-updated", onMemberRolesUpdated);
     socket.on("workspace:owner-transferred", onOwnerTransferred);
     socket.on("workspace:kicked", onKicked);
-    socket.on("user:online", onPresenceOnline);
-    socket.on("user:offline", onPresenceOffline);
+    socket.on("workspace:member-banned", onMemberBanned);
+    socket.on("presence:update", onPresenceUpdate);
     socket.on("module:mention", onMention);
+    socket.on("module:unread:update", onModuleUnreadUpdate);
 
     return () => {
       socket.off("workspace:updated", onWorkspaceUpdated);
@@ -664,9 +840,10 @@ export function WorkspaceProvider({ children }) {
       socket.off("workspace:member-roles-updated", onMemberRolesUpdated);
       socket.off("workspace:owner-transferred", onOwnerTransferred);
       socket.off("workspace:kicked", onKicked);
-      socket.off("user:online", onPresenceOnline);
-      socket.off("user:offline", onPresenceOffline);
+      socket.off("workspace:member-banned", onMemberBanned);
+      socket.off("presence:update", onPresenceUpdate);
       socket.off("module:mention", onMention);
+      socket.off("module:unread:update", onModuleUnreadUpdate);
     };
   }, [socket]);
 

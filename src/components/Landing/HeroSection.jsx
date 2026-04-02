@@ -182,8 +182,8 @@ export default function HeroSection() {
           alt=""
           className="w-full h-full object-cover scale-[1.18]"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/85 to-obsidian/30" />
-        <div className="absolute inset-0 bg-gradient-to-r from-obsidian/60 to-transparent" />
+        <div className="absolute inset-0 hero-overlay-t" />
+        <div className="absolute inset-0 hero-overlay-r" />
       </div>
 
       {/* Grid overlay (medium layer) */}

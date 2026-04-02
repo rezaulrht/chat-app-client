@@ -90,7 +90,18 @@ export function getMemberRole(conv, userId) {
  * @param {string} currentUserId - The viewing user's _id
  * @returns {string}
  */
-export function getGroupLastMessagePreview(lastMessage, currentUserId) {
+function getNicknameValue(nicknames, userId) {
+  if (!nicknames || !userId) return null;
+  if (nicknames instanceof Map) return nicknames.get(userId) || null;
+  if (typeof nicknames === "object") return nicknames[userId] || null;
+  return null;
+}
+
+export function getGroupLastMessagePreview(
+  lastMessage,
+  currentUserId,
+  nicknames,
+) {
   if (!lastMessage) return "No messages yet";
 
   // Resolve sender identity
@@ -101,17 +112,30 @@ export function getGroupLastMessagePreview(lastMessage, currentUserId) {
 
   const senderName =
     typeof lastMessage.sender === "object" ? lastMessage.sender?.name : null;
+  const senderNickname = getNicknameValue(nicknames, senderId);
 
   const isMe = senderId === currentUserId;
+  const senderDisplayName = senderNickname || senderName;
   const prefix = isMe
     ? "You"
-    : senderName
-      ? senderName.split(" ")[0]
+    : senderDisplayName
+      ? senderDisplayName.split(" ")[0]
       : null;
 
   // Determine content label
   let content;
-  if (lastMessage.gifUrl) {
+  if (lastMessage.callLog) {
+    const cl = lastMessage.callLog;
+    if (cl.status === "missed") content = "Missed call";
+    else if (cl.status === "declined") content = "Call declined";
+    else {
+      const dur = cl.duration
+        ? " · " + Math.floor(cl.duration / 60) + "m " + (cl.duration % 60) + "s"
+        : "";
+      content = (cl.callType === "video" ? "Video" : "Audio") + " call" + dur;
+    }
+    return prefix ? prefix + ": " + content : content;
+  } else if (lastMessage.gifUrl) {
     content = "sent a GIF";
   } else if (lastMessage.attachments?.length > 0) {
     const att = lastMessage.attachments[0];

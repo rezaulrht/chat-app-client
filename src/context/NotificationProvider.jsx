@@ -36,7 +36,6 @@ export function NotificationProvider({ children }) {
   const [prefs, setPrefs] = useState({});
   const [loading, setLoading] = useState(false);
 
-  const { user } = useAuth();
   const socketCtx = useContext(SocketContext);
   const socket = socketCtx?.socket ?? null;
 
@@ -101,10 +100,6 @@ export function NotificationProvider({ children }) {
   useEffect(() => {
     mutedConvRef.current = mutedConversationIds;
   }, [mutedConversationIds]);
-
-  const socketCtx = useContext(SocketContext);
-  const socket = socketCtx?.socket ?? null;
-  const { user } = useAuth();
 
   // Per-type toast icon (emoji) to match the icon badges in the dropdown
 

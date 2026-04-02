@@ -1,6 +1,6 @@
 // chat-app-client/src/components/app-shell/AppSidebar.jsx
 "use client";
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import Image from "next/image";
@@ -11,9 +11,9 @@ import UserProfileCard from "@/components/profile/UserProfileCard";
 import FullUserProfile from "@/components/profile/FullUserProfile";
 
 const STORE_KEY_MAP = {
-  chat: { flag: "chatCollapsed", toggle: "toggleChat" },
+  chat: { flag: "chatCollapsed", toggle: "toggleChat", width: "chatSidebarWidth", setWidth: "setChatSidebarWidth" },
   feed: { flag: "feedCollapsed", toggle: "toggleFeed" },
-  workspace: { flag: "workspaceCollapsed", toggle: "toggleWorkspace" },
+  workspace: { flag: "workspaceCollapsed", toggle: "toggleWorkspace", width: "workspaceSidebarWidth", setWidth: "setWorkspaceSidebarWidth" },
 };
 
 export default function AppSidebar({
@@ -28,6 +28,7 @@ export default function AppSidebar({
   const [showUserCard, setShowUserCard] = useState(false);
   const [showFullProfile, setShowFullProfile] = useState(false);
   const userBarRef = useRef(null);
+  const resizeRef = useRef(null);
 
   const collapsed =
     storeKey && STORE_KEY_MAP[storeKey]
@@ -39,7 +40,40 @@ export default function AppSidebar({
       ? store[STORE_KEY_MAP[storeKey].toggle]
       : null;
 
-  const width = collapsed ? "56px" : "var(--sidebar-width, 320px)";
+  const sidebarWidth = storeKey && STORE_KEY_MAP[storeKey]?.width
+    ? store[STORE_KEY_MAP[storeKey].width] || 320
+    : 320;
+
+  const setSidebarWidth = storeKey && STORE_KEY_MAP[storeKey]?.setWidth
+    ? store[STORE_KEY_MAP[storeKey].setWidth]
+    : null;
+
+  const width = collapsed ? "56px" : `${sidebarWidth}px`;
+
+  // Resize handle
+  const handleResizeStart = useCallback((e) => {
+    if (!setSidebarWidth || collapsed) return;
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = sidebarWidth;
+
+    const handleMouseMove = (e) => {
+      const delta = e.clientX - startX;
+      setSidebarWidth(startWidth + delta);
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  }, [setSidebarWidth, collapsed, sidebarWidth]);
 
   // Clear user card state when sidebar collapses
   useEffect(() => {
@@ -59,9 +93,17 @@ export default function AppSidebar({
 
   return (
     <div
-      className={`hidden md:flex flex-col shrink-0 h-full bg-white/[0.02] backdrop-blur-xl overflow-hidden transition-[width] duration-300 ease-in-out ${className}`}
+      className={`hidden md:flex flex-col shrink-0 h-full bg-white/[0.02] backdrop-blur-xl overflow-hidden transition-[width] duration-300 ease-in-out relative ${className}`}
       style={{ width, ...style }}
     >
+      {/* Resize handle */}
+      {setSidebarWidth && !collapsed && (
+        <div
+          className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-accent/20 transition-colors z-50"
+          onMouseDown={handleResizeStart}
+        />
+      )}
+
       {/* Toggle button — always visible when storeKey is set */}
       {toggle && (
         <div className="flex items-center justify-between px-3 pt-2 pb-1 shrink-0">
@@ -94,7 +136,7 @@ export default function AppSidebar({
       )}
 
       {/* Content slot */}
-      <div className="flex-1 min-h-0 overflow-hidden pb-16">{childWithCollapsed}</div>
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pb-16 scrollbar-hide">{childWithCollapsed}</div>
 
       {/* User bar — hidden when collapsed */}
       {user && !collapsed && (

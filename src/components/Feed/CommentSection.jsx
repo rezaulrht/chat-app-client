@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import ReactionBar from "./ReactionBar";
 import { formatDistanceToNow } from "date-fns";
+import useAuth from "@/hooks/useAuth";
 
 function timeAgo(date) {
   try {
@@ -309,6 +310,7 @@ export default function CommentSection({
   onDelete,
   onEdit,
 }) {
+  const { user: currentUser } = useAuth();
   const [replyTarget, setReplyTarget] = useState(null);
   const [text, setText] = useState("");
 
@@ -364,7 +366,8 @@ export default function CommentSection({
       >
         <CommentAvatar
           author={{
-            name: currentUserId ? "You" : "?",
+            name: currentUser?.name || "You",
+            avatar: currentUser?.avatar || null,
           }}
         />
         <div className="flex-1">
@@ -386,6 +389,12 @@ export default function CommentSection({
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit(e);
+                }
+              }}
               placeholder={replyTarget ? "Write a reply…" : "Add a comment…"}
               rows={2}
               className="flex-1 rounded-2xl bg-white/4 px-3 py-2 text-[13px] text-ivory/80 placeholder:text-ivory/20 outline-none ring-1 ring-white/7 transition-all focus:ring-accent/30 resize-none font-sans"

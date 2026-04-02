@@ -42,6 +42,7 @@ import VoiceMessageRecorder from "@/components/calls/VoiceMessageRecorder";
 import ThreadPanel from "./ThreadPanel";
 import PinnedMessagesPanel from "./PinnedMessagesPanel";
 import ModuleSearchPanel from "./ModuleSearchPanel";
+import PreviewUserCard from "@/components/profile/PreviewUserCard";
 import "./Mention.css";
 
 const EmojiPicker = dynamic(() => import("emoji-picker-react"), { ssr: false });
@@ -202,6 +203,9 @@ export default function ModuleChatWindow({
   const [loadingRewrite, setLoadingRewrite] = useState(false);
   const [rewritePreview, setRewritePreview] = useState(null);
   const [originalText, setOriginalText] = useState("");
+
+  // Profile popup for mentions
+  const [profileTarget, setProfileTarget] = useState(null);
 
   // Read Receipts Popover
   const [showSeenBy, setShowSeenBy] = useState(null); // stores msgId
@@ -501,7 +505,6 @@ export default function ModuleChatWindow({
               key={`${mention.id}-${i}`}
               onClick={(e) => {
                 e.stopPropagation();
-                // Find the member and show their profile
                 const member = (membersCache?.[workspaceId] || []).find(
                   (m) => m.user?._id === mention.id || m.user?.name === mention.name
                 );
@@ -514,7 +517,7 @@ export default function ModuleChatWindow({
                   });
                 }
               }}
-              className="inline-flex items-center gap-1 bg-accent/20 text-accent font-semibold px-1 py-0.5 mx-px rounded cursor-pointer hover:bg-accent/30 transition-colors border border-accent/30"
+              className="inline-flex items-center gap-1 bg-[#5865F2]/20 text-[#5865F2] dark:text-[#8094FF] font-semibold px-1.5 py-0.5 mx-px rounded-md cursor-pointer hover:bg-[#5865F2]/30 transition-colors border border-[#5865F2]/30"
             >
               <Image
                 src={
@@ -527,7 +530,7 @@ export default function ModuleChatWindow({
                 className="w-3.5 h-3.5 rounded-full object-cover shrink-0"
                 unoptimized
               />
-              {part}
+              @{mention.name}
             </span>
           );
         }
@@ -1572,31 +1575,40 @@ export default function ModuleChatWindow({
         >
           {/* Auto-complete suggestions */}
           {suggestions.length > 0 && (
-            <div className="absolute bottom-full left-2 sm:left-10 bg-deep/95 backdrop-blur-md border border-white/6 rounded-xl p-1 shadow-2xl z-50 min-w-48 max-w-[calc(100vw-2rem)] mb-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <div 
+              className="absolute bottom-full left-2 sm:left-10 bg-[#1a1b26] border border-white/10 rounded-xl p-1 shadow-2xl z-[100] min-w-48 max-w-[calc(100vw-2rem)] mb-2"
+              onMouseDown={(e) => e.preventDefault()}
+            >
               {suggestions.map((suggestion, i) => (
                 <div
                   key={suggestion.key}
-                  onClick={() => insertSuggestion(suggestion)}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${i === suggestionIndex
-                    ? "bg-accent/20 text-accent"
-                    : "hover:bg-white/6 text-ivory/60 hover:text-ivory"
-                    }`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    insertSuggestion(suggestion);
+                    setSuggestions([]);
+                  }}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                    i === suggestionIndex
+                      ? "bg-[#5865F2]/20 text-[#8094FF]"
+                      : "hover:bg-white/5 text-gray-300 hover:text-white"
+                  }`}
                 >
                   {suggestion.type === "emoji" ? (
                     <>
                       <span className="text-lg leading-none">
                         {suggestion.value}
                       </span>
-                      <span className="text-xs font-mono">
+                      <span className="text-xs text-gray-400">
                         {suggestion.key}
                       </span>
                     </>
                   ) : (
                     <>
                       <img
-                        src={suggestion.user.avatar || "/avatar.png"}
+                        src={suggestion.user?.avatar || "/avatar.png"}
                         alt={suggestion.value}
-                        className="w-5 h-5 rounded-full object-cover"
+                        className="w-6 h-6 rounded-full object-cover"
                       />
                       <span className="text-sm font-medium">
                         {suggestion.value}
@@ -2141,6 +2153,29 @@ export default function ModuleChatWindow({
           onClose={() => setShowSearchPanel(false)}
           onJumpToMessage={handleJumpToMessage}
         />
+      )}
+
+      {/* Profile Card Popup for Mentions */}
+      {profileTarget && (
+        <div 
+          className="fixed inset-0 z-[60]" 
+          onClick={() => setProfileTarget(null)}
+        >
+          <div 
+            className="absolute z-[61]"
+            style={{ 
+              top: Math.min(profileTarget.y, window.innerHeight - 400),
+              left: Math.min(profileTarget.x, window.innerWidth - 320)
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <PreviewUserCard
+              member={profileTarget.member}
+              workspaceId={workspaceId}
+              onClose={() => setProfileTarget(null)}
+            />
+          </div>
+        </div>
       )}
     </main>
   );

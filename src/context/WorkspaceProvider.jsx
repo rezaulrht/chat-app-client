@@ -88,6 +88,28 @@ export function WorkspaceProvider({ children }) {
   // Track fetched workspace IDs to avoid duplicate requests
   const fetchedWorkspaceIds = useRef(new Set());
 
+  // ── Listen for real-time status updates ────────────────────────────────────
+  useEffect(() => {
+    const handleStatusUpdate = (e) => {
+      const { userId, statusMessage } = e.detail;
+      setMembersCache((prev) => {
+        const updated = { ...prev };
+        Object.keys(updated).forEach((wsId) => {
+          updated[wsId] = updated[wsId].map((m) => {
+            if (m.user?._id === userId) {
+              return { ...m, user: { ...m.user, statusMessage } };
+            }
+            return m;
+          });
+        });
+        return updated;
+      });
+    };
+
+    window.addEventListener("user:status:updated", handleStatusUpdate);
+    return () => window.removeEventListener("user:status:updated", handleStatusUpdate);
+  }, []);
+
   // ── Fetch all workspaces on mount ─────────────────────────────────────────
   useEffect(() => {
     const load = async () => {

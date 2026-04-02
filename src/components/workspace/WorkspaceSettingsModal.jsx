@@ -230,7 +230,15 @@ function OverviewTab({ workspace, onUpdate }) {
                 </label>
                 {bannerUrl && (
                   <button
-                    onClick={() => setBannerUrl("")}
+                    onClick={async () => {
+                      setBannerUrl("");
+                      try {
+                        await onUpdate({ banner: "" });
+                        toast.success("Banner removed");
+                      } catch {
+                        toast.error("Failed to remove banner");
+                      }
+                    }}
                     className="p-2 bg-red-500/20 hover:bg-red-500/40 border border-red-500/20 text-red-400 rounded-xl transition-all active:scale-95"
                   >
                     <Trash2 size={14} />

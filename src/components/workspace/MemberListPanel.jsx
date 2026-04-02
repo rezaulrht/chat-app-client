@@ -134,7 +134,7 @@ export default function MemberListPanel({
   onClose,
   onSettingsOpen,
 }) {
-  const { workspaces, membersCache, onlineUsers, fetchWorkspaceMembers, removeMembers, updateMemberRole, banMember } =
+  const { workspaces, membersCache, onlineUsers, fetchWorkspaceMembers, removeMembers, updateMemberRole, banMember, assignRolesToMember } =
     useWorkspace();
   const { user: currentUser } = useAuth();
   const isAdmin = useIsAdmin(workspaceId);
@@ -340,13 +340,22 @@ export default function MemberListPanel({
             setProfileTarget(null);
           }}
           onMessage={handleQuickMessage}
-          onAddRole={() => {
-            if (onSettingsOpen) {
-              onSettingsOpen();
-              setProfileTarget(null);
-              toast("Use Roles tab in Workspace Settings to assign roles");
-            } else {
-              toast("Manage roles in Workspace Settings");
+          onAddRole={async (roleId, add) => {
+            const userId = profileTarget?.member?.user?._id?.toString();
+            if (!userId) return;
+            
+            const currentRoleIds = profileTarget?.member?.roleIds || [];
+            const newRoleIds = add
+              ? [...currentRoleIds, roleId]
+              : currentRoleIds.filter(id => id !== roleId);
+            
+            try {
+              await assignRolesToMember(workspaceId, userId, newRoleIds);
+              toast.success(add ? "Role added" : "Role removed");
+              fetchWorkspaceMembers(workspaceId);
+            } catch (err) {
+              console.error("Failed to update role:", err);
+              toast.error("Failed to update role");
             }
           }}
           onKick={async () => {

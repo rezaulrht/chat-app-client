@@ -129,6 +129,15 @@ export const SocketProvider = ({ children }) => {
       });
     });
 
+    // --- Handle status message updates ---
+    newSocket.on("user:status:updated", ({ userId, statusMessage }) => {
+      // Update the user's status in membersCache via a custom event
+      // The WorkspaceProvider will listen for this
+      window.dispatchEvent(new CustomEvent("user:status:updated", {
+        detail: { userId, statusMessage }
+      }));
+    });
+
     // --- Periodic presence ping to keep user online ---
     const presenceInterval = setInterval(() => {
       if (newSocket.connected) {

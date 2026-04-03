@@ -11,6 +11,29 @@ const Picker = dynamic(() => import("@emoji-mart/react"), { ssr: false });
 
 const FIXED_EMOJIS = ["🔥", "💡", "🚀", "❤️", "🍺", "👏"];
 
+function EmojiBtn({ emoji, reactions, currentUserId, onReact }) {
+  const usersList = Array.isArray(reactions[emoji]) ? reactions[emoji] : [];
+  const reacted = usersList.includes(currentUserId);
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onReact?.(emoji);
+      }}
+      title={emoji}
+      className={`flex items-center justify-center w-7 h-6 rounded-lg text-sm transition-all duration-150 select-none
+        ${
+          reacted
+            ? "bg-accent/15 ring-1 ring-accent/30 text-accent scale-105"
+            : "bg-white/[0.04] ring-1 ring-white/[0.06] text-ivory/50 hover:bg-white/[0.08] hover:text-ivory/80"
+        }`}
+    >
+      {emoji}
+    </button>
+  );
+}
+
 /**
  * ReactionBar — 6 fixed emoji buttons + custom picker + who-reacted viewer.
  *
@@ -68,39 +91,28 @@ export default function ReactionBar({
     onReact?.(emoji.native);
   }
 
-  function EmojiBtn({ emoji }) {
-    const usersList = Array.isArray(reactions[emoji]) ? reactions[emoji] : [];
-    const reacted = usersList.includes(currentUserId);
-    return (
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onReact?.(emoji);
-        }}
-        title={emoji}
-        className={`flex items-center justify-center w-7 h-6 rounded-lg text-sm transition-all duration-150 select-none
-          ${
-            reacted
-              ? "bg-accent/15 ring-1 ring-accent/30 text-accent scale-105"
-              : "bg-white/[0.04] ring-1 ring-white/[0.06] text-ivory/50 hover:bg-white/[0.08] hover:text-ivory/80"
-          }`}
-      >
-        {emoji}
-      </button>
-    );
-  }
-
   return (
     <div className="relative flex items-center gap-1.5 flex-wrap">
       {/* Fixed emoji buttons */}
       {FIXED_EMOJIS.map((emoji) => (
-        <EmojiBtn key={emoji} emoji={emoji} />
+        <EmojiBtn
+          key={emoji}
+          emoji={emoji}
+          reactions={reactions}
+          currentUserId={currentUserId}
+          onReact={onReact}
+        />
       ))}
 
       {/* Extra emojis added via picker */}
       {extraEmojis.map((emoji) => (
-        <EmojiBtn key={emoji} emoji={emoji} />
+        <EmojiBtn
+          key={emoji}
+          emoji={emoji}
+          reactions={reactions}
+          currentUserId={currentUserId}
+          onReact={onReact}
+        />
       ))}
 
       {/* Custom picker button */}
@@ -136,13 +148,13 @@ export default function ReactionBar({
         </div>
       )}
 
-      {/* Reaction count — click to see who reacted */}
-      {totalCount > 0 && (
+      {/* Reaction count — only shown when targetId is available; click to toggle viewer */}
+      {totalCount > 0 && targetId && (
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            if (targetId) setViewerOpen(true);
+            setViewerOpen((v) => !v);
           }}
           className="text-[10px] font-mono text-ivory/30 hover:text-ivory/60 ml-0.5 transition-colors"
         >

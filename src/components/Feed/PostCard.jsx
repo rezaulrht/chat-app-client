@@ -187,6 +187,8 @@ export default function PostCard({
             currentUserId={currentUserId}
             onReact={(emoji) => onReact?.(post._id, emoji)}
             variant="card"
+            targetId={post._id}
+            targetType="post"
           />
         </div>
       </article>
@@ -233,6 +235,8 @@ export default function PostCard({
             currentUserId={currentUserId}
             onReact={(emoji) => onReact?.(post._id, emoji)}
             variant="card"
+            targetId={post._id}
+            targetType="post"
           />
         </div>
       </article>
@@ -266,6 +270,8 @@ export default function PostCard({
             currentUserId={currentUserId}
             onReact={(emoji) => onReact?.(post._id, emoji)}
             variant="card"
+            targetId={post._id}
+            targetType="post"
           />
           <button
             onClick={() => onOpen?.(post)}
@@ -412,6 +418,8 @@ export default function PostCard({
             currentUserId={currentUserId}
             onReact={(emoji) => onReact?.(post._id, emoji)}
             variant="card"
+            targetId={post._id}
+            targetType="post"
           />
         </div>
       </article>
@@ -479,6 +487,8 @@ export default function PostCard({
           currentUserId={currentUserId}
           onReact={(emoji) => onReact?.(post._id, emoji)}
           variant="card"
+          targetId={post._id}
+          targetType="post"
         />
         <button
           onClick={() => onOpen?.(post)}

@@ -272,6 +272,8 @@ export default function PostDetail({
             reactions={post.reactions ?? {}}
             currentUserId={currentUserId}
             onReact={(emoji) => onReact?.(post._id, emoji)}
+            targetId={post._id}
+            targetType="post"
           />
           <span className="flex items-center gap-1.5 text-[12px] font-mono text-ivory/25 ml-auto">
             <MessageSquare size={12} /> {effectiveCommentCount} comment

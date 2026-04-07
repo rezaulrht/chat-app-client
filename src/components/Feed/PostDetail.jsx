@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { SocketContext } from "@/context/SocketContext";
 import {
   ArrowLeft,
@@ -27,6 +28,7 @@ import SnippetBlock from "./SnippetBlock";
 import MarkdownText from "./MarkdownText";
 import PollCard from "./PollCard";
 import CommentSection from "./CommentSection";
+import ReactionsViewer from "./ReactionsViewer";
 import { formatDistanceToNow } from "date-fns";
 
 const TYPE_META = {
@@ -92,6 +94,7 @@ export default function PostDetail({
   onDeleteComment,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [reactionsViewerOpen, setReactionsViewerOpen] = useState(false);
 
   const socketCtx = useContext(SocketContext);
   const socket = socketCtx?.socket ?? null;
@@ -266,20 +269,49 @@ export default function PostDetail({
           </div>
         )}
 
-        {/* Reactions */}
-        <div className="flex items-center gap-4 py-3 border-y border-white/[0.05]">
-          <ReactionBar
-            reactions={post.reactions ?? {}}
-            currentUserId={currentUserId}
-            onReact={(emoji) => onReact?.(post._id, emoji)}
-            targetId={post._id}
-            targetType="post"
-          />
-          <span className="flex items-center gap-1.5 text-[12px] font-mono text-ivory/25 ml-auto">
-            <MessageSquare size={12} /> {effectiveCommentCount} comment
-            {effectiveCommentCount !== 1 ? "s" : ""}
-          </span>
-        </div>
+        {/* Reactions + comment count */}
+        {(() => {
+          const rxns = post.reactions ?? {};
+          const entries = Object.entries(rxns).filter(([, u]) => Array.isArray(u) && u.length > 0);
+          const total = entries.reduce((s, [, u]) => s + u.length, 0);
+          const didReact = entries.some(([, u]) => u.includes(currentUserId));
+          return (
+            <div className="flex items-center gap-2 py-3 border-y border-white/[0.05]">
+              <ReactionBar
+                reactions={rxns}
+                currentUserId={currentUserId}
+                onReact={(emoji) => onReact?.(post._id, emoji)}
+                onViewAll={() => setReactionsViewerOpen(true)}
+              />
+              <div className="flex-1" />
+              {total > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setReactionsViewerOpen(true)}
+                  className={`text-[12px] font-mono transition-colors ${
+                    didReact ? "text-accent/70 hover:text-accent" : "text-ivory/30 hover:text-ivory/55"
+                  }`}
+                >
+                  {total} reaction{total !== 1 ? "s" : ""}
+                </button>
+              )}
+              <span className="flex items-center gap-1.5 text-[12px] font-mono text-ivory/25">
+                <MessageSquare size={12} /> {effectiveCommentCount} comment
+                {effectiveCommentCount !== 1 ? "s" : ""}
+              </span>
+              {reactionsViewerOpen && typeof document !== "undefined" && createPortal(
+                <ReactionsViewer
+                  targetId={post._id}
+                  targetType="post"
+                  currentUserId={currentUserId}
+                  onRemoveReaction={(emoji) => onReact?.(post._id, emoji)}
+                  onClose={() => setReactionsViewerOpen(false)}
+                />,
+                document.body
+              )}
+            </div>
+          );
+        })()}
 
         {/* Comments */}
         <CommentSection

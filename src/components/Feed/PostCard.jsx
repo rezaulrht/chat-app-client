@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import {
   MessageSquare,
@@ -14,6 +15,7 @@ import {
 import SnippetBlock from "./SnippetBlock";
 import MarkdownText from "./MarkdownText";
 import ReactionBar from "./ReactionBar";
+import ReactionsViewer from "./ReactionsViewer";
 import { formatDistanceToNow } from "date-fns";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -23,10 +25,6 @@ function timeAgo(date) {
   } catch {
     return "";
   }
-}
-
-function getPostReactions(post) {
-  return post?.reactions ?? {};
 }
 
 // ── Reusable sub-components ──────────────────────────────────────────────────
@@ -67,10 +65,7 @@ function OverflowMenu({ isOwn, onShare, onEdit, onDelete }) {
       {open && (
         <div className="absolute right-0 top-8 z-20 w-36 rounded-xl bg-deep border border-white/[0.1] py-1 shadow-xl shadow-black/30">
           <button
-            onClick={() => {
-              setOpen(false);
-              onShare?.();
-            }}
+            onClick={() => { setOpen(false); onShare?.(); }}
             className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-ivory/60 hover:text-ivory hover:bg-white/[0.05] transition-colors"
           >
             <Share2 size={12} /> Share
@@ -78,19 +73,13 @@ function OverflowMenu({ isOwn, onShare, onEdit, onDelete }) {
           {isOwn && (
             <>
               <button
-                onClick={() => {
-                  setOpen(false);
-                  onEdit?.();
-                }}
+                onClick={() => { setOpen(false); onEdit?.(); }}
                 className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-ivory/60 hover:text-ivory hover:bg-white/[0.05] transition-colors"
               >
                 <Pencil size={12} /> Edit
               </button>
               <button
-                onClick={() => {
-                  setOpen(false);
-                  onDelete?.();
-                }}
+                onClick={() => { setOpen(false); onDelete?.(); }}
                 className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-red-400/70 hover:text-red-400 hover:bg-red-400/5 transition-colors"
               >
                 <Trash2 size={12} /> Delete
@@ -103,6 +92,92 @@ function OverflowMenu({ isOwn, onShare, onEdit, onDelete }) {
   );
 }
 
+/**
+ * Unified action bar used by all post types.
+ * Layout: [SmilePlus]  ·····  [🔥 N reactions]  [💬 N]  [Share]
+ */
+function PostActions({ post, currentUserId, commentCount, onOpen, onShare, onReact, extra }) {
+  const [viewerOpen, setViewerOpen] = useState(false);
+
+  const reactions = post.reactions ?? {};
+  const reactionEntries = Object.entries(reactions).filter(
+    ([, users]) => Array.isArray(users) && users.length > 0
+  );
+  const totalCount = reactionEntries.reduce((sum, [, users]) => sum + users.length, 0);
+  const didReact = reactionEntries.some(([, users]) => users.includes(currentUserId));
+
+  return (
+    <div
+      className="flex items-center gap-2 mt-3 pt-3 border-t border-white/[0.05]"
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* Left: add / undo reaction */}
+      <ReactionBar
+        reactions={reactions}
+        currentUserId={currentUserId}
+        onReact={(emoji) => onReact?.(post._id, emoji)}
+        onViewAll={() => setViewerOpen(true)}
+      />
+
+      {/* Spacer */}
+      <div className="flex-1" />
+
+      {/* Extra slot (e.g. "Answer" button for questions) */}
+      {extra}
+
+      {/* Reactions count — right side, number only */}
+      {totalCount > 0 && (
+        <button
+          type="button"
+          onClick={() => setViewerOpen(true)}
+          className={`text-[12px] font-mono transition-colors duration-150 ${
+            didReact
+              ? "text-accent/70 hover:text-accent"
+              : "text-ivory/30 hover:text-ivory/55"
+          }`}
+        >
+          {totalCount} reaction{totalCount !== 1 ? "s" : ""}
+        </button>
+      )}
+
+      {/* Comment count */}
+      <button
+        type="button"
+        onClick={() => onOpen?.(post)}
+        className="flex items-center gap-1.5 text-[12px] font-mono text-ivory/30 hover:text-ivory/55 transition-colors"
+      >
+        <MessageSquare size={12} />
+        <span>{commentCount}</span>
+      </button>
+
+      {/* Share */}
+      <button
+        type="button"
+        onClick={() => onShare?.(post)}
+        className="flex items-center justify-center w-7 h-7 rounded-lg text-ivory/25 hover:text-accent/60 hover:bg-white/[0.06] transition-all"
+        title="Share"
+      >
+        <Share2 size={13} />
+      </button>
+
+      {/* Reactions modal */}
+      {viewerOpen &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <ReactionsViewer
+            targetId={post._id}
+            targetType="post"
+            currentUserId={currentUserId}
+            onRemoveReaction={(emoji) => onReact?.(post._id, emoji)}
+            onClose={() => setViewerOpen(false)}
+          />,
+          document.body
+        )}
+    </div>
+  );
+}
+
+// ── Main component ───────────────────────────────────────────────────────────
 export default function PostCard({
   post = {},
   currentUserId = "",
@@ -119,9 +194,7 @@ export default function PostCard({
       : post.author?._id?.toString?.() || "";
   const isOwn = authorId === currentUserId || authorId === "me";
   const commentCount = post.commentCount ?? post.commentsCount ?? 0;
-  const reactions = getPostReactions(post);
 
-  // ── Base style for all feed items ──
   const base =
     "relative cursor-pointer hover:bg-white/[0.02] transition-colors duration-150 border-b border-white/[0.06]";
 
@@ -150,47 +223,39 @@ export default function PostCard({
         <MarkdownText className="text-[13px] text-ivory/50 leading-relaxed mb-4 font-sans [&_p]:my-0 [&_strong]:text-ivory/80 [&_em]:text-ivory/75">
           {post.content}
         </MarkdownText>
-        <div
-          className="flex items-center gap-3 flex-wrap"
-          onClick={(e) => e.stopPropagation()}
-        >
+        <div className="flex items-center gap-3 flex-wrap" onClick={(e) => e.stopPropagation()}>
           <AvatarCircle user={post.author} size={24} />
           <span className="text-[12px] font-mono text-ivory/30">
             asked by <span className="text-ivory/55">{post.author?.name}</span>
             {" · "}
             {timeAgo(post.createdAt)}
           </span>
-          <div className="ml-auto flex items-center gap-2.5">
+          <div className="ml-auto">
             <OverflowMenu
               isOwn={isOwn}
               onShare={() => onShare?.(post)}
               onEdit={() => onEdit?.(post)}
               onDelete={() => onDelete?.(post._id)}
             />
+          </div>
+        </div>
+        <PostActions
+          post={post}
+          currentUserId={currentUserId}
+          commentCount={commentCount}
+          onOpen={onOpen}
+          onShare={onShare}
+          onReact={onReact}
+          extra={
             <button
-              onClick={() => onOpen?.(post)}
-              className="flex items-center gap-1 text-[12px] font-mono text-ivory/30 hover:text-ivory/50 transition-colors"
-            >
-              <MessageSquare size={12} /> {commentCount}
-            </button>
-            <button
-              onClick={() => onOpen?.(post)}
-              className="px-3 py-1.5 rounded-lg bg-accent/10 border border-accent/25 text-accent text-[12px] font-mono font-bold hover:bg-accent/20 transition-colors"
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onOpen?.(post); }}
+              className="px-3 py-1 rounded-lg bg-accent/10 border border-accent/25 text-accent text-[12px] font-mono font-bold hover:bg-accent/20 transition-colors"
             >
               Answer
             </button>
-          </div>
-        </div>
-        <div className="mt-3" onClick={(e) => e.stopPropagation()}>
-          <ReactionBar
-            reactions={reactions}
-            currentUserId={currentUserId}
-            onReact={(emoji) => onReact?.(post._id, emoji)}
-            variant="card"
-            targetId={post._id}
-            targetType="post"
-          />
-        </div>
+          }
+        />
       </article>
     );
   }
@@ -229,16 +294,14 @@ export default function PostCard({
             <SnippetBlock files={post.codeBlocks.slice(0, 1)} />
           </div>
         )}
-        <div className="mt-3" onClick={(e) => e.stopPropagation()}>
-          <ReactionBar
-            reactions={reactions}
-            currentUserId={currentUserId}
-            onReact={(emoji) => onReact?.(post._id, emoji)}
-            variant="card"
-            targetId={post._id}
-            targetType="post"
-          />
-        </div>
+        <PostActions
+          post={post}
+          currentUserId={currentUserId}
+          commentCount={commentCount}
+          onOpen={onOpen}
+          onShare={onShare}
+          onReact={onReact}
+        />
       </article>
     );
   }
@@ -261,25 +324,14 @@ export default function PostCard({
         <MarkdownText className="text-[14px] text-ivory/75 leading-relaxed mb-4 font-sans [&_p]:my-0 [&_strong]:text-ivory/85 [&_em]:text-ivory/80">
           {post.content}
         </MarkdownText>
-        <div
-          className="flex items-center gap-4"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <ReactionBar
-            reactions={reactions}
-            currentUserId={currentUserId}
-            onReact={(emoji) => onReact?.(post._id, emoji)}
-            variant="card"
-            targetId={post._id}
-            targetType="post"
-          />
-          <button
-            onClick={() => onOpen?.(post)}
-            className="flex items-center gap-1.5 text-[12px] font-mono text-ivory/35 hover:text-ivory/60 transition-colors ml-auto"
-          >
-            <MessageSquare size={12} /> {commentCount}
-          </button>
-        </div>
+        <PostActions
+          post={post}
+          currentUserId={currentUserId}
+          commentCount={commentCount}
+          onOpen={onOpen}
+          onShare={onShare}
+          onReact={onReact}
+        />
       </article>
     );
   }
@@ -290,12 +342,7 @@ export default function PostCard({
       (sum, o) => sum + (o.votes?.length ?? 0),
       0,
     );
-    const POLL_COLORS = [
-      "bg-accent",
-      "bg-blue-400",
-      "bg-purple-400",
-      "bg-amber-400",
-    ];
+    const POLL_COLORS = ["bg-accent", "bg-blue-400", "bg-purple-400", "bg-amber-400"];
     const pollEndDate = post.poll.expiresAt ?? post.poll.endsAt;
     const daysLeft = pollEndDate
       ? Math.max(0, Math.ceil((new Date(pollEndDate) - Date.now()) / 86400000))
@@ -315,11 +362,8 @@ export default function PostCard({
         </div>
         <div className="flex flex-col gap-2.5 mb-3">
           {post.poll.options.map((option, i) => {
-            const optionVotes = Array.isArray(option.votes)
-              ? option.votes.length
-              : 0;
-            const pct =
-              totalVotes > 0 ? Math.round((optionVotes / totalVotes) * 100) : 0;
+            const optionVotes = Array.isArray(option.votes) ? option.votes.length : 0;
+            const pct = totalVotes > 0 ? Math.round((optionVotes / totalVotes) * 100) : 0;
             return (
               <div key={i} className="flex items-center gap-3">
                 <div className="relative flex-1 h-9 rounded-lg overflow-hidden bg-white/[0.04] border border-white/[0.07]">
@@ -338,10 +382,18 @@ export default function PostCard({
             );
           })}
         </div>
-        <p className="text-[11px] font-mono text-ivory/25 uppercase tracking-wider">
+        <p className="text-[11px] font-mono text-ivory/25 uppercase tracking-wider mb-1">
           {totalVotes.toLocaleString()} votes
           {daysLeft !== null ? ` · ${daysLeft} days left` : ""}
         </p>
+        <PostActions
+          post={post}
+          currentUserId={currentUserId}
+          commentCount={commentCount}
+          onOpen={onOpen}
+          onShare={onShare}
+          onReact={onReact}
+        />
       </article>
     );
   }
@@ -412,16 +464,14 @@ export default function PostCard({
             </div>
           </a>
         )}
-        <div onClick={(e) => e.stopPropagation()}>
-          <ReactionBar
-            reactions={reactions}
-            currentUserId={currentUserId}
-            onReact={(emoji) => onReact?.(post._id, emoji)}
-            variant="card"
-            targetId={post._id}
-            targetType="post"
-          />
-        </div>
+        <PostActions
+          post={post}
+          currentUserId={currentUserId}
+          commentCount={commentCount}
+          onOpen={onOpen}
+          onShare={onShare}
+          onReact={onReact}
+        />
       </article>
     );
   }
@@ -478,31 +528,14 @@ export default function PostCard({
           </div>
         </a>
       )}
-      <div
-        className="flex items-center gap-3"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <ReactionBar
-          reactions={reactions}
-          currentUserId={currentUserId}
-          onReact={(emoji) => onReact?.(post._id, emoji)}
-          variant="card"
-          targetId={post._id}
-          targetType="post"
-        />
-        <button
-          onClick={() => onOpen?.(post)}
-          className="ml-auto flex items-center gap-1 text-[12px] font-mono text-ivory/30 hover:text-ivory/50 transition-colors"
-        >
-          <MessageSquare size={12} /> {commentCount}
-        </button>
-        <button
-          onClick={() => onShare?.(post)}
-          className="flex items-center gap-1 text-[12px] font-mono text-ivory/30 hover:text-accent/60 transition-colors"
-        >
-          <Share2 size={12} />
-        </button>
-      </div>
+      <PostActions
+        post={post}
+        currentUserId={currentUserId}
+        commentCount={commentCount}
+        onOpen={onOpen}
+        onShare={onShare}
+        onReact={onReact}
+      />
     </article>
   );
 }

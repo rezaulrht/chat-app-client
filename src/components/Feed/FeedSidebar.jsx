@@ -633,22 +633,26 @@ function RightSidebar({ onTagFilter }) {
   // Re-fetch leaderboard when reputation changes
   useEffect(() => {
     if (reputationTick === 0) return;
+    let cancelled = false;
     getTopContributors()
       .then((contributors) => {
-        setTopContributors(Array.isArray(contributors) ? contributors : []);
+        if (!cancelled) setTopContributors(Array.isArray(contributors) ? contributors : []);
       })
       .catch(() => {});
+    return () => { cancelled = true; };
   }, [reputationTick, getTopContributors]);
 
   // Re-fetch trending tags when posts are created or deleted
   useEffect(() => {
     if (feedPostTick === 0) return;
+    let cancelled = false;
     api
       .get("/api/feed/tags/trending")
       .then((r) => {
-        setTrendingTags(Array.isArray(r.data) ? r.data : []);
+        if (!cancelled) setTrendingTags(Array.isArray(r.data) ? r.data : []);
       })
       .catch(() => {});
+    return () => { cancelled = true; };
   }, [feedPostTick]);
 
   const visibleTags = showAllTags ? trendingTags : trendingTags.slice(0, 5);

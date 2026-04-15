@@ -596,7 +596,7 @@ function LeftSidebar({ userStats, followedTags, onTagFilter, collapsed = false }
 // ── RIGHT SIDEBAR ─────────────────────────────────────────────────────────────
 
 function RightSidebar({ onTagFilter }) {
-  const { getTopContributors, setFilters, setPage, followUser, followingSet } =
+  const { getTopContributors, setFilters, setPage, followUser, followingSet, reputationTick, feedPostTick } =
     useFeed();
 
   const [trendingTags, setTrendingTags] = useState([]);
@@ -629,6 +629,27 @@ function RightSidebar({ onTagFilter }) {
     const interval = setInterval(fetchData, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [fetchData]);
+
+  // Re-fetch leaderboard when reputation changes
+  useEffect(() => {
+    if (reputationTick === 0) return;
+    getTopContributors()
+      .then((contributors) => {
+        setTopContributors(Array.isArray(contributors) ? contributors : []);
+      })
+      .catch(() => {});
+  }, [reputationTick, getTopContributors]);
+
+  // Re-fetch trending tags when posts are created or deleted
+  useEffect(() => {
+    if (feedPostTick === 0) return;
+    api
+      .get("/api/feed/tags/trending")
+      .then((r) => {
+        setTrendingTags(Array.isArray(r.data) ? r.data : []);
+      })
+      .catch(() => {});
+  }, [feedPostTick]);
 
   const visibleTags = showAllTags ? trendingTags : trendingTags.slice(0, 5);
 

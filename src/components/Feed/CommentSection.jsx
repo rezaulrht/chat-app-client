@@ -250,6 +250,8 @@ function CommentItem({
                 currentUserId={currentUserId}
                 onReact={(emoji) => onReact?.(comment._id, emoji)}
                 variant="comment"
+                targetId={comment._id}
+                targetType="comment"
               />
             </div>
           )}

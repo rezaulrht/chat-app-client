@@ -329,7 +329,8 @@ export function FeedProvider({ children }) {
           const token = localStorage.getItem("token");
           if (!token) return null;
           const b64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
-          return JSON.parse(atob(b64))?.id ?? null;
+          const p = JSON.parse(atob(b64));
+          return p?.id ?? p?._id ?? null;
         } catch {
           return null;
         }

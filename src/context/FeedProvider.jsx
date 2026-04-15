@@ -200,7 +200,7 @@ export function FeedProvider({ children }) {
     } catch (error) {
       // silently fail — stats not critical
     }
-  }, []);
+  }, [authUser]);
 
   useEffect(() => {
     fetchMyStats();
@@ -453,7 +453,7 @@ export function FeedProvider({ children }) {
       socket.off("feed:poll:voted", handlePollVoted);
       socket.off("feed:follow", handleFollow);
     };
-  }, [socket, normalizePost, toId, fetchMyStats, authUser]);
+  }, [socket, normalizePost, toId, fetchMyStats]);
 
   useEffect(() => {
     if (!socket) return;

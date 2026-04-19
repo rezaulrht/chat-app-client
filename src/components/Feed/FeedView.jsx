@@ -181,6 +181,8 @@ export default function FeedView() {
     userStats,
     followedTags,
     socket,
+    pendingPostCount,
+    flushPendingPosts,
   } = useFeed();
 
   const [activePost, setActivePost] = useState(null); // PostDetail view
@@ -256,6 +258,19 @@ export default function FeedView() {
       socket?.emit("feed:post:leave", postId);
     };
   }, [activePost?._id, fetchComments, socket]);
+
+  // When a post the user has open gets edited by someone else, update it live
+  useEffect(() => {
+    if (!socket || !activePost?._id) return;
+    const handler = ({ post }) => {
+      if (!post?._id) return;
+      if (String(post._id) === String(activePost._id)) {
+        setActivePost((prev) => (prev ? { ...prev, ...post } : prev));
+      }
+    };
+    socket.on("feed:post:updated", handler);
+    return () => socket.off("feed:post:updated", handler);
+  }, [socket, activePost?._id]);
 
   useEffect(() => {
     const node = loadMoreRef.current;
@@ -585,6 +600,18 @@ export default function FeedView() {
             </button>
           ))}
         </div>
+
+        {/* New posts banner */}
+        {pendingPostCount > 0 && !activePost && !searchQuery && (
+          <button
+            type="button"
+            onClick={flushPendingPosts}
+            className="shrink-0 mx-4 my-2 flex items-center justify-center gap-2 py-2 rounded-xl bg-accent/10 border border-accent/20 text-accent text-[12px] font-mono font-bold hover:bg-accent/15 active:scale-[0.98] transition-all"
+          >
+            <span className="text-[14px]">↑</span>
+            {pendingPostCount === 1 ? "1 new post" : `${pendingPostCount} new posts`} — click to load
+          </button>
+        )}
 
         {/* Post list or PostDetail */}
         <div className="flex-1 overflow-y-auto scrollbar-hide pb-[88px] xl:pb-0">

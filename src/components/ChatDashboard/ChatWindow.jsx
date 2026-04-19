@@ -163,6 +163,7 @@ export default function ChatWindow({
 
   const handleStartCall = useCallback(
     async (callType) => {
+      if (!conversation?._id) return;
       try {
         const { data } = await api.post("/api/calls/initiate", {
           conversationId: conversation._id,
@@ -173,7 +174,7 @@ export default function ChatWindow({
         toast.error(err?.response?.data?.error || "Failed to start call");
       }
     },
-    [conversation._id, startCall],
+    [conversation?._id, startCall],
   );
   const router = useRouter();
 
@@ -190,15 +191,7 @@ export default function ChatWindow({
     ? `.gpr-picker { --gpr-bg-color: #f5f7f8 !important; --gpr-secondary-bg: #eef2f4 !important; --gpr-text-color: #1f2937 !important; --gpr-text-secondary: #4b5563 !important; --gpr-border-color: #d1d5db !important; --gpr-highlight-color: #14b8a6 !important; --gpr-highlight-hover: #0d9488 !important; --gpr-input-bg: #ffffff !important; --gpr-hover-bg: rgba(20, 184, 166, 0.12) !important; --gpr-radius: 16px !important; border: none !important; } .gpr-trending-terms { display: none !important; }`
     : `.gpr-picker { --gpr-bg-color: #15191C !important; --gpr-secondary-bg: #1C2227 !important; --gpr-text-color: #cbd5e1 !important; --gpr-text-secondary: #94a3b8 !important; --gpr-border-color: #1e293b !important; --gpr-highlight-color: #2dd4bf !important; --gpr-highlight-hover: #5eead4 !important; --gpr-input-bg: #0B0E11 !important; --gpr-hover-bg: rgba(45, 212, 191, 0.1) !important; --gpr-radius: 16px !important; border: none !important; } .gpr-trending-terms { display: none !important; }`;
 
-  if (!conversation) {
-    return (
-      <div className="flex flex-1 items-center justify-center h-full text-ivory/40">
-        Select a conversation to start chatting
-      </div>
-    );
-  }
-
-  const isGroup = conversation.type === "group";
+  const isGroup = conversation?.type === "group";
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [loadingMessages, setLoadingMessages] = useState(false);
@@ -364,7 +357,7 @@ export default function ChatWindow({
 
   const renderMessageText = (text, mentions, mentionData = []) => {
     if (!text) return null;
-    const participants = conversation.participants || [];
+    const participants = conversation?.participants || [];
     let resolvedMentions = (mentions || [])
       .map((m) => {
         const id = typeof m === "object" ? m._id || m.id : m;
@@ -612,7 +605,7 @@ export default function ChatWindow({
     const mentionMatch = textBeforeCursor.match(/@([a-zA-Z0-9_\s]*)$/);
     if (isGroup && mentionMatch) {
       const query = mentionMatch[1].toLowerCase();
-      const participants = conversation.participants || [];
+      const participants = conversation?.participants || [];
       const currentMentions = parsed.mentions.map((m) =>
         typeof m === "object" ? m.id : m,
       );

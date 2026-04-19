@@ -22,6 +22,9 @@ export function FeedProvider({ children }) {
   const [selectedPost, setSelectedPost] = useState(null);
   const [shareTarget, setShareTarget] = useState(null);
   const [commentsByPost, setCommentsByPost] = useState({});
+  const [pendingPostCount, setPendingPostCount] = useState(0);
+  const [feedPostTick, setFeedPostTick] = useState(0);
+  const [refreshKey, setRefreshKey] = useState(0);
   const { user: authUser } = useAuth();
 
   const [userStats, setUserStats] = useState(() => ({
@@ -169,7 +172,7 @@ export function FeedProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  }, [activeTab, filters, page, mergePosts, normalizePost]);
+  }, [activeTab, filters, page, mergePosts, normalizePost, refreshKey]);
 
   const fetchMyStats = useCallback(async () => {
     try {
@@ -197,11 +200,17 @@ export function FeedProvider({ children }) {
     } catch (error) {
       // silently fail — stats not critical
     }
-  }, []);
+  }, [authUser]);
 
   useEffect(() => {
     fetchMyStats();
   }, [fetchMyStats]);
+
+  const flushPendingPosts = useCallback(() => {
+    setPendingPostCount(0);
+    setPage(1);
+    setRefreshKey((k) => k + 1);
+  }, []);
 
   // Tick that increments whenever any reputation change is broadcast.
   // RightSidebar watches this to know when to re-fetch the leaderboard.
@@ -279,28 +288,9 @@ export function FeedProvider({ children }) {
     };
 
     // When a new post is created by any user
-    const handlePostCreated = ({ post }) => {
-      if (!post) return;
-      const normalized = normalizePost(post);
-      // Don't add if it's our own post (already added optimistically)
-      const myId = authUser?._id || authUser?.id;
-      const postAuthorId = post.author?._id || post.author;
-      if (String(postAuthorId) === String(myId)) return;
-      
-      // Only add if post matches current feed filters
-      const matchesType = filters.type === "all" || normalized.type === filters.type;
-      const matchesTag = filters.tags.length === 0 || (normalized.tags || []).some(t => filters.tags.includes(t));
-      const matchesSearch = !searchQuery || (normalized.title || "").toLowerCase().includes(searchQuery.toLowerCase()) || (normalized.content || "").toLowerCase().includes(searchQuery.toLowerCase());
-      
-      if (!matchesType || !matchesTag || !matchesSearch) return;
-      
-      setPosts((prev) => {
-        // Check if post already exists
-        if (prev.some((p) => String(p._id) === String(normalized._id))) {
-          return prev;
-        }
-        return [normalized, ...prev];
-      });
+    const handlePostCreated = () => {
+      setPendingPostCount((c) => c + 1);
+      setFeedPostTick((t) => t + 1);
     };
 
     // When a post is deleted
@@ -316,6 +306,7 @@ export function FeedProvider({ children }) {
         delete updated[postIdStr];
         return updated;
       });
+      setFeedPostTick((t) => t + 1);
     };
 
     // When any user's reputation changes, refresh own stats and ping the
@@ -340,12 +331,113 @@ export function FeedProvider({ children }) {
       }
     };
 
+    const handlePostUpdated = ({ post }) => {
+      if (!post?._id) return;
+      setPosts((prev) =>
+        prev.map((p) => (String(p._id) === String(post._id) ? normalizePost({ ...p, ...post }) : p))
+      );
+    };
+
+    const handlePostReactionUpdated = ({ postId, reactions, reactionCount }) => {
+      if (!postId) return;
+      setPosts((prev) =>
+        prev.map((p) =>
+          String(p._id) === String(postId) ? { ...p, reactions, reactionCount } : p
+        )
+      );
+    };
+
+    const handleCommentUpdated = ({ comment }) => {
+      if (!comment?._id || !comment?.post) return;
+      const postId = String(comment.post);
+      setCommentsByPost((prev) => {
+        const existing = Array.isArray(prev[postId]) ? prev[postId] : [];
+        const updated = existing.map((c) =>
+          String(c._id) === String(comment._id)
+            ? { ...c, ...comment, replyTo: toId(comment.parentComment) }
+            : c
+        );
+        return { ...prev, [postId]: updated };
+      });
+    };
+
+    const handleCommentReacted = ({ commentId, postId, reactions, reactionCount }) => {
+      if (!commentId || !postId) return;
+      setCommentsByPost((prev) => {
+        const existing = Array.isArray(prev[String(postId)]) ? prev[String(postId)] : [];
+        const updated = existing.map((c) =>
+          String(c._id) === String(commentId) ? { ...c, reactions, reactionCount } : c
+        );
+        return { ...prev, [String(postId)]: updated };
+      });
+    };
+
+    const handleAnswerAccepted = ({ postId, commentId, status }) => {
+      if (!postId) return;
+      setPosts((prev) =>
+        prev.map((p) =>
+          String(p._id) === String(postId)
+            ? normalizePost({
+                ...p,
+                acceptedComment: commentId,
+                acceptedAnswer: commentId,
+                status: status ?? "resolved",
+              })
+            : p
+        )
+      );
+      setCommentsByPost((prev) => {
+        const existing = Array.isArray(prev[String(postId)]) ? prev[String(postId)] : [];
+        const updated = existing.map((c) => ({
+          ...c,
+          isAccepted: String(c._id) === String(commentId),
+        }));
+        return { ...prev, [String(postId)]: updated };
+      });
+    };
+
+    const handlePollVoted = ({ postId, poll }) => {
+      if (!postId || !poll) return;
+      setPosts((prev) =>
+        prev.map((p) =>
+          String(p._id) === String(postId) ? normalizePost({ ...p, poll }) : p
+        )
+      );
+    };
+
+    const handleFollow = ({ followedUserId }) => {
+      const myId = (() => {
+        try {
+          const token = localStorage.getItem("token");
+          if (!token) return null;
+          const b64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+          const p = JSON.parse(atob(b64));
+          return p?.id ?? p?._id ?? null;
+        } catch {
+          return null;
+        }
+      })();
+      if (myId && String(followedUserId) === String(myId)) {
+        setUserStats((prev) => ({
+          ...prev,
+          followersCount: (prev.followersCount ?? 0) + 1,
+        }));
+      }
+    };
+
     socket.on("feed:post:created", handlePostCreated);
     socket.on("feed:post:deleted", handlePostDeleted);
     socket.on("feed:post:reacted", handleReacted);
     socket.on("feed:comment:created", handleCommentCreated);
     socket.on("feed:comment:deleted", handleCommentDeleted);
     socket.on("feed:reputation:updated", handleReputationUpdated);
+    socket.on("feed:post:updated", handlePostUpdated);
+    socket.on("feed:post:reaction-updated", handlePostReactionUpdated);
+    socket.on("feed:comment:updated", handleCommentUpdated);
+    socket.on("feed:comment:reacted", handleCommentReacted);
+    socket.on("feed:answer:accepted", handleAnswerAccepted);
+    socket.on("feed:poll:voted", handlePollVoted);
+    socket.on("feed:follow", handleFollow);
     return () => {
       socket.off("feed:post:created", handlePostCreated);
       socket.off("feed:post:deleted", handlePostDeleted);
@@ -353,8 +445,23 @@ export function FeedProvider({ children }) {
       socket.off("feed:comment:created", handleCommentCreated);
       socket.off("feed:comment:deleted", handleCommentDeleted);
       socket.off("feed:reputation:updated", handleReputationUpdated);
+      socket.off("feed:post:updated", handlePostUpdated);
+      socket.off("feed:post:reaction-updated", handlePostReactionUpdated);
+      socket.off("feed:comment:updated", handleCommentUpdated);
+      socket.off("feed:comment:reacted", handleCommentReacted);
+      socket.off("feed:answer:accepted", handleAnswerAccepted);
+      socket.off("feed:poll:voted", handlePollVoted);
+      socket.off("feed:follow", handleFollow);
     };
-  }, [socket, normalizePost, toId, fetchMyStats, authUser]);
+  }, [socket, normalizePost, toId, fetchMyStats]);
+
+  useEffect(() => {
+    if (!socket) return;
+    socket.emit("feed:global:join");
+    return () => {
+      socket.emit("feed:global:leave");
+    };
+  }, [socket]);
 
   const createPost = useCallback(
     async (payload) => {
@@ -830,6 +937,7 @@ export function FeedProvider({ children }) {
 
       try {
         const res = await api.post(`/api/feed/users/${userId}/follow`);
+        await fetchMyStats();
         return res.data;
       } catch (error) {
         // Revert on error
@@ -865,7 +973,7 @@ export function FeedProvider({ children }) {
         throw error;
       }
     },
-    [followingSet],
+    [followingSet, fetchMyStats],
   );
 
   const getUserProfile = useCallback(
@@ -959,6 +1067,9 @@ export function FeedProvider({ children }) {
     // Social state
     followingSet,
     profileCache,
+    pendingPostCount,
+    flushPendingPosts,
+    feedPostTick,
     // Feed actions
     fetchPosts,
     createPost,
